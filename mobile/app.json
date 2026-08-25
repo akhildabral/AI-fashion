@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "AI Fashion",
+    "slug": "ai-fashion-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#f7f5f0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "AI Fashion needs access to your photos so you can add garments to your wardrobe and upload a photo for try-ons.",
+        "NSCameraUsageDescription": "AI Fashion needs access to your camera so you can photograph garments and yourself for try-ons."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f5f0",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AI Fashion needs access to your photos so you can add garments and upload a try-on photo.",
+          "cameraPermission": "AI Fashion needs access to your camera so you can photograph garments and yourself."
+        }
+      ]
+    ]
+  }
+}
