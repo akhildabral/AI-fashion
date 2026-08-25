@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api'
 import type { ProfileResponse, StyleProfile } from '../lib/types'
 import { useProfile } from '../context/useProfile'
 import { Spinner } from '../components/Spinner'
+import { PhotoManager } from '../components/PhotoManager'
 
 const BODY_TYPES = ['slim', 'athletic', 'average', 'curvy', 'plus'] as const
 const SKIN_TONES = ['fair', 'light', 'medium', 'tan', 'deep'] as const
@@ -419,6 +420,10 @@ export function ProfilePage() {
           )}
         </div>
       </form>
+
+      <div className="mt-8">
+        <PhotoManager />
+      </div>
     </div>
   )
 }

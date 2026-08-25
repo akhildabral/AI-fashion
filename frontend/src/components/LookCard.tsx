@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import type { FavoriteResponse, Look } from '../lib/types'
 import { Spinner } from './Spinner'
+import { TryOnModal } from './TryOnModal'
 
 interface OutfitItem {
   /** e.g. "Top", "Shoes" — derived from the object key when available. */
@@ -119,6 +120,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
   const [favorite, setFavorite] = useState<boolean>(Boolean(look.favorite))
   const [favBusy, setFavBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [tryOnOpen, setTryOnOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Keep local favorite state in sync when the look prop changes.
@@ -256,21 +258,53 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
           </p>
         )}
 
-        {canPersist && onDeleted && (
-          <div className="mt-auto pt-2">
+        {canPersist && (
+          <div className="mt-auto flex items-center justify-between gap-4 pt-2">
             <button
               type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="inline-flex items-center gap-2 text-sm font-medium text-ink/50 transition hover:text-red-700 disabled:opacity-60"
+              onClick={() => setTryOnOpen(true)}
+              className="btn-ghost"
             >
-              {deleting ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {deleting ? 'Removing…' : 'Remove'}
+              <TryOnIcon />
+              <span className="ml-2">Try it on</span>
             </button>
+
+            {onDeleted && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 text-sm font-medium text-ink/50 transition hover:text-red-700 disabled:opacity-60"
+              >
+                {deleting ? <Spinner className="h-3.5 w-3.5" /> : null}
+                {deleting ? 'Removing…' : 'Remove'}
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {tryOnOpen && canPersist && (
+        <TryOnModal lookId={look.id as string} onClose={() => setTryOnOpen(false)} />
+      )}
     </article>
+  )
+}
+
+function TryOnIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+    </svg>
   )
 }
 

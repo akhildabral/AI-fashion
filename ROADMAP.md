@@ -77,10 +77,14 @@ Turn the spike into an app that can hold users and data.
 **Phase 1 code complete.** ✅ Backend endpoints verified end to end (auth, profile merge, favorite, ownership scoping, delete). Live AI generation is blocked only by an **out-of-credits OpenAI account** — the request reaches OpenAI and the error surfaces cleanly; add credits to run it.
 
 ### Phase 2 — Virtual Try-On (the differentiator)
-- [ ] User uploads a full-body photo (with consent + storage).
-- [ ] Integrate a try-on model — evaluate **FASHN AI**, **IDM-VTON** (Replicate), or Google/Kling try-on APIs. Start with a hosted API, not self-hosted.
-- [ ] Render Phase 1 looks onto the user's photo.
-- [ ] Handle the hard parts: pose/lighting variance, garment segmentation, latency, failure fallback to the standard render.
+- [x] Photo upload with consent gate + local-disk storage (`POST`/`GET`/`DELETE /api/photo`); replacing a photo cleans up the old file.
+- [x] Local-disk storage layer (`/api/uploads/*`), also used to persist generated images — **fixes the earlier base64-in-DB bloat**.
+- [x] Try-on via **OpenAI `gpt-image-1` image editing** (renders a saved look onto the user's photo). Structured behind one service function so a dedicated VTON API (FASHN / Replicate IDM-VTON) can be swapped in without touching callers.
+- [x] `POST /api/looks/:id/tryon` + `GET /api/tryons`; results persisted (`TryOn` model), owner-scoped.
+- [x] UI: photo manager (consent), "Try it on" on look cards, a try-on modal with slow-render state, and a `/tryons` gallery.
+- [x] Graceful fallbacks: 400 if no photo, clean error surfacing on generation failure.
+
+**Phase 2 complete.** ✅ Verified end to end (upload → try-on render → serve → list → delete). Note: try-on fidelity is AI re-rendering, not pixel-exact garment transfer — swap in a dedicated VTON model for higher fidelity when desired.
 
 ### Phase 3 — Digital Wardrobe (retention engine)
 - [ ] Upload closet items (photo per garment).

@@ -9,6 +9,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { StylistPage } from './pages/StylistPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { LooksPage } from './pages/LooksPage'
+import { TryOnsPage } from './pages/TryOnsPage'
 
 export default function App() {
   return (
@@ -37,6 +38,16 @@ export default function App() {
                     <ProtectedRoute>
                       <RequireProfile>
                         <LooksPage />
+                      </RequireProfile>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tryons"
+                  element={
+                    <ProtectedRoute>
+                      <RequireProfile>
+                        <TryOnsPage />
                       </RequireProfile>
                     </ProtectedRoute>
                   }

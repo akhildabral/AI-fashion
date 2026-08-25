@@ -3,6 +3,9 @@ import express from 'express';
 import { authRouter } from './routes/auth.routes';
 import { looksRouter } from './routes/generate.routes';
 import { profileRouter } from './routes/profile.routes';
+import { photoRouter } from './routes/photo.routes';
+import { tryOnRouter } from './routes/tryon.routes';
+import { UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
 export function createApp() {
@@ -15,8 +18,13 @@ export function createApp() {
     res.json({ status: 'ok' });
   });
 
+  // Serve uploaded photos and generated images.
+  app.use('/api/uploads', express.static(UPLOADS_DIR));
+
   app.use('/api/auth', authRouter);
   app.use('/api/profile', profileRouter);
+  app.use('/api/photo', photoRouter);
+  app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);
 
   app.use(notFoundHandler);

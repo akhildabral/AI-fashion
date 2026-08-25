@@ -1,6 +1,7 @@
 import type { StyleProfile } from '@prisma/client';
 import { openai } from '../lib/openai';
 import { env } from '../config/env';
+import { saveBase64Image } from '../lib/storage';
 import { HttpError } from '../middleware/error';
 
 export interface OutfitPlan {
@@ -147,9 +148,10 @@ async function renderOutfitImage(imagePrompt: string): Promise<string | null> {
 
     const first = image.data?.[0];
     if (!first) return null;
-    // dall-e-3 returns a hosted URL; gpt-image-1 returns base64 → inline data URL.
+    // gpt-image-1 returns base64 → persist to disk and serve a URL (keeps the
+    // DB lean). dall-e-3 returns a hosted URL we can use directly.
+    if (first.b64_json) return saveBase64Image(first.b64_json, 'png').url;
     if (first.url) return first.url;
-    if (first.b64_json) return `data:image/png;base64,${first.b64_json}`;
     return null;
   } catch (err) {
     console.error('Image generation failed:', err instanceof Error ? err.message : err);

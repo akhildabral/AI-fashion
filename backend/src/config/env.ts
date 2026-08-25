@@ -18,6 +18,9 @@ const envSchema = z.object({
   // How many distinct looks to generate per request. Each look renders one
   // image, so this directly drives image-generation cost.
   LOOKS_PER_REQUEST: z.coerce.number().int().min(1).max(4).default(2),
+  // Directory (relative to the backend cwd) where uploaded photos and
+  // generated images are stored and served from.
+  UPLOADS_DIR: z.string().default('uploads'),
 });
 
 const parsed = envSchema.safeParse(process.env);

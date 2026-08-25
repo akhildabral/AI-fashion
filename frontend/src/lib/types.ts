@@ -67,3 +67,29 @@ export interface GenerateRequest {
   occasion: string
   gender: string
 }
+
+/** The user's uploaded photo used to render try-on images. */
+export interface PhotoResponse {
+  photoUrl: string | null
+}
+
+/** Response from a successful photo upload. */
+export interface PhotoUploadResponse {
+  photoUrl: string
+}
+
+/** A single rendered try-on: the user's photo wearing a saved look. */
+export interface TryOn {
+  id: string
+  lookId: string
+  imageUrl: string
+  createdAt: string
+}
+
+export interface TryOnResponse {
+  tryOn: TryOn
+}
+
+export interface TryOnsResponse {
+  tryOns: TryOn[]
+}

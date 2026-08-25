@@ -82,3 +82,51 @@ export async function apiFetch<T>(
 
   return data as T
 }
+
+/**
+ * Multipart upload helper. Sends `FormData` without a JSON `Content-Type` so the
+ * browser can set the correct `multipart/form-data` boundary itself. Still
+ * attaches the Bearer token and throws an `ApiError` on non-2xx like `apiFetch`.
+ */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  { method = 'POST', auth = true }: { method?: string; auth?: boolean } = {},
+): Promise<T> {
+  const headers: Record<string, string> = {}
+
+  if (auth) {
+    const token = getToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers,
+    body: formData,
+  })
+
+  const raw = await res.text()
+  let data: unknown = undefined
+  if (raw) {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      data = raw
+    }
+  }
+
+  if (!res.ok) {
+    const message =
+      (data && typeof data === 'object' && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : typeof data === 'string' && data
+          ? data
+          : null) ?? `Request failed with status ${res.status}`
+    throw new ApiError(message, res.status)
+  }
+
+  return data as T
+}

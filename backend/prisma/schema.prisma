@@ -14,11 +14,14 @@ model User {
   id           String        @id @default(uuid())
   email        String        @unique
   passwordHash String
+  // Relative path to the user's uploaded body photo (for virtual try-on).
+  photoPath    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   profile StyleProfile?
   looks   Look[]
+  tryOns  TryOn[]
 }
 
 // A user's persistent style profile — the "brain" every recommendation builds on.
@@ -49,6 +52,21 @@ model Look {
   rationale String
   imageUrl  String?
   favorite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tryOns TryOn[]
+
+  @@index([userId])
+}
+
+// A virtual try-on: a saved look rendered onto the user's uploaded photo.
+model TryOn {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lookId    String?
+  look      Look?    @relation(fields: [lookId], references: [id], onDelete: SetNull)
+  imageUrl  String
   createdAt DateTime @default(now())
 
   @@index([userId])

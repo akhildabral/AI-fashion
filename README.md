@@ -52,8 +52,14 @@ pnpm dev                     # http://localhost:5173 (proxies /api → :3000)
 | POST | `/api/auth/register` | – | Create account → `{ token, user }` |
 | POST | `/api/auth/login` | – | Log in → `{ token, user }` |
 | GET | `/api/auth/me` | Bearer | Current user |
-| POST | `/api/generate` | Bearer | Generate + persist an outfit look |
+| POST | `/api/generate` | Bearer | Generate + persist outfit looks |
 | GET | `/api/looks` | Bearer | List the user's saved looks |
+| GET/PUT | `/api/profile` | Bearer | Read / update the style profile |
+| POST | `/api/looks/:id/favorite` | Bearer | Favorite / unfavorite a look |
+| DELETE | `/api/looks/:id` | Bearer | Delete a look |
+| GET/POST/DELETE | `/api/photo` | Bearer | Manage the try-on body photo |
+| POST | `/api/looks/:id/tryon` | Bearer | Render a look onto the user's photo |
+| GET | `/api/tryons` | Bearer | List try-on results |
 
 ## Notes
 

@@ -40,3 +40,7 @@ coverage/
 
 # TS build cache
 *.tsbuildinfo
+
+# Uploaded photos & generated images (local storage)
+backend/uploads/
+uploads/
