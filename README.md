@@ -34,7 +34,8 @@ pnpm dev                     # http://localhost:3000
 Required env: `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY`
 (validated at boot — the server refuses to start if any are missing).
 Optional: `IMAGE_MODEL` (default `gpt-image-1`), `IMAGE_QUALITY` (default `medium`),
-`LOOKS_PER_REQUEST` (default `2`).
+`LOOKS_PER_REQUEST` (default `2`), `WARDROBE_CLEAN_BG` (default `true` — clean the
+background of wardrobe uploads; set `false` to skip and save cost).
 
 ### 3. Frontend
 
@@ -64,6 +65,7 @@ pnpm dev                     # http://localhost:5173 (proxies /api → :3000)
 | PATCH/DELETE | `/api/wardrobe/:id` | Bearer | Correct tags / remove an item |
 | POST | `/api/wardrobe/outfit` | Bearer | Mix & match from owned items |
 | POST | `/api/wardrobe/today` | Bearer | Weather-based outfit for a city |
+| POST | `/api/wardrobe/tryon` | Bearer | Try a set of owned items on the user's photo |
 
 ## Notes
 

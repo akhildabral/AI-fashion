@@ -21,6 +21,13 @@ const envSchema = z.object({
   // Directory (relative to the backend cwd) where uploaded photos and
   // generated images are stored and served from.
   UPLOADS_DIR: z.string().default('uploads'),
+  // When true, wardrobe uploads are re-rendered onto a clean studio background
+  // (one gpt-image edit per upload — adds a little cost/latency). Set to "false"
+  // to keep the original photo as-is.
+  WARDROBE_CLEAN_BG: z
+    .string()
+    .default('true')
+    .transform((v) => v.toLowerCase() !== 'false'),
 });
 
 const parsed = envSchema.safeParse(process.env);

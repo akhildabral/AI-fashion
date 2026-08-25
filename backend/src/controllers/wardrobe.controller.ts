@@ -2,8 +2,9 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { deleteFile, urlForFilename } from '../lib/storage';
-import { tagGarment, suggestOutfits } from '../services/wardrobe.service';
+import { cleanGarmentBackground, tagGarment, suggestOutfits } from '../services/wardrobe.service';
 import { getWeather } from '../services/weather.service';
+import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 
 const MIN_ITEMS_FOR_OUTFIT = 2;
@@ -12,21 +13,34 @@ export async function addItem(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   if (!req.file) throw new HttpError(400, 'No image file provided');
 
-  let tags;
-  try {
-    tags = await tagGarment(req.file.filename);
-  } catch (err) {
-    // Don't leave an orphaned upload if tagging fails.
-    deleteFile(req.file.filename);
-    throw err;
+  const original = req.file.filename;
+
+  // Tag the garment and (optionally) clean its background concurrently.
+  const [tagRes, cleanRes] = await Promise.allSettled([
+    tagGarment(original),
+    env.WARDROBE_CLEAN_BG ? cleanGarmentBackground(original) : Promise.resolve(null),
+  ]);
+
+  if (tagRes.status === 'rejected') {
+    deleteFile(original);
+    if (cleanRes.status === 'fulfilled' && cleanRes.value) deleteFile(cleanRes.value.filename);
+    throw tagRes.reason;
+  }
+
+  // Prefer the cleaned image; fall back to the original if cleanup failed.
+  let imageUrl = urlForFilename(original);
+  if (cleanRes.status === 'fulfilled' && cleanRes.value) {
+    imageUrl = cleanRes.value.url;
+    deleteFile(original); // replaced by the cleaned version
+  } else if (cleanRes.status === 'rejected') {
+    console.error(
+      'Wardrobe background cleanup failed:',
+      cleanRes.reason instanceof Error ? cleanRes.reason.message : cleanRes.reason,
+    );
   }
 
   const item = await prisma.wardrobeItem.create({
-    data: {
-      userId: req.user.id,
-      imageUrl: urlForFilename(req.file.filename),
-      ...tags,
-    },
+    data: { userId: req.user.id, imageUrl, ...tagRes.value },
   });
   res.status(201).json({ item });
 }

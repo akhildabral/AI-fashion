@@ -2,9 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { suggestOutfits, whatToWearToday } from '../lib/wardrobe'
 import type { WardrobeOutfit, WardrobeWeather } from '../lib/types'
 import { Spinner } from './Spinner'
+import { TryOnModal } from './TryOnModal'
 
 /** Renders one suggested outfit: its item photos in a row + the rationale. */
 function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
+  const [tryOnOpen, setTryOnOpen] = useState(false)
+  const itemIds = outfit.items.map((i) => i.id)
+
   return (
     <article className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap gap-3">
@@ -27,6 +31,14 @@ function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
       {outfit.rationale && (
         <p className="mt-3 text-sm leading-relaxed text-ink/70">{outfit.rationale}</p>
       )}
+      {itemIds.length > 0 && (
+        <div className="mt-3 flex justify-end">
+          <button type="button" onClick={() => setTryOnOpen(true)} className="btn-ghost">
+            Try it on
+          </button>
+        </div>
+      )}
+      {tryOnOpen && <TryOnModal itemIds={itemIds} onClose={() => setTryOnOpen(false)} />}
     </article>
   )
 }

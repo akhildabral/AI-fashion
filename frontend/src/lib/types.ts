@@ -78,10 +78,13 @@ export interface PhotoUploadResponse {
   photoUrl: string
 }
 
-/** A single rendered try-on: the user's photo wearing a saved look. */
+/**
+ * A single rendered try-on: the user's photo wearing a saved look, or a set of
+ * wardrobe items (in which case `lookId` is null).
+ */
 export interface TryOn {
   id: string
-  lookId: string
+  lookId: string | null
   imageUrl: string
   createdAt: string
 }

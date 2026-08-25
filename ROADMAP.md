@@ -93,7 +93,11 @@ Turn the spike into an app that can hold users and data.
 - [x] "What to wear today": `POST /api/wardrobe/today` pulls real weather via **Open-Meteo** (free, no key) and picks weather-appropriate outfits.
 - [x] UI: wardrobe grid with editable tag cards, add-item uploader, and mix-&-match / today panels with a weather summary.
 
-**Phase 3 complete.** ✅ Verified end to end (upload → tag → correct → mix & match → weather-based suggestion → delete). Mostly free/cheap to run — no image generation, just vision tagging + text + a free weather API.
+**Phase 3 complete.** ✅ Verified end to end (upload → tag → correct → mix & match → weather-based suggestion → delete). Mostly free/cheap to run — vision tagging + text + a free weather API.
+
+**Enhancements (post-Phase 3):**
+- [x] **Background cleanup on upload** — wardrobe photos are re-rendered onto a clean studio background (product-catalog look) via gpt-image edit, in parallel with tagging. Toggle with `WARDROBE_CLEAN_BG` (default on); falls back to the original photo if cleanup fails.
+- [x] **Try-on for suggested outfits** — `POST /api/wardrobe/tryon` renders the user's photo wearing a set of their own garments using the actual item images (multi-image edit) for higher fidelity. Surfaced as a "Try it on" button on each mix-&-match / today suggestion; results join the `/tryons` gallery.
 
 ---
 

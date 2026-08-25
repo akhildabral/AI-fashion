@@ -1,28 +1,38 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { createTryOn, getPhoto } from '../lib/tryon'
+import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { TryOn } from '../lib/types'
 import { Spinner } from './Spinner'
 
 type Phase = 'checking' | 'no-photo' | 'rendering' | 'done' | 'error'
 
-interface TryOnModalProps {
-  lookId: string
-  onClose: () => void
-}
+/**
+ * The modal renders the user in either a saved look (`lookId`) or a set of
+ * wardrobe items (`itemIds`) — exactly one of the two is provided.
+ */
+type TryOnModalProps = { onClose: () => void } & (
+  | { lookId: string; itemIds?: never }
+  | { itemIds: string[]; lookId?: never }
+)
 
 /**
  * Full try-on flow, run inside a modal:
  *  1. Check whether the user has a stored photo (GET /api/photo).
  *  2. If not, prompt them to upload one (link to the profile photo section).
- *  3. Otherwise render the look onto their photo (POST /api/looks/:id/tryon) —
- *     this is slow (~30s), so we show a clear spinner + message — then display
- *     the resulting image.
+ *  3. Otherwise render the look/items onto their photo — either
+ *     POST /api/looks/:id/tryon or POST /api/wardrobe/tryon. This is slow
+ *     (~30s), so we show a clear spinner + message — then display the result.
  */
-export function TryOnModal({ lookId, onClose }: TryOnModalProps) {
+export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [tryOn, setTryOn] = useState<TryOn | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const lookId = 'lookId' in target ? target.lookId : undefined
+  const itemIds = 'itemIds' in target ? target.itemIds : undefined
+  // Stable primitive dep for the render effect (itemIds is a fresh array each render).
+  const itemsKey = itemIds?.join(',')
 
   // Close on Escape.
   useEffect(() => {
@@ -45,7 +55,10 @@ export function TryOnModal({ lookId, onClose }: TryOnModalProps) {
           return
         }
         setPhase('rendering')
-        const { tryOn: result } = await createTryOn(lookId)
+        const { tryOn: result } =
+          lookId !== undefined
+            ? await createTryOn(lookId)
+            : await tryOnWardrobeOutfit(itemIds ?? [])
         if (cancelled) return
         setTryOn(result)
         setPhase('done')
@@ -60,7 +73,8 @@ export function TryOnModal({ lookId, onClose }: TryOnModalProps) {
     return () => {
       cancelled = true
     }
-  }, [lookId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookId, itemsKey])
 
   return (
     <div

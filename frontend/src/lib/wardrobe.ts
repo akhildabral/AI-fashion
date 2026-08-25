@@ -1,5 +1,6 @@
 import { apiFetch, apiUpload } from './api'
 import type {
+  TryOnResponse,
   WardrobeItemEdit,
   WardrobeItemResponse,
   WardrobeListResponse,
@@ -51,5 +52,16 @@ export function whatToWearToday(location: string): Promise<WardrobeTodayResponse
   return apiFetch<WardrobeTodayResponse>('/wardrobe/today', {
     method: 'POST',
     body: { location },
+  })
+}
+
+/**
+ * POST /api/wardrobe/tryon — render the user's photo wearing a set of wardrobe
+ * items (slow, ~30-40s). 400s if the user has no photo uploaded yet.
+ */
+export function tryOnWardrobeOutfit(itemIds: string[]): Promise<TryOnResponse> {
+  return apiFetch<TryOnResponse>('/wardrobe/tryon', {
+    method: 'POST',
+    body: { itemIds },
   })
 }

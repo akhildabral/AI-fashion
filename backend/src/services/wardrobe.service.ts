@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { WardrobeItem } from '@prisma/client';
+import { toFile } from 'openai';
 import { openai } from '../lib/openai';
-import { absPathForFilename } from '../lib/storage';
+import { env } from '../config/env';
+import { absPathForFilename, saveBase64Image } from '../lib/storage';
 import { HttpError } from '../middleware/error';
 
 export interface GarmentTags {
@@ -62,6 +64,35 @@ function mimeFor(filename: string): string {
   if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
   if (ext === '.webp') return 'image/webp';
   return 'image/png';
+}
+
+// Re-render the garment isolated on a clean studio background (product-catalog
+// look). Returns the new stored file. Uses the same image-edit model as try-on.
+export async function cleanGarmentBackground(
+  photoFilename: string,
+): Promise<{ filename: string; url: string }> {
+  const absPath = absPathForFilename(photoFilename);
+  if (!fs.existsSync(absPath)) {
+    throw new HttpError(400, 'Uploaded image could not be found');
+  }
+
+  const image = await openai.images.edit({
+    model: env.IMAGE_MODEL,
+    image: await toFile(fs.createReadStream(absPath), path.basename(photoFilename), {
+      type: mimeFor(photoFilename),
+    }),
+    prompt:
+      'Isolate the single clothing item in this photo and place it centered on a ' +
+      'plain, seamless light-grey studio background. Remove all other objects, ' +
+      'people, hangers, hands, and background clutter. Preserve the garment exactly — ' +
+      'its true colors, pattern, texture, and shape. Clean e-commerce product photo.',
+    size: '1024x1024',
+    ...(env.IMAGE_MODEL.startsWith('gpt-image') ? { quality: env.IMAGE_QUALITY } : {}),
+  });
+
+  const first = image.data?.[0];
+  if (first?.b64_json) return saveBase64Image(first.b64_json, 'png');
+  throw new HttpError(502, 'Background cleanup returned no image');
 }
 
 // Analyze a garment photo and extract structured attributes with a vision model.
