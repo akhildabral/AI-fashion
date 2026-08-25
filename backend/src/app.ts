@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { authRouter } from './routes/auth.routes';
 import { looksRouter } from './routes/generate.routes';
+import { profileRouter } from './routes/profile.routes';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
 export function createApp() {
@@ -15,6 +16,7 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api/profile', profileRouter);
   app.use('/api', looksRouter);
 
   app.use(notFoundHandler);

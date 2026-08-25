@@ -48,6 +48,7 @@ model Look {
   outfit    Json
   rationale String
   imageUrl  String?
+  favorite  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId])

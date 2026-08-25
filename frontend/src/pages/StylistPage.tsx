@@ -13,19 +13,17 @@ const GENDERS = [
 function LookSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
-      <div className="grid gap-0 md:grid-cols-2">
-        <div className="aspect-[3/4] animate-pulse bg-ink/5" />
-        <div className="flex flex-col gap-6 p-8">
-          <div className="h-8 w-2/3 animate-pulse rounded bg-ink/5" />
-          <div className="space-y-2">
-            <div className="h-4 w-full animate-pulse rounded bg-ink/5" />
-            <div className="h-4 w-5/6 animate-pulse rounded bg-ink/5" />
-            <div className="h-4 w-4/6 animate-pulse rounded bg-ink/5" />
-          </div>
-          <div className="space-y-2">
-            <div className="h-4 w-full animate-pulse rounded bg-ink/5" />
-            <div className="h-4 w-3/4 animate-pulse rounded bg-ink/5" />
-          </div>
+      <div className="aspect-[3/4] animate-pulse bg-ink/5" />
+      <div className="flex flex-col gap-6 p-6 sm:p-8">
+        <div className="h-8 w-2/3 animate-pulse rounded bg-ink/5" />
+        <div className="space-y-2">
+          <div className="h-4 w-full animate-pulse rounded bg-ink/5" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-ink/5" />
+          <div className="h-4 w-4/6 animate-pulse rounded bg-ink/5" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 w-full animate-pulse rounded bg-ink/5" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-ink/5" />
         </div>
       </div>
     </div>
@@ -37,24 +35,30 @@ export function StylistPage() {
   const [gender, setGender] = useState<string>('female')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [look, setLook] = useState<Look | null>(null)
+  const [looks, setLooks] = useState<Look[] | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    setLook(null)
+    setLooks(null)
     try {
       const res = await apiFetch<GenerateResponse>('/generate', {
         method: 'POST',
         body: { occasion: occasion.trim(), gender },
       })
-      setLook(res.look)
+      setLooks(res.looks ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate a look.')
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleFavoriteChange(updated: Look) {
+    setLooks((prev) =>
+      prev ? prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)) : prev,
+    )
   }
 
   return (
@@ -126,11 +130,31 @@ export function StylistPage() {
         </div>
       </form>
 
-      {loading && <LookSkeleton />}
-      {!loading && look && <LookCard look={look} />}
-      {!loading && !look && !error && (
+      {loading && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <LookSkeleton />
+          <LookSkeleton />
+        </div>
+      )}
+      {!loading && looks && looks.length > 0 && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {looks.map((look, i) => (
+            <LookCard
+              key={look.id ?? i}
+              look={look}
+              onFavoriteChange={handleFavoriteChange}
+            />
+          ))}
+        </div>
+      )}
+      {!loading && looks && looks.length === 0 && !error && (
         <div className="rounded-2xl border border-dashed border-ink/15 py-16 text-center text-ink/40">
-          Your generated look will appear here.
+          No looks came back — try a different occasion.
+        </div>
+      )}
+      {!loading && !looks && !error && (
+        <div className="rounded-2xl border border-dashed border-ink/15 py-16 text-center text-ink/40">
+          Your generated looks will appear here.
         </div>
       )}
     </div>

@@ -67,11 +67,14 @@ Turn the spike into an app that can hold users and data.
 **Phase 0 complete.** ✅ Next: Phase 1 (style profile setup + personalized recommendations).
 
 ### Phase 1 — Personal AI Stylist (the MVP)
-- [ ] **Style profile**: body type, sizes, skin tone/undertone, height, style vibe (e.g. minimal / streetwear / classic), budget band, colors to avoid.
-- [ ] **Recommendation engine**: profile + occasion → LLM returns **structured** outfit JSON (top, bottom, shoes, accessories, palette) + a "why this works for you" rationale. Use OpenAI structured outputs, not free text.
-- [ ] **Render**: generate one image per look via Flux, prompted from the structured outfit.
-- [ ] **UI**: profile setup flow → occasion input → 2–3 look cards (image + items + reasoning) → save/favorite looks.
-- [ ] Persist profiles and saved looks per user.
+- [x] **Style profile**: body type, sizes, skin tone, height, style vibe, budget band, colors to avoid. CRUD with merge-on-update semantics (`GET`/`PUT /api/profile`).
+- [x] **Recommendation engine**: profile + occasion → LLM returns **structured** outfit JSON (top, bottom, outerwear, footwear, accessories, palette) + a personalized "why this works for you" rationale. Uses OpenAI structured outputs.
+- [x] **Render**: one Flux image per look, rendered concurrently.
+- [x] **Multiple looks per request** (`LOOKS_PER_REQUEST`, default 2) to control image cost.
+- [x] **UI**: onboarding gate → profile setup → occasion input → look grid → favorite/delete + a "My Looks" history page.
+- [x] Persist profiles and every generated look per user; favorite (`POST /api/looks/:id/favorite`) and delete (`DELETE /api/looks/:id`), owner-scoped.
+
+**Phase 1 code complete.** ✅ Backend endpoints verified end to end (auth, profile merge, favorite, ownership scoping, delete). Live AI generation is blocked only by an **out-of-credits OpenAI account** — the request reaches OpenAI and the error surfaces cleanly; add credits to run it.
 
 ### Phase 2 — Virtual Try-On (the differentiator)
 - [ ] User uploads a full-body photo (with consent + storage).

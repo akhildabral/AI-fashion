@@ -1,4 +1,6 @@
+import type { StyleProfile } from '@prisma/client';
 import { openai, nebius } from '../lib/openai';
+import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 
 export interface OutfitPlan {
@@ -20,54 +22,96 @@ export interface GeneratedLook {
   imageUrl: string | null;
 }
 
-// Structured-output schema so the model returns reliable JSON, not free text.
-const outfitJsonSchema = {
-  name: 'outfit_recommendation',
+// Structured-output schema: the model returns an array of distinct looks.
+const looksJsonSchema = {
+  name: 'outfit_recommendations',
   strict: true,
   schema: {
     type: 'object',
     additionalProperties: false,
     properties: {
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          top: { type: 'string' },
-          bottom: { type: 'string' },
-          outerwear: { type: 'string' },
-          footwear: { type: 'string' },
-          accessories: { type: 'array', items: { type: 'string' } },
+      looks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                top: { type: 'string' },
+                bottom: { type: 'string' },
+                outerwear: { type: 'string' },
+                footwear: { type: 'string' },
+                accessories: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['top', 'bottom', 'outerwear', 'footwear', 'accessories'],
+            },
+            palette: { type: 'array', items: { type: 'string' } },
+            rationale: { type: 'string' },
+            imagePrompt: { type: 'string' },
+          },
+          required: ['items', 'palette', 'rationale', 'imagePrompt'],
         },
-        required: ['top', 'bottom', 'outerwear', 'footwear', 'accessories'],
       },
-      palette: { type: 'array', items: { type: 'string' } },
-      rationale: { type: 'string' },
-      imagePrompt: { type: 'string' },
     },
-    required: ['items', 'palette', 'rationale', 'imagePrompt'],
+    required: ['looks'],
   },
 } as const;
 
-async function planOutfit(occasion: string, gender: string): Promise<OutfitPlan> {
+// Turn the stored profile into a readable brief for the model.
+function describeProfile(profile: StyleProfile | null): string {
+  if (!profile) return 'No detailed style profile provided.';
+
+  const sizes = profile.sizes as { top?: string; bottom?: string; shoe?: string } | null;
+  const parts: string[] = [];
+  if (profile.bodyType) parts.push(`Body type: ${profile.bodyType}`);
+  if (profile.heightCm) parts.push(`Height: ${profile.heightCm} cm`);
+  if (profile.skinTone) parts.push(`Skin tone: ${profile.skinTone}`);
+  if (profile.styleVibe) parts.push(`Preferred style: ${profile.styleVibe}`);
+  if (profile.budgetBand) parts.push(`Budget: ${profile.budgetBand}`);
+  if (sizes) {
+    const s = [sizes.top && `top ${sizes.top}`, sizes.bottom && `bottom ${sizes.bottom}`, sizes.shoe && `shoe ${sizes.shoe}`]
+      .filter(Boolean)
+      .join(', ');
+    if (s) parts.push(`Sizes: ${s}`);
+  }
+  if (profile.avoidColors?.length) parts.push(`Colors to avoid: ${profile.avoidColors.join(', ')}`);
+
+  return parts.length ? parts.join('\n') : 'No detailed style profile provided.';
+}
+
+async function planLooks(
+  occasion: string,
+  gender: string,
+  profile: StyleProfile | null,
+  count: number,
+): Promise<OutfitPlan[]> {
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    temperature: 0.7,
+    temperature: 0.8,
     messages: [
       {
         role: 'system',
         content:
-          'You are a professional fashion stylist. Recommend a single, cohesive, ' +
-          'currently-fashionable outfit for the given occasion and gender. ' +
-          'Return concrete, specific garments (fabric, cut, color). ' +
-          'In "imagePrompt", write a vivid photographic prompt describing a person ' +
-          'wearing the full outfit, suitable for an image generation model.',
+          'You are a professional personal stylist. Given a client profile and an ' +
+          `occasion, propose exactly ${count} DISTINCT, cohesive, currently-fashionable ` +
+          'outfits tailored to THIS client. Respect their body type, skin tone, style ' +
+          'preference, budget, and any colors to avoid. Recommend concrete garments ' +
+          '(fabric, cut, color). In each "rationale", explain specifically why the outfit ' +
+          "flatters this client (reference their profile). In each \"imagePrompt\", write a " +
+          'vivid photographic prompt of a person wearing the full outfit, for an image model.',
       },
       {
         role: 'user',
-        content: `Occasion: ${occasion}\nGender: ${gender}`,
+        content:
+          `Client profile:\n${describeProfile(profile)}\n\n` +
+          `Occasion: ${occasion}\nGender presentation: ${gender}\n\n` +
+          `Return exactly ${count} distinct looks.`,
       },
     ],
-    response_format: { type: 'json_schema', json_schema: outfitJsonSchema },
+    response_format: { type: 'json_schema', json_schema: looksJsonSchema },
   });
 
   const content = completion.choices[0]?.message?.content;
@@ -75,17 +119,23 @@ async function planOutfit(occasion: string, gender: string): Promise<OutfitPlan>
     throw new HttpError(502, 'The stylist model returned an empty response');
   }
 
+  let parsed: { looks?: OutfitPlan[] };
   try {
-    return JSON.parse(content) as OutfitPlan;
+    parsed = JSON.parse(content);
   } catch {
     throw new HttpError(502, 'The stylist model returned malformed output');
   }
+
+  const looks = parsed.looks ?? [];
+  if (looks.length === 0) {
+    throw new HttpError(502, 'The stylist model returned no looks');
+  }
+  return looks.slice(0, count);
 }
 
 async function renderOutfitImage(imagePrompt: string): Promise<string | null> {
   try {
-    // Nebius accepts Flux-specific fields beyond the OpenAI image params, so the
-    // request body is loosely typed here.
+    // Nebius accepts Flux-specific fields beyond the OpenAI image params.
     const image = await nebius.images.generate({
       model: 'black-forest-labs/flux-dev',
       prompt: imagePrompt,
@@ -100,22 +150,24 @@ async function renderOutfitImage(imagePrompt: string): Promise<string | null> {
 
     return image.data?.[0]?.url ?? null;
   } catch (err) {
-    // Image generation is best-effort; the outfit is still useful without it.
     console.error('Image generation failed:', err instanceof Error ? err.message : err);
     return null;
   }
 }
 
-export async function generateLook(
+export async function generateLooks(
   occasion: string,
   gender: string,
-): Promise<GeneratedLook> {
-  const plan = await planOutfit(occasion, gender);
-  const imageUrl = await renderOutfitImage(plan.imagePrompt);
+  profile: StyleProfile | null,
+): Promise<GeneratedLook[]> {
+  const plans = await planLooks(occasion, gender, profile, env.LOOKS_PER_REQUEST);
 
-  return {
+  // Render all images concurrently.
+  const images = await Promise.all(plans.map((p) => renderOutfitImage(p.imagePrompt)));
+
+  return plans.map((plan, i) => ({
     outfit: { items: plan.items, palette: plan.palette },
     rationale: plan.rationale,
-    imageUrl,
-  };
+    imageUrl: images[i] ?? null,
+  }));
 }

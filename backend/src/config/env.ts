@@ -12,6 +12,9 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   NEBIUS_API_KEY: z.string().min(1),
   NEBIUS_BASE_URL: z.string().url().default('https://api.studio.nebius.com/v1/'),
+  // How many distinct looks to generate per request. Each look renders one
+  // image, so this directly drives image-generation cost.
+  LOOKS_PER_REQUEST: z.coerce.number().int().min(1).max(4).default(2),
 });
 
 const parsed = envSchema.safeParse(process.env);
