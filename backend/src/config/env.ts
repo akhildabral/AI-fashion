@@ -10,8 +10,11 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   OPENAI_API_KEY: z.string().min(1),
-  NEBIUS_API_KEY: z.string().min(1),
-  NEBIUS_BASE_URL: z.string().url().default('https://api.studio.nebius.com/v1/'),
+  // OpenAI image model used to render outfits. gpt-image-1 returns base64
+  // (served as a data URL); dall-e-3 (if your key has it) returns a hosted URL.
+  IMAGE_MODEL: z.string().default('gpt-image-1'),
+  // Quality tier for gpt-image models (low|medium|high|auto) — drives cost.
+  IMAGE_QUALITY: z.enum(['low', 'medium', 'high', 'auto']).default('medium'),
   // How many distinct looks to generate per request. Each look renders one
   // image, so this directly drives image-generation cost.
   LOOKS_PER_REQUEST: z.coerce.number().int().min(1).max(4).default(2),

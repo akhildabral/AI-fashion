@@ -1,5 +1,5 @@
 import type { StyleProfile } from '@prisma/client';
-import { openai, nebius } from '../lib/openai';
+import { openai } from '../lib/openai';
 import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 
@@ -135,20 +135,22 @@ async function planLooks(
 
 async function renderOutfitImage(imagePrompt: string): Promise<string | null> {
   try {
-    // Nebius accepts Flux-specific fields beyond the OpenAI image params.
-    const image = await nebius.images.generate({
-      model: 'black-forest-labs/flux-dev',
+    const isGptImage = env.IMAGE_MODEL.startsWith('gpt-image');
+    const image = await openai.images.generate({
+      model: env.IMAGE_MODEL,
       prompt: imagePrompt,
-      response_format: 'url',
-      width: 1024,
-      height: 1024,
-      num_inference_steps: 28,
-      negative_prompt: '',
-      seed: -1,
-      response_extension: 'png',
-    } as Parameters<typeof nebius.images.generate>[0]);
+      n: 1,
+      size: '1024x1024',
+      // `quality` tiers (low/medium/high) are a gpt-image feature.
+      ...(isGptImage ? { quality: env.IMAGE_QUALITY } : {}),
+    });
 
-    return image.data?.[0]?.url ?? null;
+    const first = image.data?.[0];
+    if (!first) return null;
+    // dall-e-3 returns a hosted URL; gpt-image-1 returns base64 → inline data URL.
+    if (first.url) return first.url;
+    if (first.b64_json) return `data:image/png;base64,${first.b64_json}`;
+    return null;
   } catch (err) {
     console.error('Image generation failed:', err instanceof Error ? err.message : err);
     return null;

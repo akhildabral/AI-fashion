@@ -3,7 +3,7 @@
 A personal AI stylist: personalized outfit recommendations, rendered as images,
 built on a persistent style profile. See [ROADMAP.md](ROADMAP.md) for the plan.
 
-**Stack:** React (Vite + TS) · Express (TS) · Postgres (Docker) · Prisma · JWT auth · OpenAI + Flux (Nebius)
+**Stack:** React (Vite + TS) · Express (TS) · Postgres (Docker) · Prisma · JWT auth · OpenAI (text + images)
 
 ## Project layout
 
@@ -31,8 +31,10 @@ pnpm prisma migrate dev      # apply migrations
 pnpm dev                     # http://localhost:3000
 ```
 
-Required env: `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY`, `NEBIUS_API_KEY`
+Required env: `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY`
 (validated at boot — the server refuses to start if any are missing).
+Optional: `IMAGE_MODEL` (default `gpt-image-1`), `IMAGE_QUALITY` (default `medium`),
+`LOOKS_PER_REQUEST` (default `2`).
 
 ### 3. Frontend
 
