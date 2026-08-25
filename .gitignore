@@ -37,3 +37,6 @@ coverage/
 
 # Misc
 *.local
+
+# TS build cache
+*.tsbuildinfo

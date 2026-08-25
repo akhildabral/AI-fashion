@@ -57,12 +57,14 @@ Turn the spike into an app that can hold users and data.
 
 - [x] Initialize git + `.gitignore`.
 - [x] Postgres 16 via `docker-compose`, with `.env.example`.
-- [ ] React frontend scaffold (Vite + React + TypeScript).
-- [ ] Rework Express backend: routed, typed request/response, error handling, `.env` validated.
-- [ ] ORM + first migration (Prisma or Drizzle) against the Docker Postgres.
-- [ ] User accounts (sign up / log in) via JWT + bcrypt.
-- [ ] Fix & harden the image pipeline: actually **return** the image URL; store generated images.
-- [ ] Delete `graph.js` and the fake trends code.
+- [x] React frontend scaffold (Vite + React + TypeScript + Tailwind).
+- [x] Rework Express backend into TypeScript: routed, zod-validated, centralized error handling, env validated at boot.
+- [x] Prisma ORM + first migration (`init`) against the Docker Postgres (`User`, `StyleProfile`, `Look`).
+- [x] User accounts (register / login / me) via JWT + bcrypt — verified end to end.
+- [x] Fix the image pipeline: outfit generation now **returns** the image URL and persists the look; structured-output outfit JSON.
+- [x] Delete `graph.js` and the fake trends code.
+
+**Phase 0 complete.** ✅ Next: Phase 1 (style profile setup + personalized recommendations).
 
 ### Phase 1 — Personal AI Stylist (the MVP)
 - [ ] **Style profile**: body type, sizes, skin tone/undertone, height, style vibe (e.g. minimal / streetwear / classic), budget band, colors to avoid.

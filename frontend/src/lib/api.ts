@@ -1,0 +1,84 @@
+const BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
+const TOKEN_KEY = 'ai-fashion-token'
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+interface RequestOptions {
+  method?: string
+  body?: unknown
+  /** Skip attaching the Authorization header even if a token exists. */
+  auth?: boolean
+}
+
+/**
+ * Small fetch wrapper:
+ * - resolves the base URL from VITE_API_URL (default `/api`)
+ * - attaches `Authorization: Bearer <token>` when a token is present
+ * - sends/parses JSON
+ * - throws an ApiError (with the server's `error` message) on non-2xx
+ */
+export async function apiFetch<T>(
+  path: string,
+  { method = 'GET', body, auth = true }: RequestOptions = {},
+): Promise<T> {
+  const headers: Record<string, string> = {}
+
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  if (auth) {
+    const token = getToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+
+  const raw = await res.text()
+  let data: unknown = undefined
+  if (raw) {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      data = raw
+    }
+  }
+
+  if (!res.ok) {
+    const message =
+      (data && typeof data === 'object' && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : typeof data === 'string' && data
+          ? data
+          : null) ?? `Request failed with status ${res.status}`
+    throw new ApiError(message, res.status)
+  }
+
+  return data as T
+}

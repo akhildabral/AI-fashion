@@ -1,0 +1,54 @@
+// Prisma schema for AI Fashion
+// Phase 0 foundation: users, style profiles, and generated looks.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  profile StyleProfile?
+  looks   Look[]
+}
+
+// A user's persistent style profile — the "brain" every recommendation builds on.
+// Fields are nullable in Phase 0; the profile setup flow lands in Phase 1.
+model StyleProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bodyType    String?
+  heightCm    Int?
+  sizes       Json?
+  skinTone    String?
+  styleVibe   String?
+  budgetBand  String?
+  avoidColors String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A generated outfit recommendation, persisted so it survives sessions.
+model Look {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occasion  String
+  gender    String
+  outfit    Json
+  rationale String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
