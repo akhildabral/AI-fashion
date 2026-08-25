@@ -22,15 +22,22 @@ const upload = multer({
     if (EXT_BY_MIME[file.mimetype]) cb(null, true);
     else cb(new Error('Only JPEG, PNG, or WebP images are allowed'));
   },
-}).single('photo');
+});
 
-// Wrap multer so its errors become clean 400s via the central error handler.
-export function handlePhotoUpload(req: Request, res: Response, next: NextFunction) {
-  upload(req, res, (err: unknown) => {
-    if (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      return next(new HttpError(400, message));
-    }
-    next();
-  });
+// Build middleware that accepts a single image under the given field name and
+// turns multer errors into clean 400s via the central error handler.
+function singleImageUpload(field: string) {
+  const handler = upload.single(field);
+  return function (req: Request, res: Response, next: NextFunction) {
+    handler(req, res, (err: unknown) => {
+      if (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        return next(new HttpError(400, message));
+      }
+      next();
+    });
+  };
 }
+
+export const handlePhotoUpload = singleImageUpload('photo');
+export const handleItemUpload = singleImageUpload('image');

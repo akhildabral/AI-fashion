@@ -87,10 +87,22 @@ Turn the spike into an app that can hold users and data.
 **Phase 2 complete.** ✅ Verified end to end (upload → try-on render → serve → list → delete). Note: try-on fidelity is AI re-rendering, not pixel-exact garment transfer — swap in a dedicated VTON model for higher fidelity when desired.
 
 ### Phase 3 — Digital Wardrobe (retention engine)
-- [ ] Upload closet items (photo per garment).
-- [ ] Auto-tag with a vision model (type, color, pattern, formality, season).
-- [ ] "Mix & match": generate outfits from *owned* items only.
-- [ ] "What to wear today": factor in weather (real weather API) + calendar/occasion.
+- [x] Upload closet items (photo per garment) → `POST /api/wardrobe`, stored on disk.
+- [x] Auto-tag with a vision model (category, subtype, color, pattern, formality, season, material) via gpt-4o-mini structured output; user can correct tags (`PATCH /api/wardrobe/:id`).
+- [x] "Mix & match": `POST /api/wardrobe/outfit` assembles outfits from *owned* items only, referenced by id (hallucinated ids filtered out).
+- [x] "What to wear today": `POST /api/wardrobe/today` pulls real weather via **Open-Meteo** (free, no key) and picks weather-appropriate outfits.
+- [x] UI: wardrobe grid with editable tag cards, add-item uploader, and mix-&-match / today panels with a weather summary.
+
+**Phase 3 complete.** ✅ Verified end to end (upload → tag → correct → mix & match → weather-based suggestion → delete). Mostly free/cheap to run — no image generation, just vision tagging + text + a free weather API.
+
+---
+
+## The four capabilities — status
+
+1. **Personal AI Stylist** — ✅ Phase 1
+2. **Virtual Try-On** — ✅ Phase 2
+3. **Digital Wardrobe** — ✅ Phase 3
+4. **Shoppable** — ⬜ Phase 4 (next)
 
 ### Phase 4 — Shoppable (business model)
 - [ ] Match recommended items to real products (Google Shopping via SerpAPI, retailer APIs, or affiliate networks like LTK/Amazon PA-API).

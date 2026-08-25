@@ -10,6 +10,7 @@ import { StylistPage } from './pages/StylistPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { LooksPage } from './pages/LooksPage'
 import { TryOnsPage } from './pages/TryOnsPage'
+import { WardrobePage } from './pages/WardrobePage'
 
 export default function App() {
   return (
@@ -38,6 +39,16 @@ export default function App() {
                     <ProtectedRoute>
                       <RequireProfile>
                         <LooksPage />
+                      </RequireProfile>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/wardrobe"
+                  element={
+                    <ProtectedRoute>
+                      <RequireProfile>
+                        <WardrobePage />
                       </RequireProfile>
                     </ProtectedRoute>
                   }

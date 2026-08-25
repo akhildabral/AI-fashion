@@ -22,6 +22,26 @@ model User {
   profile StyleProfile?
   looks   Look[]
   tryOns  TryOn[]
+  wardrobe WardrobeItem[]
+}
+
+// A garment the user owns, photographed and auto-tagged by a vision model.
+model WardrobeItem {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  category     String
+  subtype      String?
+  primaryColor String?
+  pattern      String?
+  formality    String?
+  season       String[]
+  material     String?
+  description  String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
 }
 
 // A user's persistent style profile — the "brain" every recommendation builds on.

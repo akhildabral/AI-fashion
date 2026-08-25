@@ -5,6 +5,7 @@ import { looksRouter } from './routes/generate.routes';
 import { profileRouter } from './routes/profile.routes';
 import { photoRouter } from './routes/photo.routes';
 import { tryOnRouter } from './routes/tryon.routes';
+import { wardrobeRouter } from './routes/wardrobe.routes';
 import { UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
@@ -24,6 +25,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/profile', profileRouter);
   app.use('/api/photo', photoRouter);
+  app.use('/api/wardrobe', wardrobeRouter);
   app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);
 

@@ -60,6 +60,10 @@ pnpm dev                     # http://localhost:5173 (proxies /api → :3000)
 | GET/POST/DELETE | `/api/photo` | Bearer | Manage the try-on body photo |
 | POST | `/api/looks/:id/tryon` | Bearer | Render a look onto the user's photo |
 | GET | `/api/tryons` | Bearer | List try-on results |
+| GET/POST | `/api/wardrobe` | Bearer | List / add (auto-tagged) garments |
+| PATCH/DELETE | `/api/wardrobe/:id` | Bearer | Correct tags / remove an item |
+| POST | `/api/wardrobe/outfit` | Bearer | Mix & match from owned items |
+| POST | `/api/wardrobe/today` | Bearer | Weather-based outfit for a city |
 
 ## Notes
 

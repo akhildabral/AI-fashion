@@ -93,3 +93,59 @@ export interface TryOnResponse {
 export interface TryOnsResponse {
   tryOns: TryOn[]
 }
+
+/** A single owned garment, auto-tagged by a vision model on upload. */
+export interface WardrobeItem {
+  id: string
+  imageUrl: string
+  category: string
+  subtype: string | null
+  primaryColor: string | null
+  pattern: string | null
+  formality: string | null
+  season: string[]
+  material: string | null
+  description: string | null
+  createdAt: string
+}
+
+/** Fields the user is allowed to correct via PATCH /api/wardrobe/:id. */
+export interface WardrobeItemEdit {
+  category?: string
+  subtype?: string
+  primaryColor?: string
+  pattern?: string
+  formality?: string
+  season?: string[]
+  material?: string
+  description?: string
+}
+
+/** An outfit assembled from the user's owned wardrobe items. */
+export interface WardrobeOutfit {
+  items: WardrobeItem[]
+  rationale: string
+}
+
+export interface WardrobeItemResponse {
+  item: WardrobeItem
+}
+
+export interface WardrobeListResponse {
+  items: WardrobeItem[]
+}
+
+export interface WardrobeOutfitResponse {
+  outfits: WardrobeOutfit[]
+}
+
+export interface WardrobeWeather {
+  location: string
+  temperatureC: number
+  description: string
+}
+
+export interface WardrobeTodayResponse {
+  weather: WardrobeWeather
+  outfits: WardrobeOutfit[]
+}

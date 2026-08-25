@@ -36,6 +36,9 @@ export function Header() {
               <NavLink to="/looks" className={navLinkClass}>
                 My Looks
               </NavLink>
+              <NavLink to="/wardrobe" className={navLinkClass}>
+                Wardrobe
+              </NavLink>
               <NavLink to="/tryons" className={navLinkClass}>
                 Try-Ons
               </NavLink>
