@@ -8,6 +8,7 @@ import { tryOnRouter } from './routes/tryon.routes';
 import { wardrobeRouter } from './routes/wardrobe.routes';
 import { wearLogRouter } from './routes/wearlog.routes';
 import { quizRouter } from './routes/quiz.routes';
+import { pollRouter, votePageRouter } from './routes/poll.routes';
 import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
@@ -15,6 +16,8 @@ import { errorHandler, notFoundHandler } from './middleware/error';
 export function createApp() {
   const app = express();
 
+  // Behind cloudflared/reverse proxies, honor X-Forwarded-* for share links.
+  app.set('trust proxy', true);
   app.use(cors());
   app.use(express.json());
 
@@ -36,6 +39,8 @@ export function createApp() {
   app.use('/api/quiz-assets', express.static(path.resolve(__dirname, '../assets/quiz')));
 
   app.use('/api', quizRouter);
+  app.use('/api', pollRouter);
+  app.use(votePageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);

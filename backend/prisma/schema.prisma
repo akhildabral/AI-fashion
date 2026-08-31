@@ -25,6 +25,7 @@ model User {
   wardrobe WardrobeItem[]
   outfits  Outfit[]
   wearLogs WearLog[]
+  polls    Poll[]
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -157,4 +158,34 @@ model TryOn {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// A verdict poll: "which of these?" sent to friends via a public link.
+// Results are visible only to the asker; every vote is labeled taste data.
+model Poll {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  String
+  // [{ id: "a" | "b" | "c", imageUrl }]
+  options   Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  votes PollVote[]
+
+  @@index([userId])
+}
+
+model PollVote {
+  id       String   @id @default(uuid())
+  pollId   String
+  poll     Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId String
+  // Client-generated key so one browser votes once. Light-touch, not auth.
+  voterKey String
+  createdAt DateTime @default(now())
+
+  @@unique([pollId, voterKey])
+  @@index([pollId])
 }
