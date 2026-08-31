@@ -7,6 +7,7 @@ import {
   mixAndMatch,
   packForTrip,
   recatalogItem,
+  setVisibility,
   resaleDraft,
   updateItem,
   whatToWearToday,
@@ -22,6 +23,7 @@ wardrobeRouter.post('/', requireAuth, handleItemUpload, addItem);
 wardrobeRouter.post('/outfit', requireAuth, mixAndMatch);
 wardrobeRouter.post('/today', requireAuth, whatToWearToday);
 wardrobeRouter.post('/pack', requireAuth, packForTrip);
+wardrobeRouter.post('/visibility', requireAuth, setVisibility);
 wardrobeRouter.post('/:id/feedback', requireAuth, itemFeedback);
 wardrobeRouter.post('/:id/resale-draft', requireAuth, resaleDraft);
 wardrobeRouter.post('/tryon', requireAuth, createOutfitTryOn);

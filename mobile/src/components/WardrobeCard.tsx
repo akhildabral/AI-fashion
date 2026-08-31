@@ -145,6 +145,21 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             <View style={styles.actions}>
               <Pressable
                 onPress={() => {
+                  const visibility = item.visibility === 'public' ? 'private' : 'public'
+                  void updateWardrobeItem(item.id, { visibility })
+                    .then(({ item: updated }) => onUpdated?.(updated))
+                    .catch(() => {})
+                }}
+                style={[styles.visPill, item.visibility === 'public' && styles.visPillPublic]}
+              >
+                <Text
+                  style={[styles.visText, item.visibility === 'public' && styles.visTextPublic]}
+                >
+                  {item.visibility === 'public' ? 'Public' : 'Private'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
                   setError(null)
                   setEditing(true)
                 }}
@@ -314,6 +329,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  visPill: {
+    borderWidth: 1,
+    borderColor: colors.inkLine2,
+    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+  },
+  visPillPublic: {
+    borderColor: 'rgba(138,154,134,0.5)',
+    backgroundColor: 'rgba(138,154,134,0.12)',
+  },
+  visText: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    fontFamily: fonts.sans,
+  },
+  visTextPublic: {
+    color: colors.sage,
   },
   suppressedBadge: {
     position: 'absolute',

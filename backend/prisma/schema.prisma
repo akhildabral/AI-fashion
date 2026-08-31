@@ -14,6 +14,8 @@ model User {
   id           String        @id @default(uuid())
   email        String        @unique
   passwordHash String
+  // Public username for the community layer (lowercase, unique). Null until chosen.
+  handle       String?       @unique
   // Relative path to the user's uploaded body photo (for virtual try-on).
   photoPath    String?
   createdAt    DateTime      @default(now())
@@ -26,6 +28,10 @@ model User {
   outfits  Outfit[]
   wearLogs WearLog[]
   polls    Poll[]
+  following     Follow[]     @relation("following")
+  followers     Follow[]     @relation("followers")
+  picksReceived FriendPick[] @relation("picksFor")
+  picksSent     FriendPick[] @relation("picksBy")
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -56,6 +62,9 @@ model WardrobeItem {
   state          String  @default("clean")
   // "Don't suggest this" — hidden from suggestion pools but kept in the closet.
   suppressed     Boolean @default(false)
+  // Community visibility: private (default) | public. Public items appear on
+  // the owner's profile; everything else stays theirs alone.
+  visibility     String  @default("private")
   // Dominant-first palette: [{ hex, lab: { L, a, b }, share }].
   colorPalette   Json?
   // Per-attribute model confidence (0–1); low-confidence fields stay null.
@@ -152,6 +161,9 @@ model TryOn {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Wardrobe items rendered in this try-on (empty for look-based try-ons) —
+  // lets poll outcomes map back to items for ranking.
+  itemIds   String[]
   lookId    String?
   look      Look?    @relation(fields: [lookId], references: [id], onDelete: SetNull)
   imageUrl  String
@@ -188,4 +200,32 @@ model PollVote {
 
   @@unique([pollId, voterKey])
   @@index([pollId])
+}
+
+// Asymmetric social graph: follow anyone; mutual follows are "friends" and
+// unlock collaborative features (picking outfits for each other).
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+// A friend assembled an outfit for you from your PUBLIC items.
+model FriendPick {
+  id        String   @id @default(uuid())
+  forUserId String
+  forUser   User     @relation("picksFor", fields: [forUserId], references: [id], onDelete: Cascade)
+  byUserId  String
+  byUser    User     @relation("picksBy", fields: [byUserId], references: [id], onDelete: Cascade)
+  itemIds   String[]
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([forUserId])
 }

@@ -9,6 +9,7 @@ import { wardrobeRouter } from './routes/wardrobe.routes';
 import { wearLogRouter } from './routes/wearlog.routes';
 import { quizRouter } from './routes/quiz.routes';
 import { pollRouter, votePageRouter } from './routes/poll.routes';
+import { socialRouter } from './routes/social.routes';
 import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
@@ -40,6 +41,7 @@ export function createApp() {
 
   app.use('/api', quizRouter);
   app.use('/api', pollRouter);
+  app.use('/api', socialRouter);
   app.use(votePageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);

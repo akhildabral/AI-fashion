@@ -139,6 +139,8 @@ export interface WardrobeItem {
   suppressed: boolean
   /** What the item cost — powers cost-per-wear. */
   price: number | null
+  /** Community visibility: private (default) or public (shown on your profile). */
+  visibility: 'private' | 'public'
   layerRole: string | null
   warmthValue: number | null
   formalityScore: number | null
@@ -157,6 +159,7 @@ export interface OutfitValidation {
 
 /** Fields the user is allowed to correct via PATCH /api/wardrobe/:id. */
 export interface WardrobeItemEdit {
+  visibility?: 'private' | 'public'
   price?: number | null
   category?: string
   subtype?: string

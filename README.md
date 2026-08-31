@@ -94,6 +94,10 @@ pnpm dev                     # http://localhost:5173 (proxies /api → :3000)
 | GET/POST | `/api/quiz` | Bearer | Taste quiz: pairs / submit answers → style signals |
 | POST/GET/DELETE | `/api/polls` | Bearer | Verdict polls: create from try-ons, list with counts (asker-only), delete |
 | GET/POST | `/api/polls/:id/public`, `/vote` | – | Public poll view + one-vote-per-browser voting; `/vote/:id` serves the share page |
+| PUT/GET | `/api/social/handle`, `/me`, `/network` | Bearer | Handles, follow graph (mutual = friends) |
+| GET/POST/DELETE | `/api/users/:handle` (+`/follow`, `/picks`) | Bearer | Visit profiles (public items only), follow, friends pick outfits for you |
+| GET/DELETE | `/api/picks` | Bearer | Friend-pick inbox |
+| POST | `/api/wardrobe/visibility` | Bearer | Bulk move items between private and public wardrobe |
 | GET/POST | `/api/wearlog` | Bearer | One-tap "wore it" log (weather snapshot via `location`) |
 | DELETE | `/api/wearlog/:id` | Bearer | Remove a wear-log entry |
 | GET | `/api/wearlog/insights` | Bearer | Per-item wear counts + wardrobe orphans |

@@ -233,6 +233,7 @@ const updateSchema = z.object({
   state: z.enum(ITEM_STATES).optional(),
   suppressed: z.boolean().optional(),
   price: z.number().min(0).max(1_000_000).nullish(),
+  visibility: z.enum(['private', 'public']).optional(),
   layerRole: z.enum(['base', 'mid', 'outer', 'bottom', 'footwear', 'accessory', 'one-piece']).nullish(),
   warmthValue: z.number().int().min(0).max(10).nullish(),
   formalityScore: z.number().int().min(1).max(5).nullish(),
@@ -304,16 +305,48 @@ export async function deleteItem(req: Request, res: Response) {
   res.status(204).send();
 }
 
-// Only cataloged, available, non-suppressed items are suggestion candidates.
-async function loadStyleableWardrobe(userId: string) {
-  const items = await prisma.wardrobeItem.findMany({
-    where: { userId, status: { not: 'processing' }, state: 'clean', suppressed: false },
-    orderBy: { createdAt: 'desc' },
+// Move items between the private and public wardrobe in bulk.
+const visibilitySchema = z.object({
+  itemIds: z.array(z.string().uuid()).min(1).max(100),
+  visibility: z.enum(['private', 'public']),
+});
+
+export async function setVisibility(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { itemIds, visibility } = visibilitySchema.parse(req.body);
+  const result = await prisma.wardrobeItem.updateMany({
+    where: { id: { in: itemIds }, userId: req.user.id },
+    data: { visibility },
   });
+  res.json({ updated: result.count });
+}
+
+// Only cataloged, available, non-suppressed items are suggestion candidates.
+// Wear counts ride along: revealed preference for both the proposer (the LLM
+// sees what actually gets worn) and the ranker (most-loved pieces score up).
+export type StyleableItem = Awaited<ReturnType<typeof loadStyleableWardrobe>>[number];
+
+async function loadStyleableWardrobe(userId: string) {
+  const [items, logs] = await Promise.all([
+    prisma.wardrobeItem.findMany({
+      where: { userId, status: { not: 'processing' }, state: 'clean', suppressed: false },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.wearLog.findMany({
+      where: { userId },
+      select: { itemIds: true },
+      take: 500,
+      orderBy: { wornOn: 'desc' },
+    }),
+  ]);
   if (items.length < MIN_ITEMS_FOR_OUTFIT) {
     throw new HttpError(400, `Add at least ${MIN_ITEMS_FOR_OUTFIT} available wardrobe items first`);
   }
-  return items;
+  const wearCounts = new Map<string, number>();
+  for (const log of logs) {
+    for (const id of log.itemIds) wearCounts.set(id, (wearCounts.get(id) ?? 0) + 1);
+  }
+  return items.map((item) => ({ ...item, wearCount: wearCounts.get(item.id) ?? 0 }));
 }
 
 async function loadRecentWear(userId: string): Promise<RecentWear[]> {
@@ -333,19 +366,29 @@ export interface ValidatedOutfit extends SuggestedOutfit {
 
 // LLM proposes, rules validate: hard-failed candidates are dropped (unless
 // nothing passes — then the least-bad ones are returned with their violations
-// attached so the client can say why they're a stretch), the rest are ranked.
+// attached so the client can say why they're a stretch), the rest are ranked
+// by validator score plus a revealed-preference bonus for well-worn pieces.
 function validateAndRank(
   outfits: SuggestedOutfit[],
-  opts: { eventType?: EventType; weather?: Weather | null; recentWear: RecentWear[] },
+  opts: {
+    eventType?: EventType;
+    weather?: Weather | null;
+    recentWear: RecentWear[];
+    wearCounts?: Map<string, number>;
+  },
 ): ValidatedOutfit[] {
-  const validated = outfits.map((o) => ({
-    ...o,
-    validation: validateOutfit(o.items, {
+  const validated = outfits.map((o) => {
+    const validation = validateOutfit(o.items, {
       eventType: opts.eventType,
       weather: opts.weather ?? undefined,
       recentWear: opts.recentWear,
-    }),
-  }));
+    });
+    const preferenceBonus = o.items.reduce(
+      (sum, item) => sum + Math.min(opts.wearCounts?.get(item.id) ?? 0, 5) * 2,
+      0,
+    );
+    return { ...o, validation: { ...validation, score: validation.score + preferenceBonus } };
+  });
   const passing = validated.filter((o) => o.validation.ok);
   const pool = passing.length > 0 ? passing : validated;
   return pool.sort((a, b) => b.validation.score - a.validation.score);
@@ -362,7 +405,8 @@ export async function mixAndMatch(req: Request, res: Response) {
   const items = await loadStyleableWardrobe(req.user.id);
   const recentWear = await loadRecentWear(req.user.id);
   const suggested = await suggestOutfits(items, `Occasion: ${occasion} (${eventType} setting)`);
-  const outfits = validateAndRank(suggested, { eventType, recentWear });
+  const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
+  const outfits = validateAndRank(suggested, { eventType, recentWear, wearCounts });
   res.json({ outfits });
 }
 
@@ -499,6 +543,7 @@ export async function whatToWearToday(req: Request, res: Response) {
     `Dressing for today's weather in ${weather.location}: ${weather.temperatureC}°C, ` +
     `${weather.description}. The setting is ${eventType}. Choose weather-appropriate items.`;
   const suggested = await suggestOutfits(items, context);
-  const outfits = validateAndRank(suggested, { eventType, weather, recentWear });
+  const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
+  const outfits = validateAndRank(suggested, { eventType, weather, recentWear, wearCounts });
   res.json({ weather, outfits });
 }

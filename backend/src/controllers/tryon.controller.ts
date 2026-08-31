@@ -57,8 +57,10 @@ export async function createOutfitTryOn(req: Request, res: Response) {
 
   const imageUrl = await generateOutfitTryOn(user.photoPath, items);
 
+  // Record which items were rendered — lets poll outcomes and future ranking
+  // map back to real garments.
   const tryOn = await prisma.tryOn.create({
-    data: { userId: req.user.id, lookId: null, imageUrl },
+    data: { userId: req.user.id, lookId: null, imageUrl, itemIds },
     select: tryOnSelect,
   });
 

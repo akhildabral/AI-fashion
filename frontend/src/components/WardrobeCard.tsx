@@ -156,6 +156,27 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
               </button>
               <button
                 type="button"
+                title={
+                  item.visibility === 'public'
+                    ? 'Visible on your profile — tap to make private'
+                    : 'Private — tap to show on your profile'
+                }
+                onClick={() => {
+                  const visibility = item.visibility === 'public' ? 'private' : 'public'
+                  void updateWardrobeItem(item.id, { visibility })
+                    .then(({ item: updated }) => onUpdated?.(updated))
+                    .catch(() => {})
+                }}
+                className={
+                  item.visibility === 'public'
+                    ? 'rounded-full border border-sage/50 bg-sage/10 px-3 py-1 text-xs font-medium text-sage'
+                    : 'rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/50 transition hover:border-ink/30'
+                }
+              >
+                {item.visibility === 'public' ? 'Public' : 'Private'}
+              </button>
+              <button
+                type="button"
                 onClick={handleDelete}
                 disabled={deleting}
                 className="inline-flex items-center gap-2 text-sm font-medium text-ink/50 transition hover:text-red-700 disabled:opacity-60"
