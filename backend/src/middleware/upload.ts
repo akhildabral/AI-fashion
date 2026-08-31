@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
 import multer from 'multer';
-import { UPLOADS_DIR } from '../lib/storage';
 import { HttpError } from './error';
 
 const EXT_BY_MIME: Record<string, string> = {
@@ -10,13 +8,14 @@ const EXT_BY_MIME: Record<string, string> = {
   'image/webp': 'webp',
 };
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => cb(null, `${randomUUID()}.${EXT_BY_MIME[file.mimetype] ?? 'png'}`),
-});
+export function extForMime(mime: string): string {
+  return EXT_BY_MIME[mime] ?? 'png';
+}
 
+// Uploads land in memory and are persisted through the storage driver by the
+// controller (local disk or S3, depending on configuration).
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (_req, file, cb) => {
     if (EXT_BY_MIME[file.mimetype]) cb(null, true);

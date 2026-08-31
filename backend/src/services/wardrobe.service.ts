@@ -1,137 +1,170 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { generateObject } from 'ai';
+import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
-import { toFile } from 'openai';
-import { openai } from '../lib/openai';
-import { env } from '../config/env';
-import { absPathForFilename, saveBase64Image } from '../lib/storage';
+import { textModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
+import {
+  formalityScoreFor,
+  layerRoleFor,
+  normalizeColorName,
+  warmthFor,
+} from '../lib/attributes';
 
 export interface GarmentTags {
   category: string;
-  subtype: string;
-  primaryColor: string;
-  pattern: string;
-  formality: string;
+  subtype: string | null;
+  primaryColor: string | null;
+  pattern: string | null;
+  formality: string | null;
   season: string[];
-  material: string;
-  description: string;
+  material: string | null;
+  description: string | null;
+  attrConfidence: Record<string, number>;
 }
 
-const tagJsonSchema = {
-  name: 'garment_tags',
-  strict: true,
-  schema: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      category: {
-        type: 'string',
-        enum: ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress', 'other'],
-      },
-      subtype: { type: 'string' },
-      primaryColor: { type: 'string' },
-      pattern: {
-        type: 'string',
-        enum: ['solid', 'striped', 'plaid', 'checked', 'floral', 'graphic', 'other'],
-      },
-      formality: {
-        type: 'string',
-        enum: ['casual', 'smart-casual', 'business', 'formal', 'athletic'],
-      },
-      season: {
-        type: 'array',
-        items: { type: 'string', enum: ['spring', 'summer', 'fall', 'winter'] },
-      },
-      material: { type: 'string' },
-      description: { type: 'string' },
-    },
-    required: [
-      'category',
-      'subtype',
-      'primaryColor',
-      'pattern',
-      'formality',
-      'season',
-      'material',
-      'description',
-    ],
-  },
-} as const;
+// Below this confidence the field is stored as null: a model that says
+// "I don't know the material" is worth more than one that guesses "cotton"
+// every time, and the suggestion engine degrades gracefully on missing data.
+const ABSTAIN_BELOW = 0.5;
 
-function mimeFor(filename: string): string {
-  const ext = path.extname(filename).toLowerCase();
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-  if (ext === '.webp') return 'image/webp';
-  return 'image/png';
-}
+const confidenceSchema = z.number().min(0).max(1);
 
-// Re-render the garment isolated on a clean studio background (product-catalog
-// look). Returns the new stored file. Uses the same image-edit model as try-on.
-export async function cleanGarmentBackground(
-  photoFilename: string,
-): Promise<{ filename: string; url: string }> {
-  const absPath = absPathForFilename(photoFilename);
-  if (!fs.existsSync(absPath)) {
-    throw new HttpError(400, 'Uploaded image could not be found');
-  }
-
-  const image = await openai.images.edit({
-    model: env.IMAGE_MODEL,
-    image: await toFile(fs.createReadStream(absPath), path.basename(photoFilename), {
-      type: mimeFor(photoFilename),
-    }),
-    prompt:
-      'Isolate the single clothing item in this photo and place it centered on a ' +
-      'plain, seamless light-grey studio background. Remove all other objects, ' +
-      'people, hangers, hands, and background clutter. Preserve the garment exactly — ' +
-      'its true colors, pattern, texture, and shape. Clean e-commerce product photo.',
-    size: '1024x1024',
-    ...(env.IMAGE_MODEL.startsWith('gpt-image') ? { quality: env.IMAGE_QUALITY } : {}),
-  });
-
-  const first = image.data?.[0];
-  if (first?.b64_json) return saveBase64Image(first.b64_json, 'png');
-  throw new HttpError(502, 'Background cleanup returned no image');
-}
+const tagSchema = z.object({
+  category: z.enum(['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress', 'other']),
+  subtype: z.string(),
+  primaryColor: z.string(),
+  pattern: z.enum(['solid', 'striped', 'plaid', 'checked', 'floral', 'graphic', 'other']),
+  formality: z.enum(['casual', 'smart-casual', 'business', 'formal', 'athletic']),
+  season: z.array(z.enum(['spring', 'summer', 'fall', 'winter'])),
+  material: z.string(),
+  description: z.string(),
+  // Per-attribute confidence, 0–1. Honesty is rewarded: low-confidence
+  // values are discarded rather than stored.
+  confidence: z.object({
+    category: confidenceSchema,
+    subtype: confidenceSchema,
+    primaryColor: confidenceSchema,
+    pattern: confidenceSchema,
+    formality: confidenceSchema,
+    material: confidenceSchema,
+  }),
+});
 
 // Analyze a garment photo and extract structured attributes with a vision model.
-export async function tagGarment(photoFilename: string): Promise<GarmentTags> {
-  const absPath = absPathForFilename(photoFilename);
-  if (!fs.existsSync(absPath)) {
-    throw new HttpError(400, 'Uploaded image could not be found');
+export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTags> {
+  let raw: z.infer<typeof tagSchema>;
+  try {
+    const { object } = await generateObject({
+      model: await textModel(),
+      temperature: 0.2,
+      schema: tagSchema,
+      instructions:
+        'You are a fashion cataloguer. Identify the single garment or accessory ' +
+        'in the image and describe it with precise, structured tags. For each ' +
+        'attribute report an honest confidence between 0 and 1 — a low confidence ' +
+        'on an uncertain attribute is the correct answer, not a failure.',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Tag this clothing item.' },
+            { type: 'file', data: image, mediaType: mime },
+          ],
+        },
+      ],
+    });
+    raw = object;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'The tagging model failed';
+    throw new HttpError(502, message);
   }
-  const b64 = fs.readFileSync(absPath).toString('base64');
-  const dataUrl = `data:${mimeFor(photoFilename)};base64,${b64}`;
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+  const conf = raw.confidence ?? {};
+  const keep = (field: keyof typeof conf, value: string): string | null =>
+    (conf[field] ?? 1) >= ABSTAIN_BELOW && value.trim() ? value.trim() : null;
+
+  return {
+    category: raw.category,
+    subtype: keep('subtype', raw.subtype),
+    primaryColor: normalizeColorName(keep('primaryColor', raw.primaryColor)),
+    pattern: keep('pattern', raw.pattern),
+    formality: keep('formality', raw.formality),
+    season: raw.season ?? [],
+    material: keep('material', raw.material),
+    description: raw.description?.trim() || null,
+    attrConfidence: conf,
+  };
+}
+
+export interface DetectedGarment {
+  description: string;
+  category: string;
+  // Normalized [0,1] bounding box; used to crop the region before extraction.
+  box: { x: number; y: number; w: number; h: number };
+}
+
+const detectSchema = z.object({
+  garments: z.array(
+    z.object({
+      // Specific enough to single the item out among the others in the photo.
+      description: z.string(),
+      category: z.enum(['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress', 'other']),
+      // Bounding box in fractions of image width/height, top-left origin.
+      box: z.object({
+        x: z.number().min(0).max(1),
+        y: z.number().min(0).max(1),
+        w: z.number().min(0).max(1),
+        h: z.number().min(0).max(1),
+      }),
+    }),
+  ),
+});
+
+const MAX_GARMENTS_PER_PHOTO = 8;
+
+// Enumerate every distinct garment in a photo — a flat-lay of several items,
+// a rack, or a person wearing an outfit. Feeds one extraction per garment.
+export async function detectGarments(image: Buffer, mime: string): Promise<DetectedGarment[]> {
+  const { object } = await generateObject({
+    model: await textModel(),
     temperature: 0.2,
+    schema: detectSchema,
+    instructions:
+      'You are a fashion cataloguer. List every DISTINCT physical clothing item, ' +
+      'pair of footwear, or accessory clearly visible in the photo — whether laid ' +
+      'out, hanging, or worn by a person. One entry per physical item: never split ' +
+      'one garment into multiple entries, never merge two items into one. Ignore ' +
+      'jewelry, backgrounds, furniture, and items too small or blurry to identify. ' +
+      'Each description must be specific enough (color, pattern, garment type) to ' +
+      'single that item out among the others in this photo. For each item also ' +
+      'give its bounding box as fractions of the image size (x,y = top-left ' +
+      'corner, w,h = width and height), generously covering the whole item.',
     messages: [
-      {
-        role: 'system',
-        content:
-          'You are a fashion cataloguer. Identify the single garment or accessory ' +
-          'in the image and describe it with precise, structured tags.',
-      },
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Tag this clothing item.' },
-          { type: 'image_url', image_url: { url: dataUrl } },
+          { type: 'text', text: 'List the clothing items in this photo.' },
+          { type: 'file', data: image, mediaType: mime },
         ],
       },
     ],
-    response_format: { type: 'json_schema', json_schema: tagJsonSchema },
   });
+  return (object.garments ?? []).slice(0, MAX_GARMENTS_PER_PHOTO);
+}
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) throw new HttpError(502, 'The tagging model returned an empty response');
-  try {
-    return JSON.parse(content) as GarmentTags;
-  } catch {
-    throw new HttpError(502, 'The tagging model returned malformed output');
-  }
+// Deterministic reasoning attributes, looked up — never model-generated —
+// so warmth and layer role stay consistent across the whole corpus.
+export function deriveReasoningAttributes(tags: {
+  category: string;
+  subtype: string | null;
+  material: string | null;
+  formality: string | null;
+}): { layerRole: string | null; warmthValue: number | null; formalityScore: number | null } {
+  return {
+    layerRole: layerRoleFor(tags.category, tags.subtype),
+    warmthValue: warmthFor(tags.category, tags.subtype, tags.material),
+    formalityScore: formalityScoreFor(tags.formality),
+  };
 }
 
 export interface SuggestedOutfit {
@@ -139,29 +172,14 @@ export interface SuggestedOutfit {
   rationale: string;
 }
 
-const outfitsJsonSchema = {
-  name: 'wardrobe_outfits',
-  strict: true,
-  schema: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      outfits: {
-        type: 'array',
-        items: {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            itemIds: { type: 'array', items: { type: 'string' } },
-            rationale: { type: 'string' },
-          },
-          required: ['itemIds', 'rationale'],
-        },
-      },
-    },
-    required: ['outfits'],
-  },
-} as const;
+const outfitsSchema = z.object({
+  outfits: z.array(
+    z.object({
+      itemIds: z.array(z.string()),
+      rationale: z.string(),
+    }),
+  ),
+});
 
 function catalogLine(item: WardrobeItem): string {
   return [
@@ -171,6 +189,8 @@ function catalogLine(item: WardrobeItem): string {
     item.primaryColor && `color:${item.primaryColor}`,
     item.pattern && `pattern:${item.pattern}`,
     item.formality && `formality:${item.formality}`,
+    item.layerRole && `layer:${item.layerRole}`,
+    item.warmthValue != null && `warmth:${item.warmthValue}/10`,
     item.season.length && `season:${item.season.join('/')}`,
   ]
     .filter(Boolean)
@@ -178,41 +198,32 @@ function catalogLine(item: WardrobeItem): string {
 }
 
 // Assemble outfits using ONLY the user's owned items, referenced by id.
+// Candidates are proposed here and validated deterministically by the caller.
 export async function suggestOutfits(
   items: WardrobeItem[],
   context: string,
+  count = 2,
 ): Promise<SuggestedOutfit[]> {
   const catalog = items.map(catalogLine).join('\n');
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    temperature: 0.7,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are a personal stylist. Build 1-2 complete, wearable outfits using ONLY ' +
-          'the items in the wardrobe catalog, referenced by their exact ids. Combine a ' +
-          'sensible set (e.g. top + bottom + footwear, or a dress + footwear, plus fitting ' +
-          'outerwear/accessories when appropriate). Use each id at most once per outfit and ' +
-          'ONLY ids that appear in the catalog. Explain each choice for the given context.',
-      },
-      {
-        role: 'user',
-        content: `Context: ${context}\n\nWardrobe catalog:\n${catalog}`,
-      },
-    ],
-    response_format: { type: 'json_schema', json_schema: outfitsJsonSchema },
-  });
-
-  const content = completion.choices[0]?.message?.content;
-  if (!content) throw new HttpError(502, 'The stylist model returned an empty response');
-
-  let parsed: { outfits?: { itemIds: string[]; rationale: string }[] };
+  let parsed: z.infer<typeof outfitsSchema>;
   try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new HttpError(502, 'The stylist model returned malformed output');
+    const { object } = await generateObject({
+      model: await textModel(),
+      temperature: 0.7,
+      schema: outfitsSchema,
+      instructions:
+        `You are a personal stylist. Build ${count} complete, wearable outfits using ONLY ` +
+        'the items in the wardrobe catalog, referenced by their exact ids. Combine a ' +
+        'sensible set (e.g. top + bottom + footwear, or a dress + footwear, plus fitting ' +
+        'outerwear/accessories when appropriate). Use each id at most once per outfit and ' +
+        'ONLY ids that appear in the catalog. Explain each choice for the given context.',
+      prompt: `Context: ${context}\n\nWardrobe catalog:\n${catalog}`,
+    });
+    parsed = object;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'The stylist model failed';
+    throw new HttpError(502, message);
   }
 
   const byId = new Map(items.map((i) => [i.id, i]));

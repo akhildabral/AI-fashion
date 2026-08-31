@@ -1,0 +1,10 @@
+packages:
+  - "."
+allowBuilds:
+  esbuild: true
+  sharp: true
+  onnxruntime-node: true
+  prisma: true
+  "@prisma/client": true
+  "@prisma/engines": true
+  bcrypt: true

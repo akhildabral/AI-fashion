@@ -4,6 +4,7 @@ import {
   deleteItem,
   listItems,
   mixAndMatch,
+  recatalogItem,
   updateItem,
   whatToWearToday,
 } from '../controllers/wardrobe.controller';
@@ -18,5 +19,6 @@ wardrobeRouter.post('/', requireAuth, handleItemUpload, addItem);
 wardrobeRouter.post('/outfit', requireAuth, mixAndMatch);
 wardrobeRouter.post('/today', requireAuth, whatToWearToday);
 wardrobeRouter.post('/tryon', requireAuth, createOutfitTryOn);
+wardrobeRouter.post('/:id/recatalog', requireAuth, recatalogItem);
 wardrobeRouter.patch('/:id', requireAuth, updateItem);
 wardrobeRouter.delete('/:id', requireAuth, deleteItem);

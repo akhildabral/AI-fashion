@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { deleteFile } from '../lib/storage';
 import { generateOutfitTryOn, generateTryOn } from '../services/tryon.service';
 import { HttpError } from '../middleware/error';
 
@@ -47,7 +48,7 @@ export async function createOutfitTryOn(req: Request, res: Response) {
     prisma.user.findUnique({ where: { id: req.user.id }, select: { photoPath: true } }),
     prisma.wardrobeItem.findMany({
       where: { id: { in: itemIds }, userId: req.user.id },
-      select: { imageUrl: true, category: true, subtype: true },
+      select: { imageUrl: true, category: true, subtype: true, primaryColor: true, material: true, description: true },
     }),
   ]);
 
@@ -73,4 +74,19 @@ export async function listTryOns(req: Request, res: Response) {
     select: tryOnSelect,
   });
   res.json({ tryOns });
+}
+
+export async function deleteTryOn(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+
+  const tryOn = await prisma.tryOn.findFirst({
+    where: { id, userId: req.user.id },
+    select: { imageUrl: true },
+  });
+  if (!tryOn) throw new HttpError(404, 'Try-on not found');
+
+  await prisma.tryOn.delete({ where: { id } });
+  await deleteFile(tryOn.imageUrl);
+  res.status(204).send();
 }

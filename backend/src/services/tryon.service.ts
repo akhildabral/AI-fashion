@@ -1,9 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { toFile } from 'openai';
-import { openai } from '../lib/openai';
-import { env } from '../config/env';
-import { absPathForFilename, saveBase64Image } from '../lib/storage';
+import { editImage, imagesEnabled, type SourceImage } from '../lib/imagegen';
+import { keyFromStored, mimeForKey, readStored, saveImageBuffer } from '../lib/storage';
 import { HttpError } from '../middleware/error';
 
 interface OutfitItems {
@@ -12,13 +8,6 @@ interface OutfitItems {
   outerwear?: string;
   footwear?: string;
   accessories?: string[];
-}
-
-function mimeFor(filename: string): string {
-  const ext = path.extname(filename).toLowerCase();
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-  if (ext === '.webp') return 'image/webp';
-  return 'image/png';
 }
 
 function describeOutfit(outfit: unknown): string {
@@ -33,44 +22,30 @@ function describeOutfit(outfit: unknown): string {
   return parts.join('; ');
 }
 
-// Render the given outfit onto the user's photo via image editing.
-// Structured as a single function so a dedicated try-on API (FASHN, Replicate
-// IDM-VTON, etc.) can replace the OpenAI call here without touching callers.
-export async function generateTryOn(photoFilename: string, outfit: unknown): Promise<string> {
-  const absPath = absPathForFilename(photoFilename);
-  if (!fs.existsSync(absPath)) {
-    throw new HttpError(400, 'Your uploaded photo could not be found; please re-upload it');
-  }
-
-  const prompt =
-    'Edit this photograph so the same person is wearing the following outfit, ' +
-    'while keeping their face, body shape, skin tone, hair, and pose unchanged. ' +
-    `Outfit — ${describeOutfit(outfit)}. Produce a realistic, full-body fashion photograph.`;
-
-  const ext = path.extname(photoFilename).toLowerCase();
-  const mime =
-    ext === '.jpg' || ext === '.jpeg'
-      ? 'image/jpeg'
-      : ext === '.webp'
-        ? 'image/webp'
-        : 'image/png';
-
+async function sourceFromStored(stored: string, missingMessage: string): Promise<SourceImage> {
+  let data: Buffer;
   try {
-    const image = await openai.images.edit({
-      model: env.IMAGE_MODEL,
-      // Pass a filename + type so the API detects the mimetype correctly.
-      image: await toFile(fs.createReadStream(absPath), path.basename(photoFilename), {
-        type: mime,
-      }),
-      prompt,
-      size: '1024x1024',
-      ...(env.IMAGE_MODEL.startsWith('gpt-image') ? { quality: env.IMAGE_QUALITY } : {}),
-    });
+    data = await readStored(stored);
+  } catch {
+    throw new HttpError(400, missingMessage);
+  }
+  return { data, mime: mimeForKey(keyFromStored(stored)) };
+}
 
-    const first = image.data?.[0];
-    if (first?.b64_json) return saveBase64Image(first.b64_json, 'png').url;
-    if (first?.url) return first.url;
-    throw new HttpError(502, 'Try-on generation returned no image');
+function requireImages(): void {
+  if (!imagesEnabled()) {
+    throw new HttpError(
+      503,
+      'Image generation is not configured — set IMAGE_PROVIDER (and IMAGE_API_KEY if needed)',
+    );
+  }
+}
+
+async function runEdit(prompt: string, sources: SourceImage[]): Promise<string> {
+  try {
+    const image = await editImage(prompt, sources);
+    if (!image) throw new HttpError(502, 'Try-on generation returned no image');
+    return (await saveImageBuffer(image, 'png')).url;
   } catch (err) {
     if (err instanceof HttpError) throw err;
     const message = err instanceof Error ? err.message : 'Try-on generation failed';
@@ -78,10 +53,39 @@ export async function generateTryOn(photoFilename: string, outfit: unknown): Pro
   }
 }
 
+// Render the given outfit onto the user's photo via image editing. All
+// provider specifics live behind editImage(), so a dedicated try-on API
+// (FASHN, Replicate IDM-VTON, etc.) can slot in without touching callers.
+export async function generateTryOn(photoFilename: string, outfit: unknown): Promise<string> {
+  requireImages();
+  const person = await sourceFromStored(
+    photoFilename,
+    'Your uploaded photo could not be found; please re-upload it',
+  );
+
+  const prompt =
+    'Edit this photograph so the same person is wearing the following outfit, ' +
+    'while keeping their face, identity, body shape, skin tone, hair, and pose ' +
+    'unchanged — never replace them with a different person or model. ' +
+    `Outfit — ${describeOutfit(outfit)}. Produce a realistic, full-body fashion photograph.`;
+
+  return runEdit(prompt, [person]);
+}
+
 export interface TryOnItem {
   imageUrl: string;
   category: string;
   subtype: string | null;
+  primaryColor?: string | null;
+  material?: string | null;
+  description?: string | null;
+}
+
+function describeItem(it: TryOnItem): string {
+  if (it.description?.trim()) return it.description.trim();
+  return [it.primaryColor, it.material, it.subtype?.trim() || it.category]
+    .filter(Boolean)
+    .join(' ');
 }
 
 // Render the user's photo wearing a set of their OWN wardrobe garments, using
@@ -90,53 +94,30 @@ export async function generateOutfitTryOn(
   photoFilename: string,
   items: TryOnItem[],
 ): Promise<string> {
-  const personAbs = absPathForFilename(photoFilename);
-  if (!fs.existsSync(personAbs)) {
-    throw new HttpError(400, 'Your uploaded photo could not be found; please re-upload it');
-  }
-
-  const personFile = await toFile(fs.createReadStream(personAbs), path.basename(photoFilename), {
-    type: mimeFor(photoFilename),
-  });
-
-  const itemFiles = await Promise.all(
-    items.map((it) => {
-      const abs = absPathForFilename(it.imageUrl);
-      if (!fs.existsSync(abs)) {
-        throw new HttpError(400, 'A wardrobe item image could not be found');
-      }
-      return toFile(fs.createReadStream(abs), path.basename(it.imageUrl), {
-        type: mimeFor(it.imageUrl),
-      });
-    }),
+  requireImages();
+  const person = await sourceFromStored(
+    photoFilename,
+    'Your uploaded photo could not be found; please re-upload it',
   );
 
-  const roles = items
-    .map((it, i) => `image ${i + 2} = ${it.category}${it.subtype ? ` (${it.subtype})` : ''}`)
-    .join(', ');
+  // Single-pass, text-described try-on — the same mechanism as look try-ons,
+  // which is the one mode that reliably keeps the person's identity and the
+  // photo's quality: exactly one edit of the original photo, with no other
+  // reference images attached (any extra image makes the model ignore the
+  // outfit, swap in a stock model, or degrade the photo). Garments are
+  // described from their rich catalog tags; pixel-exact garment transfer is
+  // a dedicated VTON model's job, behind this same seam, when wanted.
+  const outfitDescription = items.map((it) => describeItem(it)).join('; ');
   const prompt =
-    'The first image shows a person. The following images each show one clothing item ' +
-    `they own (${roles}). Redraw the person wearing ALL of these exact garments together ` +
-    'as one complete, cohesive outfit — keep their face, body shape, skin tone, hair, and ' +
-    'pose unchanged, and reproduce each garment’s real color, pattern, and shape. ' +
-    'Realistic, full-body fashion photograph.';
+    'Edit this photograph so the very same person is dressed in a different ' +
+    'outfit. Remove ALL the clothing they are currently wearing — including ' +
+    'any dress, top, bottoms, shoes, and bags — and dress them instead in ' +
+    `exactly these items, all together: ${outfitDescription}. Fit each piece ` +
+    'naturally to their body at true-to-life proportions. Keep everything ' +
+    'else identical: the same face, identity, hair, skin tone, body, pose, ' +
+    'background, lighting, and framing. Preserve the photograph’s full ' +
+    'resolution, sharpness, and detail. Never replace the person with a ' +
+    'different person or model. Photorealistic.';
 
-  try {
-    const image = await openai.images.edit({
-      model: env.IMAGE_MODEL,
-      image: [personFile, ...itemFiles],
-      prompt,
-      size: '1024x1024',
-      ...(env.IMAGE_MODEL.startsWith('gpt-image') ? { quality: env.IMAGE_QUALITY } : {}),
-    });
-
-    const first = image.data?.[0];
-    if (first?.b64_json) return saveBase64Image(first.b64_json, 'png').url;
-    if (first?.url) return first.url;
-    throw new HttpError(502, 'Try-on generation returned no image');
-  } catch (err) {
-    if (err instanceof HttpError) throw err;
-    const message = err instanceof Error ? err.message : 'Try-on generation failed';
-    throw new HttpError(502, message);
-  }
+  return runEdit(prompt, [person]);
 }

@@ -44,3 +44,6 @@ coverage/
 # Uploaded photos & generated images (local storage)
 backend/uploads/
 uploads/
+
+# Downloaded ML models (fetched on first use)
+models/
