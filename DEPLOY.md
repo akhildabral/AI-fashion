@@ -30,7 +30,7 @@ dpkg-reconfigure -f noninteractive unattended-upgrades
 
 ```bash
 sudo -iu deploy
-git clone https://github.com/DexAsHisH/AI-fashion.git ai-fashion
+git clone https://github.com/akhildabral/AI-fashion.git ai-fashion
 cd ai-fashion
 
 cp deploy/vps.env.example .env.prod
