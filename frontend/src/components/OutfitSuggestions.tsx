@@ -1,10 +1,74 @@
 import { useState, type FormEvent } from 'react'
-import { suggestOutfits, whatToWearToday } from '../lib/wardrobe'
+import { sendItemFeedback, suggestOutfits, whatToWearToday } from '../lib/wardrobe'
 import { logWear } from '../lib/wearlog'
-import type { EventType, WardrobeOutfit, WardrobeWeather } from '../lib/types'
+import type {
+  EventType,
+  FeedbackSignal,
+  WardrobeOutfit,
+  WardrobeWeather,
+} from '../lib/types'
 import { Spinner } from './Spinner'
 import { TryOnModal } from './TryOnModal'
 import { ZoomableImage } from './ImageLightbox'
+
+const FEEDBACK_OPTIONS: { signal: FeedbackSignal; label: string }[] = [
+  { signal: 'too-formal', label: 'Too formal for this' },
+  { signal: 'too-casual', label: 'Too casual for this' },
+  { signal: 'not-warm-enough', label: 'Not warm enough' },
+  { signal: 'too-warm', label: 'Too warm' },
+  { signal: 'wrong-color', label: 'Wrong color' },
+  { signal: 'dont-suggest', label: "Don't suggest this item" },
+]
+
+/**
+ * Inline correction at the point of pain (plan §4.3): the user complains
+ * about a suggestion; the item's attributes quietly adjust.
+ */
+function ItemFeedbackMenu({ itemId, itemName }: { itemId: string; itemName: string }) {
+  const [open, setOpen] = useState(false)
+  const [done, setDone] = useState(false)
+
+  async function send(signal: FeedbackSignal) {
+    setOpen(false)
+    try {
+      await sendItemFeedback(itemId, signal)
+      setDone(true)
+      setTimeout(() => setDone(false), 1800)
+    } catch {
+      // Silent — feedback is best-effort.
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`Give feedback on ${itemName}`}
+        className="mx-auto mt-0.5 block text-xs text-ink/35 transition hover:text-ink/70"
+      >
+        {done ? 'Got it ✓' : '⋯'}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-1/2 z-20 mt-1 w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-ink/10 bg-white py-1 shadow-lg">
+            {FEEDBACK_OPTIONS.map((opt) => (
+              <button
+                key={opt.signal}
+                type="button"
+                onClick={() => void send(opt.signal)}
+                className="block w-full px-4 py-2 text-left text-xs text-ink/75 transition hover:bg-bone"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 /** One-tap wear logging — the action the whole product optimizes for. */
 function WoreItButton({
@@ -109,6 +173,7 @@ function OutfitRow({
             <p className="mt-1 truncate text-center text-xs capitalize text-ink/60">
               {item.subtype?.trim() || item.category}
             </p>
+            <ItemFeedbackMenu itemId={item.id} itemName={item.subtype?.trim() || item.category} />
           </div>
         ))}
       </div>

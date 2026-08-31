@@ -80,6 +80,19 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             {showOriginal ? 'Show clean' : 'Show original'}
           </button>
         )}
+        {item.suppressed && (
+          <button
+            type="button"
+            onClick={() => {
+              void updateWardrobeItem(item.id, { suppressed: false })
+                .then(({ item: updated }) => onUpdated?.(updated))
+                .catch(() => {})
+            }}
+            className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-white shadow-sm transition hover:bg-ink"
+          >
+            Excluded — tap to include
+          </button>
+        )}
         {item.status === 'processing' && (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs text-ink/70 shadow-sm">
             <Spinner className="h-3 w-3" />

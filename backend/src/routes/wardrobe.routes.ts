@@ -2,8 +2,10 @@ import { Router } from 'express';
 import {
   addItem,
   deleteItem,
+  itemFeedback,
   listItems,
   mixAndMatch,
+  packForTrip,
   recatalogItem,
   updateItem,
   whatToWearToday,
@@ -18,6 +20,8 @@ wardrobeRouter.get('/', requireAuth, listItems);
 wardrobeRouter.post('/', requireAuth, handleItemUpload, addItem);
 wardrobeRouter.post('/outfit', requireAuth, mixAndMatch);
 wardrobeRouter.post('/today', requireAuth, whatToWearToday);
+wardrobeRouter.post('/pack', requireAuth, packForTrip);
+wardrobeRouter.post('/:id/feedback', requireAuth, itemFeedback);
 wardrobeRouter.post('/tryon', requireAuth, createOutfitTryOn);
 wardrobeRouter.post('/:id/recatalog', requireAuth, recatalogItem);
 wardrobeRouter.patch('/:id', requireAuth, updateItem);

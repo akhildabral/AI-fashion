@@ -53,6 +53,8 @@ model WardrobeItem {
   layerRole      String?
   // Availability: clean | in-wash | packed | lent-out | retired.
   state          String  @default("clean")
+  // "Don't suggest this" — hidden from suggestion pools but kept in the closet.
+  suppressed     Boolean @default(false)
   // Dominant-first palette: [{ hex, lab: { L, a, b }, share }].
   colorPalette   Json?
   // Per-attribute model confidence (0–1); low-confidence fields stay null.

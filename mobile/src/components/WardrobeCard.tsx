@@ -77,6 +77,18 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             <Text style={styles.placeholderText}>No image</Text>
           </View>
         )}
+        {item.suppressed && (
+          <Pressable
+            style={styles.suppressedBadge}
+            onPress={() => {
+              void updateWardrobeItem(item.id, { suppressed: false })
+                .then(({ item: updated }) => onUpdated?.(updated))
+                .catch(() => {})
+            }}
+          >
+            <Text style={styles.suppressedText}>Excluded — tap to include</Text>
+          </Pressable>
+        )}
         {hasCleanedVersion && (
           <Pressable style={styles.versionToggle} onPress={() => setShowOriginal((v) => !v)}>
             <Text style={styles.statusText}>{showOriginal ? 'Show clean' : 'Show original'}</Text>
@@ -285,6 +297,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  suppressedBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: 'rgba(26,26,26,0.82)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  suppressedText: {
+    fontSize: 10,
+    color: colors.white,
+    fontFamily: fonts.sans,
   },
   versionToggle: {
     position: 'absolute',

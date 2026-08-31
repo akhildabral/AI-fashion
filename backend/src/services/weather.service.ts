@@ -76,3 +76,66 @@ export async function getWeather(location: string): Promise<Weather> {
     description: code !== undefined ? (WEATHER_CODES[code] ?? 'unknown conditions') : 'unknown conditions',
   };
 }
+
+export interface ForecastDay {
+  date: string;
+  minC: number;
+  maxC: number;
+  description: string;
+  rainChance: boolean;
+}
+
+export interface TripForecast {
+  location: string;
+  days: ForecastDay[];
+  // True when part (or all) of the trip is beyond the forecast horizon
+  // (~16 days) — the packer then leans on the season instead.
+  partial: boolean;
+}
+
+// Daily forecast for a date range, clipped to Open-Meteo's ~16-day horizon.
+export async function getTripForecast(
+  location: string,
+  startDate: string,
+  endDate: string,
+): Promise<TripForecast> {
+  const place = await geocode(location);
+
+  const horizon = new Date(Date.now() + 15 * 86_400_000);
+  const clampedEnd = new Date(endDate) > horizon ? horizon.toISOString().slice(0, 10) : endDate;
+  const partial = clampedEnd !== endDate;
+  const start = new Date(startDate) > horizon ? null : startDate;
+
+  let days: ForecastDay[] = [];
+  if (start) {
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code` +
+      `&start_date=${start}&end_date=${clampedEnd}&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new HttpError(502, 'Weather lookup failed (forecast)');
+    const data = (await res.json()) as {
+      daily?: {
+        time?: string[];
+        temperature_2m_max?: number[];
+        temperature_2m_min?: number[];
+        precipitation_probability_max?: number[];
+        weather_code?: number[];
+      };
+    };
+    const d = data.daily;
+    days = (d?.time ?? []).map((date, i) => ({
+      date,
+      minC: Math.round(d?.temperature_2m_min?.[i] ?? 0),
+      maxC: Math.round(d?.temperature_2m_max?.[i] ?? 0),
+      description: WEATHER_CODES[d?.weather_code?.[i] ?? -1] ?? 'unknown conditions',
+      rainChance: (d?.precipitation_probability_max?.[i] ?? 0) >= 40,
+    }));
+  }
+
+  return {
+    location: [place.name, place.country].filter(Boolean).join(', '),
+    days,
+    partial: partial || !start,
+  };
+}

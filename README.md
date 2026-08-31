@@ -86,6 +86,8 @@ pnpm dev                     # http://localhost:5173 (proxies /api → :3000)
 | PATCH/DELETE | `/api/wardrobe/:id` | Bearer | Correct tags, set state / remove an item |
 | POST | `/api/wardrobe/outfit` | Bearer | Mix & match from owned items (`eventType`, default `work`) |
 | POST | `/api/wardrobe/today` | Bearer | Weather-based outfit for a city (`eventType`) |
+| POST | `/api/wardrobe/pack` | Bearer | Travel packing: capsule + day plan + essentials for a trip |
+| POST | `/api/wardrobe/:id/feedback` | Bearer | Inline correction (too formal, too warm, wrong color, don’t suggest) |
 | POST | `/api/wardrobe/tryon` | Bearer | Try a set of owned items on the user's photo |
 | GET/POST | `/api/outfits` | Bearer | Persist / list outfits (provenance, wear count) |
 | GET/POST | `/api/quiz` | Bearer | Taste quiz: pairs / submit answers → style signals |

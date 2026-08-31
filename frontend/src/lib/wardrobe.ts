@@ -1,7 +1,10 @@
 import { apiFetch, apiUpload } from './api'
 import type {
   EventType,
+  FeedbackSignal,
+  PackingResponse,
   TryOnResponse,
+  WardrobeItem,
   WardrobeItemEdit,
   WardrobeItemResponse,
   WardrobeListResponse,
@@ -71,5 +74,29 @@ export function tryOnWardrobeOutfit(itemIds: string[]): Promise<TryOnResponse> {
   return apiFetch<TryOnResponse>('/wardrobe/tryon', {
     method: 'POST',
     body: { itemIds },
+  })
+}
+
+/** POST /api/wardrobe/pack — capsule + day plan + essentials for a trip. */
+export function packForTrip(params: {
+  destination: string
+  startDate: string
+  endDate: string
+  activities?: string
+}): Promise<PackingResponse> {
+  return apiFetch<PackingResponse>('/wardrobe/pack', { method: 'POST', body: params })
+}
+
+/**
+ * POST /api/wardrobe/:id/feedback — inline correction ("too formal",
+ * "don't suggest this", …). Adjustments, not overwrites.
+ */
+export function sendItemFeedback(
+  id: string,
+  signal: FeedbackSignal,
+): Promise<{ item: WardrobeItem; adjusted: boolean }> {
+  return apiFetch<{ item: WardrobeItem; adjusted: boolean }>(`/wardrobe/${id}/feedback`, {
+    method: 'POST',
+    body: { signal },
   })
 }

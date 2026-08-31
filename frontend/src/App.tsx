@@ -13,6 +13,7 @@ import { TryOnsPage } from './pages/TryOnsPage'
 import { WardrobePage } from './pages/WardrobePage'
 import { JournalPage } from './pages/JournalPage'
 import { QuizPage } from './pages/QuizPage'
+import { PackingPage } from './pages/PackingPage'
 
 export default function App() {
   return (
@@ -51,6 +52,16 @@ export default function App() {
                     <ProtectedRoute>
                       <RequireProfile>
                         <WardrobePage />
+                      </RequireProfile>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/packing"
+                  element={
+                    <ProtectedRoute>
+                      <RequireProfile>
+                        <PackingPage />
                       </RequireProfile>
                     </ProtectedRoute>
                   }

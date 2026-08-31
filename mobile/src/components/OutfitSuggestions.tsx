@@ -1,8 +1,22 @@
 import { useState } from 'react'
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
-import { suggestOutfits, whatToWearToday } from '../lib/wardrobe'
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
+import { sendItemFeedback, suggestOutfits, whatToWearToday } from '../lib/wardrobe'
 import { logWear } from '../lib/wearlog'
-import type { EventType, WardrobeOutfit, WardrobeWeather } from '../lib/types'
+import { TravelPacking } from './TravelPacking'
+import type {
+  EventType,
+  FeedbackSignal,
+  WardrobeOutfit,
+  WardrobeWeather,
+} from '../lib/types'
 import { resolveImageUrl } from '../config'
 import { colors, fonts, radius, shadow, spacing } from '../theme'
 import { ZoomableImage } from './ImageViewer'
@@ -40,6 +54,29 @@ function EventTypeSelect({
       </View>
     </View>
   )
+}
+
+const FEEDBACK_OPTIONS: { signal: FeedbackSignal; label: string }[] = [
+  { signal: 'too-formal', label: 'Too formal for this' },
+  { signal: 'too-casual', label: 'Too casual for this' },
+  { signal: 'not-warm-enough', label: 'Not warm enough' },
+  { signal: 'too-warm', label: 'Too warm' },
+  { signal: 'wrong-color', label: 'Wrong color' },
+  { signal: 'dont-suggest', label: "Don't suggest this item" },
+]
+
+// Inline correction at the point of pain (plan §4.3): complaining about a
+// suggestion quietly adjusts the item's attributes.
+function showFeedbackMenu(itemId: string, itemName: string) {
+  Alert.alert(itemName, 'Something off about this piece?', [
+    ...FEEDBACK_OPTIONS.map((opt) => ({
+      text: opt.label,
+      onPress: () => {
+        void sendItemFeedback(itemId, opt.signal).catch(() => {})
+      },
+    })),
+    { text: 'Cancel', style: 'cancel' as const },
+  ])
 }
 
 /** One-tap wear logging — the action the whole product optimizes for. */
@@ -111,6 +148,13 @@ function OutfitRow({
               <Text style={styles.itemLabel} numberOfLines={1}>
                 {label}
               </Text>
+              <Pressable
+                onPress={() => showFeedbackMenu(item.id, label)}
+                accessibilityLabel={`Give feedback on ${label}`}
+                hitSlop={8}
+              >
+                <Text style={styles.feedbackDots}>⋯</Text>
+              </Pressable>
             </View>
           )
         })}
@@ -316,6 +360,7 @@ export function OutfitSuggestions() {
     <View style={{ gap: spacing.lg }}>
       <MixAndMatch />
       <WhatToWearToday />
+      <TravelPacking />
     </View>
   )
 }
@@ -383,6 +428,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     color: colors.clay,
+  },
+  feedbackDots: {
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 16,
+    color: colors.inkFaint,
   },
   eventRow: {
     flexDirection: 'row',

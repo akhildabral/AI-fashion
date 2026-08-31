@@ -42,6 +42,9 @@ export function Header() {
               <NavLink to="/journal" className={navLinkClass}>
                 Journal
               </NavLink>
+              <NavLink to="/packing" className={navLinkClass}>
+                Packing
+              </NavLink>
               <NavLink to="/tryons" className={navLinkClass}>
                 Try-Ons
               </NavLink>

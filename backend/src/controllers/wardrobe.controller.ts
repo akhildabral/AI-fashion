@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import sharp from 'sharp';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile, keyFromStored, mimeForKey, readStored, saveImageBuffer } from '../lib/storage';
 import { enqueue } from '../lib/jobs';
@@ -15,7 +15,8 @@ import {
   type SuggestedOutfit,
 } from '../services/wardrobe.service';
 import { cleanGarmentImage, generativeCleanupAvailable } from '../services/cleanup.service';
-import { getWeather, type Weather } from '../services/weather.service';
+import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
+import { planPacking } from '../services/packing.service';
 import {
   validateOutfit,
   type RecentWear,
@@ -229,6 +230,7 @@ const updateSchema = z.object({
   material: z.string().max(60).nullish(),
   description: z.string().max(300).nullish(),
   state: z.enum(ITEM_STATES).optional(),
+  suppressed: z.boolean().optional(),
   layerRole: z.enum(['base', 'mid', 'outer', 'bottom', 'footwear', 'accessory', 'one-piece']).nullish(),
   warmthValue: z.number().int().min(0).max(10).nullish(),
   formalityScore: z.number().int().min(1).max(5).nullish(),
@@ -300,10 +302,10 @@ export async function deleteItem(req: Request, res: Response) {
   res.status(204).send();
 }
 
-// Only cataloged, available items are candidates for suggestions.
+// Only cataloged, available, non-suppressed items are suggestion candidates.
 async function loadStyleableWardrobe(userId: string) {
   const items = await prisma.wardrobeItem.findMany({
-    where: { userId, status: { not: 'processing' }, state: 'clean' },
+    where: { userId, status: { not: 'processing' }, state: 'clean', suppressed: false },
     orderBy: { createdAt: 'desc' },
   });
   if (items.length < MIN_ITEMS_FOR_OUTFIT) {
@@ -360,6 +362,110 @@ export async function mixAndMatch(req: Request, res: Response) {
   const suggested = await suggestOutfits(items, `Occasion: ${occasion} (${eventType} setting)`);
   const outfits = validateAndRank(suggested, { eventType, recentWear });
   res.json({ outfits });
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const packSchema = z
+  .object({
+    destination: z.string().min(1).max(120),
+    startDate: z.string().regex(ISO_DATE, 'Use YYYY-MM-DD'),
+    endDate: z.string().regex(ISO_DATE, 'Use YYYY-MM-DD'),
+    activities: z.string().max(400).optional(),
+  })
+  .refine((d) => Date.parse(d.endDate) >= Date.parse(d.startDate), {
+    message: 'The trip must end on or after it starts',
+  })
+  .refine((d) => Date.parse(d.endDate) - Date.parse(d.startDate) <= 21 * 86_400_000, {
+    message: 'Trips longer than 21 days are not supported yet',
+  });
+
+// Travel packing: a capsule from the real wardrobe + a day-by-day plan +
+// a checklist of non-wardrobe essentials.
+export async function packForTrip(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { destination, startDate, endDate, activities } = packSchema.parse(req.body);
+
+  const items = await loadStyleableWardrobe(req.user.id);
+  const forecast = await getTripForecast(destination, startDate, endDate);
+  const plan = await planPacking(items, forecast, { startDate, endDate, activities });
+
+  res.json({ forecast, plan });
+}
+
+// Inline correction (plan §4.3): the user experiences this as complaining
+// about a suggestion; we receive it as a labeled correction on the item.
+// Adjustments, not overwrites — and explicit user edits are never moved.
+const feedbackSchema = z.object({
+  signal: z.enum([
+    'too-formal',
+    'too-casual',
+    'too-warm',
+    'not-warm-enough',
+    'wrong-color',
+    'dont-suggest',
+  ]),
+});
+
+export async function itemFeedback(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { signal } = feedbackSchema.parse(req.body);
+
+  const item = await prisma.wardrobeItem.findFirst({
+    where: { id, userId: req.user.id },
+  });
+  if (!item) throw new HttpError(404, 'Item not found');
+
+  const conf = (item.attrConfidence as Record<string, number> | null) ?? {};
+  const userSet = (field: string) => (conf[field] ?? 0) >= 1;
+
+  const data: Prisma.WardrobeItemUncheckedUpdateInput = {};
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+  switch (signal) {
+    case 'too-formal':
+      if (!userSet('formalityScore') && item.formalityScore != null) {
+        data.formalityScore = clamp(item.formalityScore - 1, 1, 5);
+      }
+      break;
+    case 'too-casual':
+      if (!userSet('formalityScore') && item.formalityScore != null) {
+        data.formalityScore = clamp(item.formalityScore + 1, 1, 5);
+      }
+      break;
+    case 'too-warm':
+      if (!userSet('warmthValue') && item.warmthValue != null) {
+        data.warmthValue = clamp(item.warmthValue - 1, 0, 10);
+      }
+      break;
+    case 'not-warm-enough':
+      if (!userSet('warmthValue') && item.warmthValue != null) {
+        data.warmthValue = clamp(item.warmthValue + 1, 0, 10);
+      }
+      break;
+    case 'wrong-color':
+      // Wrong data is worse than missing data: drop the color so the engine
+      // stops reasoning from it; the user can set the right one any time.
+      if (!userSet('primaryColor')) {
+        data.primaryColor = null;
+        data.colorPalette = Prisma.DbNull;
+      }
+      break;
+    case 'dont-suggest':
+      data.suppressed = true;
+      break;
+  }
+
+  if (Object.keys(data).length === 0) {
+    // Nothing to move (user-set field, or no value yet) — still a 200: the
+    // feedback was heard even when no adjustment applies.
+    res.json({ item, adjusted: false });
+    return;
+  }
+
+  const updated = await prisma.wardrobeItem.update({ where: { id }, data });
+  res.json({ item: updated, adjusted: true });
 }
 
 const todaySchema = z.object({

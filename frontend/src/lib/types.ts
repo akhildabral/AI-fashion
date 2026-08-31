@@ -135,6 +135,8 @@ export interface WardrobeItem {
   description: string | null
   /** Availability: clean | in-wash | packed | lent-out | retired. */
   state: string
+  /** Hidden from suggestion pools ("don't suggest this"). */
+  suppressed: boolean
   layerRole: string | null
   warmthValue: number | null
   formalityScore: number | null
@@ -161,6 +163,7 @@ export interface WardrobeItemEdit {
   season?: string[]
   material?: string
   description?: string
+  suppressed?: boolean
 }
 
 /** An outfit assembled from the user's owned wardrobe items. */
@@ -233,3 +236,46 @@ export interface WearInsightsResponse {
     orphans: number
   }
 }
+
+// ---- Travel packing ----
+
+export interface ForecastDay {
+  date: string
+  minC: number
+  maxC: number
+  description: string
+  rainChance: boolean
+}
+
+export interface TripForecast {
+  location: string
+  days: ForecastDay[]
+  partial: boolean
+}
+
+export interface PackedDay {
+  label: string
+  items: WardrobeItem[]
+  note: string
+}
+
+export interface PackingPlan {
+  capsule: WardrobeItem[]
+  rationale: string
+  days: PackedDay[]
+  essentials: string[]
+}
+
+export interface PackingResponse {
+  forecast: TripForecast
+  plan: PackingPlan
+}
+
+/** Inline correction signals on a suggested item (plan §4.3). */
+export type FeedbackSignal =
+  | 'too-formal'
+  | 'too-casual'
+  | 'too-warm'
+  | 'not-warm-enough'
+  | 'wrong-color'
+  | 'dont-suggest'
