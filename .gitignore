@@ -47,3 +47,7 @@ uploads/
 
 # Downloaded ML models (fetched on first use)
 models/
+
+# Production deployment secrets
+.env.prod
+deploy/backend.env

@@ -1,0 +1,7 @@
+# Local smoke test override: run the prod stack on plain HTTP :8080.
+#   docker compose -f docker-compose.prod.yml -f deploy/compose.local-test.yml \
+#     --env-file .env.prod up -d --build
+services:
+  web:
+    ports: !override
+      - "8080:8080"
