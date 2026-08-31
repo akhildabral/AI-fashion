@@ -32,3 +32,8 @@ export function createTryOn(lookId: string): Promise<TryOnResponse> {
 export function getTryOns(): Promise<TryOnsResponse> {
   return apiFetch<TryOnsResponse>('/tryons')
 }
+
+/** DELETE /api/tryons/:id — remove a rendered try-on (204 No Content). */
+export function deleteTryOn(id: string): Promise<void> {
+  return apiFetch<void>(`/tryons/${id}`, { method: 'DELETE' })
+}

@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api'
 import type { FavoriteResponse, Look } from '../lib/types'
 import { Spinner } from './Spinner'
 import { TryOnModal } from './TryOnModal'
+import { ZoomableImage } from './ImageLightbox'
 
 interface OutfitItem {
   /** e.g. "Top", "Shoes" — derived from the object key when available. */
@@ -168,11 +169,9 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
       {/* Image */}
       <div className="relative aspect-[3/4] bg-gradient-to-br from-bone to-clay/20">
         {hasImage ? (
-          <img
+          <ZoomableImage
             src={look.imageUrl as string}
             alt={look.occasion ? `Look for ${look.occasion}` : 'Generated look'}
-            className="h-full w-full object-cover"
-            loading="lazy"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-ink/40">

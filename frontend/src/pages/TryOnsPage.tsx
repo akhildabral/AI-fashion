@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getTryOns } from '../lib/tryon'
+import { deleteTryOn, getTryOns } from '../lib/tryon'
 import type { TryOn } from '../lib/types'
 import { Spinner } from '../components/Spinner'
+import { ZoomableImage } from '../components/ImageLightbox'
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
@@ -79,15 +80,22 @@ export function TryOnsPage() {
           {tryOns.map((tryOn) => (
             <article
               key={tryOn.id}
-              className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm"
             >
+              <button
+                type="button"
+                aria-label="Remove this try-on"
+                onClick={() => {
+                  void deleteTryOn(tryOn.id)
+                    .then(() => setTryOns((prev) => prev?.filter((t) => t.id !== tryOn.id) ?? prev))
+                    .catch(() => setError('Could not remove that try-on.'))
+                }}
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-lg text-ink/60 shadow-sm transition hover:bg-white hover:text-red-600"
+              >
+                ×
+              </button>
               <div className="aspect-[3/4] bg-gradient-to-br from-bone to-clay/20">
-                <img
-                  src={tryOn.imageUrl}
-                  alt="You wearing a saved look"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
+                <ZoomableImage src={tryOn.imageUrl} alt="You wearing a saved look" />
               </div>
               <div className="p-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-clay">

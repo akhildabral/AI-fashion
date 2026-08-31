@@ -35,6 +35,21 @@ export function WardrobePage() {
     }
   }, [])
 
+  // Cataloging runs in the background on the server — poll while any item is
+  // still processing so tags appear as they land.
+  const hasProcessing = items?.some((it) => it.status === 'processing') ?? false
+  useEffect(() => {
+    if (!hasProcessing) return
+    const timer = setInterval(() => {
+      getWardrobe()
+        .then(({ items: list }) => setItems(list ?? []))
+        .catch(() => {
+          // Transient poll failure — the next tick retries.
+        })
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [hasProcessing])
+
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     // Reset so selecting the same file again re-triggers change.
@@ -53,8 +68,9 @@ export function WardrobePage() {
     setUploadError(null)
     setAnalyzing(true)
     try {
-      const { item } = await addWardrobeItem(file)
-      setItems((prev) => (prev ? [item, ...prev] : [item]))
+      const res = await addWardrobeItem(file)
+      const added = res.items ?? [res.item]
+      setItems((prev) => (prev ? [...added, ...prev] : added))
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Could not add that item.')
     } finally {
@@ -74,6 +90,17 @@ export function WardrobePage() {
 
   const hasItems = items != null && items.length > 0
 
+  // Category filter with counts — a quick read on what the closet holds.
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const categoryCounts = new Map<string, number>()
+  for (const it of items ?? []) {
+    categoryCounts.set(it.category, (categoryCounts.get(it.category) ?? 0) + 1)
+  }
+  const categories = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])
+  const visibleItems = categoryFilter
+    ? (items ?? []).filter((it) => it.category === categoryFilter)
+    : (items ?? [])
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="mb-10 max-w-2xl">
@@ -92,8 +119,9 @@ export function WardrobePage() {
           <div className="max-w-xl">
             <h2 className="font-serif text-2xl font-semibold text-ink">Add an item</h2>
             <p className="mt-1.5 text-sm text-ink/60">
-              Upload a clear photo of a single garment. We'll auto-tag its category,
-              color, pattern, and more — you can correct anything after.
+              Upload a photo of one or more garments — a flat-lay, a rack, or even
+              a picture of you wearing them. Each item is extracted, cleaned up,
+              and auto-tagged individually; you can correct anything after.
             </p>
           </div>
           <div>
@@ -113,7 +141,7 @@ export function WardrobePage() {
               {analyzing ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Analyzing garment…
+                  Uploading…
                 </>
               ) : (
                 'Add item'
@@ -156,8 +184,38 @@ export function WardrobePage() {
 
       {!loading && !loadError && hasItems && (
         <>
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter(null)}
+              className={
+                categoryFilter === null
+                  ? 'rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white'
+                  : 'rounded-full border border-ink/15 bg-white px-4 py-1.5 text-sm text-ink/70 transition hover:border-ink/30'
+              }
+            >
+              All · {items.length}
+            </button>
+            {categories.map(([category, count]) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() =>
+                  setCategoryFilter((prev) => (prev === category ? null : category))
+                }
+                className={
+                  categoryFilter === category
+                    ? 'rounded-full bg-ink px-4 py-1.5 text-sm font-medium capitalize text-white'
+                    : 'rounded-full border border-ink/15 bg-white px-4 py-1.5 text-sm capitalize text-ink/70 transition hover:border-ink/30'
+                }
+              >
+                {category} · {count}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <WardrobeCard
                 key={item.id}
                 item={item}

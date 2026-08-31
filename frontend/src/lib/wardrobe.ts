@@ -1,5 +1,6 @@
 import { apiFetch, apiUpload } from './api'
 import type {
+  EventType,
   TryOnResponse,
   WardrobeItemEdit,
   WardrobeItemResponse,
@@ -15,7 +16,8 @@ export function getWardrobe(): Promise<WardrobeListResponse> {
 
 /**
  * POST /api/wardrobe — upload a garment photo (multipart, field name `image`).
- * The server auto-tags it with a vision model, which can take ~5-15s.
+ * Returns immediately with status 'processing'; cutout + tagging run in the
+ * background, so poll the list until the item flips to 'ready'.
  */
 export function addWardrobeItem(file: File): Promise<WardrobeItemResponse> {
   const form = new FormData()
@@ -40,18 +42,24 @@ export function deleteWardrobeItem(id: string): Promise<void> {
 }
 
 /** POST /api/wardrobe/outfit — mix & match outfits for an occasion. */
-export function suggestOutfits(occasion: string): Promise<WardrobeOutfitResponse> {
+export function suggestOutfits(
+  occasion: string,
+  eventType: EventType = 'work',
+): Promise<WardrobeOutfitResponse> {
   return apiFetch<WardrobeOutfitResponse>('/wardrobe/outfit', {
     method: 'POST',
-    body: { occasion },
+    body: { occasion, eventType },
   })
 }
 
 /** POST /api/wardrobe/today — weather-aware outfits for a city. */
-export function whatToWearToday(location: string): Promise<WardrobeTodayResponse> {
+export function whatToWearToday(
+  location: string,
+  eventType: EventType = 'work',
+): Promise<WardrobeTodayResponse> {
   return apiFetch<WardrobeTodayResponse>('/wardrobe/today', {
     method: 'POST',
-    body: { location },
+    body: { location, eventType },
   })
 }
 

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { deleteWardrobeItem, updateWardrobeItem } from '../lib/wardrobe'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
 import { Spinner } from './Spinner'
+import { ZoomableImage } from './ImageLightbox'
 
 const CATEGORIES = [
   'top',
@@ -43,6 +44,7 @@ function Chip({ children }: { children: React.ReactNode }) {
 export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showOriginal, setShowOriginal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleDelete() {
@@ -60,16 +62,35 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
   }
 
   const title = item.subtype?.trim() || item.category
+  const hasCleanedVersion = !!item.originalUrl && item.originalUrl !== item.imageUrl
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
-      <div className="aspect-square bg-gradient-to-br from-bone to-clay/20">
-        <img
-          src={item.imageUrl}
+      <div className="relative aspect-square bg-gradient-to-br from-bone to-clay/20">
+        <ZoomableImage
+          src={showOriginal && item.originalUrl ? item.originalUrl : item.imageUrl}
           alt={title}
-          className="h-full w-full object-cover"
-          loading="lazy"
         />
+        {hasCleanedVersion && (
+          <button
+            type="button"
+            onClick={() => setShowOriginal((v) => !v)}
+            className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink/70 shadow-sm transition hover:bg-white"
+          >
+            {showOriginal ? 'Show clean' : 'Show original'}
+          </button>
+        )}
+        {item.status === 'processing' && (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs text-ink/70 shadow-sm">
+            <Spinner className="h-3 w-3" />
+            Analyzing…
+          </span>
+        )}
+        {item.status === 'failed' && (
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs text-red-700 shadow-sm">
+            Tagging failed — edit manually
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-5">

@@ -101,6 +101,10 @@ export interface TryOnsResponse {
 export interface WardrobeItem {
   id: string
   imageUrl: string
+  /** The untouched upload; present when it differs from the cleaned display image. */
+  originalUrl: string | null
+  /** Cataloging pipeline state: uploads start as 'processing' and flip to 'ready' (or 'failed'). */
+  status: 'processing' | 'ready' | 'failed'
   category: string
   subtype: string | null
   primaryColor: string | null
@@ -109,7 +113,22 @@ export interface WardrobeItem {
   season: string[]
   material: string | null
   description: string | null
+  /** Availability: clean | in-wash | packed | lent-out | retired. */
+  state: string
+  layerRole: string | null
+  warmthValue: number | null
+  formalityScore: number | null
   createdAt: string
+}
+
+export type EventType = 'work' | 'casual' | 'evening' | 'occasion' | 'athletic'
+
+/** Result of the deterministic outfit validation attached to each suggestion. */
+export interface OutfitValidation {
+  ok: boolean
+  score: number
+  violations: { rule: string; message: string }[]
+  warnings: { rule: string; message: string }[]
 }
 
 /** Fields the user is allowed to correct via PATCH /api/wardrobe/:id. */
@@ -128,10 +147,13 @@ export interface WardrobeItemEdit {
 export interface WardrobeOutfit {
   items: WardrobeItem[]
   rationale: string
+  validation?: OutfitValidation
 }
 
 export interface WardrobeItemResponse {
   item: WardrobeItem
+  /** POST /api/wardrobe can detect several garments in one photo — one entry each. */
+  items?: WardrobeItem[]
 }
 
 export interface WardrobeListResponse {
@@ -151,4 +173,43 @@ export interface WardrobeWeather {
 export interface WardrobeTodayResponse {
   weather: WardrobeWeather
   outfits: WardrobeOutfit[]
+}
+
+// ---- Wear log (the core dataset: what was actually worn, when) ----
+
+export interface WearLogEntry {
+  id: string
+  itemIds: string[]
+  /** Items resolved server-side; deleted items simply drop out. */
+  items: WardrobeItem[]
+  outfitId: string | null
+  wornOn: string
+  eventType: EventType | null
+  weather: WardrobeWeather | null
+  rating: number | null
+  createdAt: string
+}
+
+export interface WearLogListResponse {
+  logs: WearLogEntry[]
+}
+
+export interface WearInsightItem {
+  itemId: string
+  imageUrl: string
+  category: string
+  subtype: string | null
+  wearCount: number
+  lastWorn: string | null
+  /** Not worn (or never worn since adding) for 90+ days. */
+  orphan: boolean
+}
+
+export interface WearInsightsResponse {
+  items: WearInsightItem[]
+  totals: {
+    items: number
+    logged: number
+    orphans: number
+  }
 }
