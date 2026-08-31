@@ -182,6 +182,7 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
   const [pattern, setPattern] = useState(item.pattern ?? '')
   const [formality, setFormality] = useState(item.formality ?? '')
   const [material, setMaterial] = useState(item.material ?? '')
+  const [price, setPrice] = useState(item.price != null ? String(item.price) : '')
   const [description, setDescription] = useState(item.description ?? '')
   const [season, setSeason] = useState<string[]>(item.season)
   const [saving, setSaving] = useState(false)
@@ -196,6 +197,12 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
   async function handleSubmit() {
     setError(null)
     setSaving(true)
+    const parsedPrice = price.trim() === '' ? null : Number(price)
+    if (parsedPrice != null && (Number.isNaN(parsedPrice) || parsedPrice < 0)) {
+      setError('Price must be a positive number.')
+      setSaving(false)
+      return
+    }
     const edits: WardrobeItemEdit = {
       category,
       subtype: subtype.trim(),
@@ -205,6 +212,7 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
       material: material.trim(),
       description: description.trim(),
       season,
+      price: parsedPrice,
     }
     try {
       const { item: updated } = await updateWardrobeItem(item.id, edits)
@@ -249,6 +257,15 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
       <View>
         <Label>Material</Label>
         <TextField value={material} onChangeText={setMaterial} placeholder="e.g. cotton" />
+      </View>
+      <View>
+        <Label>Price paid (for cost-per-wear)</Label>
+        <TextField
+          value={price}
+          onChangeText={setPrice}
+          placeholder="e.g. 1500"
+          keyboardType="numeric"
+        />
       </View>
       <View>
         <Label>Season</Label>

@@ -59,6 +59,8 @@ model WardrobeItem {
   colorPalette   Json?
   // Per-attribute model confidence (0–1); low-confidence fields stay null.
   attrConfidence Json?
+  // What the item cost — powers cost-per-wear. Currency-agnostic number.
+  price          Float?
   // Hook for canonical product-catalog resolution — populated in a later phase.
   productId      String?
   createdAt    DateTime @default(now())

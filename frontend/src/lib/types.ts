@@ -137,6 +137,8 @@ export interface WardrobeItem {
   state: string
   /** Hidden from suggestion pools ("don't suggest this"). */
   suppressed: boolean
+  /** What the item cost — powers cost-per-wear. */
+  price: number | null
   layerRole: string | null
   warmthValue: number | null
   formalityScore: number | null
@@ -155,6 +157,7 @@ export interface OutfitValidation {
 
 /** Fields the user is allowed to correct via PATCH /api/wardrobe/:id. */
 export interface WardrobeItemEdit {
+  price?: number | null
   category?: string
   subtype?: string
   primaryColor?: string
@@ -226,6 +229,9 @@ export interface WearInsightItem {
   lastWorn: string | null
   /** Not worn (or never worn since adding) for 90+ days. */
   orphan: boolean
+  price: number | null
+  /** price / wears so far; equals price while unworn; null without a price. */
+  costPerWear: number | null
 }
 
 export interface WearInsightsResponse {
@@ -279,3 +285,16 @@ export type FeedbackSignal =
   | 'not-warm-enough'
   | 'wrong-color'
   | 'dont-suggest'
+
+/** A ready-to-post secondhand-marketplace listing draft. */
+export interface ResaleDraft {
+  title: string
+  description: string
+  suggestedPrice: string
+  conditionChecklist: string[]
+}
+
+export interface ResaleDraftResponse {
+  draft: ResaleDraft
+  imageUrl: string
+}

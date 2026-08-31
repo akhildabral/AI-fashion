@@ -3,6 +3,7 @@ import type {
   EventType,
   FeedbackSignal,
   PackingResponse,
+  ResaleDraftResponse,
   TryOnResponse,
   WardrobeItem,
   WardrobeItemEdit,
@@ -99,4 +100,9 @@ export function sendItemFeedback(
     method: 'POST',
     body: { signal },
   })
+}
+
+/** POST /api/wardrobe/:id/resale-draft — a listing draft for reselling. */
+export function getResaleDraft(id: string): Promise<ResaleDraftResponse> {
+  return apiFetch<ResaleDraftResponse>(`/wardrobe/${id}/resale-draft`, { method: 'POST' })
 }

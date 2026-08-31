@@ -184,6 +184,7 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
   const [pattern, setPattern] = useState(item.pattern ?? '')
   const [formality, setFormality] = useState(item.formality ?? '')
   const [material, setMaterial] = useState(item.material ?? '')
+  const [price, setPrice] = useState(item.price != null ? String(item.price) : '')
   const [description, setDescription] = useState(item.description ?? '')
   const [season, setSeason] = useState<string[]>(item.season)
   const [saving, setSaving] = useState(false)
@@ -208,6 +209,12 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
       material: material.trim(),
       description: description.trim(),
       season,
+      price: price.trim() === '' ? null : Number(price),
+    }
+    if (edits.price != null && (Number.isNaN(edits.price) || edits.price < 0)) {
+      setError('Price must be a positive number.')
+      setSaving(false)
+      return
     }
     try {
       const { item: updated } = await updateWardrobeItem(item.id, edits)
@@ -309,6 +316,21 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
             onChange={(e) => setMaterial(e.target.value)}
             className="field"
             placeholder="e.g. cotton"
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor={`price-${item.id}`}>
+            Price paid (for cost-per-wear)
+          </label>
+          <input
+            id={`price-${item.id}`}
+            type="number"
+            min="0"
+            step="any"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="field"
+            placeholder="e.g. 1500"
           />
         </div>
       </div>

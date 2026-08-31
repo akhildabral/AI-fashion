@@ -57,6 +57,10 @@ export function WearJournal() {
   if (!insights || !logs) return null
 
   const recent = logs.slice(0, RECENT_LOGS)
+  const mostWorn = [...insights.items]
+    .filter((i) => i.wearCount > 0)
+    .sort((a, b) => b.wearCount - a.wearCount)
+    .slice(0, 4)
 
   return (
     <View style={styles.wrap}>
@@ -70,6 +74,27 @@ export function WearJournal() {
         <StatCard label="Items" value={insights.totals.items} />
         <StatCard label="Orphans" value={insights.totals.orphans} />
       </View>
+
+      {mostWorn.length > 0 && (
+        <View style={{ marginTop: spacing.lg }}>
+          <Text style={styles.subTitle}>Most worn</Text>
+          <View style={styles.mostWornRow}>
+            {mostWorn.map((item) => (
+              <View key={item.itemId} style={styles.mostWornItem}>
+                <ZoomableImage uri={resolveImageUrl(item.imageUrl)} style={styles.mostWornThumb} />
+                <Text style={styles.mostWornLabel} numberOfLines={1}>
+                  {item.wearCount}× worn
+                </Text>
+                {item.costPerWear != null && (
+                  <Text style={styles.mostWornCpw} numberOfLines={1}>
+                    ≈{item.costPerWear}/wear
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {recent.length === 0 ? (
         <Text style={styles.empty}>
@@ -133,6 +158,39 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: fonts.serif,
     color: colors.ink,
+  },
+  subTitle: {
+    fontSize: 13,
+    fontFamily: fonts.sans,
+    color: colors.inkSoft,
+    marginBottom: spacing.sm,
+  },
+  mostWornRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  mostWornItem: {
+    width: 68,
+  },
+  mostWornThumb: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.inkLine,
+    backgroundColor: colors.boneSoft,
+  },
+  mostWornLabel: {
+    marginTop: 3,
+    fontSize: 10,
+    textAlign: 'center',
+    color: colors.inkSoft,
+  },
+  mostWornCpw: {
+    fontSize: 9,
+    textAlign: 'center',
+    color: colors.inkFaint,
   },
   empty: {
     marginTop: spacing.lg,

@@ -9,6 +9,7 @@ import { extForMime } from '../middleware/upload';
 import {
   detectGarments,
   deriveReasoningAttributes,
+  draftResaleListing,
   suggestOutfits,
   tagGarment,
   type DetectedGarment,
@@ -231,6 +232,7 @@ const updateSchema = z.object({
   description: z.string().max(300).nullish(),
   state: z.enum(ITEM_STATES).optional(),
   suppressed: z.boolean().optional(),
+  price: z.number().min(0).max(1_000_000).nullish(),
   layerRole: z.enum(['base', 'mid', 'outer', 'bottom', 'footwear', 'accessory', 'one-piece']).nullish(),
   warmthValue: z.number().int().min(0).max(10).nullish(),
   formalityScore: z.number().int().min(1).max(5).nullish(),
@@ -466,6 +468,20 @@ export async function itemFeedback(req: Request, res: Response) {
 
   const updated = await prisma.wardrobeItem.update({ where: { id }, data });
   res.json({ item: updated, adjusted: true });
+}
+
+// A ready-to-post marketplace listing draft for an item (usually an orphan).
+export async function resaleDraft(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+
+  const item = await prisma.wardrobeItem.findFirst({
+    where: { id, userId: req.user.id },
+  });
+  if (!item) throw new HttpError(404, 'Item not found');
+
+  const draft = await draftResaleListing(item);
+  res.json({ draft, imageUrl: item.imageUrl });
 }
 
 const todaySchema = z.object({

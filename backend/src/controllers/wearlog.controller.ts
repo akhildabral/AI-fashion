@@ -190,6 +190,10 @@ export async function wearInsights(req: Request, res: Response) {
       wearCount: worn,
       lastWorn: last,
       orphan: idleDays >= ORPHAN_AFTER_DAYS,
+      price: item.price,
+      // The payoff stat: what each wear has cost so far. Null without a
+      // price; equal to the price while the item is still unworn.
+      costPerWear: item.price != null ? Math.round((item.price / Math.max(1, worn)) * 100) / 100 : null,
     };
   });
 

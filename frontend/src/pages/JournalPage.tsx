@@ -1,8 +1,111 @@
 import { useEffect, useState } from 'react'
 import { deleteWearLog, getWearInsights, getWearLog } from '../lib/wearlog'
-import type { WearInsightsResponse, WearLogEntry } from '../lib/types'
+import { getResaleDraft } from '../lib/wardrobe'
+import type { ResaleDraftResponse, WearInsightsResponse, WearLogEntry } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { ZoomableImage } from '../components/ImageLightbox'
+
+/**
+ * Resale is the plan's first monetization surface: turn an orphan into a
+ * ready-to-post marketplace listing. Copy-paste friendly.
+ */
+function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  const [result, setResult] = useState<ResaleDraftResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getResaleDraft(itemId)
+      .then((res) => {
+        if (!cancelled) setResult(res)
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not draft a listing.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [itemId])
+
+  function copyAll() {
+    if (!result) return
+    const text = `${result.draft.title}\n\n${result.draft.description}\n\nAsking price: ${result.draft.suggestedPrice}`
+    void navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl sm:p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h3 className="font-serif text-2xl font-semibold text-ink">Resale listing draft</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bone text-lg text-ink/60 hover:text-ink"
+          >
+            ×
+          </button>
+        </div>
+
+        {!result && !error && (
+          <div className="flex min-h-[20vh] flex-col items-center justify-center gap-3 text-ink/60">
+            <Spinner className="h-6 w-6" />
+            <p className="text-sm">Writing your listing…</p>
+          </div>
+        )}
+
+        {error && (
+          <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        )}
+
+        {result && (
+          <div className="space-y-5">
+            <div className="flex gap-4">
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-ink/10 bg-bone">
+                <img src={result.imageUrl} alt="Item" className="h-full w-full object-cover" />
+              </div>
+              <div>
+                <p className="font-medium text-ink">{result.draft.title}</p>
+                <p className="mt-1 text-sm text-clay">Ask: {result.draft.suggestedPrice}</p>
+              </div>
+            </div>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-ink/75">
+              {result.draft.description}
+            </p>
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-[0.15em] text-clay">
+                Before you list — check &amp; photograph
+              </p>
+              <ul className="list-inside list-disc space-y-1 text-sm text-ink/70">
+                {result.draft.conditionChecklist.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </div>
+            <button type="button" onClick={copyAll} className="btn-primary w-full">
+              {copied ? 'Copied ✓' : 'Copy listing text'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -66,6 +169,7 @@ export function JournalPage() {
   const [logs, setLogs] = useState<WearLogEntry[] | null>(null)
   const [insights, setInsights] = useState<WearInsightsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resaleItemId, setResaleItemId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -148,6 +252,9 @@ export function JournalPage() {
                 </div>
                 <p className="mt-1.5 text-xs text-ink/60">
                   {item.wearCount}× worn
+                  {item.costPerWear != null && (
+                    <span className="block text-ink/45">≈{item.costPerWear}/wear</span>
+                  )}
                 </p>
               </div>
             ))}
@@ -171,6 +278,13 @@ export function JournalPage() {
                 <p className="mt-1.5 truncate text-xs capitalize text-ink/60">
                   {item.subtype ?? item.category}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setResaleItemId(item.itemId)}
+                  className="mt-1 text-xs text-clay underline-offset-2 hover:underline"
+                >
+                  Draft listing
+                </button>
               </div>
             ))}
           </div>
@@ -200,6 +314,8 @@ export function JournalPage() {
           )}
         </section>
       )}
+
+      {resaleItemId && <ResaleModal itemId={resaleItemId} onClose={() => setResaleItemId(null)} />}
     </div>
   )
 }

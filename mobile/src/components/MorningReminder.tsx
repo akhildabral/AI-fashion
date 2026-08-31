@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, Switch, Text, View } from 'react-native'
 import {
-  DEFAULT_REMINDER,
+  DEFAULT_REMINDERS,
   disableReminder,
   enableReminder,
   getReminderPrefs,
+  type ReminderSlot,
 } from '../lib/reminder'
 import { colors, spacing } from '../theme'
 import { Card, ErrorText, Heading, Label, Select, Subtle } from './ui'
 
-// Half-hour slots across normal getting-ready hours.
-const TIMES: string[] = []
-for (let h = 5; h <= 11; h++) {
-  TIMES.push(`${String(h).padStart(2, '0')}:00`, `${String(h).padStart(2, '0')}:30`)
+function slots(from: number, to: number): string[] {
+  const out: string[] = []
+  for (let h = from; h <= to; h++) {
+    out.push(`${String(h).padStart(2, '0')}:00`, `${String(h).padStart(2, '0')}:30`)
+  }
+  return out
+}
+
+const TIMES: Record<ReminderSlot, string[]> = {
+  morning: slots(5, 11),
+  evening: slots(18, 23),
 }
 
 function toTime(hour: number, minute: number): string {
@@ -20,57 +28,65 @@ function toTime(hour: number, minute: number): string {
 }
 
 /**
- * The morning ritual's hook: a daily local notification at the user's chosen
- * time. Local (not remote push) so it works in Expo Go; tapping it opens the
- * app for the day's weather-aware suggestion.
+ * One daily-reminder row: toggle + time picker, backed by a locally
+ * scheduled notification.
  */
-export function MorningReminder() {
+function ReminderRow({
+  slot,
+  title,
+  subtitle,
+  onError,
+}: {
+  slot: ReminderSlot
+  title: string
+  subtitle: string
+  onError: (msg: string | null) => void
+}) {
   const [enabled, setEnabled] = useState(false)
-  const [time, setTime] = useState(toTime(DEFAULT_REMINDER.hour, DEFAULT_REMINDER.minute))
+  const [time, setTime] = useState(
+    toTime(DEFAULT_REMINDERS[slot].hour, DEFAULT_REMINDERS[slot].minute),
+  )
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getReminderPrefs().then((prefs) => {
+    getReminderPrefs(slot).then((prefs) => {
       setEnabled(prefs.enabled)
       setTime(toTime(prefs.hour, prefs.minute))
     })
-  }, [])
+  }, [slot])
 
   async function apply(nextEnabled: boolean, nextTime: string) {
     if (busy) return
     setBusy(true)
-    setError(null)
+    onError(null)
     const [hour, minute] = nextTime.split(':').map(Number)
     try {
       if (nextEnabled) {
-        const ok = await enableReminder(hour, minute)
+        const ok = await enableReminder(slot, hour, minute)
         if (!ok) {
-          setError('Notifications are blocked — allow them in system Settings first.')
+          onError('Notifications are blocked — allow them in system Settings first.')
           setEnabled(false)
           return
         }
         setEnabled(true)
         setTime(nextTime)
       } else {
-        await disableReminder()
+        await disableReminder(slot)
         setEnabled(false)
       }
     } catch {
-      setError('Could not update the reminder. Please try again.')
+      onError('Could not update the reminder. Please try again.')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Card>
+    <View style={styles.row}>
       <View style={styles.headRow}>
         <View style={{ flex: 1, paddingRight: spacing.md }}>
-          <Heading size={22}>Morning look</Heading>
-          <Subtle style={{ marginTop: 4 }}>
-            A daily nudge to check what to wear — weather checked, closet ready.
-          </Subtle>
+          <Text style={styles.rowTitle}>{title}</Text>
+          <Subtle style={{ marginTop: 2, fontSize: 12 }}>{subtitle}</Subtle>
         </View>
         <Switch
           value={enabled}
@@ -79,13 +95,12 @@ export function MorningReminder() {
           trackColor={{ true: colors.sage }}
         />
       </View>
-
       {enabled && (
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.md }}>
           <Label>Remind me at</Label>
           <Select
             value={time}
-            options={TIMES}
+            options={TIMES[slot]}
             onChange={(v) => {
               if (v) void apply(true, v)
             }}
@@ -93,6 +108,33 @@ export function MorningReminder() {
           />
         </View>
       )}
+    </View>
+  )
+}
+
+/** The daily ritual's reminders: morning look + evening wear log. */
+export function MorningReminder() {
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Card>
+      <Heading size={22}>Daily reminders</Heading>
+      <Subtle style={{ marginTop: 4 }}>
+        Two gentle nudges — never more, both optional.
+      </Subtle>
+
+      <ReminderRow
+        slot="morning"
+        title="Morning look ☀️"
+        subtitle="What to wear — weather checked, closet ready."
+        onError={setError}
+      />
+      <ReminderRow
+        slot="evening"
+        title="Evening log ✓"
+        subtitle="What did you wear today? Keeps your stylist learning."
+        onError={setError}
+      />
 
       {error && (
         <View style={{ marginTop: spacing.md }}>
@@ -101,19 +143,29 @@ export function MorningReminder() {
       )}
 
       <Text style={styles.note}>
-        Delivered on this device. Keep the app installed in Expo Go for it to fire.
+        Delivered on this device. Keep the app installed in Expo Go for them to fire.
       </Text>
     </Card>
   )
 }
 
 const styles = StyleSheet.create({
+  row: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.inkLine,
+  },
   headRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  rowTitle: {
+    fontSize: 15,
+    color: colors.ink,
+  },
   note: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
     fontSize: 11,
     color: colors.inkFaint,
   },

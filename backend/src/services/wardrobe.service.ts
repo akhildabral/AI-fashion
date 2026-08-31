@@ -167,6 +167,67 @@ export function deriveReasoningAttributes(tags: {
   };
 }
 
+export interface ResaleDraft {
+  title: string;
+  description: string;
+  suggestedPrice: string;
+  conditionChecklist: string[];
+}
+
+const resaleSchema = z.object({
+  // Marketplace-style listing title, ≤70 chars.
+  title: z.string(),
+  // Honest, appealing listing description: what it is, fabric/pattern,
+  // fit, why someone would want it. No invented flaws or history.
+  description: z.string(),
+  // A pricing suggestion with brief reasoning (currency-agnostic, e.g.
+  // "around 30-40% of retail for a worn casual piece").
+  suggestedPrice: z.string(),
+  // Things the seller should check/photograph before listing.
+  conditionChecklist: z.array(z.string()),
+});
+
+// Resale monetizes decluttering without touching the styling engine: turn a
+// wardrobe orphan into a ready-to-post marketplace listing draft.
+export async function draftResaleListing(item: WardrobeItem): Promise<ResaleDraft> {
+  const facts = [
+    item.subtype && `type: ${item.subtype}`,
+    `category: ${item.category}`,
+    item.primaryColor && `color: ${item.primaryColor}`,
+    item.pattern && `pattern: ${item.pattern}`,
+    item.material && `material: ${item.material}`,
+    item.formality && `formality: ${item.formality}`,
+    item.season.length && `seasons: ${item.season.join(', ')}`,
+    item.description && `catalog description: ${item.description}`,
+    item.price != null && `original price paid: ${item.price}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  try {
+    const { object } = await generateObject({
+      model: await textModel(),
+      temperature: 0.6,
+      schema: resaleSchema,
+      instructions:
+        'You write secondhand-marketplace listings (Vinted/Poshmark/Depop style). ' +
+        'From the garment facts, draft an appealing but honest listing: a punchy ' +
+        'title under 70 characters, a description that says what it is and why ' +
+        'it is worth buying, a realistic asking-price suggestion (good-condition ' +
+        'secondhand typically fetches 20-50% of the original price — state a ' +
+        'range in the same currency units as the original price when known, ' +
+        'otherwise a typical range for this kind of piece), and a short checklist of condition ' +
+        'points the seller should verify and photograph. Never invent brand ' +
+        'names, sizes, flaws, or history that are not in the facts.',
+      prompt: `Garment facts:\n${facts}`,
+    });
+    return object;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'The listing model failed';
+    throw new HttpError(502, message);
+  }
+}
+
 export interface SuggestedOutfit {
   items: WardrobeItem[];
   rationale: string;
