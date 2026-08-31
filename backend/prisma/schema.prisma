@@ -117,6 +117,9 @@ model StyleProfile {
   styleVibe   String?
   budgetBand  String?
   avoidColors String[]
+  // Taste-quiz output: { signals: string[], takenAt: ISO string }. Cold-start
+  // personalization until the wear log takes over.
+  styleSignals Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../context/ProfileContext'
 import { PhotoManager } from '../components/PhotoManager'
 import { MorningReminder } from '../components/MorningReminder'
+import { StyleQuizCard } from '../components/StyleQuiz'
 import {
   Button,
   CenteredSpinner,
@@ -360,6 +361,10 @@ export function ProfileScreen() {
 
           <View style={{ marginTop: spacing.xl }}>
             <PhotoManager />
+          </View>
+
+          <View style={{ marginTop: spacing.xl }}>
+            <StyleQuizCard />
           </View>
 
           <View style={{ marginTop: spacing.xl }}>

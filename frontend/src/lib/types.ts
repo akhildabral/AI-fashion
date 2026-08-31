@@ -26,6 +26,26 @@ export interface StyleProfile {
   styleVibe: string
   budgetBand: string
   avoidColors: string[]
+  /** Taste-quiz output; null until the quiz has been taken. */
+  styleSignals?: { signals: string[]; takenAt: string } | null
+}
+
+// ---- Taste quiz (cold-start personalization) ----
+
+export interface QuizSide {
+  label: string
+  imageUrl: string
+}
+
+export interface QuizPair {
+  id: string
+  question: string
+  left: QuizSide
+  right: QuizSide
+}
+
+export interface QuizResponse {
+  pairs: QuizPair[]
 }
 
 export interface ProfileResponse {

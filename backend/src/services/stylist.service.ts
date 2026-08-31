@@ -63,6 +63,13 @@ function describeProfile(profile: StyleProfile | null): string {
   }
   if (profile.avoidColors?.length) parts.push(`Colors to avoid: ${profile.avoidColors.join(', ')}`);
 
+  // Cold-start taste signals from the visual quiz — the client's revealed
+  // preferences before any wear history exists.
+  const styleSignals = profile.styleSignals as { signals?: string[] } | null;
+  if (styleSignals?.signals?.length) {
+    parts.push(`Taste (from their style quiz): ${styleSignals.signals.join('; ')}`);
+  }
+
   return parts.length ? parts.join('\n') : 'No detailed style profile provided.';
 }
 

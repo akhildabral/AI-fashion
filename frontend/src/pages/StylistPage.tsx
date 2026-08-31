@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { useProfile } from '../context/useProfile'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
 import { Spinner } from '../components/Spinner'
@@ -31,6 +33,8 @@ function LookSkeleton() {
 }
 
 export function StylistPage() {
+  const { profile } = useProfile()
+  const needsQuiz = !profile?.styleSignals?.signals?.length
   const [occasion, setOccasion] = useState('')
   const [gender, setGender] = useState<string>('female')
   const [loading, setLoading] = useState(false)
@@ -63,6 +67,24 @@ export function StylistPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
+      {needsQuiz && (
+        <Link
+          to="/quiz"
+          className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-clay/30 bg-clay/10 px-6 py-4 transition hover:border-clay/50 hover:bg-clay/15"
+        >
+          <div>
+            <p className="font-serif text-lg font-semibold text-ink">
+              Take the 60-second style quiz
+            </p>
+            <p className="mt-0.5 text-sm text-ink/60">
+              Eight quick picks teach your stylist what you actually like.
+            </p>
+          </div>
+          <span aria-hidden="true" className="text-xl text-clay">
+            →
+          </span>
+        </Link>
+      )}
       <div className="mb-10 max-w-2xl">
         <h1 className="font-serif text-5xl font-semibold leading-tight text-ink">
           What are you dressing for?

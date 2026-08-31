@@ -7,6 +7,8 @@ import { photoRouter } from './routes/photo.routes';
 import { tryOnRouter } from './routes/tryon.routes';
 import { wardrobeRouter } from './routes/wardrobe.routes';
 import { wearLogRouter } from './routes/wearlog.routes';
+import { quizRouter } from './routes/quiz.routes';
+import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
@@ -30,6 +32,10 @@ export function createApp() {
   app.use('/api/profile', profileRouter);
   app.use('/api/photo', photoRouter);
   app.use('/api/wardrobe', wardrobeRouter);
+  // Static taste-quiz pair images (committed assets, not user uploads).
+  app.use('/api/quiz-assets', express.static(path.resolve(__dirname, '../assets/quiz')));
+
+  app.use('/api', quizRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);

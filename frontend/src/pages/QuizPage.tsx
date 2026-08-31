@@ -1,0 +1,133 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getQuiz, submitQuiz } from '../lib/quiz'
+import { useProfile } from '../context/useProfile'
+import type { QuizPair } from '../lib/types'
+import { Spinner } from '../components/Spinner'
+
+/**
+ * The cold-start taste quiz: a fast visual this-or-that. One tap per pair,
+ * ~60 seconds total; the answers seed the stylist before any wear history
+ * exists. Feels like a personality quiz, not setup.
+ */
+export function QuizPage() {
+  const navigate = useNavigate()
+  const { setProfile } = useProfile()
+  const [pairs, setPairs] = useState<QuizPair[] | null>(null)
+  const [index, setIndex] = useState(0)
+  const [choices, setChoices] = useState<Record<string, 'left' | 'right'>>({})
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getQuiz()
+      .then(({ pairs: p }) => {
+        if (!cancelled) setPairs(p ?? [])
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load the quiz.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function choose(side: 'left' | 'right') {
+    if (!pairs || saving) return
+    const next = { ...choices, [pairs[index].id]: side }
+    setChoices(next)
+
+    if (index < pairs.length - 1) {
+      setIndex(index + 1)
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+    try {
+      const { profile } = await submitQuiz(next)
+      setProfile(profile)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your answers.')
+      setSaving(false)
+    }
+  }
+
+  const pair = pairs?.[index]
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="mb-8 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-clay">Style quiz</p>
+        <h1 className="mt-2 font-serif text-3xl font-semibold text-ink sm:text-4xl">
+          {pair ? pair.question : 'Finding your taste'}
+        </h1>
+        <p className="mt-2 text-sm text-ink/55">
+          Tap the one you'd rather wear. No wrong answers.
+        </p>
+      </div>
+
+      {!pairs && !error && (
+        <div className="flex min-h-[30vh] items-center justify-center text-ink/50">
+          <Spinner className="h-6 w-6" />
+        </div>
+      )}
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-center text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      )}
+
+      {pair && !saving && (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+            {(['left', 'right'] as const).map((side) => (
+              <button
+                key={`${pair.id}-${side}`}
+                type="button"
+                onClick={() => choose(side)}
+                className="group overflow-hidden rounded-2xl border border-ink/10 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-clay/50 hover:shadow-md"
+              >
+                <div className="aspect-square overflow-hidden bg-bone">
+                  <img
+                    src={pair[side].imageUrl}
+                    alt={pair[side].label}
+                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+                  />
+                </div>
+                <p className="px-4 py-3 text-center text-sm font-medium text-ink/80">
+                  {pair[side].label}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-2">
+            {pairs!.map((p, i) => (
+              <span
+                key={p.id}
+                className={
+                  i === index
+                    ? 'h-2 w-6 rounded-full bg-ink'
+                    : i < index
+                      ? 'h-2 w-2 rounded-full bg-clay'
+                      : 'h-2 w-2 rounded-full bg-ink/15'
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {saving && (
+        <div className="flex min-h-[30vh] flex-col items-center justify-center gap-3 text-ink/60">
+          <Spinner className="h-6 w-6" />
+          <p className="text-sm">Tuning your stylist…</p>
+        </div>
+      )}
+    </div>
+  )
+}
