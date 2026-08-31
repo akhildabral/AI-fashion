@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
@@ -7,6 +7,7 @@ import type { WardrobeItem } from '../lib/types'
 import { Screen } from '../components/Screen'
 import { WardrobeCard } from '../components/WardrobeCard'
 import { OutfitSuggestions } from '../components/OutfitSuggestions'
+import { WearJournal } from '../components/WearJournal'
 import {
   Button,
   Card,
@@ -15,6 +16,7 @@ import {
   ErrorText,
   Heading,
   Subtle,
+  TogglePill,
 } from '../components/ui'
 import { spacing } from '../theme'
 
@@ -48,14 +50,30 @@ export function WardrobeScreen() {
     }, [load, loadedOnce]),
   )
 
+  // Cataloging runs in the background on the server — poll while any item is
+  // still processing so tags appear as they land.
+  const hasProcessing = items?.some((it) => it.status === 'processing') ?? false
+  useEffect(() => {
+    if (!hasProcessing) return
+    const timer = setInterval(() => {
+      getWardrobe()
+        .then(({ items: list }) => setItems(list ?? []))
+        .catch(() => {
+          // Transient poll failure — the next tick retries.
+        })
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [hasProcessing])
+
   async function handleAdd() {
     setUploadError(null)
     const image = await chooseImage()
     if (!image) return
     setAnalyzing(true)
     try {
-      const { item } = await addWardrobeItem(image)
-      setItems((prev) => (prev ? [item, ...prev] : [item]))
+      const res = await addWardrobeItem(image)
+      const added = res.items ?? [res.item]
+      setItems((prev) => (prev ? [...added, ...prev] : added))
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Could not add that item.')
     } finally {
@@ -75,6 +93,17 @@ export function WardrobeScreen() {
 
   const hasItems = items != null && items.length > 0
 
+  // Category filter with counts — a quick read on what the closet holds.
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const categoryCounts = new Map<string, number>()
+  for (const it of items ?? []) {
+    categoryCounts.set(it.category, (categoryCounts.get(it.category) ?? 0) + 1)
+  }
+  const categories = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])
+  const visibleItems = categoryFilter
+    ? (items ?? []).filter((it) => it.category === categoryFilter)
+    : (items ?? [])
+
   return (
     <Screen
       title="Your wardrobe"
@@ -85,12 +114,13 @@ export function WardrobeScreen() {
       <Card style={styles.addCard}>
         <Heading size={22}>Add an item</Heading>
         <Subtle style={{ marginTop: 4 }}>
-          Photograph a single garment. We&apos;ll auto-tag its category, color,
-          pattern, and more — you can correct anything after.
+          Photograph one or more garments — a flat-lay, a rack, or even yourself
+          wearing them. Each item is extracted, cleaned up, and tagged
+          individually; you can correct anything after.
         </Subtle>
         <Button
           title="Add item"
-          loadingTitle="Analyzing garment…"
+          loadingTitle="Uploading…"
           loading={analyzing}
           onPress={handleAdd}
           style={{ marginTop: spacing.lg }}
@@ -116,8 +146,26 @@ export function WardrobeScreen() {
 
       {!loading && !loadError && hasItems && (
         <>
+          <View style={styles.filterRow}>
+            <TogglePill
+              label={`All · ${items.length}`}
+              active={categoryFilter === null}
+              onPress={() => setCategoryFilter(null)}
+            />
+            {categories.map(([category, count]) => (
+              <TogglePill
+                key={category}
+                label={`${category} · ${count}`}
+                active={categoryFilter === category}
+                onPress={() =>
+                  setCategoryFilter((prev) => (prev === category ? null : category))
+                }
+              />
+            ))}
+          </View>
+
           <View style={styles.grid}>
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <View key={item.id} style={styles.gridItem}>
                 <WardrobeCard
                   item={item}
@@ -137,6 +185,8 @@ export function WardrobeScreen() {
             </View>
             <OutfitSuggestions />
           </View>
+
+          <WearJournal />
         </>
       )}
     </Screen>
@@ -150,6 +200,12 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: spacing.md,
     fontSize: 12,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   grid: {
     flexDirection: 'row',

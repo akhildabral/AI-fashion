@@ -13,6 +13,7 @@ import type { FavoriteResponse, Look } from '../lib/types'
 import { getPalette, normalizeOutfit, toCssColor } from '../lib/outfit'
 import { resolveImageUrl } from '../config'
 import { colors, fonts, radius, shadow, spacing } from '../theme'
+import { ZoomableImage } from './ImageViewer'
 import { Label } from './ui'
 import { TryOnModal } from './TryOnModal'
 
@@ -83,7 +84,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
     <View style={styles.card}>
       <View style={styles.imageWrap}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+          <ZoomableImage uri={imageUri} style={styles.image} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text style={styles.placeholderText}>No image available</Text>

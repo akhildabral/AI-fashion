@@ -12,6 +12,7 @@ import { deleteWardrobeItem, updateWardrobeItem } from '../lib/wardrobe'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
 import { resolveImageUrl } from '../config'
 import { colors, fonts, radius, shadow, spacing } from '../theme'
+import { ZoomableImage } from './ImageViewer'
 import { Button, Chip, ErrorText, Label, Select, TextField, TogglePill } from './ui'
 
 const CATEGORIES = [
@@ -37,9 +38,13 @@ interface WardrobeCardProps {
 export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showOriginal, setShowOriginal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const imageUri = resolveImageUrl(item.imageUrl)
+  const hasCleanedVersion = !!item.originalUrl && item.originalUrl !== item.imageUrl
+  const imageUri = resolveImageUrl(
+    showOriginal && item.originalUrl ? item.originalUrl : item.imageUrl,
+  )
   const title = item.subtype?.trim() || item.category
 
   function confirmDelete() {
@@ -66,10 +71,28 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
     <View style={styles.card}>
       <View style={styles.imageWrap}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+          <ZoomableImage uri={imageUri} style={styles.image} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text style={styles.placeholderText}>No image</Text>
+          </View>
+        )}
+        {hasCleanedVersion && (
+          <Pressable style={styles.versionToggle} onPress={() => setShowOriginal((v) => !v)}>
+            <Text style={styles.statusText}>{showOriginal ? 'Show clean' : 'Show original'}</Text>
+          </Pressable>
+        )}
+        {item.status === 'processing' && (
+          <View style={styles.statusBadge}>
+            <ActivityIndicator size="small" color={colors.inkSoft} />
+            <Text style={styles.statusText}>Analyzing…</Text>
+          </View>
+        )}
+        {item.status === 'failed' && (
+          <View style={styles.statusBadge}>
+            <Text style={[styles.statusText, { color: colors.danger }]}>
+              Tagging failed — edit manually
+            </Text>
           </View>
         )}
       </View>
@@ -262,6 +285,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     overflow: 'hidden',
     ...shadow.card,
+  },
+  versionToggle: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    fontFamily: fonts.sans,
   },
   imageWrap: {
     aspectRatio: 1,

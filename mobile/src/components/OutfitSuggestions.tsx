@@ -1,14 +1,97 @@
 import { useState } from 'react'
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { suggestOutfits, whatToWearToday } from '../lib/wardrobe'
-import type { WardrobeOutfit, WardrobeWeather } from '../lib/types'
+import { logWear } from '../lib/wearlog'
+import type { EventType, WardrobeOutfit, WardrobeWeather } from '../lib/types'
 import { resolveImageUrl } from '../config'
 import { colors, fonts, radius, shadow, spacing } from '../theme'
-import { Button, ErrorText, Heading, Label, Subtle, TextField } from './ui'
+import { ZoomableImage } from './ImageViewer'
+import { Button, ErrorText, Heading, Label, Subtle, TextField, TogglePill } from './ui'
 import { TryOnModal } from './TryOnModal'
 
+const EVENT_TYPES: { value: EventType; label: string }[] = [
+  { value: 'work', label: 'Work' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'evening', label: 'Evening' },
+  { value: 'occasion', label: 'Occasion' },
+  { value: 'athletic', label: 'Athletic' },
+]
+
+/** Event-type picker: professional/work is the default, never a cage. */
+function EventTypeSelect({
+  value,
+  onChange,
+}: {
+  value: EventType
+  onChange: (v: EventType) => void
+}) {
+  return (
+    <View>
+      <Label>Setting</Label>
+      <View style={styles.eventRow}>
+        {EVENT_TYPES.map((t) => (
+          <TogglePill
+            key={t.value}
+            label={t.label}
+            active={value === t.value}
+            onPress={() => onChange(t.value)}
+          />
+        ))}
+      </View>
+    </View>
+  )
+}
+
+/** One-tap wear logging — the action the whole product optimizes for. */
+function WoreItButton({
+  itemIds,
+  eventType,
+  location,
+}: {
+  itemIds: string[]
+  eventType: EventType
+  location?: string
+}) {
+  const [state, setState] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+
+  async function handlePress() {
+    if (state === 'saving' || state === 'done') return
+    setState('saving')
+    try {
+      await logWear({ itemIds, eventType, location })
+      setState('done')
+    } catch {
+      setState('error')
+    }
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      style={[styles.woreBtn, state === 'done' && styles.woreBtnDone]}
+      disabled={state === 'saving' || state === 'done'}
+    >
+      {state === 'saving' ? (
+        <ActivityIndicator size="small" color={colors.inkSoft} />
+      ) : (
+        <Text style={[styles.woreText, state === 'done' && styles.woreTextDone]}>
+          {state === 'done' ? 'Logged ✓' : state === 'error' ? 'Try again' : 'Wore it'}
+        </Text>
+      )}
+    </Pressable>
+  )
+}
+
 /** Renders one suggested outfit: its item photos in a row + the rationale. */
-function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
+function OutfitRow({
+  outfit,
+  eventType,
+  location,
+}: {
+  outfit: WardrobeOutfit
+  eventType: EventType
+  location?: string
+}) {
   const [tryOnOpen, setTryOnOpen] = useState(false)
   const itemIds = outfit.items.map((i) => i.id)
 
@@ -22,7 +105,7 @@ function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
             <View key={item.id} style={styles.itemThumbWrap}>
               <View style={styles.itemThumb}>
                 {uri ? (
-                  <Image source={{ uri }} style={styles.itemImage} resizeMode="cover" />
+                  <ZoomableImage uri={uri} style={styles.itemImage} />
                 ) : null}
               </View>
               <Text style={styles.itemLabel} numberOfLines={1}>
@@ -37,8 +120,15 @@ function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
         <Text style={styles.rationale}>{outfit.rationale}</Text>
       ) : null}
 
+      {outfit.validation && outfit.validation.warnings.length > 0 ? (
+        <Text style={styles.warning}>
+          {outfit.validation.warnings.map((w) => w.message).join(' · ')}
+        </Text>
+      ) : null}
+
       {itemIds.length > 0 && (
         <View style={styles.tryOnWrap}>
+          <WoreItButton itemIds={itemIds} eventType={eventType} location={location} />
           <Pressable style={styles.tryOnBtn} onPress={() => setTryOnOpen(true)}>
             <Text style={styles.tryOnText}>Try it on</Text>
           </Pressable>
@@ -56,7 +146,15 @@ function OutfitRow({ outfit }: { outfit: WardrobeOutfit }) {
   )
 }
 
-function OutfitList({ outfits }: { outfits: WardrobeOutfit[] }) {
+function OutfitList({
+  outfits,
+  eventType,
+  location,
+}: {
+  outfits: WardrobeOutfit[]
+  eventType: EventType
+  location?: string
+}) {
   if (outfits.length === 0) {
     return (
       <Text style={styles.muted}>
@@ -67,7 +165,7 @@ function OutfitList({ outfits }: { outfits: WardrobeOutfit[] }) {
   return (
     <View style={{ gap: spacing.lg }}>
       {outfits.map((outfit, i) => (
-        <OutfitRow key={i} outfit={outfit} />
+        <OutfitRow key={i} outfit={outfit} eventType={eventType} location={location} />
       ))}
     </View>
   )
@@ -76,6 +174,7 @@ function OutfitList({ outfits }: { outfits: WardrobeOutfit[] }) {
 /** Mix & match: an occasion → suggested outfits from owned items. */
 function MixAndMatch() {
   const [occasion, setOccasion] = useState('')
+  const [eventType, setEventType] = useState<EventType>('work')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [outfits, setOutfits] = useState<WardrobeOutfit[] | null>(null)
@@ -86,7 +185,7 @@ function MixAndMatch() {
     setLoading(true)
     setOutfits(null)
     try {
-      const res = await suggestOutfits(occasion.trim())
+      const res = await suggestOutfits(occasion.trim(), eventType)
       setOutfits(res.outfits ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not assemble outfits.')
@@ -111,6 +210,7 @@ function MixAndMatch() {
             placeholder="e.g. dinner with friends"
           />
         </View>
+        <EventTypeSelect value={eventType} onChange={setEventType} />
         <Button
           title="Suggest outfits"
           loadingTitle="Assembling…"
@@ -127,7 +227,7 @@ function MixAndMatch() {
 
       {!loading && outfits && (
         <View style={{ marginTop: spacing.xl }}>
-          <OutfitList outfits={outfits} />
+          <OutfitList outfits={outfits} eventType={eventType} />
         </View>
       )}
     </View>
@@ -137,6 +237,7 @@ function MixAndMatch() {
 /** What to wear today: a city → weather summary + weather-aware outfits. */
 function WhatToWearToday() {
   const [location, setLocation] = useState('')
+  const [eventType, setEventType] = useState<EventType>('work')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [weather, setWeather] = useState<WardrobeWeather | null>(null)
@@ -149,7 +250,7 @@ function WhatToWearToday() {
     setWeather(null)
     setOutfits(null)
     try {
-      const res = await whatToWearToday(location.trim())
+      const res = await whatToWearToday(location.trim(), eventType)
       setWeather(res.weather)
       setOutfits(res.outfits ?? [])
     } catch (err) {
@@ -175,6 +276,7 @@ function WhatToWearToday() {
             placeholder="e.g. London"
           />
         </View>
+        <EventTypeSelect value={eventType} onChange={setEventType} />
         <Button
           title="Plan my day"
           loadingTitle="Checking…"
@@ -201,7 +303,7 @@ function WhatToWearToday() {
 
       {!loading && outfits && (
         <View style={{ marginTop: spacing.xl }}>
-          <OutfitList outfits={outfits} />
+          <OutfitList outfits={outfits} eventType={eventType} location={location.trim() ? location.trim() : undefined} />
         </View>
       )}
     </View>
@@ -276,9 +378,44 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.inkSoft,
   },
+  warning: {
+    marginTop: spacing.sm,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.clay,
+  },
+  eventRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
   tryOnWrap: {
     marginTop: spacing.md,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  woreBtn: {
+    borderWidth: 1,
+    borderColor: colors.inkLine2,
+    borderRadius: 999,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 8,
+    minWidth: 84,
+    alignItems: 'center',
+  },
+  woreBtnDone: {
+    borderColor: 'rgba(138,154,134,0.5)',
+    backgroundColor: 'rgba(138,154,134,0.12)',
+  },
+  woreText: {
+    fontSize: 13,
+    color: colors.ink,
+    fontFamily: fonts.sans,
+  },
+  woreTextDone: {
+    color: colors.sage,
   },
   tryOnBtn: {
     borderWidth: 1,

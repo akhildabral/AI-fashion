@@ -1,10 +1,24 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../context/ProfileContext'
 import { AuthStack } from './AuthStack'
 import { MainTabs } from './MainTabs'
 import { ProfileScreen } from '../screens/ProfileScreen'
 import { colors } from '../theme'
+
+// Onboarding renders ProfileScreen before MainTabs exists, but the screen
+// reads its route params (focusPhoto), so it must live inside a navigator —
+// a bare <ProfileScreen /> crashes useRoute().
+const Onboarding = createNativeStackNavigator()
+
+function OnboardingStack() {
+  return (
+    <Onboarding.Navigator screenOptions={{ headerShown: false }}>
+      <Onboarding.Screen name="Profile" component={ProfileScreen} />
+    </Onboarding.Navigator>
+  )
+}
 
 function Splash() {
   return (
@@ -29,7 +43,7 @@ export function RootNavigator() {
   if (initializing) return <Splash />
   if (!user) return <AuthStack />
   if (profileLoading) return <Splash />
-  if (!profile) return <ProfileScreen />
+  if (!profile) return <OnboardingStack />
   return <MainTabs />
 }
 

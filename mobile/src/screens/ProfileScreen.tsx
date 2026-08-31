@@ -16,6 +16,7 @@ import { titleCase } from '../lib/outfit'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../context/ProfileContext'
 import { PhotoManager } from '../components/PhotoManager'
+import { MorningReminder } from '../components/MorningReminder'
 import {
   Button,
   CenteredSpinner,
@@ -359,6 +360,10 @@ export function ProfileScreen() {
 
           <View style={{ marginTop: spacing.xl }}>
             <PhotoManager />
+          </View>
+
+          <View style={{ marginTop: spacing.xl }}>
+            <MorningReminder />
           </View>
 
           <View style={styles.logoutRow}>

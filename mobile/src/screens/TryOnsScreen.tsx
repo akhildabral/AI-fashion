@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { getTryOns } from '../lib/tryon'
+import { deleteTryOn, getTryOns } from '../lib/tryon'
 import type { TryOn } from '../lib/types'
 import { resolveImageUrl } from '../config'
 import { Screen } from '../components/Screen'
+import { ZoomableImage } from '../components/ImageViewer'
 import { CenteredSpinner, EmptyState, ErrorText, Subtle } from '../components/ui'
 import { colors, radius, shadow, spacing } from '../theme'
 
@@ -70,13 +71,29 @@ export function TryOnsScreen() {
               <View key={tryOn.id} style={styles.gridItem}>
                 <View style={styles.card}>
                   <View style={styles.imageWrap}>
-                    {uri ? (
-                      <Image
-                        source={{ uri }}
-                        style={styles.image}
-                        resizeMode="cover"
-                      />
-                    ) : null}
+                    {uri ? <ZoomableImage uri={uri} style={styles.image} /> : null}
+                    <Pressable
+                      style={styles.removeBtn}
+                      accessibilityLabel="Remove this try-on"
+                      onPress={() =>
+                        Alert.alert('Remove try-on', 'Remove this render from your gallery?', [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Remove',
+                            style: 'destructive',
+                            onPress: () => {
+                              void deleteTryOn(tryOn.id)
+                                .then(() =>
+                                  setTryOns((prev) => prev?.filter((t) => t.id !== tryOn.id) ?? prev),
+                                )
+                                .catch(() => setError('Could not remove that try-on.'))
+                            },
+                          },
+                        ])
+                      }
+                    >
+                      <Text style={styles.removeText}>×</Text>
+                    </Pressable>
                   </View>
                   <View style={styles.meta}>
                     <Text style={styles.date}>{formatDate(tryOn.createdAt)}</Text>
@@ -113,6 +130,22 @@ const styles = StyleSheet.create({
   imageWrap: {
     aspectRatio: 3 / 4,
     backgroundColor: colors.boneSoft,
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeText: {
+    fontSize: 18,
+    lineHeight: 20,
+    color: colors.inkSoft,
   },
   image: {
     width: '100%',
