@@ -5,11 +5,13 @@ import {
   getNetwork,
   getPicks,
   getSocialMe,
+  getStyleTwins,
   searchUsers,
   setHandle,
   type FriendPick,
   type NetworkEntry,
   type SocialMe,
+  type StyleTwin,
 } from '../lib/social'
 import { logWear } from '../lib/wearlog'
 import { Spinner } from '../components/Spinner'
@@ -127,11 +129,13 @@ export function FriendsPage() {
   const [picks, setPicks] = useState<FriendPick[] | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ handle: string }[]>([])
+  const [twins, setTwins] = useState<StyleTwin[]>([])
 
   useEffect(() => {
     void getSocialMe().then(setMe).catch(() => setMe(null))
     void getNetwork().then(setNetwork).catch(() => null)
     void getPicks().then(({ picks: p }) => setPicks(p ?? [])).catch(() => setPicks([]))
+    void getStyleTwins().then(({ twins: t }) => setTwins(t ?? [])).catch(() => setTwins([]))
   }, [])
 
   useEffect(() => {
@@ -202,6 +206,40 @@ export function FriendsPage() {
               </div>
             )}
           </section>
+
+          {/* Style twins */}
+          {twins.length > 0 && (
+            <section className="mb-10">
+              <h2 className="mb-1 font-serif text-2xl font-semibold text-ink">
+                People with your taste
+              </h2>
+              <p className="mb-4 text-sm text-ink/55">
+                Matched by style quiz answers and wardrobe make-up — not follower counts.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {twins.map((twin) => (
+                  <Link
+                    key={twin.handle}
+                    to={`/u/${twin.handle}`}
+                    className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm transition hover:border-clay/50"
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <p className="font-medium text-ink">@{twin.handle}</p>
+                      <p className="text-sm text-clay">{twin.match}% match</p>
+                    </div>
+                    {twin.sharedTaste.length > 0 && (
+                      <p className="mt-1.5 text-xs text-ink/55">
+                        You both: {twin.sharedTaste.join(' · ')}
+                      </p>
+                    )}
+                    {!twin.isFollowing && (
+                      <p className="mt-2 text-xs text-ink/40">Not following yet →</p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Picks inbox */}
           {picks && picks.length > 0 && (

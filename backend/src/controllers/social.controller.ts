@@ -235,3 +235,148 @@ export async function deletePick(req: Request, res: Response) {
   if (result.count === 0) throw new HttpError(404, 'Pick not found');
   res.status(204).send();
 }
+
+// ---- Copy-a-look, wardrobe edition: "you own similar pieces" -------------
+
+interface MatchableItem {
+  id: string;
+  imageUrl: string;
+  category: string;
+  subtype: string | null;
+  primaryColor: string | null;
+  pattern: string | null;
+}
+
+// Deterministic similarity: same category plus at least two of
+// subtype / color / pattern agreeing.
+function itemsSimilar(a: MatchableItem, b: MatchableItem): boolean {
+  if (a.category !== b.category) return false;
+  let score = 0;
+  const subA = (a.subtype ?? '').toLowerCase();
+  const subB = (b.subtype ?? '').toLowerCase();
+  if (subA && subB && (subA.includes(subB) || subB.includes(subA))) score += 2;
+  if (a.primaryColor && a.primaryColor === b.primaryColor) score += 1;
+  if (a.pattern && a.pattern === b.pattern) score += 1;
+  return score >= 2;
+}
+
+// How much of someone's public wardrobe you could recreate from your own.
+export async function wardrobeOverlap(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const target = await userByHandle(String(req.params.handle));
+  if (target.id === req.user.id) throw new HttpError(400, 'That is your own wardrobe');
+
+  const select = {
+    id: true,
+    imageUrl: true,
+    category: true,
+    subtype: true,
+    primaryColor: true,
+    pattern: true,
+  };
+  const [theirs, mine] = await Promise.all([
+    prisma.wardrobeItem.findMany({
+      where: { userId: target.id, visibility: 'public', status: { not: 'processing' } },
+      select,
+    }),
+    prisma.wardrobeItem.findMany({
+      where: { userId: req.user.id, status: { not: 'processing' } },
+      select,
+    }),
+  ]);
+
+  const matches = theirs
+    .map((theirItem) => {
+      const mineMatch = mine.find((m) => itemsSimilar(theirItem, m));
+      return mineMatch ? { theirs: theirItem, yours: mineMatch } : null;
+    })
+    .filter((m): m is { theirs: MatchableItem; yours: MatchableItem } => !!m);
+
+  res.json({
+    theirCount: theirs.length,
+    matchedCount: matches.length,
+    matches,
+  });
+}
+
+// ---- Style twins: people whose taste looks like yours --------------------
+
+function jaccard(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  const inter = [...setA].filter((x) => setB.has(x)).length;
+  return inter / new Set([...a, ...b]).size;
+}
+
+function wardrobeProfile(items: { category: string; primaryColor: string | null }[]) {
+  const counts = new Map<string, number>();
+  for (const it of items) {
+    const key = `${it.category}:${it.primaryColor ?? '-'}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function cosine(a: Map<string, number>, b: Map<string, number>): number {
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
+  for (const v of a.values()) magA += v * v;
+  for (const v of b.values()) magB += v * v;
+  if (!magA || !magB) return 0;
+  for (const [k, v] of a) dot += v * (b.get(k) ?? 0);
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+// Match by taste, not follower count: quiz signals + wardrobe make-up.
+export async function styleTwins(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+
+  const [me, myItems, myFollowing, candidates] = await Promise.all([
+    prisma.styleProfile.findUnique({ where: { userId: req.user.id } }),
+    prisma.wardrobeItem.findMany({
+      where: { userId: req.user.id },
+      select: { category: true, primaryColor: true },
+    }),
+    prisma.follow.findMany({ where: { followerId: req.user.id }, select: { followingId: true } }),
+    prisma.user.findMany({
+      where: { handle: { not: null }, id: { not: req.user.id } },
+      select: {
+        id: true,
+        handle: true,
+        profile: { select: { styleSignals: true } },
+        wardrobe: {
+          where: { status: { not: 'processing' } },
+          select: { category: true, primaryColor: true },
+        },
+      },
+      take: 100,
+    }),
+  ]);
+
+  const mySignals = ((me?.styleSignals as { signals?: string[] } | null)?.signals ?? []);
+  const myWardrobe = wardrobeProfile(myItems);
+  const followingIds = new Set(myFollowing.map((f) => f.followingId));
+
+  const twins = candidates
+    .map((candidate) => {
+      const theirSignals =
+        ((candidate.profile?.styleSignals as { signals?: string[] } | null)?.signals ?? []);
+      const signalSim = jaccard(mySignals, theirSignals);
+      const wardrobeSim = cosine(myWardrobe, wardrobeProfile(candidate.wardrobe));
+      const score = signalSim * 0.6 + wardrobeSim * 0.4;
+      const shared = mySignals.filter((s) => theirSignals.includes(s)).slice(0, 3);
+      return {
+        handle: candidate.handle,
+        match: Math.round(score * 100),
+        sharedTaste: shared,
+        isFollowing: followingIds.has(candidate.id),
+      };
+    })
+    .filter((t) => t.match >= 15)
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 5);
+
+  res.json({ twins });
+}

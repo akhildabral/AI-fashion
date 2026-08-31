@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   followUser,
+  getOverlap,
   getProfileByHandle,
   sendPick,
   unfollowUser,
+  type OverlapResult,
   type PublicProfile,
 } from '../lib/social'
 import { Spinner } from '../components/Spinner'
@@ -17,6 +19,7 @@ const MAX_PICK_ITEMS = 8
 export function UserProfilePage() {
   const { handle = '' } = useParams()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
+  const [overlap, setOverlap] = useState<OverlapResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -33,7 +36,15 @@ export function UserProfilePage() {
     setError(null)
     getProfileByHandle(handle)
       .then((p) => {
-        if (!cancelled) setProfile(p)
+        if (cancelled) return
+        setProfile(p)
+        if (!p.isMe && p.publicItems.length > 0) {
+          void getOverlap(handle)
+            .then((o) => {
+              if (!cancelled) setOverlap(o)
+            })
+            .catch(() => {})
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Profile not found.')
@@ -155,6 +166,39 @@ export function UserProfilePage() {
               </div>
             )}
           </div>
+
+          {overlap && overlap.matchedCount > 0 && (
+            <div className="mb-8 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+              <p className="font-medium text-ink">
+                You could recreate {overlap.matchedCount} of their {overlap.theirCount} public
+                piece{overlap.theirCount === 1 ? '' : 's'} from your own wardrobe
+              </p>
+              <div className="mt-4 flex flex-wrap gap-6">
+                {overlap.matches.slice(0, 6).map((m) => (
+                  <div key={m.theirs.id} className="flex items-center gap-2">
+                    <div className="h-16 w-16 overflow-hidden rounded-lg border border-ink/10 bg-bone">
+                      <img
+                        src={m.theirs.imageUrl}
+                        alt={m.theirs.subtype ?? m.theirs.category}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <span className="text-ink/35">≈</span>
+                    <div className="h-16 w-16 overflow-hidden rounded-lg border-2 border-sage/60 bg-bone">
+                      <img
+                        src={m.yours.imageUrl}
+                        alt="Your similar piece"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-ink/45">Theirs on the left, your closest match on the right.</p>
+            </div>
+          )}
 
           {sent && (
             <p className="mb-6 rounded-2xl border border-sage/40 bg-sage/10 px-5 py-3 text-sm text-ink/75">

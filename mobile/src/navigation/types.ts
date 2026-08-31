@@ -5,10 +5,16 @@ export type AuthStackParamList = {
   Register: undefined
 }
 
+export type FriendsStackParamList = {
+  FriendsHome: undefined
+  UserProfile: { handle: string }
+}
+
 export type MainTabsParamList = {
   Stylist: undefined
   Looks: undefined
   Wardrobe: undefined
+  Friends: NavigatorScreenParams<FriendsStackParamList> | undefined
   TryOns: undefined
   Profile: { focusPhoto?: boolean } | undefined
 }
