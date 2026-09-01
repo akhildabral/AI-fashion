@@ -6,7 +6,7 @@ import {
   swapBriefItem,
   wearBrief,
 } from '../controllers/brief.controller';
-import { ritualStats } from '../controllers/ritual.controller';
+import { closetGaps, ritualStats } from '../controllers/ritual.controller';
 import { getFeed } from '../controllers/feed.controller';
 import { recreateFromCloset } from '../controllers/recreate.controller';
 import { requireAuth } from '../middleware/auth';
@@ -19,5 +19,6 @@ briefRouter.post('/brief/share', requireAuth, shareBriefWear);
 briefRouter.post('/brief/swap', requireAuth, swapBriefItem);
 briefRouter.get('/brief/alternatives', requireAuth, briefAlternatives);
 briefRouter.get('/stats/ritual', requireAuth, ritualStats);
+briefRouter.get('/stats/gaps', requireAuth, closetGaps);
 briefRouter.get('/feed', requireAuth, getFeed);
 briefRouter.post('/recreate', requireAuth, recreateFromCloset);

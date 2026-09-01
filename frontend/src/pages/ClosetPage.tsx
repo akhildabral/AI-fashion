@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch } from '../lib/api'
-import { getRitualStats, type RitualStats } from '../lib/brief'
+import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
 import { WardrobeCard } from '../components/WardrobeCard'
 import { GarmentTile, PageShell, Modal } from '../components/ui'
@@ -31,6 +31,7 @@ export function ClosetPage() {
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
+  const [gaps, setGaps] = useState<GapSuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -56,6 +57,7 @@ export function ClosetPage() {
       .finally(() => setLoading(false))
     loadInsights()
     getRitualStats().then(setStats).catch(() => undefined)
+    getClosetGaps().then((g) => setGaps(g.suggestions)).catch(() => undefined)
   }, [loadInsights])
 
   const hasProcessing = items?.some((it) => it.status === 'processing') ?? false
@@ -222,6 +224,21 @@ export function ClosetPage() {
           <p className="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
             {uploadError}
           </p>
+        )}
+
+        {gaps.length > 0 && list.length > 0 && (
+          <div className="mt-5 flex animate-rise-2 flex-wrap gap-2">
+            {gaps.map((g) => (
+              <p
+                key={g.category}
+                className="rounded-2xl border border-spark/25 bg-spark-soft/60 px-4 py-2.5 text-sm text-ink/75"
+              >
+                ✦ <span className="font-medium text-ink">{g.wanted}</span> would unlock{' '}
+                <span className="font-semibold text-spark-deep">{g.unlocks} new outfits</span> from
+                what you own
+              </p>
+            ))}
+          </div>
         )}
 
         {/* Filters */}

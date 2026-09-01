@@ -110,3 +110,13 @@ export interface RecreateResponse {
 export function recreateFromCloset(itemIds: string[]) {
   return apiFetch<RecreateResponse>('/recreate', { method: 'POST', body: { itemIds } })
 }
+
+export interface GapSuggestion {
+  category: string
+  wanted: string
+  unlocks: number
+}
+
+export function getClosetGaps() {
+  return apiFetch<{ suggestions: GapSuggestion[]; outfitsPossible: number }>('/stats/gaps')
+}
