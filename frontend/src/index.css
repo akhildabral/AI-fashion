@@ -28,7 +28,7 @@
     --c-brass-lo: #7a5a22;
     --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
     --c-niche-edge: rgba(239, 231, 215, 0.85);
-    --c-sheen: rgba(255, 255, 255, 0.55);
+    --c-sheen: rgba(255, 255, 255, 0.28);
     --grain-blend: multiply;
     --grain-op: 0.045;
   }
@@ -52,7 +52,7 @@
        backgrounds melt into it, and premium: a boutique display case at night. */
     --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
     --c-niche-edge: rgba(243, 237, 224, 0.9);
-    --c-sheen: rgba(255, 255, 255, 0.4);
+    --c-sheen: rgba(233, 217, 188, 0.13);
     --grain-blend: screen;
     --grain-op: 0.05;
   }
@@ -168,7 +168,7 @@
     inset: 0;
     z-index: 3;
     pointer-events: none;
-    background: linear-gradient(120deg, transparent 40%, var(--c-sheen) 48%, transparent 57%);
+    background: linear-gradient(122deg, transparent 45%, var(--c-sheen) 50%, transparent 55%);
   }
 
   /* ROI plaque — a brass-engraved figure, the proud payoff. */

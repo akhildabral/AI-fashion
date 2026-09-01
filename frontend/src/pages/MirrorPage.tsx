@@ -252,7 +252,7 @@ export function MirrorPage() {
 
       {/* The stage — grand, centered, in a pool of light */}
       <div className="relative mt-10 flex animate-rise-2 justify-center">
-        <div className="relative w-full max-w-[440px]">
+        <div className="relative w-full max-w-[540px]">
           <MirrorFrame>
             {/* --- rendering: the figure is being dressed --- */}
             {rendering && (
@@ -267,11 +267,14 @@ export function MirrorPage() {
             {/* --- no photo: the door, never a dead end --- */}
             {!rendering && photoChecked && !photoUrl && (
               <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
-                <svg width="66" height="118" viewBox="0 0 66 118" className="text-brass/70" aria-hidden="true">
+                <svg width="52" height="72" viewBox="0 0 52 72" className="text-brass/55" aria-hidden="true">
                   <path
-                    fill="currentColor"
-                    d="M33 6c-4 0-7 3-7 7s3 7 7 7 7-3 7-7-3-7-7-7ZM24 26c-4 1-6 4-6 9l-1 27 5 1 3-17v72h8l3-40 3 40h8V46l3 17 5-1-1-27c0-5-2-8-6-9-4 4-16 4-20 0Z"
+                    d="M4 68V26C4 13.85 13.85 4 26 4s22 9.85 22 22v42"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
                   />
+                  <path d="M14 68V30a12 12 0 0 1 24 0v38" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
                 </svg>
                 <p className="font-display text-xl font-medium text-bone">The mirror is waiting for you.</p>
                 <p className="max-w-[26ch] text-sm text-bone/60">
@@ -316,7 +319,7 @@ export function MirrorPage() {
                 className="animate-arch-sweep pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    'linear-gradient(120deg, transparent 40%, rgba(240,226,196,.28) 48%, transparent 58%)',
+                    'linear-gradient(122deg, transparent 45%, rgba(240,226,196,.14) 50%, transparent 55%)',
                 }}
               />
             )}

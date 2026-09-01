@@ -235,7 +235,7 @@ export function MirrorFrame({
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                'linear-gradient(120deg, transparent 42%, var(--c-sheen) 48%, transparent 57%)',
+                'linear-gradient(122deg, transparent 46%, var(--c-sheen) 50%, transparent 55%)',
             }}
           />
         </div>
