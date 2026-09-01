@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getFeed, type FeedCard } from '../lib/brief'
+import {
+  getFeed,
+  recreateFromCloset,
+  type FeedCard,
+  type RecreateResponse,
+} from '../lib/brief'
 import { resolveImageUrl } from '../lib/api'
-import { PageShell } from '../components/ui'
+import { Modal, PageShell } from '../components/ui'
+import { useNavigate } from 'react-router-dom'
 import { Spinner } from '../components/Spinner'
+import { apiFetch } from '../lib/api'
 
 // Circle ring 1: things to do, not lists to read. The people-management
 // surface (search, follow, handle, twins) lives one tap away.
@@ -26,8 +33,49 @@ function timeAgo(iso: string): string {
 }
 
 export function CirclePage() {
+  const navigate = useNavigate()
   const [cards, setCards] = useState<FeedCard[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [recreate, setRecreate] = useState<{ handle: string; result: RecreateResponse | null } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  function flash(msg: string) {
+    setToast(msg)
+    window.setTimeout(() => setToast(null), 4000)
+  }
+
+  function openRecreate(handle: string, itemIds: string[]) {
+    setRecreate({ handle, result: null })
+    recreateFromCloset(itemIds)
+      .then((result) => setRecreate({ handle, result }))
+      .catch((err) => {
+        setRecreate(null)
+        flash(err instanceof Error ? err.message : 'Could not recreate that look.')
+      })
+  }
+
+  async function saveRecreated() {
+    const ids = recreate?.result?.pairs.map((p) => p.match.id) ?? []
+    if (ids.length === 0) return
+    setSaving(true)
+    try {
+      await apiFetch('/outfits', {
+        method: 'POST',
+        body: {
+          itemIds: ids,
+          provenance: 'copied',
+          rationale: `Recreated from @${recreate?.handle}'s outfit of the day`,
+        },
+      })
+      flash('Saved to your outfits.')
+      setRecreate(null)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not save.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     getFeed()
@@ -113,6 +161,13 @@ export function CirclePage() {
                       ))}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => openRecreate(String(card.handle), items.map((it) => it.id))}
+                    className="btn-ghost mt-4 !px-4 !py-2 !text-xs"
+                  >
+                    Recreate from my closet ✦
+                  </button>
                 </div>
               )
             }
@@ -242,6 +297,86 @@ export function CirclePage() {
           })}
         </div>
       )}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
+          {toast}
+        </div>
+      )}
+
+      <Modal
+        open={recreate !== null}
+        onClose={() => setRecreate(null)}
+        title={recreate ? `In your closet, @${recreate.handle}'s look` : 'Recreate'}
+      >
+        {recreate && recreate.result === null && (
+          <div className="flex justify-center py-10 text-ink/50">
+            <Spinner className="h-6 w-6" />
+          </div>
+        )}
+        {recreate?.result && (
+          <>
+            {recreate.result.pairs.length > 0 ? (
+              <div className="space-y-3">
+                {recreate.result.pairs.map((p) => (
+                  <div key={p.source.id} className="flex items-center gap-3">
+                    <img
+                      src={resolveImageUrl(p.source.imageUrl)}
+                      alt={p.source.label}
+                      className="h-16 w-16 rounded-xl border border-ink/10 bg-white object-contain p-1"
+                    />
+                    <span className="text-ink/35">→</span>
+                    <img
+                      src={resolveImageUrl(p.match.imageUrl)}
+                      alt={p.match.label}
+                      className="h-16 w-16 rounded-xl border border-iris/40 bg-white object-contain p-1"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium capitalize text-ink">{p.match.label}</p>
+                      <p className="text-xs text-ink/45">your {p.match.label} for their {p.source.label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-ink/15 p-4 text-sm text-ink/55">
+                Nothing in your closet matches this look yet
+                {recreate.result.closetSize === 0 ? ' — it looks empty. Add some pieces first.' : '.'}
+              </p>
+            )}
+            {recreate.result.missing.length > 0 && (
+              <div className="mt-4 rounded-xl bg-spark-soft/60 p-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-spark-deep">
+                  To complete the look
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-ink/70">
+                  {recreate.result.missing.map((m) => (
+                    <li key={m.source.id}>· {m.wanted || m.source.label} — not in your closet yet</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {recreate.result.pairs.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)}
+                  className="btn-primary !px-4 !py-2 !text-sm"
+                >
+                  See it on you ✦
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void saveRecreated()}
+                  className="btn-ghost !px-4 !py-2 !text-sm"
+                >
+                  {saving ? 'Saving…' : 'Save as outfit'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
     </PageShell>
   )
 }

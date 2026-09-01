@@ -8,6 +8,7 @@ import {
 } from '../controllers/brief.controller';
 import { ritualStats } from '../controllers/ritual.controller';
 import { getFeed } from '../controllers/feed.controller';
+import { recreateFromCloset } from '../controllers/recreate.controller';
 import { requireAuth } from '../middleware/auth';
 
 export const briefRouter = Router();
@@ -19,3 +20,4 @@ briefRouter.post('/brief/swap', requireAuth, swapBriefItem);
 briefRouter.get('/brief/alternatives', requireAuth, briefAlternatives);
 briefRouter.get('/stats/ritual', requireAuth, ritualStats);
 briefRouter.get('/feed', requireAuth, getFeed);
+briefRouter.post('/recreate', requireAuth, recreateFromCloset);

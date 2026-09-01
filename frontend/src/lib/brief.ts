@@ -92,3 +92,21 @@ export function shareBrief() {
     body: { date: todayKey() },
   })
 }
+
+export interface RecreatePair {
+  source: { id: string; imageUrl: string; label: string }
+  match: { id: string; imageUrl: string; label: string }
+}
+export interface RecreateMissing {
+  source: { id: string; imageUrl: string; label: string }
+  wanted: string
+}
+export interface RecreateResponse {
+  pairs: RecreatePair[]
+  missing: RecreateMissing[]
+  closetSize: number
+}
+
+export function recreateFromCloset(itemIds: string[]) {
+  return apiFetch<RecreateResponse>('/recreate', { method: 'POST', body: { itemIds } })
+}
