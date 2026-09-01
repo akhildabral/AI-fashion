@@ -54,6 +54,11 @@ export function Header() {
               <NavLink to="/profile" className={navLinkClass}>
                 Profile
               </NavLink>
+              {user.role === 'admin' && (
+                <NavLink to="/admin" className={navLinkClass}>
+                  Admin
+                </NavLink>
+              )}
             </nav>
             <div className="flex items-center gap-4">
               <span className="hidden text-sm text-ink/60 lg:inline">{user.email}</span>

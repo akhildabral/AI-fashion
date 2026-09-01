@@ -16,6 +16,14 @@ model User {
   passwordHash String
   // Public username for the community layer (lowercase, unique). Null until chosen.
   handle       String?       @unique
+  // Access control: the app is waitlist-gated. New accounts are pending
+  // until email-verified AND approved by an admin.
+  //   status: pending | approved | suspended
+  role         String        @default("user")
+  status       String        @default("pending")
+  emailVerified Boolean      @default(false)
+  verifyToken  String?       @unique
+  verifyTokenExpires DateTime?
   // Relative path to the user's uploaded body photo (for virtual try-on).
   photoPath    String?
   createdAt    DateTime      @default(now())

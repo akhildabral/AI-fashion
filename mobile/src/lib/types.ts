@@ -1,11 +1,21 @@
 export interface User {
   id: string
   email: string
+  role?: string
+  status?: string
+  handle?: string | null
 }
 
 export interface AuthResponse {
   token: string
   user: User
+}
+
+/** Register is waitlist-gated: no token unless the email is a bootstrap admin. */
+export interface RegisterResponse {
+  user: User
+  token?: string
+  message: string
 }
 
 export interface MeResponse {

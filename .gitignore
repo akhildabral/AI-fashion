@@ -51,3 +51,6 @@ models/
 # Production deployment secrets
 .env.prod
 deploy/backend.env
+
+# Local-only deploy secrets
+.deploy-secrets/

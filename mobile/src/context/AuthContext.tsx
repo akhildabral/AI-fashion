@@ -7,13 +7,14 @@ import {
   type ReactNode,
 } from 'react'
 import { ApiError, apiFetch, clearToken, getToken, setToken } from '../lib/api'
-import type { AuthResponse, MeResponse, User } from '../lib/types'
+import type { AuthResponse, MeResponse, RegisterResponse, User } from '../lib/types'
 
 export interface AuthContextValue {
   user: User | null
   initializing: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  /** Returns a waitlist message when no session was created, null when logged in. */
+  register: (email: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
 }
 
@@ -64,13 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = useCallback(async (email: string, password: string) => {
-    const res = await apiFetch<AuthResponse>('/auth/register', {
+    const res = await apiFetch<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: { email, password },
       auth: false,
     })
-    await setToken(res.token)
-    setUser(res.user)
+    if (res.token) {
+      await setToken(res.token)
+      setUser(res.user)
+      return null
+    }
+    return res.message
   }, [])
 
   const logout = useCallback(async () => {

@@ -9,6 +9,34 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  // Emails that are auto-verified, auto-approved, and given the admin role
+  // on register/login — bootstraps the first superuser. Comma-separated.
+  ADMIN_EMAILS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  // SMTP for verification emails. When unset, verification links are logged
+  // to the server console instead of emailed (dev / pre-SMTP fallback).
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('AI Fashion <no-reply@localhost>'),
+  // Comma-separated allowed browser origins. Empty = allow all (dev).
+  CORS_ORIGINS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    ),
   // ---- AI provider (agnostic) -------------------------------------------
   // Which provider serves chat/vision (tagging, suggestions, stylist plans):
   //   openai     — api.openai.com

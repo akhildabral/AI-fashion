@@ -1,6 +1,16 @@
 export interface User {
   id: string
   email: string
+  role?: string
+  status?: string
+  handle?: string | null
+}
+
+/** Register no longer returns a token (waitlist) — except for bootstrap admins. */
+export interface RegisterResponse {
+  user: User
+  token?: string
+  message: string
 }
 
 export interface AuthResponse {

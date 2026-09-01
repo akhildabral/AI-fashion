@@ -6,7 +6,8 @@ export interface AuthContextValue {
   /** True while the initial token → /auth/me hydration is in flight. */
   initializing: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  /** Returns a waitlist message when no session was created, null when logged in. */
+  register: (email: string, password: string) => Promise<string | null>
   logout: () => void
 }
 

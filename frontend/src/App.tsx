@@ -16,6 +16,8 @@ import { QuizPage } from './pages/QuizPage'
 import { PackingPage } from './pages/PackingPage'
 import { FriendsPage } from './pages/FriendsPage'
 import { UserProfilePage } from './pages/UserProfilePage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { AdminPage } from './pages/AdminPage'
 
 export default function App() {
   return (
@@ -28,6 +30,15 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/"
                   element={

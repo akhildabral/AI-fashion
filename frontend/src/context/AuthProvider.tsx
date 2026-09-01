@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthContextValue } from './auth-context'
 import { ApiError, apiFetch, clearToken, getToken, setToken } from '../lib/api'
-import type { AuthResponse, MeResponse, User } from '../lib/types'
+import type { AuthResponse, MeResponse, RegisterResponse, User } from '../lib/types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -47,13 +47,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = useCallback(async (email: string, password: string) => {
-    const res = await apiFetch<AuthResponse>('/auth/register', {
+    const res = await apiFetch<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: { email, password },
       auth: false,
     })
-    setToken(res.token)
-    setUser(res.user)
+    // Waitlist: most signups get a message, not a session. Bootstrap admins
+    // (ADMIN_EMAILS) get a token and log straight in.
+    if (res.token) {
+      setToken(res.token)
+      setUser(res.user)
+      return null
+    }
+    return res.message
   }, [])
 
   const logout = useCallback(() => {
