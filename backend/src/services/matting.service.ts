@@ -252,8 +252,11 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
       .toBuffer({ resolveWithObject: true });
     if (info.width !== width || info.height !== height || info.channels !== 4) return null;
 
-    // Auto-crop to the garment's bounding box (with padding) and center it on
-    // a square transparent canvas — the product-catalog look.
+    // Auto-crop TIGHT to the garment's bounding box (its true aspect). We do
+    // NOT pad it out to a square: a square canvas adds big transparent margins
+    // to tall or wide garments, and the UI's object-contain then shrinks the
+    // garment into the middle of its tile. A tight crop lets the garment fill
+    // its frame, so it fills the display niche at its real proportions.
     let minX = width;
     let minY = height;
     let maxX = -1;
@@ -270,23 +273,18 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
     }
     if (maxX < 0) return null;
 
-    const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.05);
+    // A tiny even margin so the cutout's edge never touches the frame.
+    const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.03);
     const left = Math.max(0, minX - pad);
     const top = Math.max(0, minY - pad);
     const cropW = Math.min(width, maxX + pad + 1) - left;
     const cropH = Math.min(height, maxY + pad + 1) - top;
 
-    const side = Math.max(cropW, cropH);
+    // Tight crop at the garment's true aspect, capped to MAX_OUTPUT_SIDE on its
+    // longer edge (fit:inside preserves aspect — never distorts, never pads).
     const png = await sharp(rgba, { raw: { width, height, channels: 4 } })
       .extract({ left, top, width: cropW, height: cropH })
-      .extend({
-        top: Math.floor((side - cropH) / 2),
-        bottom: Math.ceil((side - cropH) / 2),
-        left: Math.floor((side - cropW) / 2),
-        right: Math.ceil((side - cropW) / 2),
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .resize(Math.min(side, MAX_OUTPUT_SIDE), Math.min(side, MAX_OUTPUT_SIDE), { fit: 'fill' })
+      .resize(MAX_OUTPUT_SIDE, MAX_OUTPUT_SIDE, { fit: 'inside', withoutEnlargement: true })
       .png()
       .toBuffer();
 
