@@ -98,7 +98,7 @@ export function GarmentTile({
           src={resolveImageUrl(imageUrl)}
           alt={label ?? ''}
           loading="lazy"
-          className={`absolute inset-0 z-[1] h-full w-full object-contain p-[8%] pt-[12%] transition duration-500 ${
+          className={`absolute inset-[4%] bottom-[6%] z-[1] h-[90%] w-[92%] object-contain transition duration-500 ${
             processing ? 'scale-95 opacity-40 blur-[2px]' : ''
           }`}
         />
