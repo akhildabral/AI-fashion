@@ -20,11 +20,18 @@ const PLANS = [
   { name: 'AI Fashion Pro', amount: 49900, envVar: 'RAZORPAY_PLAN_PRO' },
 ];
 
-for (const p of PLANS) {
-  const plan = await rzp.plans.create({
-    period: 'monthly',
-    interval: 1,
-    item: { name: p.name, amount: p.amount, currency: 'INR' },
-  });
-  console.log(`${p.envVar}=${plan.id}   # ${p.name} ₹${p.amount / 100}/mo`);
+async function main() {
+  for (const p of PLANS) {
+    const plan = await rzp.plans.create({
+      period: 'monthly',
+      interval: 1,
+      item: { name: p.name, amount: p.amount, currency: 'INR' },
+    });
+    console.log(`${p.envVar}=${plan.id}   # ${p.name} ₹${p.amount / 100}/mo`);
+  }
 }
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
