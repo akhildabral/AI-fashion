@@ -328,7 +328,7 @@ export function TodayPage() {
               </p>
               {brief.trip && (
                 <p className="mt-2 inline-flex animate-rise-2 items-center gap-2 rounded-full bg-spark-soft/70 px-3 py-1.5 text-xs font-medium text-spark-deep">
-                  🧳 styling from your {brief.trip.destination} capsule · until {brief.trip.endDate}
+                  Styling from your {brief.trip.destination} capsule · until {brief.trip.endDate}
                 </p>
               )}
 

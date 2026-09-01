@@ -1,3 +1,4 @@
+import { Modal } from './ui'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { deletePhoto, getPhoto, uploadPhoto } from '../lib/tryon'
 import { Spinner } from './Spinner'
@@ -20,6 +21,7 @@ export function PhotoManager() {
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  const [chooserOpen, setChooserOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -157,7 +159,7 @@ export function PhotoManager() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => inputRef.current?.click()}
+                onClick={() => setChooserOpen(true)}
                 disabled={busy || (!photoUrl && !consent)}
                 className="btn-primary"
                 title={
@@ -174,22 +176,8 @@ export function PhotoManager() {
                 ) : photoUrl ? (
                   'Replace photo'
                 ) : (
-                  'Choose from gallery'
+                  'Upload photo'
                 )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => cameraRef.current?.click()}
-                disabled={busy || (!photoUrl && !consent)}
-                className="btn-ghost"
-                title={
-                  !photoUrl && !consent
-                    ? 'Please acknowledge the consent note first'
-                    : 'Take a photo with your camera'
-                }
-              >
-                📷 Take a photo
               </button>
 
               {photoUrl && (
@@ -221,6 +209,39 @@ export function PhotoManager() {
           </div>
         </div>
       )}
+
+      <Modal open={chooserOpen} onClose={() => setChooserOpen(false)} title="Add your photo">
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => {
+              setChooserOpen(false)
+              cameraRef.current?.click()
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+          >
+            <span>
+              <span className="block text-sm font-semibold text-ink">Take a photo</span>
+              <span className="block text-xs text-ink/50">Front camera, full-length works best</span>
+            </span>
+            <span className="text-ink/30">→</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setChooserOpen(false)
+              inputRef.current?.click()
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+          >
+            <span>
+              <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
+              <span className="block text-xs text-ink/50">Pick an existing photo</span>
+            </span>
+            <span className="text-ink/30">→</span>
+          </button>
+        </div>
+      </Modal>
     </section>
   )
 }

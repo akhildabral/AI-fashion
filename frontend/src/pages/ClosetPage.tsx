@@ -41,6 +41,7 @@ export function ClosetPage() {
   const [collection, setCollection] = useState<Collection>('all')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<WardrobeItem | null>(null)
+  const [addChooserOpen, setAddChooserOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const dragDepth = useRef(0)
@@ -212,19 +213,10 @@ export function ClosetPage() {
               onChange={handleFileChange}
               className="hidden"
             />
+
             <button
               type="button"
-              onClick={() => cameraRef.current?.click()}
-              disabled={uploading > 0}
-              aria-label="Take a photo"
-              title="Take a photo"
-              className="btn-ghost !px-3.5"
-            >
-              📷
-            </button>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => setAddChooserOpen(true)}
               disabled={uploading > 0}
               className="btn-primary whitespace-nowrap !px-5"
             >
@@ -339,6 +331,43 @@ export function ClosetPage() {
             )}
           </>
         )}
+
+        <Modal
+          open={addChooserOpen}
+          onClose={() => setAddChooserOpen(false)}
+          title="Add to your closet"
+        >
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                setAddChooserOpen(false)
+                cameraRef.current?.click()
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-ink">Take a photo</span>
+                <span className="block text-xs text-ink/50">Use your camera right now</span>
+              </span>
+              <span className="text-ink/30">→</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddChooserOpen(false)
+                inputRef.current?.click()
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
+                <span className="block text-xs text-ink/50">Pick one or more photos — flat-lays and selfies work</span>
+              </span>
+              <span className="text-ink/30">→</span>
+            </button>
+          </div>
+        </Modal>
 
         {/* Item slide-over: the full existing card with every action */}
         <Modal
