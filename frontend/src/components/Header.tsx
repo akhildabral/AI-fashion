@@ -1,77 +1,143 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `text-sm font-medium transition ${
-    isActive ? 'text-ink' : 'text-ink/50 hover:text-ink'
-  }`
+const NAV = [
+  { to: '/', label: 'Today', match: ['/'] },
+  { to: '/wardrobe', label: 'Wardrobe', match: ['/wardrobe'] },
+  { to: '/looks', label: 'Looks', match: ['/looks', '/tryons'] },
+  { to: '/friends', label: 'Community', match: ['/friends', '/u'] },
+]
+
+const MENU = [
+  { to: '/journal', label: 'Journal' },
+  { to: '/packing', label: 'Packing' },
+  { to: '/tryons', label: 'Try-ons' },
+  { to: '/profile', label: 'Profile' },
+  { to: '/billing', label: 'Plan & usage' },
+]
+
+function isActive(pathname: string, match: string[]) {
+  return match.some((m) => (m === '/' ? pathname === '/' : pathname.startsWith(m)))
+}
 
 export function Header() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [menuOpen])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
 
   function handleLogout() {
+    setMenuOpen(false)
     logout()
     navigate('/login')
   }
 
+  const initials = (user?.handle ?? user?.email ?? '?').slice(0, 2).toUpperCase()
+
   return (
-    <header className="sticky top-0 z-10 border-b border-ink/10 bg-bone/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
-        <Link to="/" className="group flex items-baseline gap-2">
-          <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
-            AI Fashion
-          </span>
-          <span className="hidden text-xs uppercase tracking-[0.3em] text-clay sm:inline">
-            Stylist
-          </span>
+    <header className="sticky top-0 z-20 border-b border-ink/5 bg-bone/85 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+        <Link to="/" className="font-display text-xl font-extrabold tracking-tight text-ink">
+          AI&nbsp;Fashion<span className="text-iris">*</span>
         </Link>
 
         {user && (
-          <div className="flex items-center gap-4 sm:gap-6">
-            <nav className="flex items-center gap-4 sm:gap-5">
-              <NavLink to="/" end className={navLinkClass}>
-                Stylist
-              </NavLink>
-              <NavLink to="/looks" className={navLinkClass}>
-                My Looks
-              </NavLink>
-              <NavLink to="/wardrobe" className={navLinkClass}>
-                Wardrobe
-              </NavLink>
-              <NavLink to="/journal" className={navLinkClass}>
-                Journal
-              </NavLink>
-              <NavLink to="/packing" className={navLinkClass}>
-                Packing
-              </NavLink>
-              <NavLink to="/friends" className={navLinkClass}>
-                Friends
-              </NavLink>
-              <NavLink to="/tryons" className={navLinkClass}>
-                Try-Ons
-              </NavLink>
-              <NavLink to="/profile" className={navLinkClass}>
-                Profile
-              </NavLink>
-              <NavLink to="/billing" className={navLinkClass}>
-                Plan
-              </NavLink>
-              {user.role === 'admin' && (
-                <NavLink to="/admin" className={navLinkClass}>
-                  Admin
+          <>
+            <nav className="hidden items-center gap-0.5 rounded-full border border-ink/10 bg-surface p-1 sm:flex">
+              {NAV.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    isActive(pathname, item.match)
+                      ? 'bg-ink text-white'
+                      : 'text-ink/55 hover:text-ink'
+                  }`}
+                >
+                  {item.label}
                 </NavLink>
-              )}
+              ))}
             </nav>
-            <div className="flex items-center gap-4">
-              <span className="hidden text-sm text-ink/60 lg:inline">{user.email}</span>
-              <button type="button" onClick={handleLogout} className="btn-ghost">
-                Logout
+
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-white transition hover:scale-105"
+              >
+                {initials}
               </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-ink/10 bg-surface py-2 shadow-card">
+                  <p className="truncate px-4 py-2 text-xs text-ink/45">{user.email}</p>
+                  {MENU.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="block px-4 py-2 text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  {user.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      className="block px-4 py-2 text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <div className="my-1 border-t border-ink/5" />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          </>
         )}
       </div>
+
+      {user && (
+        <nav className="flex gap-0.5 overflow-x-auto px-6 pb-3 sm:hidden">
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                isActive(pathname, item.match)
+                  ? 'bg-ink text-white'
+                  : 'text-ink/55 hover:text-ink'
+              }`}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
     </header>
   )
 }
