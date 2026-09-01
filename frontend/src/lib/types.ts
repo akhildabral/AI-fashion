@@ -30,6 +30,7 @@ export interface ProfileSizes {
 
 export interface StyleProfile {
   city?: string | null
+  styleFor?: string | null
   bodyType: string
   heightCm: number
   sizes: ProfileSizes

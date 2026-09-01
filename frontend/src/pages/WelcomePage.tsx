@@ -35,6 +35,7 @@ export function WelcomePage() {
         body: {
           styleVibe: vibe?.toLowerCase() ?? null,
           city: city.trim() || null,
+          styleFor: gender,
         },
       })
       setProfile(res.profile)

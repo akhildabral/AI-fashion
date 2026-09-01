@@ -156,6 +156,8 @@ model StyleProfile {
   styleSignals Json?
   // Home city for the daily brief's weather (optional).
   city        String?
+  // Who we style for: female | male | unisex.
+  styleFor    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

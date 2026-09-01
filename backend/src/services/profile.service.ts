@@ -9,6 +9,7 @@ export interface ProfileInput {
   styleVibe?: string | null;
   budgetBand?: string | null;
   city?: string | null;
+  styleFor?: string | null;
   avoidColors?: string[];
 }
 
@@ -28,11 +29,13 @@ export function upsertProfile(userId: string, input: ProfileInput) {
     styleVibe?: string | null;
     budgetBand?: string | null;
     city?: string | null;
+    styleFor?: string | null;
     avoidColors?: string[];
   } = {};
   if (input.bodyType !== undefined) data.bodyType = input.bodyType;
   if (input.heightCm !== undefined) data.heightCm = input.heightCm;
   if (input.city !== undefined) data.city = input.city;
+  if (input.styleFor !== undefined) data.styleFor = input.styleFor;
   if (input.sizes !== undefined) data.sizes = input.sizes ?? Prisma.DbNull;
   if (input.skinTone !== undefined) data.skinTone = input.skinTone;
   if (input.styleVibe !== undefined) data.styleVibe = input.styleVibe;

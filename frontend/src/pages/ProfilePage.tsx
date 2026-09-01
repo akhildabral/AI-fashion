@@ -39,6 +39,7 @@ interface FormState {
   sizeShoe: string
   skinTone: string
   styleVibe: string
+  styleFor: string
   budgetBand: string
   avoidColors: string[]
 }
@@ -51,6 +52,7 @@ const EMPTY_FORM: FormState = {
   sizeShoe: '',
   skinTone: '',
   styleVibe: '',
+  styleFor: '',
   budgetBand: '',
   avoidColors: [],
 }
@@ -67,6 +69,7 @@ function toFormState(profile: StyleProfile): FormState {
     sizeShoe: profile.sizes?.shoe ?? '',
     skinTone: profile.skinTone ?? '',
     styleVibe: profile.styleVibe ?? '',
+    styleFor: profile.styleFor ?? '',
     budgetBand: profile.budgetBand ?? '',
     avoidColors: Array.isArray(profile.avoidColors) ? profile.avoidColors : [],
   }
@@ -74,6 +77,9 @@ function toFormState(profile: StyleProfile): FormState {
 
 export function ProfilePage() {
   const [ritual, setRitual] = useState<RitualStats | null>(null)
+  useEffect(() => {
+    getRitualStats().then(setRitual).catch(() => undefined)
+  }, [])
   const navigate = useNavigate()
   const { profile, loading: profileLoading, setProfile } = useProfile()
 
@@ -166,6 +172,7 @@ export function ProfilePage() {
       },
       skinTone: form.skinTone || undefined,
       styleVibe: form.styleVibe || undefined,
+      styleFor: form.styleFor || undefined,
       budgetBand: form.budgetBand || undefined,
       avoidColors,
     }
@@ -192,10 +199,6 @@ export function ProfilePage() {
       </div>
     )
   }
-
-  useEffect(() => {
-    getRitualStats().then(setRitual).catch(() => undefined)
-  }, [])
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -357,6 +360,22 @@ export function ProfilePage() {
                     {title(v)}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="styleFor" className="label">
+                Style me for
+              </label>
+              <select
+                id="styleFor"
+                value={form.styleFor}
+                onChange={(e) => update('styleFor', e.target.value)}
+                className="field"
+              >
+                <option value="">Select…</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="unisex">Unisex</option>
               </select>
             </div>
             <div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { useProfile } from '../context/useProfile'
 import { apiFetch } from '../lib/api'
 import {
   shareBrief,
@@ -17,16 +18,16 @@ import {
 } from '../lib/brief'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
-import { GarmentTile, MirrorFrame, Modal, PageShell } from '../components/ui'
+import { GarmentTile, Modal, PageShell } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 
 const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
 
 function greeting(): string {
   const h = new Date().getHours()
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  return 'good evening'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
 }
 
 function todayLine(): string {
@@ -37,19 +38,9 @@ function itemLabel(i: BriefItem): string {
   return i.subtype ?? i.category
 }
 
-function Silhouette({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 120 200" className={className} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round">
-      <circle cx="60" cy="26" r="15" />
-      <path d="M60 41v14M38 62l22-8 22 8-6 44H44z" />
-      <path d="M44 100l-6 60h16l6-52M76 100l6 60H66l-6-52" />
-      <path d="M38 64l-10 34M82 64l10 34" />
-    </svg>
-  )
-}
-
 export function TodayPage() {
   const { user } = useAuth()
+  const { profile } = useProfile()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
@@ -177,7 +168,7 @@ export function TodayPage() {
         method: 'POST',
         body: {
           occasion: 'my everyday style',
-          gender: localStorage.getItem('ai-fashion-style-for') ?? 'female',
+          gender: profile?.styleFor ?? localStorage.getItem('ai-fashion-style-for') ?? 'unisex',
         },
       })
       setStarterLooks(res.looks ?? [])
@@ -219,25 +210,16 @@ export function TodayPage() {
         </div>
       )}
 
-      {/* ---------------- STARTER: the waiting mirror ---------------- */}
+      {/* ---------------- STARTER: empty closet ---------------- */}
       {!loading && mode === 'starter' && (
-        <div className="mx-auto mt-6 max-w-md text-center">
-          <MirrorFrame className="animate-rise mx-auto w-full max-w-[340px]">
-            <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
-              <Silhouette className="h-32 w-20 text-ink/15" />
-              <p className="font-display text-xl font-extrabold text-ink">
-                Your mirror is waiting.
-              </p>
-              <p className="text-sm text-ink/55">
-                Fill your closet and every morning starts with an outfit — composed from what you
-                own, ready to wear.
-              </p>
-            </div>
-          </MirrorFrame>
-          <p className="mt-3 animate-rise-1 font-serif text-sm italic text-ink/45">
-            add a few pieces and meet your stylist
+        <div className="mt-4">
+          <h1 className="animate-rise-1 font-display text-4xl font-extrabold leading-[0.98] tracking-tight text-ink sm:text-6xl">
+            Let's fill <em className="not-italic text-iris">your closet.</em>
+          </h1>
+          <p className="mt-4 max-w-xl animate-rise-2 font-serif text-lg italic text-ink/60">
+            every morning starts with an outfit — composed from what you own, ready to wear
           </p>
-          <div className="mt-6 flex animate-rise-2 flex-wrap justify-center gap-3">
+          <div className="mt-7 flex animate-rise-2 flex-wrap gap-3">
             <Link to="/closet" className="btn-primary">
               Add your clothes →
             </Link>
@@ -256,13 +238,42 @@ export function TodayPage() {
               )}
             </button>
           </div>
+
+          {/* Ghost niches: where tomorrow's brief will hang */}
+          <div className="mt-12 animate-rise-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Top', d: 'M6 4l3-1.4L12 5l3-2.4L18 4l3 3-3 2.2V21H6V9.2L3 7z' },
+                { label: 'Bottom', d: 'M7 3h10l1.2 18h-5.2L12 9l-1 12H5.8z' },
+                { label: 'Shoes', d: 'M3 16h8l4 2h6v2H3zM3 12h6l2.5 3.4H3z' },
+                { label: 'Accessory', d: 'M4 9h16v3a8 8 0 0 1-16 0z M8 9V7a4 4 0 0 1 8 0v2' },
+              ].map((slot) => (
+                <div
+                  key={slot.label}
+                  className="flex aspect-[3/4] flex-col items-center justify-center gap-3 border-2 border-dashed border-ink/10 bg-surface/40"
+                  style={{ borderRadius: '45% 45% 16px 16px / 22% 22% 16px 16px' }}
+                >
+                  <svg viewBox="0 0 24 24" className="h-9 w-9 text-ink/15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <path d={slot.d} />
+                  </svg>
+                  <span className="text-xs font-medium uppercase tracking-widest text-ink/25">
+                    {slot.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-center font-serif text-sm italic text-ink/40">
+              your first brief will hang here
+            </p>
+          </div>
+
           {error && (
-            <p className="mt-4 animate-rise rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+            <p className="mt-6 animate-rise rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
               {error}
             </p>
           )}
           {starterLooks && starterLooks.length > 0 && (
-            <div className="mt-10 grid animate-rise gap-6 text-left md:grid-cols-2">
+            <div className="mt-10 grid animate-rise gap-6 md:grid-cols-2">
               {starterLooks.map((look, i) => (
                 <LookCard key={look.id ?? i} look={look} />
               ))}
