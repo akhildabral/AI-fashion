@@ -276,3 +276,20 @@ export async function briefAlternatives(req: Request, res: Response) {
   );
   res.json({ alternatives: hydrated });
 }
+
+const shareSchema = z.object({ date: z.string().regex(DATE_RE) });
+
+/** OOTD: share today's worn outfit to your circle (one-way, owner only). */
+export async function shareBriefWear(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { date } = shareSchema.parse(req.body);
+  const brief = await prisma.dailyBrief.findUnique({
+    where: { userId_date: { userId: req.user.id, date } },
+  });
+  if (!brief?.wornLogId) throw new HttpError(400, "Log today's wear first");
+  const log = await prisma.wearLog.update({
+    where: { id: brief.wornLogId },
+    data: { sharedAt: new Date() },
+  });
+  res.json({ shared: true, sharedAt: log.sharedAt });
+}

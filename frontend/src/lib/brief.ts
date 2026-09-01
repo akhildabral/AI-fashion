@@ -42,7 +42,7 @@ export interface RitualStats {
 }
 
 export interface FeedCard {
-  type: 'pick_received' | 'poll_result' | 'poll_open' | 'new_follower' | 'style_a_friend'
+  type: 'ootd' | 'pick_received' | 'poll_result' | 'poll_open' | 'new_follower' | 'style_a_friend'
   at: string
   [key: string]: unknown
 }
@@ -84,4 +84,11 @@ export function getRitualStats() {
 
 export function getFeed() {
   return apiFetch<{ cards: FeedCard[] }>('/feed')
+}
+
+export function shareBrief() {
+  return apiFetch<{ shared: boolean }>('/brief/share', {
+    method: 'POST',
+    body: { date: todayKey() },
+  })
 }

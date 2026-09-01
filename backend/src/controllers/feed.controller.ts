@@ -6,7 +6,7 @@ import { HttpError } from '../middleware/error';
 // exists — picks received, poll results, new followers, friends to style.
 
 interface FeedCard {
-  type: 'pick_received' | 'poll_result' | 'poll_open' | 'new_follower' | 'style_a_friend';
+  type: 'ootd' | 'pick_received' | 'poll_result' | 'poll_open' | 'new_follower' | 'style_a_friend';
   at: string;
   [key: string]: unknown;
 }
@@ -43,6 +43,33 @@ export async function getFeed(req: Request, res: Response) {
   ]);
 
   const cards: FeedCard[] = [];
+
+  // Friends' shared outfits-of-the-day — the zero-effort content loop.
+  const followingIds = following.map((fl) => fl.following.id);
+  if (followingIds.length > 0) {
+    const ootds = await prisma.wearLog.findMany({
+      where: { userId: { in: followingIds }, sharedAt: { gte: twoWeeksAgo, not: null } },
+      orderBy: { sharedAt: 'desc' },
+      take: 12,
+      include: { user: { select: { handle: true } } },
+    });
+    const ootdItemIds = [...new Set(ootds.flatMap((o) => o.itemIds))];
+    const ootdItems = await prisma.wardrobeItem.findMany({
+      where: { id: { in: ootdItemIds } },
+      select: { id: true, imageUrl: true, subtype: true, category: true },
+    });
+    const ootdItemById = new Map(ootdItems.map((i) => [i.id, i]));
+    for (const o of ootds) {
+      cards.push({
+        type: 'ootd',
+        at: (o.sharedAt ?? o.wornOn).toISOString(),
+        handle: o.user.handle,
+        wornOn: o.wornOn.toISOString(),
+        eventType: o.eventType,
+        items: o.itemIds.map((id) => ootdItemById.get(id)).filter(Boolean),
+      });
+    }
+  }
 
   const pickItemIds = [...new Set(picks.flatMap((p) => p.itemIds))];
   const pickItems = await prisma.wardrobeItem.findMany({

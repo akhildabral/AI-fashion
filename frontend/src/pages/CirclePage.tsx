@@ -79,6 +79,43 @@ export function CirclePage() {
         <div className="mt-8 grid animate-rise-2 gap-4 sm:grid-cols-2">
           {cards.map((card, i) => {
             const ago = timeAgo(String(card.at))
+            if (card.type === 'ootd') {
+              const items = (card.items as CardItem[] | undefined) ?? []
+              return (
+                <div key={i} className="card p-5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
+                      Outfit of the day
+                    </p>
+                    <span className="text-xs text-ink/40">{ago}</span>
+                  </div>
+                  <p className="mt-1.5 text-sm text-ink/80">
+                    <Link
+                      to={`/u/${String(card.handle)}`}
+                      className="font-semibold text-ink hover:text-iris"
+                    >
+                      @{String(card.handle)}
+                    </Link>{' '}
+                    wore this today
+                    {card.eventType ? (
+                      <span className="font-serif italic text-ink/60"> — {String(card.eventType)}</span>
+                    ) : null}
+                  </p>
+                  {items.length > 0 && (
+                    <div className="mt-3 flex gap-2">
+                      {items.slice(0, 5).map((it) => (
+                        <img
+                          key={it.id}
+                          src={resolveImageUrl(it.imageUrl)}
+                          alt={it.subtype ?? it.category}
+                          className="h-16 w-16 rounded-xl border border-ink/10 bg-white object-contain p-1"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
             if (card.type === 'pick_received') {
               const items = (card.items as CardItem[] | undefined) ?? []
               return (

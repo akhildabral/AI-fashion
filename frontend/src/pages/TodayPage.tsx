@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { apiFetch } from '../lib/api'
 import {
+  shareBrief,
   getBrief,
   getBriefAlternatives,
   getFeed,
@@ -66,6 +67,7 @@ export function TodayPage() {
   const [alternatives, setAlternatives] = useState<BriefItem[] | null>(null)
   const [occasionText, setOccasionText] = useState('')
   const [starterLooks, setStarterLooks] = useState<Look[] | null>(null)
+  const [sharePrompt, setSharePrompt] = useState<'hidden' | 'offer' | 'shared'>('hidden')
 
   const name = (() => {
     const raw = user?.handle ?? user?.email?.split('@')[0] ?? 'there'
@@ -110,6 +112,7 @@ export function TodayPage() {
     try {
       await wearBrief(brief.itemIds)
       setWorn(true)
+      setSharePrompt('offer')
       const fresh = await getRitualStats().catch(() => null)
       if (fresh) {
         setStats(fresh)
@@ -189,12 +192,19 @@ export function TodayPage() {
 
   return (
     <PageShell>
-      <p className="animate-rise text-sm text-ink/55">
-        {todayLine()} · <span className="font-serif italic">{greeting()}, {name}</span>
-        {stats && stats.streak > 1 && (
-          <span className="ml-2 text-ink/40">· {stats.streak} days styled</span>
-        )}
-      </p>
+      <div className="animate-rise">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/40">
+          {todayLine()}
+        </p>
+        <p className="mt-1 font-serif text-xl italic text-ink/75 sm:text-2xl">
+          {greeting()}, <span className="text-iris">{name}</span>
+          {stats && stats.streak > 1 && (
+            <span className="ml-3 align-middle font-sans text-xs not-italic text-ink/40">
+              ✦ {stats.streak} days styled
+            </span>
+          )}
+        </p>
+      </div>
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
@@ -393,6 +403,37 @@ export function TodayPage() {
                 )}
               </div>
 
+              {sharePrompt === 'offer' && (
+                <div className="mt-4 flex max-w-md animate-rise items-center justify-between gap-3 rounded-2xl border border-iris/25 bg-iris-soft/60 px-4 py-3">
+                  <p className="text-sm text-ink/80">Share today's outfit to your circle?</p>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary !px-4 !py-2 !text-xs"
+                      onClick={() => {
+                        void shareBrief()
+                          .then(() => {
+                            setSharePrompt('shared')
+                            flash('Shared — your circle can see today\'s outfit.')
+                          })
+                          .catch(() => flash('Could not share right now.'))
+                      }}
+                    >
+                      Share
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost !px-3 !py-2 !text-xs"
+                      onClick={() => setSharePrompt('hidden')}
+                    >
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              )}
+              {sharePrompt === 'shared' && (
+                <p className="mt-4 text-xs font-medium text-iris">✦ Today's outfit is shared with your circle</p>
+              )}
               {stats && stats.monthlyPayback > 0 && (
                 <p className="mt-5 text-xs text-ink/45">
                   Your closet worked{' '}
@@ -412,6 +453,7 @@ export function TodayPage() {
               {cards.map((card, i) => (
                 <Link key={i} to="/circle" className="card card-hover animate-rise p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
+                    {card.type === 'ootd' && "Circle OOTD"}
                     {card.type === 'pick_received' && 'A friend styled you'}
                     {card.type === 'poll_result' && 'Your poll ended'}
                     {card.type === 'poll_open' && 'Poll running'}
@@ -419,6 +461,7 @@ export function TodayPage() {
                     {card.type === 'style_a_friend' && 'Your circle'}
                   </p>
                   <p className="mt-1 line-clamp-2 text-sm text-ink/75">
+                    {card.type === 'ootd' && `@${String(card.handle)} shared today's outfit`}
                     {card.type === 'pick_received' &&
                       `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
                     {card.type === 'poll_result' &&

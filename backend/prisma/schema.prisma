@@ -134,6 +134,8 @@ model WearLog {
   createdAt DateTime @default(now())
 
   @@index([userId, wornOn])
+  // OOTD: set when the wearer shares this outfit to their circle.
+  sharedAt  DateTime?
 }
 
 // A user's persistent style profile — the "brain" every recommendation builds on.

@@ -10,6 +10,9 @@ import type { ProfileResponse, StyleProfile } from '../lib/types'
 import { useProfile } from '../context/useProfile'
 import { Spinner } from '../components/Spinner'
 import { PhotoManager } from '../components/PhotoManager'
+import { Link } from 'react-router-dom'
+import { getRitualStats, type RitualStats } from '../lib/brief'
+import { Stat } from '../components/ui'
 
 const BODY_TYPES = ['slim', 'athletic', 'average', 'curvy', 'plus'] as const
 const SKIN_TONES = ['fair', 'light', 'medium', 'tan', 'deep'] as const
@@ -70,6 +73,7 @@ function toFormState(profile: StyleProfile): FormState {
 }
 
 export function ProfilePage() {
+  const [ritual, setRitual] = useState<RitualStats | null>(null)
   const navigate = useNavigate()
   const { profile, loading: profileLoading, setProfile } = useProfile()
 
@@ -189,6 +193,10 @@ export function ProfilePage() {
     )
   }
 
+  useEffect(() => {
+    getRitualStats().then(setRitual).catch(() => undefined)
+  }, [])
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <div className="mb-10 max-w-2xl">
@@ -204,6 +212,26 @@ export function ProfilePage() {
             : 'Update your measurements and taste so every look stays tailored to you.'}
         </p>
       </div>
+
+      {!isOnboarding && ritual && (
+        <section className="mb-10 rounded-2xl border border-ink/10 bg-surface p-6">
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-lg font-bold text-ink">Your style story</h2>
+            <Link to="/journal" className="text-sm font-medium text-iris hover:underline">
+              Wear history →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <Stat value={ritual.streak} label="day streak" />
+            <Stat
+              value={`₹${ritual.monthlyPayback.toLocaleString('en-IN')}`}
+              label="payback this month"
+            />
+            <Stat value={`${ritual.rotationPct}%`} label="closet in rotation" />
+            <Stat value={ritual.outfitsThisWeek} label="outfits this week" />
+          </div>
+        </section>
+      )}
 
       <form
         onSubmit={handleSubmit}
