@@ -201,6 +201,21 @@
   animation: arch-sweep 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
+/* The Mirror reveal: the reflection resolves into focus as the light catches. */
+@keyframes mirror-reveal {
+  0% { opacity: 0; transform: scale(1.04); filter: blur(12px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.animate-mirror-reveal {
+  animation: mirror-reveal 0.85s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+/* The idle filament while the figure is being dressed. */
+@keyframes filament {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+}
+.animate-filament { animation: filament 5.5s ease-in-out infinite; }
+
 @keyframes cord-swing {
   0% { transform: rotate(0deg); }
   18% { transform: rotate(8deg); }
@@ -213,8 +228,15 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-cord-swing,
   .animate-arch-sweep,
+  .animate-filament,
   [class*='animate-rise'] {
     animation: none !important;
+  }
+  .animate-mirror-reveal {
+    animation: none !important;
+    opacity: 1;
+    filter: none;
+    transform: none;
   }
   .press,
   .btn-primary,
