@@ -264,7 +264,7 @@ export function TodayPage() {
             )}
           </h1>
 
-          <p className="mt-3 max-w-xl animate-rise-2 text-sm text-ink/55">
+          <p className="mt-3 max-w-2xl animate-rise-2 text-sm text-ink/55">
             {brief.weather && (
               <span>
                 {Math.round(brief.weather.temperatureC)}° · {brief.weather.description} ·{' '}
@@ -273,7 +273,7 @@ export function TodayPage() {
             <span className="font-serif italic">{brief.rationale}</span>
           </p>
 
-          <div className="mt-6 grid max-w-3xl animate-rise-3 grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {brief.items.map((item) => (
               <GarmentTile
                 key={item.id}

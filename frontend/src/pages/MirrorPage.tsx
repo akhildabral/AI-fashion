@@ -125,7 +125,7 @@ export function MirrorPage() {
         className="pointer-events-none absolute inset-0 dark:hidden"
         style={{
           background:
-            'radial-gradient(560px 300px at 18% 8%, rgba(75,59,228,0.06), transparent 60%), radial-gradient(520px 300px at 85% 90%, rgba(255,106,61,0.05), transparent 62%)',
+            'radial-gradient(560px 300px at 18% 8%, rgba(217,72,31,0.06), transparent 60%), radial-gradient(520px 300px at 85% 90%, rgba(184,117,73,0.06), transparent 62%)',
         }}
       />
       <div
@@ -133,7 +133,7 @@ export function MirrorPage() {
         className="pointer-events-none absolute inset-0 hidden dark:block"
         style={{
           background:
-            'radial-gradient(560px 320px at 20% 10%, rgba(229,71,109,0.16), transparent 60%), radial-gradient(520px 320px at 85% 90%, rgba(75,59,228,0.2), transparent 62%)',
+            'radial-gradient(560px 320px at 20% 10%, rgba(255,122,80,0.14), transparent 60%), radial-gradient(520px 320px at 85% 90%, rgba(224,165,74,0.12), transparent 62%)',
         }}
       />
 
