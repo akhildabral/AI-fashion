@@ -28,13 +28,13 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, status: true, emailVerified: true },
+      select: { id: true, email: true, role: true, status: true, emailVerified: true, plan: true },
     });
     if (!user || !user.emailVerified || user.status !== 'approved') {
       throw new HttpError(401, 'This account does not currently have access');
     }
 
-    req.user = { id: user.id, email: user.email, role: user.role };
+    req.user = { id: user.id, email: user.email, role: user.role, plan: user.plan };
     next();
   } catch (err) {
     next(err);

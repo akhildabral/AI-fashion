@@ -14,6 +14,8 @@ interface AdminUser {
   items: number
   wears: number
   aiCalls7d: number
+  plan: string
+  planStatus: string
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -190,6 +192,7 @@ export function AdminPage() {
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Plan</th>
                 <th className="px-4 py-3 font-medium">Verified</th>
                 <th className="px-4 py-3 font-medium">Activity</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
@@ -216,6 +219,29 @@ export function AdminPage() {
                     >
                       {u.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={u.plan}
+                      disabled={busyId === u.id}
+                      onChange={(e) =>
+                        void runAction(u.id, `/admin/users/${u.id}/plan`, {
+                          plan: e.target.value,
+                        })
+                      }
+                      className="rounded-lg border border-ink/15 bg-white px-2 py-1 text-xs text-ink"
+                    >
+                      {['free', 'plus', 'pro', 'founder'].map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                    {u.planStatus !== 'none' && (
+                      <div className="mt-1 text-[10px] uppercase tracking-wide text-ink/45">
+                        {u.planStatus}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink/70">{u.emailVerified ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-ink/70">

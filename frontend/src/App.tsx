@@ -18,6 +18,7 @@ import { FriendsPage } from './pages/FriendsPage'
 import { UserProfilePage } from './pages/UserProfilePage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { AdminPage } from './pages/AdminPage'
+import { BillingPage } from './pages/BillingPage'
 
 export default function App() {
   return (
@@ -31,6 +32,14 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route
+                  path="/billing"
+                  element={
+                    <ProtectedRoute>
+                      <BillingPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/admin"
                   element={

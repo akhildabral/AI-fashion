@@ -18,6 +18,8 @@ export async function listUsers(req: Request, res: Response) {
       role: true,
       status: true,
       emailVerified: true,
+      plan: true,
+      planStatus: true,
       createdAt: true,
       _count: { select: { wardrobe: true, wearLogs: true } },
     },
@@ -40,6 +42,8 @@ export async function listUsers(req: Request, res: Response) {
       role: u.role,
       status: u.status,
       emailVerified: u.emailVerified,
+      plan: u.plan,
+      planStatus: u.planStatus,
       createdAt: u.createdAt,
       items: u._count.wardrobe,
       wears: u._count.wearLogs,
@@ -133,6 +137,24 @@ export async function markVerified(req: Request, res: Response) {
     where: { id },
     data: { emailVerified: true, verifyToken: null, verifyTokenExpires: null },
     select: { id: true, email: true, role: true, status: true, emailVerified: true },
+  });
+  res.json({ user: updated });
+}
+
+const setPlanSchema = z.object({ plan: z.enum(['free', 'plus', 'pro', 'founder']) });
+
+// Manual plan override for support cases (comps, refunds, founder grants).
+// Doesn't touch the gateway — cancel there separately if a paid sub exists.
+export async function setPlan(req: Request, res: Response) {
+  const id = String(req.params.id);
+  const { plan } = setPlanSchema.parse(req.body);
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new HttpError(404, 'User not found');
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { plan, planStatus: plan === 'free' ? 'none' : user.planStatus },
+    select: { id: true, email: true, plan: true, planStatus: true },
   });
   res.json({ user: updated });
 }

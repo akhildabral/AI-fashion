@@ -14,6 +14,7 @@ import { quizRouter } from './routes/quiz.routes';
 import { pollRouter, votePageRouter } from './routes/poll.routes';
 import { socialRouter } from './routes/social.routes';
 import { adminRouter } from './routes/admin.routes';
+import { billingRouter } from './routes/billing.routes';
 import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
@@ -30,7 +31,15 @@ export function createApp() {
   // Browser origins: locked down when CORS_ORIGINS is set (production);
   // open in dev. Native mobile apps send no Origin and are unaffected.
   app.use(cors(env.CORS_ORIGINS.length > 0 ? { origin: env.CORS_ORIGINS } : {}));
-  app.use(express.json({ limit: '256kb' }));
+  app.use(
+    express.json({
+      limit: '256kb',
+      // Keep the raw bytes: webhook signatures are HMACs over the exact body.
+      verify: (req, _res, buf) => {
+        (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
   // A generous global ceiling against abuse; auth has its own strict limiter.
   app.use(
     '/api',
@@ -64,6 +73,7 @@ export function createApp() {
   app.use('/api', pollRouter);
   app.use('/api', socialRouter);
   app.use('/api', adminRouter);
+  app.use('/api', billingRouter);
   app.use(votePageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);

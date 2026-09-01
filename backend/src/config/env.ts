@@ -9,11 +9,13 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  // Daily per-user caps on AI-powered endpoints (rolling 24h, 0 = unlimited).
-  // Admins are exempt.
-  QUOTA_TRYONS_PER_DAY: z.coerce.number().int().min(0).default(15),
-  QUOTA_LOOKS_PER_DAY: z.coerce.number().int().min(0).default(15),
-  QUOTA_CATALOG_PER_DAY: z.coerce.number().int().min(0).default(40),
+  // Razorpay (billing). All optional — billing endpoints return 503 until
+  // the keys and plan IDs are configured.
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  RAZORPAY_PLAN_PLUS: z.string().optional(),
+  RAZORPAY_PLAN_PRO: z.string().optional(),
   // Emails that are auto-verified, auto-approved, and given the admin role
   // on register/login — bootstraps the first superuser. Comma-separated.
   ADMIN_EMAILS: z

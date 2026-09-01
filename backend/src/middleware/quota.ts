@@ -1,44 +1,39 @@
 import type { NextFunction, Request, Response } from 'express';
-import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { HttpError } from './error';
+import {
+  checkGenerationQuota,
+  planLimits,
+  type MeteredKind,
+} from '../services/entitlements.service';
 
-export type UsageKind = 'tryon' | 'looks' | 'catalog';
-
-const LIMITS: Record<UsageKind, () => number> = {
-  tryon: () => env.QUOTA_TRYONS_PER_DAY,
-  looks: () => env.QUOTA_LOOKS_PER_DAY,
-  catalog: () => env.QUOTA_CATALOG_PER_DAY,
-};
-
-const LABELS: Record<UsageKind, string> = {
+const LABELS: Record<MeteredKind, string> = {
   tryon: 'try-ons',
   looks: 'generated looks',
   catalog: 'wardrobe scans',
 };
 
 /**
- * Per-user daily cap on AI-powered endpoints (rolling 24h window).
- * Every generation call costs real money, so approved users get a
- * daily allowance; admins are exempt. A limit of 0 disables the cap.
- * The attempt is recorded up front so retries and failures still count.
+ * Plan-based cap on AI-powered endpoints. Free is a one-time trial
+ * allowance; paid plans refill on a rolling 30-day window. Admins are
+ * exempt. The attempt is recorded up front so retries and failures count —
+ * every call costs real money whether or not the user likes the result.
  */
-export function quota(kind: UsageKind) {
+export function quota(kind: MeteredKind) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const user = req.user;
       if (!user) throw new HttpError(401, 'Authentication required');
 
-      const limit = LIMITS[kind]();
-      if (limit > 0 && user.role !== 'admin') {
-        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const used = await prisma.usageEvent.count({
-          where: { userId: user.id, kind, createdAt: { gte: since } },
-        });
-        if (used >= limit) {
+      if (user.role !== 'admin') {
+        const { allowed, limit } = await checkGenerationQuota(user.id, user.plan, kind);
+        if (!allowed) {
+          const limits = planLimits(user.plan);
           throw new HttpError(
             429,
-            `Daily limit reached (${limit} ${LABELS[kind]} per day) — try again tomorrow`,
+            limits.lifetime
+              ? `You've used all ${limit} free ${LABELS[kind]} — upgrade to keep going`
+              : `You've reached your ${limits.label} plan's ${limit} ${LABELS[kind]} for this month — upgrade or try again later`,
           );
         }
       }

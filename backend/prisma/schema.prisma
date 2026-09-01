@@ -24,6 +24,13 @@ model User {
   emailVerified Boolean      @default(false)
   verifyToken  String?       @unique
   verifyTokenExpires DateTime?
+  // Billing: which tier the account is on and what the gateway knows.
+  //   plan: free | plus | pro | founder   planStatus: none | active | grace | cancelled
+  plan         String        @default("free")
+  planStatus   String        @default("none")
+  currentPeriodEnd      DateTime?
+  gatewayCustomerId     String?
+  gatewaySubscriptionId String?
   // Relative path to the user's uploaded body photo (for virtual try-on).
   photoPath    String?
   createdAt    DateTime      @default(now())
@@ -41,6 +48,7 @@ model User {
   picksReceived FriendPick[] @relation("picksFor")
   picksSent     FriendPick[] @relation("picksBy")
   usageEvents   UsageEvent[]
+  billingEvents BillingEvent[]
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -249,4 +257,19 @@ model UsageEvent {
   createdAt DateTime @default(now())
 
   @@index([userId, kind, createdAt])
+}
+
+// Append-only audit of every gateway webhook we accepted. eventId makes
+// webhook processing idempotent (gateways redeliver).
+model BillingEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  gateway   String
+  eventType String
+  eventId   String   @unique
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

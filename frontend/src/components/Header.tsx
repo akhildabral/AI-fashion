@@ -54,6 +54,9 @@ export function Header() {
               <NavLink to="/profile" className={navLinkClass}>
                 Profile
               </NavLink>
+              <NavLink to="/billing" className={navLinkClass}>
+                Plan
+              </NavLink>
               {user.role === 'admin' && (
                 <NavLink to="/admin" className={navLinkClass}>
                   Admin

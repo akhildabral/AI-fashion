@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { deleteFile, keyFromStored, mimeForKey, readStored, saveImageBuffer } from '../lib/storage';
 import { enqueue } from '../lib/jobs';
 import { extForMime } from '../middleware/upload';
+import { checkItemCapacity } from '../services/entitlements.service';
 import {
   detectGarments,
   deriveReasoningAttributes,
@@ -130,6 +131,16 @@ async function catalogItem(
 export async function addItem(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   if (!req.file) throw new HttpError(400, 'No image file provided');
+
+  if (req.user.role !== 'admin') {
+    const capacity = await checkItemCapacity(req.user.id, req.user.plan);
+    if (!capacity.allowed) {
+      throw new HttpError(
+        429,
+        `Your wardrobe is full (${capacity.limit} items on your plan) — upgrade to add more`,
+      );
+    }
+  }
 
   const { buffer, mimetype } = req.file;
   const userId = req.user.id;

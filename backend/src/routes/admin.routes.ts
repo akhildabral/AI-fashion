@@ -4,6 +4,7 @@ import {
   createUser,
   listUsers,
   markVerified,
+  setPlan,
   resetPassword,
   suspendUser,
 } from '../controllers/admin.controller';
@@ -20,3 +21,4 @@ adminRouter.post('/admin/users/:id/approve', approveUser);
 adminRouter.post('/admin/users/:id/suspend', suspendUser);
 adminRouter.post('/admin/users/:id/verify', markVerified);
 adminRouter.post('/admin/users/:id/reset-password', resetPassword);
+adminRouter.post('/admin/users/:id/plan', setPlan);
