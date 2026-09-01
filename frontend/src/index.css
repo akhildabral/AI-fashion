@@ -40,6 +40,8 @@
 
   body {
     @apply bg-bone text-ink font-sans;
+    /* Percent-radius arches can spill subpixels on some mobile engines. */
+    overflow-x: hidden;
   }
 }
 

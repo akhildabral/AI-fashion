@@ -116,7 +116,7 @@ export function MirrorPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-73px)]">
+    <div className="relative">
             <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {toast && (
           <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
@@ -131,7 +131,7 @@ export function MirrorPage() {
 
         <div className="mt-8 animate-rise-2">
           {/* The mirror itself */}
-          <div className="relative mx-auto max-w-[420px] pt-2">
+          <div className="relative mx-auto w-full max-w-[560px] pt-2">
             <MirrorFrame>
                 {rendering ? (
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-6 text-center">

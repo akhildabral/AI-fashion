@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
-import { apiFetch, resolveImageUrl } from '../lib/api'
-import { getPhoto, getTryOns } from '../lib/tryon'
+import { apiFetch } from '../lib/api'
 import {
   getBrief,
   getBriefAlternatives,
@@ -62,7 +61,6 @@ export function TodayPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [stage, setStage] = useState<{ url: string; caption: string } | null>(null)
 
   const [swapItem, setSwapItem] = useState<BriefItem | null>(null)
   const [alternatives, setAlternatives] = useState<BriefItem[] | null>(null)
@@ -98,18 +96,6 @@ export function TodayPage() {
     getRitualStats().then(setStats).catch(() => undefined)
     getFeed()
       .then((r) => setCards(r.cards.slice(0, 3)))
-      .catch(() => undefined)
-    // The mirror on this page shows your latest render, else your photo.
-    getTryOns()
-      .then(({ tryOns }) => {
-        if (tryOns && tryOns[0]) {
-          setStage({ url: tryOns[0].imageUrl, caption: 'your latest render' })
-        } else {
-          return getPhoto().then(({ photoUrl }) => {
-            if (photoUrl) setStage({ url: photoUrl, caption: 'ready when you are' })
-          })
-        }
-      })
       .catch(() => undefined)
   }, [load])
 
@@ -283,7 +269,7 @@ export function TodayPage() {
               {error}
             </p>
           )}
-          <div className="mt-2 grid gap-10 lg:grid-cols-[1fr_minmax(280px,360px)] lg:gap-14">
+          <div className="mt-2">
             <div>
               <h1 className="animate-rise-1 font-display text-4xl font-extrabold leading-[0.98] tracking-tight text-ink sm:text-5xl">
                 {worn ? (
@@ -310,7 +296,7 @@ export function TodayPage() {
                 <span className="font-serif italic">{brief.rationale}</span>
               </p>
 
-              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {brief.items.map((item) => (
                   <GarmentTile
                     key={item.id}
@@ -346,6 +332,9 @@ export function TodayPage() {
                     ✓ Logged for today
                   </span>
                 )}
+                <button type="button" onClick={handleSeeOnYou} className="btn-ghost">
+                  See it on you ✦
+                </button>
                 {!isRefinement ? (
                   <button
                     type="button"
@@ -414,42 +403,6 @@ export function TodayPage() {
               </div>
             </div>
 
-            {/* The mirror — this page's wow anchor */}
-            <div className="mx-auto w-full max-w-[340px] lg:mx-0 lg:max-w-none">
-              <button
-                type="button"
-                onClick={handleSeeOnYou}
-                className="group block w-full text-left"
-                aria-label="See today's look on you"
-              >
-                <MirrorFrame className="animate-rise-2">
-                  {stage ? (
-                    <div className="relative">
-                      <img
-                        src={resolveImageUrl(stage.url)}
-                        alt="You, in the mirror"
-                        className="aspect-[3/4] w-full object-cover"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/55 to-transparent p-4 pt-10">
-                        <span className="rounded-xl bg-bone/90 px-4 py-2 text-sm font-semibold text-ink backdrop-blur transition-colors group-hover:bg-bone">
-                          See today's look on you ✦
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
-                      <Silhouette className="h-28 w-16 text-ink/15" />
-                      <span className="rounded-xl bg-iris px-4 py-2 text-sm font-semibold text-bone transition-colors group-hover:bg-iris-deep">
-                        See it on you ✦
-                      </span>
-                    </div>
-                  )}
-                </MirrorFrame>
-              </button>
-              <p className="mt-3 text-center font-serif text-sm italic text-ink/45">
-                {stage?.caption ?? 'your mirror'}
-              </p>
-            </div>
           </div>
 
           {cards.length > 0 && (
