@@ -49,6 +49,9 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+      - ./deploy/extra-sites:/etc/caddy/extra:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
     depends_on:
       - backend
 

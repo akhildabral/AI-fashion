@@ -21,3 +21,6 @@ handle {
 	try_files {path} /index.html
 	file_server
 }
+
+# Optional server-specific sites (mounted from deploy/extra-sites).
+import /etc/caddy/extra/*.caddy

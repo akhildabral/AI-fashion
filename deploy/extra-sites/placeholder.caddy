@@ -1,0 +1,4 @@
+# Server-specific extra sites are dropped into this directory on the host
+# (untracked files survive CI's git reset). Each *.caddy file is imported
+# by the main Caddyfile — e.g. another domain reverse-proxied to a
+# different app on the same box.
