@@ -11,7 +11,7 @@ import { Spinner } from '../components/Spinner'
 
 type Tab = 'on-you' | 'looks'
 
-const FRAME_RADIUS = '10rem 10rem 1.5rem 1.5rem'
+const FRAME_RADIUS = '48% 48% 24px 24px / 30% 30% 24px 24px'
 
 export function MirrorPage() {
   const [params, setParams] = useSearchParams()
@@ -130,16 +130,16 @@ export function MirrorPage() {
           The Mirror
         </h1>
 
-        <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(280px,380px)_1fr]">
+        <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(340px,460px)_1fr] lg:gap-14">
           {/* The mirror itself */}
-          <div className="relative pt-6">
+          <div className="relative pt-6 lg:sticky lg:top-24 lg:self-start">
             <div
               className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
               style={{ borderRadius: FRAME_RADIUS }}
             >
               <div
                 className="relative overflow-hidden border border-black/10 bg-surface dark:border-white/5"
-                style={{ borderRadius: '9.5rem 9.5rem 1.1rem 1.1rem' }}
+                style={{ borderRadius: '47% 47% 20px 20px / 29% 29% 20px 20px' }}
               >
                 {rendering ? (
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-6 text-center">

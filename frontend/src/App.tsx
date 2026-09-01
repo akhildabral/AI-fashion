@@ -38,7 +38,7 @@ export default function App() {
               className="pointer-events-none fixed inset-0 dark:hidden"
               style={{
                 background:
-                  'radial-gradient(700px 380px at 12% -4%, rgba(217,72,31,0.055), transparent 60%), radial-gradient(640px 400px at 92% 104%, rgba(184,117,73,0.05), transparent 62%)',
+                  'radial-gradient(480px 300px at -6% -8%, rgba(217,72,31,0.05), transparent 65%), radial-gradient(460px 300px at 106% 106%, rgba(229,71,109,0.04), transparent 65%)',
               }}
             />
             <div
@@ -46,7 +46,7 @@ export default function App() {
               className="pointer-events-none fixed inset-0 hidden dark:block"
               style={{
                 background:
-                  'radial-gradient(700px 400px at 14% -4%, rgba(255,122,80,0.10), transparent 60%), radial-gradient(640px 420px at 92% 104%, rgba(224,165,74,0.08), transparent 62%)',
+                  'radial-gradient(520px 340px at -6% -8%, rgba(229,71,109,0.13), transparent 62%), radial-gradient(500px 330px at 106% 106%, rgba(255,122,80,0.09), transparent 62%)',
               }}
             />
             <Header />

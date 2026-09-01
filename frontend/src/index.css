@@ -22,8 +22,8 @@
   /* Studio after dark */
   .dark {
     --c-ink: 237 232 227; /* #EDE8E3 */
-    --c-bone: 21 17 16; /* #151110 */
-    --c-surface: 31 24 21; /* #1F1815 */
+    --c-bone: 20 19 20; /* #141314 — neutral near-black, no brown cast */
+    --c-surface: 30 28 29; /* #1E1C1D */
     --c-iris: 255 122 80; /* ember #FF7A50 */
     --c-iris-deep: 255 143 107;
     --c-iris-deeper: 255 163 133;

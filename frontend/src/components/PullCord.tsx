@@ -45,20 +45,20 @@ export function PullCord() {
       <span
         className="flex origin-top flex-col items-center"
         style={{
-          transform: tugging ? 'translateY(11px)' : 'translateY(0)',
+          transform: tugging ? 'translateY(7px)' : 'translateY(0)',
           transition: 'transform 170ms cubic-bezier(0.3, 0.9, 0.4, 1.3)',
         }}
       >
         {/* braided rope */}
         <span
-          className="block h-14 w-[3px] rounded-b-sm opacity-80"
+          className="block h-8 w-[2px] rounded-b-sm opacity-60"
           style={{
             background:
-              'repeating-linear-gradient(180deg, rgb(var(--c-spark)) 0px, rgb(var(--c-spark-deep)) 3px, rgb(var(--c-spark)) 6px)',
+              'repeating-linear-gradient(180deg, rgb(var(--c-spark)) 0px, rgb(var(--c-spark-deep)) 2.5px, rgb(var(--c-spark)) 5px)',
           }}
         />
         {/* handle in the brand primary */}
-        <span className="mt-0.5 block h-8 w-4 rounded-full border border-iris-deep bg-iris transition-colors group-hover:bg-iris-deep" />
+        <span className="mt-0.5 block h-5 w-2.5 rounded-full border border-iris-deep bg-iris transition-colors group-hover:bg-iris-deep" />
       </span>
     </button>
   )
