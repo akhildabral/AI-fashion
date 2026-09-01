@@ -126,12 +126,43 @@ export function AdminPage() {
 
   async function copyInvite() {
     if (!inviteLink?.url) return
+    const text = inviteLink.url
+    // Clipboard API needs a secure context + permission; fall back to the
+    // legacy textarea trick, and to manual selection as a last resort.
     try {
-      await navigator.clipboard.writeText(inviteLink.url)
+      await navigator.clipboard.writeText(text)
       setCopied(true)
+      return
     } catch {
-      setCopied(false)
+      // fall through
     }
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      if (ok) {
+        setCopied(true)
+        return
+      }
+    } catch {
+      // fall through
+    }
+    setCopied(false)
+    setNotice('Copy blocked by the browser — tap the link text to select it, then copy manually.')
+  }
+
+  function selectLinkText(e: React.MouseEvent<HTMLDivElement>) {
+    const range = document.createRange()
+    range.selectNodeContents(e.currentTarget)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
   }
 
   if (!users && !error) {
@@ -394,7 +425,11 @@ export function AdminPage() {
                   an email was sent if SMTP is configured; you can also copy the link and share it
                   yourself. Valid 7 days.
                 </p>
-                <div className="mt-4 break-all rounded-xl border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75">
+                <div
+                  onClick={selectLinkText}
+                  title="Click to select"
+                  className="mt-4 cursor-text select-all break-all rounded-xl border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75"
+                >
                   {inviteLink.url}
                 </div>
                 <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 !px-4 !py-2 !text-sm">
