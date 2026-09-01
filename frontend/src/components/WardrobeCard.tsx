@@ -35,7 +35,7 @@ interface WardrobeCardProps {
 /** A small pill for a single tag value. */
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-ink/10 bg-bone/60 px-2.5 py-1 text-xs text-ink/70">
+    <span className="inline-flex items-center rounded-[3px] border border-ink/10 bg-bone/60 px-2.5 py-1 text-xs text-ink/70">
       {children}
     </span>
   )
@@ -65,17 +65,27 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
   const hasCleanedVersion = !!item.originalUrl && item.originalUrl !== item.imageUrl
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-surface ">
-      <div className="relative aspect-square bg-gradient-to-br from-bone to-clay/20">
+    <article className="flex flex-col overflow-hidden rounded-[3px] border border-ink/10 bg-surface">
+      {/* The garment in a lit vitrine niche — object-contain keeps its true
+          proportions, and the warm ground hides any ragged cutout edges. */}
+      <div
+        className="relative aspect-square"
+        style={{
+          background: 'var(--c-niche)',
+          boxShadow:
+            'inset 0 3px 12px rgba(40,25,8,.14), inset 0 -22px 34px -14px rgba(40,25,8,.08)',
+        }}
+      >
         <ZoomableImage
           src={showOriginal && item.originalUrl ? item.originalUrl : item.imageUrl}
           alt={title}
+          imgClassName="h-full w-full object-contain p-7"
         />
         {hasCleanedVersion && (
           <button
             type="button"
             onClick={() => setShowOriginal((v) => !v)}
-            className="absolute bottom-3 right-3 rounded-full bg-surface/90 px-3 py-1 text-xs font-medium text-ink/70  transition hover:bg-surface"
+            className="absolute bottom-3 right-3 rounded-[3px] bg-surface/90 px-3 py-1 text-xs font-medium text-ink/70  transition hover:bg-surface"
           >
             {showOriginal ? 'Show clean' : 'Show original'}
           </button>
@@ -88,19 +98,19 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                 .then(({ item: updated }) => onUpdated?.(updated))
                 .catch(() => setError('Could not restore this item — try again.'))
             }}
-            className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-bone  transition hover:bg-ink"
+            className="absolute left-3 top-3 rounded-[3px] bg-ink/80 px-2.5 py-1 text-xs text-bone  transition hover:bg-ink"
           >
             Excluded — tap to include
           </button>
         )}
         {item.status === 'processing' && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2.5 py-1 text-xs text-ink/70 ">
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-[3px] bg-surface/90 px-2.5 py-1 text-xs text-ink/70 ">
             <Spinner className="h-3 w-3" />
             Analyzing…
           </span>
         )}
         {item.status === 'failed' && (
-          <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs text-red-700 ">
+          <span className="absolute left-3 top-3 rounded-[3px] bg-surface/90 px-2.5 py-1 text-xs text-red-700 ">
             Tagging failed — edit manually
           </span>
         )}
@@ -169,8 +179,8 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                 }}
                 className={
                   item.visibility === 'public'
-                    ? 'rounded-full border border-spark/50 bg-spark/10 px-3 py-1 text-xs font-medium text-spark-deep dark:text-spark'
-                    : 'rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/50 transition hover:border-ink/30'
+                    ? 'rounded-[3px] border border-spark/50 bg-spark/10 px-3 py-1 text-xs font-medium text-spark-deep dark:text-spark'
+                    : 'rounded-[3px] border border-ink/15 px-3 py-1 text-xs text-ink/50 transition hover:border-ink/30'
                 }
               >
                 {item.visibility === 'public' ? 'Public' : 'Private'}
@@ -367,7 +377,7 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
                 key={s}
                 onClick={() => toggleSeason(s)}
                 aria-pressed={active}
-                className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition ${
+                className={`rounded-[3px] border px-3 py-1 text-xs font-medium capitalize transition ${
                   active
                     ? 'border-ink bg-ink text-bone'
                     : 'border-ink/20 text-ink/60 hover:border-ink/50'
