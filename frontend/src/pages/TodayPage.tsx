@@ -296,7 +296,42 @@ export function TodayPage() {
                 <span className="font-serif italic">{brief.rationale}</span>
               </p>
 
-              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+
+              <div className="mt-6">
+                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-ink/45">
+                  Dressing for something else?
+                </p>
+                <form
+                  onSubmit={handleOccasionSubmit}
+                  className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
+                >
+                  <input
+                    value={occasionText}
+                    onChange={(e) => setOccasionText(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
+                    placeholder="Dinner in the city, smart-casual…"
+                  />
+                  <button type="submit" disabled={busy === 'occasion'} className="btn-primary !px-4 !py-2">
+                    {busy === 'occasion' ? <Spinner className="h-4 w-4" /> : 'Style it'}
+                  </button>
+                </form>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {OCCASIONS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => {
+                        setOccasionText(chip)
+                        void load({ occasion: chip })
+                      }}
+                      className="chip"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-8 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {brief.items.map((item) => (
                   <GarmentTile
                     key={item.id}
@@ -304,6 +339,7 @@ export function TodayPage() {
                     label={itemLabel(item)}
                     sublabel={worn || isRefinement ? undefined : 'tap to swap'}
                     aspect="aspect-[3/4]"
+                    arch
                     onClick={worn || isRefinement ? undefined : () => void openSwap(item)}
                   />
                 ))}
@@ -367,40 +403,6 @@ export function TodayPage() {
                 </p>
               )}
 
-              <div className="mt-10 border-t border-ink/10 pt-6">
-                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-ink/45">
-                  Dressing for something else?
-                </p>
-                <form
-                  onSubmit={handleOccasionSubmit}
-                  className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
-                >
-                  <input
-                    value={occasionText}
-                    onChange={(e) => setOccasionText(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
-                    placeholder="Dinner in the city, smart-casual…"
-                  />
-                  <button type="submit" disabled={busy === 'occasion'} className="btn-primary !px-4 !py-2">
-                    {busy === 'occasion' ? <Spinner className="h-4 w-4" /> : 'Style it'}
-                  </button>
-                </form>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {OCCASIONS.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => {
-                        setOccasionText(chip)
-                        void load({ occasion: chip })
-                      }}
-                      className="chip"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
           </div>

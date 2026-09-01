@@ -40,6 +40,7 @@ export function GarmentTile({
   selected = false,
   processing = false,
   aspect = 'aspect-square',
+  arch = false,
 }: {
   imageUrl: string
   label?: string
@@ -48,22 +49,27 @@ export function GarmentTile({
   selected?: boolean
   processing?: boolean
   aspect?: string
+  /** Arched top — the mirror-frame geometry as a shape language. */
+  arch?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`group relative overflow-hidden rounded-2xl border bg-surface text-left transition ${
-        selected ? 'border-iris ring-2 ring-iris/30' : 'border-ink/10'
-      } ${onClick ? 'cursor-pointer hover:border-ink/35' : 'cursor-default'}`}
+      style={arch ? { borderRadius: '45% 45% 16px 16px / 22% 22% 16px 16px' } : undefined}
+      className={`group relative overflow-hidden border bg-surface text-left transition ${
+        arch ? '' : 'rounded-2xl'
+      } ${selected ? 'border-iris ring-2 ring-iris/30' : 'border-ink/10'} ${
+        onClick ? 'cursor-pointer hover:border-ink/35' : 'cursor-default'
+      }`}
     >
       <div className={`${aspect} w-full overflow-hidden bg-white`}>
         <img
           src={resolveImageUrl(imageUrl)}
           alt={label ?? ''}
           loading="lazy"
-          className={`h-full w-full object-contain p-2 transition ${
+          className={`h-full w-full object-contain transition ${arch ? 'px-3 pb-2 pt-8' : 'p-2'} ${
             processing ? 'opacity-40 blur-[1px]' : ''
           }`}
         />
