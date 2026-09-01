@@ -52,20 +52,26 @@ export function Header() {
   const initials = (user?.handle ?? user?.email ?? '?').slice(0, 2).toUpperCase()
 
   return (
-    <header className="sticky top-0 z-20 border-b border-ink/5 bg-bone/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-        <Link to="/" className="font-display text-xl font-extrabold tracking-tight text-ink">
-          AI&nbsp;Fashion<span className="text-iris">*</span>
+    <header className="sticky top-0 z-20 bg-bone/70 backdrop-blur-md">
+      <div className="relative mx-auto flex h-[76px] max-w-6xl items-center justify-between px-6">
+        <Link to="/" className="group flex items-baseline gap-2">
+          <span className="font-display text-xl font-extrabold tracking-tight text-ink">
+            AI&nbsp;Fashion<span className="text-iris transition-colors group-hover:text-iris-deep">*</span>
+          </span>
+          <span className="hidden font-serif text-xs italic text-ink/40 md:inline">
+            your daily stylist
+          </span>
         </Link>
 
         {user && (
           <>
-            <nav className="hidden items-center gap-0.5 rounded-full border border-ink/10 bg-surface p-1 sm:flex">
+            {/* Centered floating nav */}
+            <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border border-ink/5 bg-surface/80 p-1 backdrop-blur sm:flex">
               {NAV.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                     isActive(pathname, item.match)
                       ? 'bg-ink text-bone'
                       : 'text-ink/55 hover:text-ink'
@@ -76,15 +82,18 @@ export function Header() {
               ))}
             </nav>
 
-            <div className="flex items-center gap-2">
-            <div className="-mt-4 self-start pt-0"><PullCord /></div>
+            {/* The light cord hangs from the very top, clear of the avatar */}
+            <div className="absolute right-24 top-0">
+              <PullCord />
+            </div>
+
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-bone transition"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-bone transition-colors hover:bg-spark-deep"
               >
                 {initials}
               </button>
@@ -95,7 +104,7 @@ export function Header() {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className="block px-4 py-2 text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                      className="block px-4 py-2 text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink"
                     >
                       {item.label}
                     </Link>
@@ -103,7 +112,7 @@ export function Header() {
                   {user.role === 'admin' && (
                     <Link
                       to="/admin"
-                      className="block px-4 py-2 text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                      className="block px-4 py-2 text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink"
                     >
                       Admin
                     </Link>
@@ -112,13 +121,12 @@ export function Header() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition hover:bg-bone hover:text-ink"
+                    className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink"
                   >
                     Log out
                   </button>
                 </div>
               )}
-            </div>
             </div>
           </>
         )}
@@ -130,7 +138,7 @@ export function Header() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 isActive(pathname, item.match)
                   ? 'bg-ink text-bone'
                   : 'text-ink/55 hover:text-ink'

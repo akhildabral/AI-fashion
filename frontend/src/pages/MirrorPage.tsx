@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
-import { PullCord } from '../components/PullCord'
 import type { Look, LooksResponse, TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 
@@ -119,25 +118,7 @@ export function MirrorPage() {
 
   return (
     <div className="relative min-h-[calc(100vh-73px)]">
-      {/* Ambient glow — a soft wash in the light, the theater in the dark */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 dark:hidden"
-        style={{
-          background:
-            'radial-gradient(560px 300px at 18% 8%, rgba(217,72,31,0.06), transparent 60%), radial-gradient(520px 300px at 85% 90%, rgba(184,117,73,0.06), transparent 62%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 hidden dark:block"
-        style={{
-          background:
-            'radial-gradient(560px 320px at 20% 10%, rgba(255,122,80,0.14), transparent 60%), radial-gradient(520px 320px at 85% 90%, rgba(224,165,74,0.12), transparent 62%)',
-        }}
-      />
-
-      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+            <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {toast && (
           <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
             {toast}
@@ -152,7 +133,6 @@ export function MirrorPage() {
         <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(280px,380px)_1fr]">
           {/* The mirror itself */}
           <div className="relative pt-6">
-            <div className="absolute -top-1 right-8 z-10"><PullCord size="md" /></div>
             <div
               className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
               style={{ borderRadius: FRAME_RADIUS }}

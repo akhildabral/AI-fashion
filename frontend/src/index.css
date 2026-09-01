@@ -8,7 +8,7 @@
      names still read "iris"/"spark" — renamed in the brand pass. */
   :root {
     --c-ink: 29 21 18; /* #1D1512 */
-    --c-bone: 248 244 239; /* #F8F4EF */
+    --c-bone: 251 250 248; /* #FBFAF8 — near-white, whisper of warmth */
     --c-surface: 255 255 255;
     --c-iris: 217 72 31; /* vermilion #D9481F */
     --c-iris-deep: 194 62 24; /* #C23E18 */
