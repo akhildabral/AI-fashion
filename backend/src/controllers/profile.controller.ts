@@ -15,6 +15,7 @@ const profileSchema = z.object({
     .nullish(),
   skinTone: z.string().max(50).nullish(),
   styleVibe: z.string().max(50).nullish(),
+  city: z.string().max(120).nullish(),
   budgetBand: z.string().max(50).nullish(),
   avoidColors: z.array(z.string().max(40)).max(30).optional(),
 });

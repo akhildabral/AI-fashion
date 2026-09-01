@@ -4,15 +4,14 @@ import { useAuth } from '../context/useAuth'
 
 const NAV = [
   { to: '/', label: 'Today', match: ['/'] },
-  { to: '/wardrobe', label: 'Wardrobe', match: ['/wardrobe'] },
-  { to: '/looks', label: 'Looks', match: ['/looks', '/tryons'] },
-  { to: '/friends', label: 'Community', match: ['/friends', '/u'] },
+  { to: '/closet', label: 'Closet', match: ['/closet'] },
+  { to: '/mirror', label: 'Mirror', match: ['/mirror'] },
+  { to: '/circle', label: 'Circle', match: ['/circle', '/u'] },
 ]
 
 const MENU = [
-  { to: '/journal', label: 'Journal' },
-  { to: '/packing', label: 'Packing' },
-  { to: '/tryons', label: 'Try-ons' },
+  { to: '/trips', label: 'Trips' },
+  { to: '/journal', label: 'Wear history' },
   { to: '/profile', label: 'Profile' },
   { to: '/billing', label: 'Plan & usage' },
 ]

@@ -6,19 +6,26 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
-import { StylistPage } from './pages/StylistPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { TodayPage } from './pages/TodayPage'
+import { ClosetPage } from './pages/ClosetPage'
+import { MirrorPage } from './pages/MirrorPage'
+import { CirclePage } from './pages/CirclePage'
+import { WelcomePage } from './pages/WelcomePage'
 import { ProfilePage } from './pages/ProfilePage'
-import { LooksPage } from './pages/LooksPage'
-import { TryOnsPage } from './pages/TryOnsPage'
-import { WardrobePage } from './pages/WardrobePage'
 import { JournalPage } from './pages/JournalPage'
 import { QuizPage } from './pages/QuizPage'
 import { PackingPage } from './pages/PackingPage'
 import { FriendsPage } from './pages/FriendsPage'
 import { UserProfilePage } from './pages/UserProfilePage'
-import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
+
+function guarded(element: JSX.Element, withProfile = true) {
+  return (
+    <ProtectedRoute>{withProfile ? <RequireProfile>{element}</RequireProfile> : element}</ProtectedRoute>
+  )
+}
 
 export default function App() {
   return (
@@ -32,120 +39,33 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route
-                  path="/billing"
-                  element={
-                    <ProtectedRoute>
-                      <BillingPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <StylistPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/looks"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <LooksPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/wardrobe"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <WardrobePage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/friends"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <FriendsPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/u/:handle"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <UserProfilePage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/packing"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <PackingPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/quiz"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <QuizPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/journal"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <JournalPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/tryons"
-                  element={
-                    <ProtectedRoute>
-                      <RequireProfile>
-                        <TryOnsPage />
-                      </RequireProfile>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
+
+                {/* The four spaces */}
+                <Route path="/" element={guarded(<TodayPage />)} />
+                <Route path="/closet" element={guarded(<ClosetPage />)} />
+                <Route path="/mirror" element={guarded(<MirrorPage />)} />
+                <Route path="/circle" element={guarded(<CirclePage />)} />
+                <Route path="/circle/people" element={guarded(<FriendsPage />)} />
+                <Route path="/u/:handle" element={guarded(<UserProfilePage />)} />
+
+                {/* First run */}
+                <Route path="/welcome" element={guarded(<WelcomePage />, false)} />
+                <Route path="/quiz" element={guarded(<QuizPage />, false)} />
+
+                {/* Menu destinations */}
+                <Route path="/trips" element={guarded(<PackingPage />)} />
+                <Route path="/profile" element={guarded(<ProfilePage />, false)} />
+                <Route path="/journal" element={guarded(<JournalPage />)} />
+                <Route path="/billing" element={guarded(<BillingPage />, false)} />
+                <Route path="/admin" element={guarded(<AdminPage />, false)} />
+
+                {/* Old structure → new spaces */}
+                <Route path="/wardrobe" element={<Navigate to="/closet" replace />} />
+                <Route path="/looks" element={<Navigate to="/mirror" replace />} />
+                <Route path="/tryons" element={<Navigate to="/mirror" replace />} />
+                <Route path="/friends" element={<Navigate to="/circle" replace />} />
+                <Route path="/packing" element={<Navigate to="/trips" replace />} />
+
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

@@ -130,3 +130,8 @@ export async function apiUpload<T>(
 
   return data as T
 }
+
+/** Image URLs from the API are same-origin relative paths; pass through absolutes. */
+export function resolveImageUrl(url: string): string {
+  return url
+}

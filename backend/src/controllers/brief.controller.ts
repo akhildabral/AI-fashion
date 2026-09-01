@@ -100,7 +100,8 @@ async function composeOutfit(
 
   return {
     title: occasion ?? `Today's ${eventType} look`,
-    rationale: top.rationale,
+    // Models sometimes cite item ids in their reasoning — never show those.
+    rationale: top.rationale.replace(/\s*\(id:\s*[a-f0-9-]+\)/gi, ''),
     itemIds: top.items.map((i) => i.id),
     eventType,
     occasion,

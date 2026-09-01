@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getQuiz, submitQuiz } from '../lib/quiz'
 import { useProfile } from '../context/useProfile'
 import type { QuizPair } from '../lib/types'
@@ -12,6 +12,8 @@ import { Spinner } from '../components/Spinner'
  */
 export function QuizPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromWelcome = searchParams.get('from') === 'welcome'
   const { setProfile } = useProfile()
   const [pairs, setPairs] = useState<QuizPair[] | null>(null)
   const [index, setIndex] = useState(0)
@@ -48,7 +50,7 @@ export function QuizPage() {
     try {
       const { profile } = await submitQuiz(next)
       setProfile(profile)
-      navigate('/', { replace: true })
+      navigate(fromWelcome ? '/welcome?step=3' : '/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save your answers.')
       setSaving(false)
