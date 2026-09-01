@@ -11,7 +11,9 @@ import { requireAdmin, requireAuth } from '../middleware/auth';
 
 export const adminRouter = Router();
 
-adminRouter.use(requireAuth, requireAdmin);
+// Scope the guard to /admin — this router is mounted at /api alongside
+// others, and a path-less use() would gate every route mounted after it.
+adminRouter.use('/admin', requireAuth, requireAdmin);
 adminRouter.get('/admin/users', listUsers);
 adminRouter.post('/admin/users', createUser);
 adminRouter.post('/admin/users/:id/approve', approveUser);
