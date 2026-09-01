@@ -30,13 +30,40 @@ export function SectionHead({
 }) {
   return (
     <div className={`mb-4 flex items-center justify-between gap-3 ${className}`}>
-      <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
+      <h2 className="font-display text-2xl font-medium text-ink">{title}</h2>
       {action}
     </div>
   )
 }
 
-/** The one garment tile, used everywhere an item appears. */
+/**
+ * The arch — the one curved form in the app. A brass-bezel aperture with a
+ * lit niche inside, used wherever a garment or a reflection appears. Wrap any
+ * content (image, silhouette, ghost) in it.
+ */
+export function Arch({
+  children,
+  className = '',
+  aspect = 'aspect-[3/4]',
+  bright = false,
+}: {
+  children: ReactNode
+  className?: string
+  aspect?: string
+  /** A brighter bezel — the "lit / selected" state. */
+  bright?: boolean
+}) {
+  return (
+    <div
+      className={`arch-bezel ${aspect} ${className}`}
+      style={bright ? { filter: 'brightness(1.18) saturate(1.05)' } : undefined}
+    >
+      <div className="arch-niche h-full w-full">{children}</div>
+    </div>
+  )
+}
+
+/** The one garment tile — a garment spotlit in its arched niche. */
 export function GarmentTile({
   imageUrl,
   label,
@@ -44,8 +71,9 @@ export function GarmentTile({
   onClick,
   selected = false,
   processing = false,
-  aspect = 'aspect-square',
-  arch = false,
+  aspect = 'aspect-[3/4]',
+  // kept for source compatibility; the tile is always arched now.
+  arch: _arch,
 }: {
   imageUrl: string
   label?: string
@@ -54,7 +82,6 @@ export function GarmentTile({
   selected?: boolean
   processing?: boolean
   aspect?: string
-  /** Arched top — the mirror-frame geometry as a shape language. */
   arch?: boolean
 }) {
   return (
@@ -62,34 +89,31 @@ export function GarmentTile({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      style={arch ? { borderRadius: '45% 45% 16px 16px / 22% 22% 16px 16px' } : undefined}
-      className={`group relative overflow-hidden border bg-surface text-left transition ${
-        arch ? '' : 'rounded-2xl'
-      } ${selected ? 'border-iris ring-2 ring-iris/30' : 'border-ink/10'} ${
-        onClick ? 'cursor-pointer hover:border-ink/35' : 'cursor-default'
-      }`}
+      className={`press group block text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
-      <div className={`${aspect} w-full overflow-hidden bg-white`}>
+      <Arch aspect={aspect} bright={selected}>
         <img
           src={resolveImageUrl(imageUrl)}
           alt={label ?? ''}
           loading="lazy"
-          className={`h-full w-full object-contain transition ${arch ? 'px-3 pb-2 pt-8' : 'p-2'} ${
-            processing ? 'opacity-40 blur-[1px]' : ''
+          className={`relative z-[1] h-full w-full object-contain px-3 pb-3 pt-7 transition duration-500 ${
+            processing ? 'scale-95 opacity-40 blur-[2px]' : ''
           }`}
         />
-      </div>
-      {processing && (
-        <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-bone">
-          analyzing…
-        </span>
-      )}
+        {processing && (
+          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-brass">
+            developing
+          </span>
+        )}
+      </Arch>
       {(label || sublabel) && (
-        <div className="px-3 pb-2.5 pt-1">
+        <div className="px-1 pt-2 text-center">
           {label && (
-            <p className="truncate text-sm font-medium capitalize text-ink">{label}</p>
+            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">
+              {label}
+            </p>
           )}
-          {sublabel && <p className="truncate text-xs text-ink/50">{sublabel}</p>}
+          {sublabel && <p className="truncate text-xs text-brass">{sublabel}</p>}
         </div>
       )}
     </button>
@@ -140,17 +164,19 @@ export function Modal({
         aria-modal="true"
         aria-label={title ?? 'Details'}
         tabIndex={-1}
-        className="relative flex max-h-[88vh] w-full max-w-lg animate-rise flex-col overflow-hidden rounded-3xl border border-ink/10 bg-bone shadow-float outline-none"
+        className="relative flex max-h-[88vh] w-full max-w-lg animate-rise flex-col overflow-hidden rounded-[3px] border border-brass/30 bg-bone shadow-float outline-none"
       >
-        <div className="flex items-center justify-between border-b border-ink/10 bg-bone px-5 py-4">
-          <p className="font-display text-base font-bold capitalize text-ink">{title ?? 'Details'}</p>
+        <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
+          <p className="font-display text-xl font-medium text-ink">{title ?? 'Details'}</p>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/15 text-ink/60 transition-colors hover:border-ink/40 hover:text-ink"
+            className="press flex h-8 w-8 items-center justify-center rounded-[3px] border border-ink/15 text-ink/60 transition-colors hover:border-brass hover:text-ink"
           >
-            ✕
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
           </button>
         </div>
         <div className="overflow-y-auto p-5">{children}</div>
@@ -159,17 +185,20 @@ export function Modal({
   )
 }
 
-/** Small labelled stat, used in health strips and ritual lines. */
+/** Small labelled stat — Bodoni figure over a tracked label. */
 export function Stat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-display text-xl font-extrabold leading-tight text-ink">{value}</p>
-      <p className="text-xs uppercase tracking-wide text-ink/45">{label}</p>
+      <p className="font-display text-2xl font-medium leading-tight text-ink [font-variant-numeric:tabular-nums]">
+        {value}
+      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{label}</p>
     </div>
   )
 }
 
-/** The arched mirror — the brand's visual anchor, reused across spaces. */
+/** The arched mirror — the brand's signature object. A true brass bezel
+ *  around a lit niche; the sheen is what the light-catch sweeps across. */
 export function MirrorFrame({
   children,
   className = '',
@@ -180,12 +209,19 @@ export function MirrorFrame({
   return (
     <div className={className}>
       <div
-        className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
-        style={{ borderRadius: '48% 48% 24px 24px / 30% 30% 24px 24px' }}
+        className="p-[3px]"
+        style={{
+          borderRadius: '48% 48% 6px 6px / 26% 26% 6px 6px',
+          background:
+            'linear-gradient(160deg, var(--c-brass-hi), var(--c-brass) 45%, var(--c-brass-lo) 82%)',
+        }}
       >
         <div
-          className="relative overflow-hidden border border-black/10 bg-surface dark:border-white/5"
-          style={{ borderRadius: '47% 47% 20px 20px / 29% 29% 20px 20px' }}
+          className="relative overflow-hidden"
+          style={{
+            borderRadius: '46% 46% 4px 4px / 24% 24% 4px 4px',
+            background: 'var(--c-niche)',
+          }}
         >
           {children}
           <div
@@ -193,7 +229,7 @@ export function MirrorFrame({
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                'linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.10) 47%, rgba(255,255,255,0.02) 55%, transparent 60%)',
+                'linear-gradient(120deg, transparent 42%, var(--c-sheen) 48%, transparent 57%)',
             }}
           />
         </div>
@@ -227,7 +263,7 @@ export function useFlash(): { toast: string | null; flash: (msg: string) => void
 export function Toast({ msg }: { msg: string | null }) {
   if (!msg) return null
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
+    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-[3px] border border-brass/30 bg-surface px-5 py-3 text-sm font-medium text-ink shadow-float">
       {msg}
     </div>
   )

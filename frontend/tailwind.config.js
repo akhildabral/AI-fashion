@@ -5,47 +5,51 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Bricolage Grotesque"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        serif: ['Fraunces', 'Georgia', 'serif'],
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Atelier: Bodoni Moda (Vogue display serif) + Archivo (UI/body).
+        display: ['"Bodoni Moda"', 'Georgia', 'serif'],
+        serif: ['"Bodoni Moda"', 'Georgia', 'serif'],
+        sans: ['Archivo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Themed via CSS variables (light values in :root, dark in .dark).
+        // Themed via CSS variables (gallery-by-day in :root, atelier-by-night in .dark).
         ink: 'rgb(var(--c-ink) / <alpha-value>)',
         bone: 'rgb(var(--c-bone) / <alpha-value>)',
         surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        // iris === brass (the accent), kept named so existing markup re-skins.
         iris: {
           DEFAULT: 'rgb(var(--c-iris) / <alpha-value>)',
           deep: 'rgb(var(--c-iris-deep) / <alpha-value>)',
           deeper: 'rgb(var(--c-iris-deeper) / <alpha-value>)',
           soft: 'rgb(var(--c-iris-soft) / <alpha-value>)',
         },
+        brass: {
+          DEFAULT: 'rgb(var(--c-iris) / <alpha-value>)',
+          ink: 'rgb(var(--c-iris-deeper) / <alpha-value>)',
+        },
         spark: {
           DEFAULT: 'rgb(var(--c-spark) / <alpha-value>)',
           deep: 'rgb(var(--c-spark-deep) / <alpha-value>)',
           soft: 'rgb(var(--c-spark-soft) / <alpha-value>)',
         },
-        // Fixed dark-stage palette (Mirror glows in dark mode).
-        theater: {
-          DEFAULT: '#0C0B0F',
-          surface: '#191820',
-          iris: '#9385FF',
-          rose: '#E5476D',
-          spark: '#FF855C',
-          mist: '#A9A5B2',
-        },
-        // Transitional alias for not-yet-reskinned corners.
+        // Legacy aliases → brass, so un-swept corners don't break.
         clay: 'rgb(var(--c-iris) / <alpha-value>)',
-        sage: '#8a9a86',
+        sage: 'rgb(var(--c-spark) / <alpha-value>)',
+        theater: {
+          DEFAULT: '#0E0D0B',
+          surface: '#1A1714',
+          iris: 'rgb(var(--c-iris))',
+          rose: 'rgb(var(--c-iris))',
+          spark: 'rgb(var(--c-spark))',
+          mist: 'rgb(var(--c-ink))',
+        },
       },
       boxShadow: {
-        // Reserved for floating layers only (menus, slide-overs, toasts) —
-        // never for hover states or resting cards.
-        float: '0 10px 30px -12px rgba(0, 0, 0, 0.25)',
+        // Floating layers only (menus, sheets, toasts) — never resting cards.
+        float: '0 24px 60px -30px rgba(0, 0, 0, 0.7)',
       },
       keyframes: {
         rise: {
-          from: { opacity: '0', transform: 'translateY(14px)' },
+          from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
       },

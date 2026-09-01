@@ -1,5 +1,5 @@
 const KEY = 'ai-fashion-theme'
-const CHROME = { light: '#FBFAF8', dark: '#141314' }
+const CHROME = { light: '#EBE5D7', dark: '#0E0D0B' }
 
 /** Point both theme-color metas at the active theme so the browser chrome
  *  follows the pull-cord, not just the OS preference. */
@@ -15,12 +15,14 @@ export function isDark(): boolean {
 
 /** Apply saved (or system) theme — called once before first render. */
 export function initTheme(): void {
+  // Atelier is dark-first — new visitors meet the room at night, then can
+  // pull the cord to the day-gallery. An explicit saved choice always wins.
   let dark: boolean
   try {
     const saved = localStorage.getItem(KEY)
-    dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+    dark = saved ? saved === 'dark' : true
   } catch {
-    dark = false
+    dark = true
   }
   document.documentElement.classList.toggle('dark', dark)
   syncChrome(dark)
