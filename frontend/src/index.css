@@ -28,7 +28,7 @@
     --c-brass-lo: #7a5a22;
     --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
     --c-niche-edge: rgba(239, 231, 215, 0.85);
-    --c-sheen: rgba(255, 255, 255, 0.28);
+    --c-sheen: rgba(255, 255, 255, 0.16);
     --grain-blend: multiply;
     --grain-op: 0.045;
   }
@@ -52,7 +52,7 @@
        backgrounds melt into it, and premium: a boutique display case at night. */
     --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
     --c-niche-edge: rgba(243, 237, 224, 0.9);
-    --c-sheen: rgba(233, 217, 188, 0.13);
+    --c-sheen: rgba(233, 217, 188, 0.07);
     --grain-blend: screen;
     --grain-op: 0.05;
   }

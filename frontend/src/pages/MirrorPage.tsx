@@ -258,7 +258,7 @@ export function MirrorPage() {
             {rendering && (
               <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-5 p-8 text-center">
                 <span className="animate-filament absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-brass/60 to-transparent" />
-                <p key={dressLine} className="animate-rise font-display text-base italic text-bone/70">
+                <p key={dressLine} className="animate-rise font-display text-base italic text-[#ECE5D8]/75">
                   {DRESSING_LINES[dressLine]}
                 </p>
               </div>
@@ -276,8 +276,8 @@ export function MirrorPage() {
                   />
                   <path d="M14 68V30a12 12 0 0 1 24 0v38" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
                 </svg>
-                <p className="font-display text-xl font-medium text-bone">The mirror is waiting for you.</p>
-                <p className="max-w-[26ch] text-sm text-bone/60">
+                <p className="font-display text-xl font-medium text-[#ECE5D8]">The mirror is waiting for you.</p>
+                <p className="max-w-[26ch] text-sm text-[#ECE5D8]/60">
                   Add one clear, front-facing photo and you’ll see yourself in every outfit.
                 </p>
                 <button type="button" onClick={() => setPhotoModal(true)} className="btn-primary mt-1">
@@ -304,7 +304,7 @@ export function MirrorPage() {
                   alt="You"
                   className="h-24 w-24 rounded-[3px] object-cover opacity-80"
                 />
-                <p className="font-display text-lg font-medium text-bone">You’re in the mirror.</p>
+                <p className="font-display text-lg font-medium text-[#ECE5D8]">You’re in the mirror.</p>
                 <button type="button" onClick={() => navigate('/')} className="btn-primary mt-1">
                   Style today’s look
                 </button>

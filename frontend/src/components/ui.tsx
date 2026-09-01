@@ -234,8 +234,10 @@ export function MirrorFrame({
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
+              /* A whisper of shine on the glass — the mirror surface is near-
+                 black, so even a faint band reads; keep it barely there. */
               background:
-                'linear-gradient(122deg, transparent 46%, var(--c-sheen) 50%, transparent 55%)',
+                'linear-gradient(123deg, transparent 48%, rgba(236,229,216,0.05) 50%, transparent 52%)',
             }}
           />
         </div>
