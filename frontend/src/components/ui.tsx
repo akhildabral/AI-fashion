@@ -71,7 +71,9 @@ export function GarmentTile({
   onClick,
   selected = false,
   processing = false,
-  aspect = 'aspect-[3/4]',
+  // A gently-tall arch that garments (aspect ~0.7–1.1) fill well; contain
+  // still preserves every garment's true proportions.
+  aspect = 'aspect-[5/6]',
   // kept for source compatibility; the tile is always arched now.
   arch: _arch,
 }: {
@@ -96,7 +98,7 @@ export function GarmentTile({
           src={resolveImageUrl(imageUrl)}
           alt={label ?? ''}
           loading="lazy"
-          className={`relative z-[1] h-full w-full object-contain px-3 pb-3 pt-7 transition duration-500 ${
+          className={`absolute inset-0 z-[1] h-full w-full object-contain p-[8%] pt-[12%] transition duration-500 ${
             processing ? 'scale-95 opacity-40 blur-[2px]' : ''
           }`}
         />
