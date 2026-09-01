@@ -16,7 +16,7 @@ import {
 } from '../lib/brief'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
-import { GarmentTile, PageShell, SlideOver } from '../components/ui'
+import { GarmentTile, PageShell, Modal } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 
 const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
@@ -410,7 +410,7 @@ export function TodayPage() {
       )}
 
       {/* ---------------- SWAP SLIDE-OVER ---------------- */}
-      <SlideOver
+      <Modal
         open={swapItem !== null}
         onClose={() => setSwapItem(null)}
         title={swapItem ? `Swap the ${itemLabel(swapItem)}` : 'Swap'}
@@ -451,7 +451,7 @@ export function TodayPage() {
             )}
           </>
         )}
-      </SlideOver>
+      </Modal>
     </PageShell>
   )
 }

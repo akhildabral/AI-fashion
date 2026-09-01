@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
-import { isDark, toggleTheme } from '../lib/theme'
+import { PullCord } from '../components/PullCord'
 import type { Look, LooksResponse, TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 
@@ -13,42 +13,6 @@ import { Spinner } from '../components/Spinner'
 type Tab = 'on-you' | 'looks'
 
 const FRAME_RADIUS = '10rem 10rem 1.5rem 1.5rem'
-
-function PullCord() {
-  const [dark, setDark] = useState(() => isDark())
-  const [pulling, setPulling] = useState(false)
-  useEffect(() => {
-    const onChange = () => setDark(isDark())
-    window.addEventListener('themechange', onChange)
-    return () => window.removeEventListener('themechange', onChange)
-  }, [])
-  function pull() {
-    setPulling(true)
-    window.setTimeout(() => {
-      setDark(toggleTheme())
-      setPulling(false)
-    }, 180)
-  }
-  return (
-    <button
-      type="button"
-      onClick={pull}
-      aria-label={dark ? 'Turn the lights on' : 'Turn the lights off'}
-      title={dark ? 'Lights on' : 'Lights off'}
-      className="group absolute -top-1 right-8 z-10 flex flex-col items-center"
-      style={{
-        transform: pulling ? 'translateY(14px)' : 'translateY(0)',
-        transition: 'transform 180ms cubic-bezier(0.3, 0.9, 0.4, 1.4)',
-      }}
-    >
-      <span className="block h-16 w-px bg-gradient-to-b from-ink/10 via-ink/35 to-ink/50" />
-      <span className="mt-0.5 block h-7 w-3.5 rounded-full border border-ink/25 bg-surface transition-colors group-hover:border-iris group-hover:bg-iris-soft" />
-      <span className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink/35 transition-colors group-hover:text-iris">
-        {dark ? 'lights' : 'dim'}
-      </span>
-    </button>
-  )
-}
 
 export function MirrorPage() {
   const [params, setParams] = useSearchParams()
@@ -188,7 +152,7 @@ export function MirrorPage() {
         <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(280px,380px)_1fr]">
           {/* The mirror itself */}
           <div className="relative pt-6">
-            <PullCord />
+            <div className="absolute -top-1 right-8 z-10"><PullCord size="md" /></div>
             <div
               className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
               style={{ borderRadius: FRAME_RADIUS }}

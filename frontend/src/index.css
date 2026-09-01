@@ -42,6 +42,10 @@
 }
 
 @layer components {
+  .animate-cord-swing {
+    animation: cord-swing 1.3s cubic-bezier(0.35, 0.1, 0.25, 1) both;
+  }
+
   /* Buttons change color on hover/active — they never move or cast shadows. */
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-xl bg-iris px-6 py-3 text-sm font-semibold text-bone transition-colors hover:bg-iris-deep active:bg-iris-deeper disabled:cursor-not-allowed disabled:opacity-50;
@@ -83,4 +87,13 @@
   .badge-spark {
     @apply inline-flex items-center rounded-full bg-spark px-2.5 py-0.5 text-xs font-semibold text-bone;
   }
+}
+
+@keyframes cord-swing {
+  0% { transform: rotate(0deg); }
+  18% { transform: rotate(8deg); }
+  38% { transform: rotate(-6deg); }
+  58% { transform: rotate(3.5deg); }
+  78% { transform: rotate(-1.5deg); }
+  100% { transform: rotate(0deg); }
 }

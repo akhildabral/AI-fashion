@@ -4,7 +4,7 @@ import { apiFetch } from '../lib/api'
 import { getRitualStats, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
 import { WardrobeCard } from '../components/WardrobeCard'
-import { GarmentTile, PageShell, SlideOver } from '../components/ui'
+import { GarmentTile, PageShell, Modal } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -305,7 +305,7 @@ export function ClosetPage() {
         )}
 
         {/* Item slide-over: the full existing card with every action */}
-        <SlideOver
+        <Modal
           open={selected !== null}
           onClose={() => setSelected(null)}
           title={selected ? (selected.subtype ?? selected.category) : 'Item'}
@@ -320,7 +320,7 @@ export function ClosetPage() {
               onDeleted={handleDeleted}
             />
           )}
-        </SlideOver>
+        </Modal>
       </div>
     </PageShell>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
-import { isDark, toggleTheme } from '../lib/theme'
+import { PullCord } from './PullCord'
 
 const NAV = [
   { to: '/', label: 'Today', match: ['/'] },
@@ -19,26 +19,6 @@ const MENU = [
 
 function isActive(pathname: string, match: string[]) {
   return match.some((m) => (m === '/' ? pathname === '/' : pathname.startsWith(m)))
-}
-
-function ThemeToggle({ className = '' }: { className?: string }) {
-  const [dark, setDark] = useState(() => isDark())
-  useEffect(() => {
-    const onChange = () => setDark(isDark())
-    window.addEventListener('themechange', onChange)
-    return () => window.removeEventListener('themechange', onChange)
-  }, [])
-  return (
-    <button
-      type="button"
-      onClick={() => setDark(toggleTheme())}
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={dark ? 'Lights on' : 'Lights off'}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border border-ink/15 text-base text-ink/70 transition-colors hover:border-ink/35 hover:text-ink ${className}`}
-    >
-      {dark ? '☀' : '☾'}
-    </button>
-  )
 }
 
 export function Header() {
@@ -97,7 +77,7 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <div className="-mt-4 self-start pt-0"><PullCord /></div>
             <div className="relative" ref={menuRef}>
               <button
                 type="button"

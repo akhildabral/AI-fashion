@@ -85,8 +85,8 @@ export function GarmentTile({
   )
 }
 
-/** Right-hand slide-over panel — the item detail surface. */
-export function SlideOver({
+/** Centered modal — the one detail surface. Focus lands center-stage. */
+export function Modal({
   open,
   onClose,
   children,
@@ -112,25 +112,25 @@ export function SlideOver({
 
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-40">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <button
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full max-w-md animate-rise flex-col overflow-y-auto bg-bone shadow-float">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-bone/90 px-5 py-4 backdrop-blur">
-          <p className="font-display text-base font-bold text-ink">{title ?? 'Details'}</p>
+      <div className="relative flex max-h-[88vh] w-full max-w-lg animate-rise flex-col overflow-hidden rounded-3xl border border-ink/10 bg-bone shadow-float">
+        <div className="flex items-center justify-between border-b border-ink/10 bg-bone px-5 py-4">
+          <p className="font-display text-base font-bold capitalize text-ink">{title ?? 'Details'}</p>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/15 text-ink/60 transition hover:border-ink/40 hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/15 text-ink/60 transition-colors hover:border-ink/40 hover:text-ink"
           >
             ✕
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   )
