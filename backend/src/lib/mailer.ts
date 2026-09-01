@@ -40,3 +40,19 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
       `<p style="color:#888">If you didn't sign up, you can ignore this email.</p>`,
   });
 }
+
+export async function sendInviteEmail(to: string, inviteUrl: string): Promise<void> {
+  if (!transport) {
+    console.log(`[mailer] SMTP not configured — invite link for ${to}: ${inviteUrl}`);
+    return;
+  }
+  await transport.sendMail({
+    from: env.SMTP_FROM,
+    to,
+    subject: "You're in — your AI Fashion invite",
+    text:
+      `You're off the waitlist!\n\n` +
+      `Your personal stylist is ready. Set your password and step in:\n${inviteUrl}\n\n` +
+      `This invite link is valid for 7 days.`,
+  });
+}

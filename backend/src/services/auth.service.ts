@@ -18,6 +18,8 @@ export interface PublicUser {
   role: string;
   status: string;
   emailVerified: boolean;
+  firstName?: string | null;
+  lastName?: string | null;
 }
 
 const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
@@ -35,9 +37,11 @@ function toPublic(user: {
   role: string;
   status: string;
   emailVerified: boolean;
+  firstName?: string | null;
+  lastName?: string | null;
 }): PublicUser {
-  const { id, email, role, status, emailVerified } = user;
-  return { id, email, role, status, emailVerified };
+  const { id, email, role, status, emailVerified, firstName, lastName } = user;
+  return { id, email, role, status, emailVerified, firstName, lastName };
 }
 
 const isAdminEmail = (email: string) => env.ADMIN_EMAILS.includes(email);
@@ -139,6 +143,16 @@ export async function loginUser(
     throw new HttpError(401, 'Invalid email or password');
   }
 
+  if (!user.passwordHash) {
+    // Waitlist entries and Google-only accounts have no password.
+    if (user.status === 'waitlist' || user.status === 'pending') {
+      throw new HttpError(403, "You're on the waitlist — we'll email your invite soon");
+    }
+    if (user.status === 'invited') {
+      throw new HttpError(403, 'Use the invite link we emailed you to set a password');
+    }
+    throw new HttpError(401, 'This account signs in with Google');
+  }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     throw new HttpError(401, 'Invalid email or password');
@@ -156,11 +170,14 @@ export async function loginUser(
   if (!current.emailVerified) {
     throw new HttpError(403, 'Please verify your email first — check your inbox');
   }
-  if (current.status === 'pending') {
+  if (current.status === 'waitlist' || current.status === 'pending') {
     throw new HttpError(
       403,
       "You're on the waitlist — we'll email you once your access is approved",
     );
+  }
+  if (current.status === 'invited') {
+    throw new HttpError(403, 'Your invite is waiting — use the link we emailed to finish setup');
   }
   if (current.status !== 'approved') {
     throw new HttpError(403, 'This account does not currently have access');

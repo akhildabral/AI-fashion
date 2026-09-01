@@ -64,7 +64,7 @@ export function TodayPage() {
   const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null)
 
   const name = (() => {
-    const raw = user?.handle ?? user?.email?.split('@')[0] ?? 'there'
+    const raw = user?.firstName ?? user?.handle ?? user?.email?.split('@')[0] ?? 'there'
     return raw.charAt(0).toUpperCase() + raw.slice(1)
   })()
 

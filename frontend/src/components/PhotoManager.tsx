@@ -19,6 +19,7 @@ export function PhotoManager() {
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -144,6 +145,14 @@ export function PhotoManager() {
               onChange={handleFileChange}
               className="hidden"
             />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handleFileChange}
+              className="hidden"
+            />
 
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -165,8 +174,22 @@ export function PhotoManager() {
                 ) : photoUrl ? (
                   'Replace photo'
                 ) : (
-                  'Upload photo'
+                  'Choose from gallery'
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                disabled={busy || (!photoUrl && !consent)}
+                className="btn-ghost"
+                title={
+                  !photoUrl && !consent
+                    ? 'Please acknowledge the consent note first'
+                    : 'Take a photo with your camera'
+                }
+              >
+                📷 Take a photo
               </button>
 
               {photoUrl && (

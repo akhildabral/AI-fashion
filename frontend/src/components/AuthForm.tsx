@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Spinner } from './Spinner'
+import { GoogleButton } from './GoogleButton'
 
 interface AuthFormProps {
   mode: 'login' | 'register'
@@ -13,8 +14,8 @@ const COPY = {
     subtitle: 'Your stylist has been expecting you.',
     action: 'Sign in',
     footer: 'New here?',
-    footerLink: 'Create an account',
-    footerTo: '/register',
+    footerLink: 'Join the waitlist',
+    footerTo: '/landing',
   },
   register: {
     title: 'Meet your stylist',
@@ -57,6 +58,12 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
         </h1>
         <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">{copy.subtitle}</p>
       </div>
+
+      {mode === 'login' && (
+        <div className="mb-6">
+          <GoogleButton onMessage={(m) => setError(m)} />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 ">
         <div>

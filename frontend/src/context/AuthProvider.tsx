@@ -62,6 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.message
   }, [])
 
+  const adoptSession = useCallback((token: string, newUser: User) => {
+    setToken(token)
+    setUser(newUser)
+  }, [])
+
   const logout = useCallback(() => {
     clearToken()
     setUser(null)
@@ -73,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
+    adoptSession,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, me, register, resend, verify } from '../controllers/auth.controller';
+import { login, me, register, resend, updateMe, verify } from '../controllers/auth.controller';
+import {
+  acceptInvite,
+  authConfig,
+  googleAuth,
+  inviteInfo,
+  joinWaitlist,
+} from '../controllers/invite.controller';
 import { requireAuth } from '../middleware/auth';
 
 // Credential endpoints get a strict limiter: brute force and signup spam are
@@ -20,3 +27,9 @@ authRouter.post('/login', authLimiter, login);
 authRouter.get('/verify-email', authLimiter, verify);
 authRouter.post('/resend-verification', authLimiter, resend);
 authRouter.get('/me', requireAuth, me);
+authRouter.patch('/me', requireAuth, updateMe);
+authRouter.get('/config', authConfig);
+authRouter.post('/google', authLimiter, googleAuth);
+authRouter.post('/waitlist', authLimiter, joinWaitlist);
+authRouter.get('/invite', authLimiter, inviteInfo);
+authRouter.post('/invite/accept', authLimiter, acceptInvite);

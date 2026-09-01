@@ -42,6 +42,7 @@ export function ClosetPage() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<WardrobeItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
   const dragDepth = useRef(0)
 
   const loadInsights = useCallback(() => {
@@ -203,6 +204,24 @@ export function ClosetPage() {
               onChange={handleFileChange}
               className="hidden"
             />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={uploading > 0}
+              aria-label="Take a photo"
+              title="Take a photo"
+              className="btn-ghost !px-3.5"
+            >
+              📷
+            </button>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}

@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import {
+  approveAndInvite,
+  inviteByEmail,
   approveUser,
   createUser,
   listUsers,
@@ -22,3 +24,5 @@ adminRouter.post('/admin/users/:id/suspend', suspendUser);
 adminRouter.post('/admin/users/:id/verify', markVerified);
 adminRouter.post('/admin/users/:id/reset-password', resetPassword);
 adminRouter.post('/admin/users/:id/plan', setPlan);
+adminRouter.post('/admin/users/:id/invite', approveAndInvite);
+adminRouter.post('/admin/invite', inviteByEmail);

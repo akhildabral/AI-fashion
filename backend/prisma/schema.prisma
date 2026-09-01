@@ -13,7 +13,14 @@ datasource db {
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
-  passwordHash String
+  // Null for waitlist entries and Google-only accounts.
+  passwordHash String?
+  googleId     String?       @unique
+  firstName    String?
+  lastName     String?
+  // Invite-only onboarding: token emailed/copied by an admin.
+  inviteToken        String?   @unique
+  inviteTokenExpires DateTime?
   // Public username for the community layer (lowercase, unique). Null until chosen.
   handle       String?       @unique
   // Access control: the app is waitlist-gated. New accounts are pending

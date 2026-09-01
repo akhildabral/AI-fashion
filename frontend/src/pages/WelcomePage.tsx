@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useProfile } from '../context/useProfile'
+import { useAuth } from '../context/useAuth'
 import { PhotoManager } from '../components/PhotoManager'
 import { Spinner } from '../components/Spinner'
 import type { StyleProfile } from '../lib/types'
@@ -19,6 +20,9 @@ export function WelcomePage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { setProfile } = useProfile()
+  const { user } = useAuth()
+  const [firstName, setFirstName] = useState(user?.firstName ?? '')
+  const [lastName, setLastName] = useState(user?.lastName ?? '')
   const [step, setStep] = useState(() => (params.get('step') === '3' ? 3 : 1))
   const [vibe, setVibe] = useState<string | null>(null)
   const [city, setCity] = useState('')
@@ -39,6 +43,12 @@ export function WelcomePage() {
         },
       })
       setProfile(res.profile)
+      if (firstName.trim()) {
+        await apiFetch('/auth/me', {
+          method: 'PATCH',
+          body: { firstName: firstName.trim(), lastName: lastName.trim() || null },
+        }).catch(() => undefined)
+      }
       localStorage.setItem('ai-fashion-style-for', gender)
       navigate('/quiz?from=welcome')
     } catch (err) {
@@ -63,6 +73,32 @@ export function WelcomePage() {
           </p>
 
           <div className="mt-8 animate-rise-3 space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="wFirst" className="label">
+                  First name
+                </label>
+                <input
+                  id="wFirst"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="field"
+                  placeholder="What should we call you?"
+                />
+              </div>
+              <div>
+                <label htmlFor="wLast" className="label">
+                  Last name
+                </label>
+                <input
+                  id="wLast"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="field"
+                  placeholder="optional"
+                />
+              </div>
+            </div>
             <div>
               <p className="label">Your vibe — tap what feels right</p>
               <div className="flex flex-wrap gap-2">

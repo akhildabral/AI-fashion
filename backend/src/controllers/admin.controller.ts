@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { mintInvite, publicOrigin } from './invite.controller';
+import { sendInviteEmail } from '../lib/mailer';
 
 // Admin panel backend: the app is waitlist-gated, so a superuser reviews
 // accounts and grants (or revokes) access. Route-guarded by requireAdmin.
@@ -18,6 +20,9 @@ export async function listUsers(req: Request, res: Response) {
       role: true,
       status: true,
       emailVerified: true,
+      firstName: true,
+      lastName: true,
+      googleId: true,
       plan: true,
       planStatus: true,
       createdAt: true,
@@ -42,6 +47,9 @@ export async function listUsers(req: Request, res: Response) {
       role: u.role,
       status: u.status,
       emailVerified: u.emailVerified,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      viaGoogle: Boolean(u.googleId),
       plan: u.plan,
       planStatus: u.planStatus,
       createdAt: u.createdAt,
@@ -157,4 +165,46 @@ export async function setPlan(req: Request, res: Response) {
     select: { id: true, email: true, plan: true, planStatus: true },
   });
   res.json({ user: updated });
+}
+
+// ---- Invite-only onboarding ------------------------------------------------
+
+/** Approve a waitlist/pending user: mint an invite link, email it, return it. */
+export async function approveAndInvite(req: Request, res: Response) {
+  const id = String(req.params.id);
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new HttpError(404, 'User not found');
+
+  // Google-linked accounts don't need a password — approve them directly.
+  if (user.googleId) {
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { status: 'approved', emailVerified: true },
+    });
+    return res.json({ user: { id: updated.id, status: updated.status }, inviteUrl: null, viaGoogle: true });
+  }
+
+  const inviteUrl = await mintInvite(id, publicOrigin(req));
+  await sendInviteEmail(user.email, inviteUrl).catch(() => undefined);
+  res.json({ user: { id, status: 'invited' }, inviteUrl, viaGoogle: false });
+}
+
+const inviteEmailSchema = z.object({ email: z.string().email() });
+
+/** Invite someone directly by email (creates the row if needed). */
+export async function inviteByEmail(req: Request, res: Response) {
+  const { email } = inviteEmailSchema.parse(req.body);
+  const normalized = email.trim().toLowerCase();
+  let user = await prisma.user.findUnique({ where: { email: normalized } });
+  if (user && user.status === 'approved') {
+    throw new HttpError(400, 'That person already has access');
+  }
+  if (!user) {
+    user = await prisma.user.create({
+      data: { email: normalized, status: 'waitlist', emailVerified: false },
+    });
+  }
+  const inviteUrl = await mintInvite(user.id, publicOrigin(req));
+  await sendInviteEmail(normalized, inviteUrl).catch(() => undefined);
+  res.json({ inviteUrl, email: normalized });
 }

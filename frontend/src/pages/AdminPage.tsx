@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
+import { Modal, PageShell } from '../components/ui'
 import { useAuth } from '../context/useAuth'
 
 interface AdminUser {
@@ -10,34 +11,43 @@ interface AdminUser {
   role: string
   status: string
   emailVerified: boolean
+  firstName: string | null
+  lastName: string | null
+  viaGoogle: boolean
+  plan: string
+  planStatus: string
   createdAt: string
   items: number
   wears: number
   aiCalls7d: number
-  plan: string
-  planStatus: string
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  approved: 'bg-emerald-100 text-emerald-800',
-  pending: 'bg-amber-100 text-amber-800',
-  suspended: 'bg-rose-100 text-rose-800',
+  approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+  waitlist: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  invited: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+  suspended: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
 }
 
-const actionBtn =
-  'rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-50'
+const WAITING = ['waitlist', 'pending', 'invited']
+
+function displayName(u: AdminUser): string {
+  const name = [u.firstName, u.lastName].filter(Boolean).join(' ')
+  return name || u.email
+}
 
 export function AdminPage() {
   const { user: me } = useAuth()
+  const [tab, setTab] = useState<'waitlist' | 'members'>('waitlist')
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-
-  const [showCreate, setShowCreate] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [inviteLink, setInviteLink] = useState<{ email: string; url: string | null; viaGoogle?: boolean } | null>(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -68,36 +78,59 @@ export function AdminPage() {
     }
   }
 
-  function handleResetPassword(u: AdminUser) {
-    const password = window.prompt(
-      `New password for ${u.email} (min 8 characters):`,
-    )
-    if (!password) return
-    void runAction(u.id, `/admin/users/${u.id}/reset-password`, { password }).then(
-      (ok) => {
-        if (ok) setNotice(`Password updated for ${u.email}`)
-      },
-    )
-  }
-
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault()
-    setCreating(true)
+  async function approveInvite(u: AdminUser) {
+    setBusyId(u.id)
     setError(null)
     try {
-      await apiFetch('/admin/users', {
-        method: 'POST',
-        body: { email: newEmail.trim(), password: newPassword },
-      })
-      setNotice(`Account created for ${newEmail.trim()} — verified and approved, ready to log in.`)
-      setNewEmail('')
-      setNewPassword('')
-      setShowCreate(false)
+      const res = await apiFetch<{ inviteUrl: string | null; viaGoogle: boolean }>(
+        `/admin/users/${u.id}/invite`,
+        { method: 'POST' },
+      )
+      setInviteLink({ email: u.email, url: res.inviteUrl, viaGoogle: res.viaGoogle })
+      setCopied(false)
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user')
+      setError(err instanceof Error ? err.message : 'Could not create the invite')
     } finally {
-      setCreating(false)
+      setBusyId(null)
+    }
+  }
+
+  async function inviteSomeone(e: FormEvent) {
+    e.preventDefault()
+    setInviting(true)
+    setError(null)
+    try {
+      const res = await apiFetch<{ inviteUrl: string; email: string }>('/admin/invite', {
+        method: 'POST',
+        body: { email: inviteEmail.trim() },
+      })
+      setInviteLink({ email: res.email, url: res.inviteUrl })
+      setCopied(false)
+      setInviteEmail('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create the invite')
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  function handleResetPassword(u: AdminUser) {
+    const password = window.prompt(`New password for ${u.email} (min 8 characters):`)
+    if (!password) return
+    void runAction(u.id, `/admin/users/${u.id}/reset-password`, { password }).then((ok) => {
+      if (ok) setNotice(`Password updated for ${u.email}`)
+    })
+  }
+
+  async function copyInvite() {
+    if (!inviteLink?.url) return
+    try {
+      await navigator.clipboard.writeText(inviteLink.url)
+      setCopied(true)
+    } catch {
+      setCopied(false)
     }
   }
 
@@ -109,106 +142,167 @@ export function AdminPage() {
     )
   }
 
-  const pending = users?.filter((u) => u.status === 'pending').length ?? 0
+  const waiting = (users ?? []).filter((u) => WAITING.includes(u.status))
+  const members = (users ?? []).filter((u) => !WAITING.includes(u.status))
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
+    <PageShell wide>
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-ink">Accounts</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            {users?.length ?? 0} accounts · {pending} waiting for approval
+          <h1 className="animate-rise font-display text-4xl font-extrabold tracking-tight text-ink">
+            Admin
+          </h1>
+          <p className="mt-1 animate-rise-1 text-sm text-ink/55">
+            {members.length} members · {waiting.length} waiting
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowCreate((v) => !v)}
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-bone transition hover:bg-ink/85"
-          >
-            {showCreate ? 'Cancel' : 'New user'}
-          </button>
-          <button type="button" onClick={() => void load()} className="btn-ghost">
-            Refresh
-          </button>
-        </div>
+        <button type="button" onClick={() => void load()} className="btn-ghost animate-rise-1">
+          Refresh
+        </button>
       </div>
 
-      {showCreate && (
-        <form
-          onSubmit={handleCreate}
-          className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-ink/10 bg-white/60 p-4"
-        >
-          <label className="flex flex-col gap-1 text-xs font-medium text-ink/60">
-            Email
-            <input
-              type="email"
-              required
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className="w-64 rounded-lg border border-ink/15 bg-surface px-3 py-2 text-sm text-ink"
-              placeholder="person@example.com"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-ink/60">
-            Password
-            <input
-              type="text"
-              required
-              minLength={8}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-56 rounded-lg border border-ink/15 bg-surface px-3 py-2 text-sm text-ink"
-              placeholder="min 8 characters"
-            />
-          </label>
+      <div className="mt-6 flex animate-rise-1 gap-1 rounded-full border border-ink/10 bg-surface p-1 sm:w-fit">
+        {(
+          [
+            ['waitlist', `Waitlist · ${waiting.length}`],
+            ['members', `Members · ${members.length}`],
+          ] as const
+        ).map(([key, label]) => (
           <button
-            type="submit"
-            disabled={creating}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`flex-1 rounded-full px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+              tab === key ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
+            }`}
           >
-            {creating ? 'Creating…' : 'Create — verified & approved'}
+            {label}
           </button>
-          <p className="basis-full text-xs text-ink/50">
-            Admin-created accounts skip email verification and the waitlist; share the
-            password with the person yourself.
-          </p>
-        </form>
-      )}
+        ))}
+      </div>
 
       {notice && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
           {notice}
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+        <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          {error}
+        </p>
       )}
 
-      {users && (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-ink/10 bg-white/60">
-          <table className="w-full min-w-[720px] text-left text-sm">
+      {tab === 'waitlist' && (
+        <div className="mt-6">
+          <form
+            onSubmit={inviteSomeone}
+            className="flex max-w-md items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
+          >
+            <input
+              type="email"
+              required
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Invite someone by email…"
+              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
+            />
+            <button type="submit" disabled={inviting} className="btn-primary !px-4 !py-2 !text-sm">
+              {inviting ? <Spinner className="h-4 w-4" /> : 'Invite'}
+            </button>
+          </form>
+
+          {waiting.length === 0 ? (
+            <p className="mt-8 rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
+              Nobody is waiting right now.
+            </p>
+          ) : (
+            <div className="card mt-6 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
+                    <th className="px-4 py-3 font-medium">Person</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Joined</th>
+                    <th className="px-4 py-3 font-medium" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {waiting.map((u) => (
+                    <tr key={u.id} className="border-b border-ink/5 last:border-b-0">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-ink">{displayName(u)}</div>
+                        <div className="text-xs text-ink/50">
+                          {u.email}
+                          {u.viaGoogle && (
+                            <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                              google
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-ink/70">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          disabled={busyId === u.id}
+                          onClick={() => void approveInvite(u)}
+                          className="btn-primary !px-4 !py-2 !text-xs"
+                        >
+                          {busyId === u.id
+                            ? 'Working…'
+                            : u.status === 'invited'
+                              ? 'New invite link'
+                              : u.viaGoogle
+                                ? 'Approve'
+                                : 'Approve & invite'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'members' && users && (
+        <div className="card mt-6 overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
-                <th className="px-4 py-3 font-medium">User</th>
+                <th className="px-4 py-3 font-medium">Member</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 font-medium">Verified</th>
                 <th className="px-4 py-3 font-medium">Activity</th>
-                <th className="px-4 py-3 font-medium">Joined</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {members.map((u) => (
                 <tr key={u.id} className="border-b border-ink/5 last:border-b-0">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-ink">{u.email}</div>
+                    <div className="font-medium text-ink">{displayName(u)}</div>
                     <div className="text-xs text-ink/50">
-                      {u.handle ? `@${u.handle}` : '—'}
+                      {u.email}
+                      {u.handle ? ` · @${u.handle}` : ''}
                       {u.role === 'admin' && (
                         <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/70">
                           admin
+                        </span>
+                      )}
+                      {u.viaGoogle && (
+                        <span className="ml-1 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                          google
                         </span>
                       )}
                     </div>
@@ -225,9 +319,7 @@ export function AdminPage() {
                       value={u.plan}
                       disabled={busyId === u.id}
                       onChange={(e) =>
-                        void runAction(u.id, `/admin/users/${u.id}/plan`, {
-                          plan: e.target.value,
-                        })
+                        void runAction(u.id, `/admin/users/${u.id}/plan`, { plan: e.target.value })
                       }
                       className="rounded-lg border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
                     >
@@ -237,48 +329,19 @@ export function AdminPage() {
                         </option>
                       ))}
                     </select>
-                    {u.planStatus !== 'none' && (
-                      <div className="mt-1 text-[10px] uppercase tracking-wide text-ink/45">
-                        {u.planStatus}
-                      </div>
-                    )}
                   </td>
-                  <td className="px-4 py-3 text-ink/70">{u.emailVerified ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-ink/70">
                     {u.items} items · {u.wears} wears
                     <div className="text-xs text-ink/45">{u.aiCalls7d} AI calls / 7d</div>
                   </td>
-                  <td className="px-4 py-3 text-ink/70">
-                    {new Date(u.createdAt).toLocaleDateString()}
-                  </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      {!u.emailVerified && (
-                        <button
-                          type="button"
-                          disabled={busyId === u.id}
-                          onClick={() => void runAction(u.id, `/admin/users/${u.id}/verify`)}
-                          className={`${actionBtn} border border-ink/15 text-ink/70 hover:bg-ink/5`}
-                        >
-                          Verify
-                        </button>
-                      )}
-                      {u.status !== 'approved' && (
-                        <button
-                          type="button"
-                          disabled={busyId === u.id}
-                          onClick={() => void runAction(u.id, `/admin/users/${u.id}/approve`)}
-                          className={`${actionBtn} bg-emerald-600 text-white hover:bg-emerald-700`}
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {(u.role !== 'admin' || u.id === me?.id) && (
+                      {(u.role !== 'admin' || u.id === me?.id) && !u.viaGoogle && (
                         <button
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => handleResetPassword(u)}
-                          className={`${actionBtn} border border-ink/15 text-ink/70 hover:bg-ink/5`}
+                          className="btn-ghost !px-3 !py-1.5 !text-xs"
                         >
                           Reset password
                         </button>
@@ -288,9 +351,19 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void runAction(u.id, `/admin/users/${u.id}/suspend`)}
-                          className={`${actionBtn} border border-rose-200 text-rose-700 hover:bg-rose-50`}
+                          className="btn-ghost !border-rose-200 !px-3 !py-1.5 !text-xs !text-rose-700 dark:!border-rose-900 dark:!text-rose-400"
                         >
                           Suspend
+                        </button>
+                      )}
+                      {u.status === 'suspended' && (
+                        <button
+                          type="button"
+                          disabled={busyId === u.id}
+                          onClick={() => void runAction(u.id, `/admin/users/${u.id}/approve`)}
+                          className="btn-primary !px-3 !py-1.5 !text-xs"
+                        >
+                          Reinstate
                         </button>
                       )}
                     </div>
@@ -301,6 +374,37 @@ export function AdminPage() {
           </table>
         </div>
       )}
-    </div>
+
+      <Modal
+        open={inviteLink !== null}
+        onClose={() => setInviteLink(null)}
+        title={inviteLink?.viaGoogle ? 'Approved' : 'Invite ready'}
+      >
+        {inviteLink && (
+          <>
+            {inviteLink.viaGoogle ? (
+              <p className="text-sm text-ink/70">
+                <span className="font-semibold text-ink">{inviteLink.email}</span> signed up with
+                Google, so they're approved directly — they can sign in with Google right now.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-ink/70">
+                  Invite for <span className="font-semibold text-ink">{inviteLink.email}</span> —
+                  an email was sent if SMTP is configured; you can also copy the link and share it
+                  yourself. Valid 7 days.
+                </p>
+                <div className="mt-4 break-all rounded-xl border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75">
+                  {inviteLink.url}
+                </div>
+                <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 !px-4 !py-2 !text-sm">
+                  {copied ? '✓ Copied' : 'Copy invite link'}
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </Modal>
+    </PageShell>
   )
 }

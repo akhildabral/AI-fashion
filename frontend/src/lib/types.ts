@@ -4,6 +4,8 @@ export interface User {
   role?: string
   status?: string
   handle?: string | null
+  firstName?: string | null
+  lastName?: string | null
 }
 
 /** Register no longer returns a token (waitlist) — except for bootstrap admins. */

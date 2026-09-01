@@ -5,7 +5,8 @@ import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
 import { LoginPage } from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
+import { LandingPage } from './pages/LandingPage'
+import { InvitePage } from './pages/InvitePage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { TodayPage } from './pages/TodayPage'
 import { ClosetPage } from './pages/ClosetPage'
@@ -53,7 +54,9 @@ export default function App() {
             <main>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/invite" element={<InvitePage />} />
+                <Route path="/register" element={<Navigate to="/landing" replace />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
 
                 {/* The four spaces */}
