@@ -10,15 +10,15 @@ interface AuthFormProps {
 const COPY = {
   login: {
     title: 'Welcome back',
-    subtitle: 'Sign in to meet your stylist.',
+    subtitle: 'Your stylist has been expecting you.',
     action: 'Sign in',
     footer: 'New here?',
     footerLink: 'Create an account',
     footerTo: '/register',
   },
   register: {
-    title: 'Create your account',
-    subtitle: 'Start building looks tailored to you.',
+    title: 'Meet your stylist',
+    subtitle: 'A personal stylist that knows your closet — and your taste.',
     action: 'Create account',
     footer: 'Already have an account?',
     footerLink: 'Sign in',
@@ -49,11 +49,16 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-8 text-center">
-        <h1 className="font-serif text-4xl font-semibold text-ink">{copy.title}</h1>
-        <p className="mt-2 text-sm text-ink/60">{copy.subtitle}</p>
+        <p className="animate-rise font-display text-lg font-extrabold tracking-tight text-ink">
+          AI&nbsp;Fashion<span className="text-iris">*</span>
+        </p>
+        <h1 className="mt-4 animate-rise-1 font-display text-4xl font-extrabold tracking-tight text-ink">
+          {copy.title}
+        </h1>
+        <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">{copy.subtitle}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink/10 bg-white p-8 shadow-sm">
+      <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 shadow-sm">
         <div>
           <label htmlFor="email" className="label">
             Email
@@ -100,7 +105,7 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
 
       <p className="mt-6 text-center text-sm text-ink/60">
         {copy.footer}{' '}
-        <Link to={copy.footerTo} className="font-medium text-clay underline-offset-4 hover:underline">
+        <Link to={copy.footerTo} className="font-medium text-iris underline-offset-4 hover:underline">
           {copy.footerLink}
         </Link>
       </p>
