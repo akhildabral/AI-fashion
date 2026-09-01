@@ -1,26 +1,28 @@
 # SITE_ADDRESS examples:
-#   app.example.com  → automatic HTTPS via Let's Encrypt (production)
-#   :8080            → plain HTTP (local smoke test of the prod stack)
-{$SITE_ADDRESS}
+#   app.example.com            → automatic HTTPS via Let's Encrypt (production)
+#   "a.example.com, b.example.com" → one app on several hostnames
+#   :8080                      → plain HTTP (local smoke test of the prod stack)
+{$SITE_ADDRESS} {
+	encode zstd gzip
 
-encode zstd gzip
+	# API (including /api/uploads images and /api/quiz-assets).
+	handle /api/* {
+		reverse_proxy backend:3000
+	}
 
-# API (including /api/uploads images and /api/quiz-assets).
-handle /api/* {
-	reverse_proxy backend:3000
+	# Public poll vote pages are served by the backend itself.
+	handle /vote/* {
+		reverse_proxy backend:3000
+	}
+
+	# The SPA — client-side routing falls back to index.html.
+	handle {
+		root * /srv/www
+		try_files {path} /index.html
+		file_server
+	}
 }
 
-# Public poll vote pages are served by the backend itself.
-handle /vote/* {
-	reverse_proxy backend:3000
-}
-
-# The SPA — client-side routing falls back to index.html.
-handle {
-	root * /srv/www
-	try_files {path} /index.html
-	file_server
-}
-
-# Optional server-specific sites (mounted from deploy/extra-sites).
+# Server-specific extra sites (mounted from deploy/extra-sites; untracked
+# *.caddy files there survive CI redeploys).
 import /etc/caddy/extra/*.caddy
