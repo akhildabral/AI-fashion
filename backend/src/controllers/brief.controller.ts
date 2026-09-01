@@ -58,7 +58,14 @@ async function composeOutfit(
   eventType: EventType,
   occasion: string | null,
 ): Promise<BriefPayload | null> {
-  const items = await loadStyleableWardrobe(userId);
+  // A thin closet is a starter state, never an error — the wardrobe loader
+  // throws below its own minimum, so catch and fall through to starter.
+  let items;
+  try {
+    items = await loadStyleableWardrobe(userId);
+  } catch {
+    return null;
+  }
   if (items.length < MIN_ITEMS) return null;
 
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });

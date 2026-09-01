@@ -5,13 +5,12 @@ import { deleteTryOn, getTryOns } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { Look, LooksResponse, TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
+import { MirrorFrame } from '../components/ui'
 
 // Mirror: every render of you, one stage. Follows the app theme — and the
 // pull-cord on the frame is a real light switch for the whole app.
 
 type Tab = 'on-you' | 'looks'
-
-const FRAME_RADIUS = '48% 48% 24px 24px / 30% 30% 24px 24px'
 
 export function MirrorPage() {
   const [params, setParams] = useSearchParams()
@@ -130,17 +129,10 @@ export function MirrorPage() {
           The Mirror
         </h1>
 
-        <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(340px,460px)_1fr] lg:gap-14">
+        <div className="mt-8 animate-rise-2">
           {/* The mirror itself */}
-          <div className="relative pt-6 lg:sticky lg:top-24 lg:self-start">
-            <div
-              className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
-              style={{ borderRadius: FRAME_RADIUS }}
-            >
-              <div
-                className="relative overflow-hidden border border-black/10 bg-surface dark:border-white/5"
-                style={{ borderRadius: '47% 47% 20px 20px / 29% 29% 20px 20px' }}
-              >
+          <div className="relative mx-auto max-w-[420px] pt-2">
+            <MirrorFrame>
                 {rendering ? (
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-6 text-center">
                     <Spinner className="h-8 w-8 text-iris" />
@@ -163,17 +155,7 @@ export function MirrorPage() {
                     </p>
                   </div>
                 )}
-                {/* glass sheen */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background:
-                      'linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.10) 47%, rgba(255,255,255,0.02) 55%, transparent 60%)',
-                  }}
-                />
-              </div>
-            </div>
+            </MirrorFrame>
             {stage && !rendering && (
               <p className="mt-3 text-center font-serif text-sm italic text-ink/50">
                 {stage.caption}
@@ -182,8 +164,8 @@ export function MirrorPage() {
           </div>
 
           {/* Gallery */}
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="mx-auto mt-10 max-w-4xl">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <div className="flex gap-1 rounded-full border border-ink/10 bg-surface p-1">
                 <button
                   type="button"
@@ -242,7 +224,7 @@ export function MirrorPage() {
             )}
 
             {tab === 'on-you' && (
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {(tryOns ?? []).map((t) => {
                   const idx = compare.indexOf(t.id)
                   return (
@@ -300,7 +282,7 @@ export function MirrorPage() {
             )}
 
             {tab === 'looks' && (
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {(looks ?? []).map((l, i) => (
                   <button
                     key={l.id ?? i}

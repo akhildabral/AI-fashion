@@ -145,3 +145,36 @@ export function Stat({ value, label }: { value: ReactNode; label: string }) {
     </div>
   )
 }
+
+/** The arched mirror — the brand's visual anchor, reused across spaces. */
+export function MirrorFrame({
+  children,
+  className = '',
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <div
+        className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
+        style={{ borderRadius: '48% 48% 24px 24px / 30% 30% 24px 24px' }}
+      >
+        <div
+          className="relative overflow-hidden border border-black/10 bg-surface dark:border-white/5"
+          style={{ borderRadius: '47% 47% 20px 20px / 29% 29% 20px 20px' }}
+        >
+          {children}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.10) 47%, rgba(255,255,255,0.02) 55%, transparent 60%)',
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

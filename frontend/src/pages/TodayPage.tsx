@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
-import { apiFetch } from '../lib/api'
+import { apiFetch, resolveImageUrl } from '../lib/api'
+import { getPhoto, getTryOns } from '../lib/tryon'
 import {
   getBrief,
   getBriefAlternatives,
@@ -16,7 +17,7 @@ import {
 } from '../lib/brief'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
-import { GarmentTile, PageShell, Modal } from '../components/ui'
+import { GarmentTile, MirrorFrame, Modal, PageShell } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 
 const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
@@ -36,6 +37,17 @@ function itemLabel(i: BriefItem): string {
   return i.subtype ?? i.category
 }
 
+function Silhouette({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 200" className={className} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round">
+      <circle cx="60" cy="26" r="15" />
+      <path d="M60 41v14M38 62l22-8 22 8-6 44H44z" />
+      <path d="M44 100l-6 60h16l6-52M76 100l6 60H66l-6-52" />
+      <path d="M38 64l-10 34M82 64l10 34" />
+    </svg>
+  )
+}
+
 export function TodayPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -50,15 +62,11 @@ export function TodayPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [stage, setStage] = useState<{ url: string; caption: string } | null>(null)
 
-  // Swap panel
   const [swapItem, setSwapItem] = useState<BriefItem | null>(null)
   const [alternatives, setAlternatives] = useState<BriefItem[] | null>(null)
-
-  // Occasion refinement
   const [occasionText, setOccasionText] = useState('')
-
-  // Starter mode (thin closet): from-scratch looks
   const [starterLooks, setStarterLooks] = useState<Look[] | null>(null)
 
   const name = (() => {
@@ -78,6 +86,7 @@ export function TodayPage() {
       setIsRefinement(Boolean(opts.occasion))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load your brief.')
+      setMode((prev) => prev ?? 'starter')
     } finally {
       setLoading(false)
       setBusy(null)
@@ -89,6 +98,18 @@ export function TodayPage() {
     getRitualStats().then(setStats).catch(() => undefined)
     getFeed()
       .then((r) => setCards(r.cards.slice(0, 3)))
+      .catch(() => undefined)
+    // The mirror on this page shows your latest render, else your photo.
+    getTryOns()
+      .then(({ tryOns }) => {
+        if (tryOns && tryOns[0]) {
+          setStage({ url: tryOns[0].imageUrl, caption: 'your latest render' })
+        } else {
+          return getPhoto().then(({ photoUrl }) => {
+            if (photoUrl) setStage({ url: photoUrl, caption: 'ready when you are' })
+          })
+        }
+      })
       .catch(() => undefined)
   }, [load])
 
@@ -165,7 +186,10 @@ export function TodayPage() {
     try {
       const res = await apiFetch<GenerateResponse>('/generate', {
         method: 'POST',
-        body: { occasion: 'my everyday style', gender: localStorage.getItem('ai-fashion-style-for') ?? 'female' },
+        body: {
+          occasion: 'my everyday style',
+          gender: localStorage.getItem('ai-fashion-style-for') ?? 'female',
+        },
       })
       setStarterLooks(res.looks ?? [])
     } catch (err) {
@@ -179,7 +203,6 @@ export function TodayPage() {
 
   return (
     <PageShell>
-      {/* Greeting + ritual line */}
       <p className="animate-rise text-sm text-ink/55">
         {todayLine()} · <span className="font-serif italic">{greeting()}, {name}</span>
         {stats && stats.streak > 1 && (
@@ -200,23 +223,25 @@ export function TodayPage() {
         </div>
       )}
 
-      {!loading && error && (
-        <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          {error}
-        </p>
-      )}
-
-      {/* ---------------- STARTER (thin closet) ---------------- */}
+      {/* ---------------- STARTER: the waiting mirror ---------------- */}
       {!loading && mode === 'starter' && (
-        <div className="mt-2">
-          <h1 className="animate-rise-1 font-display text-4xl font-extrabold leading-[0.98] tracking-tight text-ink sm:text-6xl">
-            Let's fill <em className="block not-italic text-iris">your closet.</em>
-          </h1>
-          <p className="mt-4 max-w-xl animate-rise-2 text-ink/60">
-            Once your clothes are in, this page greets you every morning with an outfit already
-            composed — from what you actually own, tuned to the weather.
+        <div className="mx-auto mt-6 max-w-md text-center">
+          <MirrorFrame className="animate-rise mx-auto w-full max-w-[340px]">
+            <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
+              <Silhouette className="h-32 w-20 text-ink/15" />
+              <p className="font-display text-xl font-extrabold text-ink">
+                Your mirror is waiting.
+              </p>
+              <p className="text-sm text-ink/55">
+                Fill your closet and every morning starts with an outfit — composed from what you
+                own, ready to wear.
+              </p>
+            </div>
+          </MirrorFrame>
+          <p className="mt-3 animate-rise-1 font-serif text-sm italic text-ink/45">
+            add a few pieces and meet your stylist
           </p>
-          <div className="mt-6 flex animate-rise-3 flex-wrap gap-3">
+          <div className="mt-6 flex animate-rise-2 flex-wrap justify-center gap-3">
             <Link to="/closet" className="btn-primary">
               Add your clothes →
             </Link>
@@ -235,8 +260,13 @@ export function TodayPage() {
               )}
             </button>
           </div>
+          {error && (
+            <p className="mt-4 animate-rise rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+              {error}
+            </p>
+          )}
           {starterLooks && starterLooks.length > 0 && (
-            <div className="mt-10 grid animate-rise gap-6 md:grid-cols-2">
+            <div className="mt-10 grid animate-rise gap-6 text-left md:grid-cols-2">
               {starterLooks.map((look, i) => (
                 <LookCard key={look.id ?? i} look={look} />
               ))}
@@ -245,171 +275,211 @@ export function TodayPage() {
         </div>
       )}
 
-      {/* ---------------- THE BRIEF ---------------- */}
+      {/* ---------------- THE BRIEF: content + mirror ---------------- */}
       {!loading && mode === 'brief' && brief && (
-        <div className="mt-2">
-          <h1 className="animate-rise-1 font-display text-4xl font-extrabold leading-[0.98] tracking-tight text-ink sm:text-6xl">
-            {worn ? (
-              <>
-                Looking good <em className="not-italic text-iris">today.</em>
-              </>
-            ) : isRefinement ? (
-              <>
-                For <em className="not-italic text-iris">{brief.occasion?.toLowerCase()}.</em>
-              </>
-            ) : (
-              <>
-                Today, <em className="not-italic text-iris">wear this.</em>
-              </>
-            )}
-          </h1>
-
-          <p className="mt-3 max-w-2xl animate-rise-2 text-sm text-ink/55">
-            {brief.weather && (
-              <span>
-                {Math.round(brief.weather.temperatureC)}° · {brief.weather.description} ·{' '}
-              </span>
-            )}
-            <span className="font-serif italic">{brief.rationale}</span>
-          </p>
-
-          <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {brief.items.map((item) => (
-              <GarmentTile
-                key={item.id}
-                imageUrl={item.imageUrl}
-                label={itemLabel(item)}
-                sublabel={worn || isRefinement ? undefined : 'tap to swap'}
-                aspect="aspect-[3/4]"
-                onClick={worn || isRefinement ? undefined : () => void openSwap(item)}
-              />
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            {!worn ? (
-              <button
-                type="button"
-                onClick={() => void handleWear()}
-                disabled={busy === 'wear'}
-                className="btn-primary"
-              >
-                {busy === 'wear' ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" /> Logging…
-                  </>
-                ) : evening ? (
-                  '✓ I wore this'
-                ) : (
-                  '✓ Wearing it'
-                )}
-              </button>
-            ) : (
-              <span className="inline-flex items-center rounded-xl bg-iris-soft px-4 py-2.5 text-sm font-semibold text-iris">
-                ✓ Logged for today
-              </span>
-            )}
-            <button type="button" onClick={handleSeeOnYou} className="btn-ghost">
-              See it on you ✦
-            </button>
-            {!isRefinement ? (
-              <button
-                type="button"
-                onClick={() => void load({ refresh: true })}
-                disabled={busy === 'another' || worn}
-                className="btn-ghost"
-              >
-                {busy === 'another' ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" /> Restyling…
-                  </>
-                ) : (
-                  '↻ Another'
-                )}
-              </button>
-            ) : (
-              <button type="button" onClick={() => void load()} className="btn-ghost">
-                ← Back to today's brief
-              </button>
-            )}
-          </div>
-
-          {stats && stats.monthlyPayback > 0 && (
-            <p className="mt-5 text-xs text-ink/45">
-              Your closet worked{' '}
-              <span className="font-semibold text-ink/70">
-                ₹{stats.monthlyPayback.toLocaleString('en-IN')}
-              </span>{' '}
-              for you this month · {stats.rotationPct}% of it in rotation
+        <>
+          {error && (
+            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+              {error}
             </p>
           )}
+          <div className="mt-2 grid gap-10 lg:grid-cols-[1fr_minmax(280px,360px)] lg:gap-14">
+            <div>
+              <h1 className="animate-rise-1 font-display text-4xl font-extrabold leading-[0.98] tracking-tight text-ink sm:text-5xl">
+                {worn ? (
+                  <>
+                    Looking good <em className="not-italic text-iris">today.</em>
+                  </>
+                ) : isRefinement ? (
+                  <>
+                    For <em className="not-italic text-iris">{brief.occasion?.toLowerCase()}.</em>
+                  </>
+                ) : (
+                  <>
+                    Today, <em className="not-italic text-iris">wear this.</em>
+                  </>
+                )}
+              </h1>
 
-          {/* Refinement */}
-          <div className="mt-10 border-t border-ink/10 pt-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-ink/45">
-              Dressing for something else?
-            </p>
-            <form onSubmit={handleOccasionSubmit} className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4">
-              <input
-                value={occasionText}
-                onChange={(e) => setOccasionText(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
-                placeholder="Dinner in the city, smart-casual…"
-              />
-              <button type="submit" disabled={busy === 'occasion'} className="btn-primary !px-4 !py-2">
-                {busy === 'occasion' ? <Spinner className="h-4 w-4" /> : 'Style it'}
-              </button>
-            </form>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {OCCASIONS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => {
-                    setOccasionText(chip)
-                    void load({ occasion: chip })
-                  }}
-                  className="chip"
+              <p className="mt-3 max-w-2xl animate-rise-2 text-sm text-ink/55">
+                {brief.weather && (
+                  <span>
+                    {Math.round(brief.weather.temperatureC)}° · {brief.weather.description} ·{' '}
+                  </span>
+                )}
+                <span className="font-serif italic">{brief.rationale}</span>
+              </p>
+
+              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3">
+                {brief.items.map((item) => (
+                  <GarmentTile
+                    key={item.id}
+                    imageUrl={item.imageUrl}
+                    label={itemLabel(item)}
+                    sublabel={worn || isRefinement ? undefined : 'tap to swap'}
+                    aspect="aspect-[3/4]"
+                    onClick={worn || isRefinement ? undefined : () => void openSwap(item)}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {!worn ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleWear()}
+                    disabled={busy === 'wear'}
+                    className="btn-primary"
+                  >
+                    {busy === 'wear' ? (
+                      <>
+                        <Spinner className="mr-2 h-4 w-4" /> Logging…
+                      </>
+                    ) : evening ? (
+                      '✓ I wore this'
+                    ) : (
+                      '✓ Wearing it'
+                    )}
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center rounded-xl bg-iris-soft px-4 py-2.5 text-sm font-semibold text-iris">
+                    ✓ Logged for today
+                  </span>
+                )}
+                {!isRefinement ? (
+                  <button
+                    type="button"
+                    onClick={() => void load({ refresh: true })}
+                    disabled={busy === 'another' || worn}
+                    className="btn-ghost"
+                  >
+                    {busy === 'another' ? (
+                      <>
+                        <Spinner className="mr-2 h-4 w-4" /> Restyling…
+                      </>
+                    ) : (
+                      '↻ Another'
+                    )}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => void load()} className="btn-ghost">
+                    ← Back to today's brief
+                  </button>
+                )}
+              </div>
+
+              {stats && stats.monthlyPayback > 0 && (
+                <p className="mt-5 text-xs text-ink/45">
+                  Your closet worked{' '}
+                  <span className="font-semibold text-ink/70">
+                    ₹{stats.monthlyPayback.toLocaleString('en-IN')}
+                  </span>{' '}
+                  for you this month · {stats.rotationPct}% of it in rotation
+                </p>
+              )}
+
+              <div className="mt-10 border-t border-ink/10 pt-6">
+                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-ink/45">
+                  Dressing for something else?
+                </p>
+                <form
+                  onSubmit={handleOccasionSubmit}
+                  className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
                 >
-                  {chip}
-                </button>
-              ))}
+                  <input
+                    value={occasionText}
+                    onChange={(e) => setOccasionText(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
+                    placeholder="Dinner in the city, smart-casual…"
+                  />
+                  <button type="submit" disabled={busy === 'occasion'} className="btn-primary !px-4 !py-2">
+                    {busy === 'occasion' ? <Spinner className="h-4 w-4" /> : 'Style it'}
+                  </button>
+                </form>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {OCCASIONS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => {
+                        setOccasionText(chip)
+                        void load({ occasion: chip })
+                      }}
+                      className="chip"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* The mirror — this page's wow anchor */}
+            <div className="mx-auto w-full max-w-[340px] lg:mx-0 lg:max-w-none">
+              <button
+                type="button"
+                onClick={handleSeeOnYou}
+                className="group block w-full text-left"
+                aria-label="See today's look on you"
+              >
+                <MirrorFrame className="animate-rise-2">
+                  {stage ? (
+                    <div className="relative">
+                      <img
+                        src={resolveImageUrl(stage.url)}
+                        alt="You, in the mirror"
+                        className="aspect-[3/4] w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/55 to-transparent p-4 pt-10">
+                        <span className="rounded-xl bg-bone/90 px-4 py-2 text-sm font-semibold text-ink backdrop-blur transition-colors group-hover:bg-bone">
+                          See today's look on you ✦
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
+                      <Silhouette className="h-28 w-16 text-ink/15" />
+                      <span className="rounded-xl bg-iris px-4 py-2 text-sm font-semibold text-bone transition-colors group-hover:bg-iris-deep">
+                        See it on you ✦
+                      </span>
+                    </div>
+                  )}
+                </MirrorFrame>
+              </button>
+              <p className="mt-3 text-center font-serif text-sm italic text-ink/45">
+                {stage?.caption ?? 'your mirror'}
+              </p>
             </div>
           </div>
-        </div>
+
+          {cards.length > 0 && (
+            <div className="mt-12 grid gap-3 sm:grid-cols-3">
+              {cards.map((card, i) => (
+                <Link key={i} to="/circle" className="card card-hover animate-rise p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
+                    {card.type === 'pick_received' && 'A friend styled you'}
+                    {card.type === 'poll_result' && 'Your poll ended'}
+                    {card.type === 'poll_open' && 'Poll running'}
+                    {card.type === 'new_follower' && 'New follower'}
+                    {card.type === 'style_a_friend' && 'Your circle'}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
+                    {card.type === 'pick_received' &&
+                      `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
+                    {card.type === 'poll_result' &&
+                      `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
+                    {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
+                    {card.type === 'new_follower' && `@${String(card.handle)} started following you`}
+                    {card.type === 'style_a_friend' && 'Pick an outfit for a friend →'}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* ---------------- NUDGES ---------------- */}
-      {!loading && cards.length > 0 && (
-        <div className="mt-10 grid gap-3 sm:grid-cols-3">
-          {cards.map((card, i) => (
-            <Link
-              key={i}
-              to="/circle"
-              className="card card-hover animate-rise p-4"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
-                {card.type === 'pick_received' && 'A friend styled you'}
-                {card.type === 'poll_result' && 'Your poll ended'}
-                {card.type === 'poll_open' && 'Poll running'}
-                {card.type === 'new_follower' && 'New follower'}
-                {card.type === 'style_a_friend' && 'Your circle'}
-              </p>
-              <p className="mt-1 line-clamp-2 text-sm text-ink/75">
-                {card.type === 'pick_received' &&
-                  `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
-                {card.type === 'poll_result' &&
-                  `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
-                {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
-                {card.type === 'new_follower' && `@${String(card.handle)} started following you`}
-                {card.type === 'style_a_friend' && 'Pick an outfit for a friend →'}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* ---------------- SWAP SLIDE-OVER ---------------- */}
+      {/* ---------------- SWAP MODAL ---------------- */}
       <Modal
         open={swapItem !== null}
         onClose={() => setSwapItem(null)}
@@ -432,8 +502,8 @@ export function TodayPage() {
             )}
             {alternatives !== null && alternatives.length === 0 && (
               <p className="rounded-xl border border-dashed border-ink/15 p-4 text-sm text-ink/50">
-                No other {swapItem.category} pieces available right now — add more to your closet
-                to unlock swaps.
+                No other {swapItem.category} pieces available right now — add more to your closet to
+                unlock swaps.
               </p>
             )}
             {alternatives !== null && alternatives.length > 0 && (
