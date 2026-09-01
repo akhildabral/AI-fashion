@@ -26,8 +26,9 @@
     --c-brass-hi: #cba24e;
     --c-brass: #b98c3b;
     --c-brass-lo: #7a5a22;
-    --c-niche: radial-gradient(72% 62% at 50% 32%, #fcf8ef, #e5dbc7 84%);
-    --c-sheen: rgba(255, 255, 255, 0.6);
+    --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
+    --c-niche-edge: rgba(239, 231, 215, 0.85);
+    --c-sheen: rgba(255, 255, 255, 0.55);
     --grain-blend: multiply;
     --grain-op: 0.045;
   }
@@ -47,8 +48,11 @@
     --c-brass-hi: #e4cb94;
     --c-brass: #c8a45e;
     --c-brass-lo: #8f6e32;
-    --c-niche: radial-gradient(72% 60% at 50% 34%, #221e19, #0e0c0a 80%);
-    --c-sheen: rgba(233, 217, 188, 0.16);
+    /* A warm-lit vitrine glowing in the dark room — near-white so product-shot
+       backgrounds melt into it, and premium: a boutique display case at night. */
+    --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
+    --c-niche-edge: rgba(243, 237, 224, 0.9);
+    --c-sheen: rgba(255, 255, 255, 0.4);
     --grain-blend: screen;
     --grain-op: 0.05;
   }
@@ -135,16 +139,34 @@
     background: linear-gradient(160deg, var(--c-brass-hi), var(--c-brass-lo) 62%, var(--c-brass-lo));
   }
   .arch-niche {
-    border-radius: 44% 44% 4px 4px / 26% 26% 4px 4px;
+    /* Same radius as the bezel so the niche nests cleanly inside it — a
+       smaller radius here makes the fill's corners spill past the brass line. */
+    border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px;
     background: var(--c-niche);
     position: relative;
     overflow: hidden;
+    /* Recessed display case: a soft top shadow under the arch crown and a
+       floor glow, so the garment sits in a lit vitrine, not on a flat card. */
+    box-shadow:
+      inset 0 3px 12px rgba(40, 25, 8, 0.14),
+      inset 0 -20px 30px -12px rgba(40, 25, 8, 0.08);
+  }
+  /* A soft vignette melts product-shot white edges into the warm ground. */
+  .arch-niche::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 22px 10px var(--c-niche-edge, rgba(233, 224, 205, 0.7));
   }
   /* The specular sheen the light-catch sweeps across. */
   .arch-niche::after {
     content: '';
     position: absolute;
     inset: 0;
+    z-index: 3;
     pointer-events: none;
     background: linear-gradient(120deg, transparent 40%, var(--c-sheen) 48%, transparent 57%);
   }

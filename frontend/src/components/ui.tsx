@@ -219,8 +219,12 @@ export function MirrorFrame({
         <div
           className="relative overflow-hidden"
           style={{
-            borderRadius: '46% 46% 4px 4px / 24% 24% 4px 4px',
-            background: 'var(--c-niche)',
+            /* Match the bezel radius so the niche nests cleanly — a smaller
+               radius lets the fill spill past the brass edge at the corners. */
+            borderRadius: '48% 48% 6px 6px / 26% 26% 6px 6px',
+            /* The mirror keeps a dark reflective surface (renders cover it;
+               the empty state stays atmospheric) — not the garment vitrine. */
+            background: 'radial-gradient(76% 66% at 50% 30%, #211d17, #0c0b09 84%)',
           }}
         >
           {children}
