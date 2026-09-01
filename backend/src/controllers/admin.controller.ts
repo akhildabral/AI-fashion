@@ -185,8 +185,11 @@ export async function approveAndInvite(req: Request, res: Response) {
   }
 
   const inviteUrl = await mintInvite(id, publicOrigin(req));
-  await sendInviteEmail(user.email, inviteUrl).catch(() => undefined);
-  res.json({ user: { id, status: 'invited' }, inviteUrl, viaGoogle: false });
+  const emailed = await sendInviteEmail(user.email, inviteUrl).catch((err: unknown) => {
+    console.error(`[mailer] invite email to ${user.email} failed:`, err);
+    return false;
+  });
+  res.json({ user: { id, status: 'invited' }, inviteUrl, viaGoogle: false, emailed });
 }
 
 const inviteEmailSchema = z.object({ email: z.string().email() });
@@ -205,6 +208,9 @@ export async function inviteByEmail(req: Request, res: Response) {
     });
   }
   const inviteUrl = await mintInvite(user.id, publicOrigin(req));
-  await sendInviteEmail(normalized, inviteUrl).catch(() => undefined);
-  res.json({ inviteUrl, email: normalized });
+  const emailed = await sendInviteEmail(normalized, inviteUrl).catch((err: unknown) => {
+    console.error(`[mailer] invite email to ${normalized} failed:`, err);
+    return false;
+  });
+  res.json({ inviteUrl, email: normalized, emailed });
 }

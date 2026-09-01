@@ -44,7 +44,7 @@ export function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [inviteLink, setInviteLink] = useState<{ email: string; url: string | null; viaGoogle?: boolean } | null>(null)
+  const [inviteLink, setInviteLink] = useState<{ email: string; url: string | null; viaGoogle?: boolean; emailed?: boolean } | null>(null)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -82,11 +82,11 @@ export function AdminPage() {
     setBusyId(u.id)
     setError(null)
     try {
-      const res = await apiFetch<{ inviteUrl: string | null; viaGoogle: boolean }>(
+      const res = await apiFetch<{ inviteUrl: string | null; viaGoogle: boolean; emailed?: boolean }>(
         `/admin/users/${u.id}/invite`,
         { method: 'POST' },
       )
-      setInviteLink({ email: u.email, url: res.inviteUrl, viaGoogle: res.viaGoogle })
+      setInviteLink({ email: u.email, url: res.inviteUrl, viaGoogle: res.viaGoogle, emailed: res.emailed })
       setCopied(false)
       await load()
     } catch (err) {
@@ -101,11 +101,11 @@ export function AdminPage() {
     setInviting(true)
     setError(null)
     try {
-      const res = await apiFetch<{ inviteUrl: string; email: string }>('/admin/invite', {
+      const res = await apiFetch<{ inviteUrl: string; email: string; emailed?: boolean }>('/admin/invite', {
         method: 'POST',
         body: { email: inviteEmail.trim() },
       })
-      setInviteLink({ email: res.email, url: res.inviteUrl })
+      setInviteLink({ email: res.email, url: res.inviteUrl, emailed: res.emailed })
       setCopied(false)
       setInviteEmail('')
       await load()
@@ -421,9 +421,10 @@ export function AdminPage() {
             ) : (
               <>
                 <p className="text-sm text-ink/70">
-                  Invite for <span className="font-semibold text-ink">{inviteLink.email}</span> —
-                  an email was sent if SMTP is configured; you can also copy the link and share it
-                  yourself. Valid 7 days.
+                  Invite for <span className="font-semibold text-ink">{inviteLink.email}</span> —{' '}
+                  {inviteLink.emailed
+                    ? 'an invite email is on its way (tell them to check spam). You can also copy the link. Valid 7 days.'
+                    : 'the invite email could not be sent, so copy the link below and share it yourself. Valid 7 days.'}
                 </p>
                 <div
                   onClick={selectLinkText}

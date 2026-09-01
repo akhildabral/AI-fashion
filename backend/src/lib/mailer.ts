@@ -41,10 +41,10 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
   });
 }
 
-export async function sendInviteEmail(to: string, inviteUrl: string): Promise<void> {
+export async function sendInviteEmail(to: string, inviteUrl: string): Promise<boolean> {
   if (!transport) {
     console.log(`[mailer] SMTP not configured — invite link for ${to}: ${inviteUrl}`);
-    return;
+    return false;
   }
   await transport.sendMail({
     from: env.SMTP_FROM,
@@ -55,4 +55,5 @@ export async function sendInviteEmail(to: string, inviteUrl: string): Promise<vo
       `Your personal stylist is ready. Set your password and step in:\n${inviteUrl}\n\n` +
       `This invite link is valid for 7 days.`,
   });
+  return true;
 }
