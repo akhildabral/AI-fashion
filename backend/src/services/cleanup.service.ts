@@ -24,11 +24,12 @@ const MAX_PLAUSIBLE_COVERAGE = 0.7;
 // Proportion is the thing generative edits most often break — a full-length
 // trouser comes back folded and wide. This clause is repeated in both prompts.
 const KEEP_PROPORTIONS =
-  'CRITICAL: keep the garment at its true, natural proportions and full ' +
-  'length — a full-length trouser or dress stays full-length, shown straight ' +
-  'top-to-bottom, never folded, bunched, cropped, or squashed. Present it ' +
-  'upright and front-facing, filling the frame along its longest dimension, ' +
-  'with its real aspect ratio preserved.';
+  'CRITICAL — show the garment COMPLETE and uncropped, at its true ' +
+  'proportions: the ENTIRE piece from top to bottom must be visible. For ' +
+  'trousers, jeans, or a dress show the FULL length from waist to hem/ankle — ' +
+  'never cut off at the knee or calf, never folded, bunched, or shortened. ' +
+  'Present it upright, straight, and front-facing, filling the frame ' +
+  'vertically, with its real (for long items, tall) aspect ratio preserved.';
 
 const CLEAN_PROMPT =
   'Isolate the single clothing item in this photo and show it as a flat, ' +
@@ -86,6 +87,18 @@ export async function cleanGarmentImage(
 ): Promise<CleanedGarment | null> {
   const mode = resolveMode();
   if (mode === 'off') return null;
+
+  // No target = a single-garment upload (the typical case: a photo of one
+  // item, flat or on a hanger). Matte it locally first — pixel-preserving, so
+  // it keeps the garment's TRUE proportions, and free. The plausibility gates
+  // in localCutout reject a matte that grabbed a whole scene/person, in which
+  // case we fall through to generative extraction. A target is only set when a
+  // specific item must be pulled from a multi-garment or on-body shot, where
+  // generative isolation is required (and may reshape — see KEEP_PROPORTIONS).
+  if (!target) {
+    const local = await localCutout(image);
+    if (local) return local;
+  }
 
   if (mode === 'generative') {
     try {

@@ -175,7 +175,11 @@ export async function addItem(req: Request, res: Response) {
           ...(garment.description ? { description: garment.description } : {}),
         },
       });
-      const target = garments.length > 1 || garment.description ? garment.description : undefined;
+      // Only force generative extraction when a photo holds several garments.
+      // A single-garment upload passes no target, so cleanup tries a local
+      // matte first (proportion-preserving, free) and only re-renders
+      // generatively if that photo is too cluttered to matte confidently.
+      const target = garments.length > 1 ? garment.description : undefined;
       const region = garments.length > 1 ? garment.box : undefined;
       enqueue(`catalog:${item.id}`, () =>
         catalogItem(item.id, buffer, mimetype, target || undefined, region),
