@@ -23,6 +23,15 @@ export async function listUsers(req: Request, res: Response) {
     },
   });
 
+  // AI calls in the last 7 days, for cost visibility.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const usage = await prisma.usageEvent.groupBy({
+    by: ['userId'],
+    where: { createdAt: { gte: since } },
+    _count: { _all: true },
+  });
+  const usageByUser = new Map(usage.map((u) => [u.userId, u._count._all]));
+
   res.json({
     users: users.map((u) => ({
       id: u.id,
@@ -34,6 +43,7 @@ export async function listUsers(req: Request, res: Response) {
       createdAt: u.createdAt,
       items: u._count.wardrobe,
       wears: u._count.wearLogs,
+      aiCalls7d: usageByUser.get(u.id) ?? 0,
     })),
   });
 }

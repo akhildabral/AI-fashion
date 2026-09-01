@@ -13,3 +13,12 @@ createRoot(rootEl).render(
     <App />
   </StrictMode>,
 )
+
+// PWA: register the (network-only) service worker so the app is installable.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Install prompt just won't appear — the app still works.
+    })
+  })
+}

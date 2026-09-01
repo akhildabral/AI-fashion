@@ -13,6 +13,7 @@ interface AdminUser {
   createdAt: string
   items: number
   wears: number
+  aiCalls7d: number
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -219,6 +220,7 @@ export function AdminPage() {
                   <td className="px-4 py-3 text-ink/70">{u.emailVerified ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-ink/70">
                     {u.items} items · {u.wears} wears
+                    <div className="text-xs text-ink/45">{u.aiCalls7d} AI calls / 7d</div>
                   </td>
                   <td className="px-4 py-3 text-ink/70">
                     {new Date(u.createdAt).toLocaleDateString()}
