@@ -50,6 +50,8 @@ model User {
   usageEvents   UsageEvent[]
   billingEvents BillingEvent[]
   dailyBriefs   DailyBrief[]
+  trips         Trip[]
+  lookbooks     Lookbook[]
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -136,6 +138,8 @@ model WearLog {
   @@index([userId, wornOn])
   // OOTD: set when the wearer shares this outfit to their circle.
   sharedAt  DateTime?
+  // Explore: set by an admin to pin this shared outfit to the curated feed.
+  featuredAt DateTime?
 }
 
 // A user's persistent style profile — the "brain" every recommendation builds on.
@@ -295,4 +299,31 @@ model DailyBrief {
   updatedAt DateTime @updatedAt @default(now())
 
   @@unique([userId, date])
+}
+
+// A saved trip: the packed capsule steers the daily brief while traveling.
+model Trip {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination   String
+  startDate     String // YYYY-MM-DD
+  endDate       String // YYYY-MM-DD
+  activities    String?
+  packedItemIds String[]
+  createdAt     DateTime @default(now())
+
+  @@index([userId, startDate])
+}
+
+// A named set of Mirror renders ("Wedding options").
+model Lookbook {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  tryOnIds  String[]
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -11,6 +11,7 @@ import {
   loadStyleableWardrobe,
   validateAndRank,
 } from './wardrobe.controller';
+import { activeTripFor } from './trip.controller';
 
 // The Daily Brief: the outfit is already composed when the user opens the
 // app. Text-only (no image generation), so it is deliberately unmetered —
@@ -35,6 +36,7 @@ interface BriefPayload {
   eventType: EventType;
   occasion: string | null;
   weather: Weather | null;
+  trip: { destination: string; endDate: string } | null;
 }
 
 async function hydrateItems(userId: string, itemIds: string[]): Promise<BriefItem[]> {
@@ -57,6 +59,7 @@ async function composeOutfit(
   userId: string,
   eventType: EventType,
   occasion: string | null,
+  date?: string,
 ): Promise<BriefPayload | null> {
   // A thin closet is a starter state, never an error — the wardrobe loader
   // throws below its own minimum, so catch and fall through to starter.
@@ -66,13 +69,23 @@ async function composeOutfit(
   } catch {
     return null;
   }
+
+  // On a trip, style only from the packed capsule and use the destination's
+  // weather — the suitcase becomes the closet.
+  const trip = date ? await activeTripFor(userId, date) : null;
+  if (trip && trip.packedItemIds.length > 0) {
+    const packed = new Set(trip.packedItemIds);
+    const packedItems = items.filter((i) => packed.has(i.id));
+    if (packedItems.length >= 3) items = packedItems;
+  }
   if (items.length < MIN_ITEMS) return null;
 
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });
   let weather: Weather | null = null;
-  if (profile?.city) {
+  const weatherCity = trip ? trip.destination : profile?.city;
+  if (weatherCity) {
     try {
-      weather = await getWeather(profile.city);
+      weather = await getWeather(weatherCity);
     } catch {
       weather = null;
     }
@@ -83,6 +96,7 @@ async function composeOutfit(
       ? `Dressing for: ${occasion} (${eventType} setting).`
       : `A go-to ${eventType} outfit for today.`,
   ];
+  if (trip) parts.push(`They are traveling in ${trip.destination} — dress for that context.`);
   if (weather) {
     parts.push(
       `Today's weather in ${weather.location}: ${weather.temperatureC}°C, ${weather.description}. Choose weather-appropriate items.`,
@@ -106,7 +120,8 @@ async function composeOutfit(
   if (!top) return null;
 
   return {
-    title: occasion ?? `Today's ${eventType} look`,
+    trip: trip ? { destination: trip.destination, endDate: trip.endDate } : null,
+    title: occasion ?? (trip ? `Packed for ${trip.destination}` : `Today's ${eventType} look`),
     // Models sometimes cite item ids in their reasoning — never show those.
     rationale: top.rationale.replace(/\s*\(id:\s*[a-f0-9-]+\)/gi, ''),
     itemIds: top.items.map((i) => i.id),
@@ -131,7 +146,7 @@ export async function getBrief(req: Request, res: Response) {
 
   // Occasion-specific briefs are ephemeral refinements — never cached.
   if (occasion) {
-    const payload = await composeOutfit(userId, event, occasion);
+    const payload = await composeOutfit(userId, event, occasion, date);
     if (!payload) return res.json({ mode: 'starter' as const });
     const items = await hydrateItems(userId, payload.itemIds);
     return res.json({ mode: 'brief' as const, brief: { ...payload, items }, worn: false });
@@ -150,7 +165,7 @@ export async function getBrief(req: Request, res: Response) {
     });
   }
 
-  const payload = await composeOutfit(userId, event, null);
+  const payload = await composeOutfit(userId, event, null, date);
   if (!payload) return res.json({ mode: 'starter' as const });
 
   const saved = await prisma.dailyBrief.upsert({

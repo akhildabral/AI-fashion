@@ -22,6 +22,7 @@ export interface Brief {
   eventType: string
   occasion: string | null
   weather: BriefWeather | null
+  trip?: { destination: string; endDate: string } | null
   items: BriefItem[]
 }
 
@@ -119,4 +120,68 @@ export interface GapSuggestion {
 
 export function getClosetGaps() {
   return apiFetch<{ suggestions: GapSuggestion[]; outfitsPossible: number }>('/stats/gaps')
+}
+
+export interface Trip {
+  id: string
+  destination: string
+  startDate: string
+  endDate: string
+  activities: string | null
+  packedItemIds: string[]
+}
+
+export function getTrips() {
+  return apiFetch<{ trips: Trip[] }>('/trips')
+}
+export function createTrip(data: {
+  destination: string
+  startDate: string
+  endDate: string
+  activities?: string | null
+  packedItemIds: string[]
+}) {
+  return apiFetch<{ trip: Trip }>('/trips', { method: 'POST', body: data })
+}
+export function deleteTrip(id: string) {
+  return apiFetch<void>(`/trips/${id}`, { method: 'DELETE' })
+}
+
+export interface Lookbook {
+  id: string
+  name: string
+  tryOnIds: string[]
+}
+
+export function getLookbooks() {
+  return apiFetch<{ lookbooks: Lookbook[] }>('/lookbooks')
+}
+export function createLookbook(name: string) {
+  return apiFetch<{ lookbook: Lookbook }>('/lookbooks', { method: 'POST', body: { name } })
+}
+export function toggleLookbookItem(id: string, tryOnId: string) {
+  return apiFetch<{ lookbook: Lookbook; added: boolean }>(`/lookbooks/${id}/toggle`, {
+    method: 'POST',
+    body: { tryOnId },
+  })
+}
+export function deleteLookbook(id: string) {
+  return apiFetch<void>(`/lookbooks/${id}`, { method: 'DELETE' })
+}
+
+export interface ExploreCard {
+  type: 'ootd'
+  wearLogId: string
+  at: string
+  handle: string | null
+  eventType: string | null
+  featured: boolean
+  items: { id: string; imageUrl: string; subtype: string | null; category: string }[]
+}
+
+export function getExplore() {
+  return apiFetch<{ cards: ExploreCard[] }>('/explore')
+}
+export function toggleFeature(wearLogId: string) {
+  return apiFetch<{ featured: boolean }>(`/explore/${wearLogId}/feature`, { method: 'POST' })
 }

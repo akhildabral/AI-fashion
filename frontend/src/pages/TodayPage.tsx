@@ -4,6 +4,7 @@ import { useAuth } from '../context/useAuth'
 import { useProfile } from '../context/useProfile'
 import { apiFetch } from '../lib/api'
 import {
+  getTrips,
   shareBrief,
   getBrief,
   getBriefAlternatives,
@@ -15,6 +16,7 @@ import {
   type BriefItem,
   type FeedCard,
   type RitualStats,
+  type Trip,
 } from '../lib/brief'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
@@ -59,6 +61,7 @@ export function TodayPage() {
   const [occasionText, setOccasionText] = useState('')
   const [starterLooks, setStarterLooks] = useState<Look[] | null>(null)
   const [sharePrompt, setSharePrompt] = useState<'hidden' | 'offer' | 'shared'>('hidden')
+  const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null)
 
   const name = (() => {
     const raw = user?.handle ?? user?.email?.split('@')[0] ?? 'there'
@@ -89,6 +92,13 @@ export function TodayPage() {
     getRitualStats().then(setStats).catch(() => undefined)
     getFeed()
       .then((r) => setCards(r.cards.slice(0, 3)))
+      .catch(() => undefined)
+    getTrips()
+      .then((r) => {
+        const today = new Date().toISOString().slice(0, 10)
+        const soon = r.trips.find((tr) => tr.startDate > today)
+        setUpcomingTrip(soon ?? null)
+      })
       .catch(() => undefined)
   }, [load])
 
@@ -316,6 +326,11 @@ export function TodayPage() {
                 )}
                 <span className="font-serif italic">{brief.rationale}</span>
               </p>
+              {brief.trip && (
+                <p className="mt-2 inline-flex animate-rise-2 items-center gap-2 rounded-full bg-spark-soft/70 px-3 py-1.5 text-xs font-medium text-spark-deep">
+                  🧳 styling from your {brief.trip.destination} capsule · until {brief.trip.endDate}
+                </p>
+              )}
 
 
               <div className="mt-6">
@@ -459,8 +474,21 @@ export function TodayPage() {
 
           </div>
 
-          {cards.length > 0 && (
+          {(cards.length > 0 || upcomingTrip) && (
             <div className="mt-12 grid gap-3 sm:grid-cols-3">
+              {upcomingTrip && (
+                <Link to="/trips" className="card card-hover animate-rise border-spark/25 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-spark-deep">
+                    Trip coming up
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
+                    {upcomingTrip.destination} on {upcomingTrip.startDate} —{' '}
+                    {upcomingTrip.packedItemIds.length > 0
+                      ? `${upcomingTrip.packedItemIds.length} pieces packed`
+                      : 'pack from your closet →'}
+                  </p>
+                </Link>
+              )}
               {cards.map((card, i) => (
                 <Link key={i} to="/circle" className="card card-hover animate-rise p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">

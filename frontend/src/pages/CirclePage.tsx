@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  getExplore,
   getFeed,
   recreateFromCloset,
+  toggleFeature,
+  type ExploreCard,
   type FeedCard,
   type RecreateResponse,
 } from '../lib/brief'
@@ -11,6 +14,7 @@ import { Modal, PageShell } from '../components/ui'
 import { useNavigate } from 'react-router-dom'
 import { Spinner } from '../components/Spinner'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../context/useAuth'
 
 // Circle ring 1: things to do, not lists to read. The people-management
 // surface (search, follow, handle, twins) lives one tap away.
@@ -34,6 +38,9 @@ function timeAgo(iso: string): string {
 
 export function CirclePage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const [tab, setTab] = useState<'circle' | 'explore'>('circle')
+  const [explore, setExplore] = useState<ExploreCard[] | null>(null)
   const [cards, setCards] = useState<FeedCard[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [recreate, setRecreate] = useState<{ handle: string; result: RecreateResponse | null } | null>(null)
@@ -83,7 +90,19 @@ export function CirclePage() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : 'Could not load your circle.'),
       )
+    getExplore().then((r) => setExplore(r.cards)).catch(() => setExplore([]))
   }, [])
+
+  async function handleFeature(card: ExploreCard) {
+    try {
+      const { featured } = await toggleFeature(card.wearLogId)
+      setExplore((prev) =>
+        prev ? prev.map((e) => (e.wearLogId === card.wearLogId ? { ...e, featured } : e)) : prev,
+      )
+    } catch {
+      flash('Could not update that.')
+    }
+  }
 
   return (
     <PageShell>
@@ -101,16 +120,37 @@ export function CirclePage() {
         </Link>
       </div>
 
-      {cards === null && !error && (
+      <div className="mt-6 flex animate-rise-1 gap-1 rounded-full border border-ink/10 bg-surface p-1 sm:w-fit">
+        <button
+          type="button"
+          onClick={() => setTab('circle')}
+          className={`flex-1 rounded-full px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+            tab === 'circle' ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
+          }`}
+        >
+          Your circle
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('explore')}
+          className={`flex-1 rounded-full px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+            tab === 'explore' ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
+          }`}
+        >
+          Explore {explore ? `· ${explore.length}` : ''}
+        </button>
+      </div>
+
+      {tab === 'circle' && cards === null && !error && (
         <div className="flex min-h-[30vh] items-center justify-center text-ink/50">
           <Spinner className="h-6 w-6" />
         </div>
       )}
-      {error && (
+      {tab === 'circle' && error && (
         <p className="mt-6 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>
       )}
 
-      {cards !== null && cards.length === 0 && (
+      {tab === 'circle' && cards !== null && cards.length === 0 && (
         <div className="mt-10 rounded-3xl border border-dashed border-ink/15 py-16 text-center">
           <p className="font-display text-xl font-bold text-ink">It's quiet in here</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-ink/50">
@@ -123,7 +163,7 @@ export function CirclePage() {
         </div>
       )}
 
-      {cards !== null && cards.length > 0 && (
+      {tab === 'circle' && cards !== null && cards.length > 0 && (
         <div className="mt-8 grid animate-rise-2 gap-4 sm:grid-cols-2">
           {cards.map((card, i) => {
             const ago = timeAgo(String(card.at))
@@ -297,6 +337,78 @@ export function CirclePage() {
           })}
         </div>
       )}
+      {tab === 'explore' && (
+        <div className="mt-8">
+          {explore === null && (
+            <div className="flex min-h-[30vh] items-center justify-center text-ink/50">
+              <Spinner className="h-6 w-6" />
+            </div>
+          )}
+          {explore !== null && explore.length === 0 && (
+            <div className="rounded-3xl border border-dashed border-ink/15 py-16 text-center">
+              <p className="font-display text-xl font-bold text-ink">Nothing shared yet</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-ink/50">
+                When people share their outfit of the day, the best of them land here — and you
+                can recreate any of them from your own closet.
+              </p>
+            </div>
+          )}
+          {explore !== null && explore.length > 0 && (
+            <div className="grid animate-rise gap-4 sm:grid-cols-2">
+              {explore.map((card) => (
+                <div key={card.wearLogId} className={`card p-5 ${card.featured ? 'border-spark/40' : ''}`}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
+                      {card.featured ? '★ Featured' : 'Outfit of the day'}
+                    </p>
+                    <span className="text-xs text-ink/40">{timeAgo(card.at)}</span>
+                  </div>
+                  <p className="mt-1.5 text-sm text-ink/80">
+                    <Link to={`/u/${String(card.handle)}`} className="font-semibold text-ink hover:text-iris">
+                      @{String(card.handle)}
+                    </Link>{' '}
+                    wore this
+                    {card.eventType ? (
+                      <span className="font-serif italic text-ink/60"> — {card.eventType}</span>
+                    ) : null}
+                  </p>
+                  {card.items.length > 0 && (
+                    <div className="mt-3 flex gap-2">
+                      {card.items.slice(0, 5).map((it) => (
+                        <img
+                          key={it.id}
+                          src={resolveImageUrl(it.imageUrl)}
+                          alt={it.subtype ?? it.category}
+                          className="h-16 w-16 rounded-xl border border-ink/10 bg-white object-contain p-1"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openRecreate(String(card.handle), card.items.map((it) => it.id))}
+                      className="btn-ghost !px-4 !py-2 !text-xs"
+                    >
+                      Recreate from my closet ✦
+                    </button>
+                    {user?.role === 'admin' && (
+                      <button
+                        type="button"
+                        onClick={() => void handleFeature(card)}
+                        className={`btn-ghost !px-3 !py-2 !text-xs ${card.featured ? '!border-spark !text-spark-deep' : ''}`}
+                      >
+                        {card.featured ? '★ Unfeature' : '☆ Feature'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
           {toast}

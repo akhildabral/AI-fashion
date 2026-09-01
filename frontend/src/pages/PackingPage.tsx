@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, useEffect } from 'react'
 import { packForTrip } from '../lib/wardrobe'
+import { createTrip, deleteTrip, getTrips, type Trip } from '../lib/brief'
 import type { PackingResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { ZoomableImage } from '../components/ImageLightbox'
@@ -22,6 +23,43 @@ export function PackingPage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PackingResponse | null>(null)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [trips, setTrips] = useState<Trip[]>([])
+  const [savingTrip, setSavingTrip] = useState(false)
+  const [savedTripId, setSavedTripId] = useState<string | null>(null)
+
+  useEffect(() => {
+    getTrips().then((r) => setTrips(r.trips)).catch(() => undefined)
+  }, [])
+
+  async function handleSaveTrip() {
+    if (!result) return
+    setSavingTrip(true)
+    try {
+      const { trip } = await createTrip({
+        destination: destination.trim(),
+        startDate,
+        endDate,
+        activities: activities.trim() || null,
+        packedItemIds: result.plan.capsule.map((c) => c.id),
+      })
+      setTrips((prev) => [...prev, trip].sort((a, b) => (a.startDate < b.startDate ? -1 : 1)))
+      setSavedTripId(trip.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the trip.')
+    } finally {
+      setSavingTrip(false)
+    }
+  }
+
+  async function handleDeleteTrip(id: string) {
+    try {
+      await deleteTrip(id)
+      setTrips((prev) => prev.filter((t) => t.id !== id))
+      if (savedTripId === id) setSavedTripId(null)
+    } catch {
+      // best-effort
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -57,6 +95,34 @@ export function PackingPage() {
           each day's outfit, and list what else to bring.
         </p>
       </div>
+      {trips.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-display text-lg font-bold text-ink">Upcoming trips</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {trips.map((t) => (
+              <div key={t.id} className="card flex items-center justify-between gap-3 p-4">
+                <div>
+                  <p className="font-medium text-ink">{t.destination}</p>
+                  <p className="text-xs text-ink/50">
+                    {t.startDate} → {t.endDate} · {t.packedItemIds.length} pieces packed
+                  </p>
+                  <p className="mt-1 font-serif text-xs italic text-ink/45">
+                    your daily brief styles from this capsule while you're away
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteTrip(t.id)}
+                  className="btn-ghost !px-3 !py-1.5 !text-xs"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
 
       <form
         onSubmit={handleSubmit}
@@ -174,6 +240,22 @@ export function PackingPage() {
             <h2 className="mb-1 font-serif text-2xl font-semibold text-ink">
               The capsule · {result.plan.capsule.length} pieces
             </h2>
+            <div className="mt-3">
+              {savedTripId ? (
+                <span className="inline-flex items-center rounded-xl bg-iris-soft px-4 py-2 text-sm font-semibold text-iris">
+                  ✓ Trip saved — your brief packs this capsule
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleSaveTrip()}
+                  disabled={savingTrip}
+                  className="btn-primary !px-4 !py-2 !text-sm"
+                >
+                  {savingTrip ? 'Saving…' : 'Save trip — style me from this capsule'}
+                </button>
+              )}
+            </div>
             <p className="mb-4 max-w-2xl text-sm text-ink/60">{result.plan.rationale}</p>
             <div className="flex flex-wrap gap-4">
               {result.plan.capsule.map((item) => (

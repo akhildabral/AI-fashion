@@ -126,3 +126,47 @@ export async function getFeed(req: Request, res: Response) {
   cards.sort((a, b) => (a.at < b.at ? 1 : -1));
   res.json({ cards });
 }
+
+// Explore: sitewide shared OOTDs — featured picks first, then recent.
+// (The community is waitlist-gated, so "everyone approved" is already a
+// curated pool; featuring pins the best on top.)
+export async function getExplore(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const logs = await prisma.wearLog.findMany({
+    where: { sharedAt: { not: null }, userId: { not: req.user.id } },
+    orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
+    take: 30,
+    include: { user: { select: { handle: true } } },
+  });
+  const itemIds = [...new Set(logs.flatMap((l) => l.itemIds))];
+  const items = await prisma.wardrobeItem.findMany({
+    where: { id: { in: itemIds } },
+    select: { id: true, imageUrl: true, subtype: true, category: true },
+  });
+  const byId = new Map(items.map((i) => [i.id, i]));
+  res.json({
+    cards: logs.map((l) => ({
+      type: 'ootd' as const,
+      wearLogId: l.id,
+      at: (l.sharedAt ?? l.wornOn).toISOString(),
+      handle: l.user.handle,
+      eventType: l.eventType,
+      featured: Boolean(l.featuredAt),
+      items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),
+    })),
+  });
+}
+
+// Admin: pin/unpin a shared outfit on Explore.
+export async function toggleFeature(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  if (req.user.role !== 'admin') throw new HttpError(403, 'Admin access required');
+  const id = String(req.params.id);
+  const log = await prisma.wearLog.findUnique({ where: { id } });
+  if (!log || !log.sharedAt) throw new HttpError(404, 'Shared outfit not found');
+  const updated = await prisma.wearLog.update({
+    where: { id },
+    data: { featuredAt: log.featuredAt ? null : new Date() },
+  });
+  res.json({ featured: Boolean(updated.featuredAt) });
+}

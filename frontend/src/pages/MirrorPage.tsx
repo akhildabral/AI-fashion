@@ -5,7 +5,14 @@ import { deleteTryOn, getTryOns } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { Look, LooksResponse, TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
-import { MirrorFrame } from '../components/ui'
+import { MirrorFrame, Modal } from '../components/ui'
+import {
+  createLookbook,
+  getLookbooks,
+  toggleLookbookItem,
+  deleteLookbook,
+  type Lookbook,
+} from '../lib/brief'
 
 // Mirror: every render of you, one stage. Follows the app theme — and the
 // pull-cord on the frame is a real light switch for the whole app.
@@ -26,6 +33,10 @@ export function MirrorPage() {
   const [pollBusy, setPollBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const renderedFor = useRef<string | null>(null)
+  const [lookbooks, setLookbooks] = useState<Lookbook[]>([])
+  const [activeBook, setActiveBook] = useState<string | null>(null)
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
+  const [newBookName, setNewBookName] = useState('')
 
   const load = useCallback(() => {
     getTryOns()
@@ -43,7 +54,40 @@ export function MirrorPage() {
 
   useEffect(() => {
     load()
+    getLookbooks().then((r) => setLookbooks(r.lookbooks)).catch(() => undefined)
   }, [load])
+
+  async function handleToggleBook(bookId: string, tryOnId: string) {
+    try {
+      const { lookbook } = await toggleLookbookItem(bookId, tryOnId)
+      setLookbooks((prev) => prev.map((b) => (b.id === lookbook.id ? lookbook : b)))
+    } catch {
+      flash('Could not update that lookbook.')
+    }
+  }
+
+  async function handleCreateBook() {
+    const name = newBookName.trim()
+    if (!name) return
+    try {
+      const { lookbook } = await createLookbook(name)
+      setLookbooks((prev) => [lookbook, ...prev])
+      setNewBookName('')
+      if (pickerFor) await handleToggleBook(lookbook.id, pickerFor)
+    } catch {
+      flash('Could not create the lookbook.')
+    }
+  }
+
+  async function handleDeleteBook(id: string) {
+    try {
+      await deleteLookbook(id)
+      setLookbooks((prev) => prev.filter((b) => b.id !== id))
+      if (activeBook === id) setActiveBook(null)
+    } catch {
+      flash('Could not delete that lookbook.')
+    }
+  }
 
   // Arriving with ?items= means "render this outfit on me, now".
   const itemsParam = params.get('items')
@@ -211,6 +255,41 @@ export function MirrorPage() {
                 </div>
               )}
             </div>
+            {tab === 'on-you' && (tryOns?.length ?? 0) > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-ink/40">
+                  Lookbooks
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveBook(null)}
+                  className={`chip !px-3 !py-1.5 !text-xs ${activeBook === null ? 'chip-on' : ''}`}
+                >
+                  All
+                </button>
+                {lookbooks.map((b) => (
+                  <span key={b.id} className="inline-flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setActiveBook((prev) => (prev === b.id ? null : b.id))}
+                      className={`chip !px-3 !py-1.5 !text-xs ${activeBook === b.id ? 'chip-on' : ''}`}
+                    >
+                      {b.name} · {b.tryOnIds.length}
+                    </button>
+                    {activeBook === b.id && (
+                      <button
+                        type="button"
+                        aria-label="Delete lookbook"
+                        onClick={() => void handleDeleteBook(b.id)}
+                        className="ml-1 text-xs text-ink/35 hover:text-red-500"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
             {compareMode && (
               <p className="mt-2 text-xs text-ink/50">
                 Pick two renders, then send them to your Circle as a poll.
@@ -225,7 +304,13 @@ export function MirrorPage() {
 
             {tab === 'on-you' && (
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
-                {(tryOns ?? []).map((t) => {
+                {(tryOns ?? [])
+                  .filter((t) => {
+                    if (!activeBook) return true
+                    const book = lookbooks.find((b) => b.id === activeBook)
+                    return book ? book.tryOnIds.includes(t.id) : true
+                  })
+                  .map((t) => {
                   const idx = compare.indexOf(t.id)
                   return (
                     <div key={t.id} className="group relative">
@@ -261,14 +346,25 @@ export function MirrorPage() {
                         </span>
                       )}
                       {!compareMode && (
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(t.id)}
-                          aria-label="Remove render"
-                          className="absolute right-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
-                        >
-                          ✕
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(t.id)}
+                            aria-label="Remove render"
+                            className="absolute right-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
+                          >
+                            ✕
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPickerFor(t.id)}
+                            aria-label="Save to lookbook"
+                            title="Save to a lookbook"
+                            className="absolute left-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
+                          >
+                            ＋
+                          </button>
+                        </>
                       )}
                     </div>
                   )
@@ -322,6 +418,50 @@ export function MirrorPage() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={pickerFor !== null}
+        onClose={() => setPickerFor(null)}
+        title="Save to a lookbook"
+      >
+        {pickerFor && (
+          <>
+            {lookbooks.length > 0 && (
+              <div className="space-y-2">
+                {lookbooks.map((b) => {
+                  const inBook = b.tryOnIds.includes(pickerFor)
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => void handleToggleBook(b.id, pickerFor)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
+                        inBook
+                          ? 'border-iris bg-iris-soft text-iris'
+                          : 'border-ink/10 text-ink/75 hover:border-ink/30'
+                      }`}
+                    >
+                      <span>{b.name}</span>
+                      <span className="text-xs">{inBook ? '✓ added' : `${b.tryOnIds.length} renders`}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-ink/10 bg-surface p-1.5 pl-4">
+              <input
+                value={newBookName}
+                onChange={(e) => setNewBookName(e.target.value)}
+                placeholder="New lookbook — e.g. Wedding options"
+                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-ink outline-none placeholder:text-ink/35"
+              />
+              <button type="button" onClick={() => void handleCreateBook()} className="btn-primary !px-4 !py-2 !text-xs">
+                Create
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   )
 }
