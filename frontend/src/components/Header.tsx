@@ -65,15 +65,15 @@ export function Header() {
 
         {user && (
           <>
-            {/* Centered floating nav */}
-            <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border border-ink/5 bg-surface/80 p-1 backdrop-blur sm:flex">
+            {/* Centered nav — sharp chrome, brass marks the room you're in */}
+            <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-[3px] border border-ink/10 bg-surface/80 p-1 backdrop-blur sm:flex">
               {NAV.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-[2px] px-4 py-2 text-sm font-medium transition-colors ${
                     isActive(pathname, item.match)
-                      ? 'bg-ink text-bone'
+                      ? 'bg-iris text-[rgb(26_21_9)]'
                       : 'text-ink/55 hover:text-ink'
                   }`}
                 >
@@ -94,12 +94,12 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Account menu"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-bone transition-colors hover:bg-spark-deep"
+                className="flex h-9 w-9 items-center justify-center rounded-[3px] bg-iris text-xs font-bold text-[rgb(26_21_9)] transition-colors hover:bg-iris-deep"
               >
                 {initials}
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-ink/10 bg-surface py-2 shadow-float">
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-[3px] border border-brass/30 bg-surface py-2 shadow-float">
                   <p className="truncate px-4 py-2 text-xs text-ink/45">{user.email}</p>
                   {MENU.map((item) => (
                     <Link
@@ -139,9 +139,9 @@ export function Header() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-[3px] px-4 py-1.5 text-sm font-medium transition-colors ${
                 isActive(pathname, item.match)
-                  ? 'bg-ink text-bone'
+                  ? 'bg-iris text-[rgb(26_21_9)]'
                   : 'text-ink/55 hover:text-ink'
               }`}
             >

@@ -18,7 +18,6 @@ import { ProfilePage } from './pages/ProfilePage'
 import { JournalPage } from './pages/JournalPage'
 import { QuizPage } from './pages/QuizPage'
 import { PackingPage } from './pages/PackingPage'
-import { FriendsPage } from './pages/FriendsPage'
 import { UserProfilePage } from './pages/UserProfilePage'
 import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
@@ -66,7 +65,8 @@ export default function App() {
                 <Route path="/closet" element={guarded(<ClosetPage />)} />
                 <Route path="/mirror" element={guarded(<MirrorPage />)} />
                 <Route path="/circle" element={guarded(<CirclePage />)} />
-                <Route path="/circle/people" element={guarded(<FriendsPage />)} />
+                {/* People is folded into Circle now — keep the URL working. */}
+                <Route path="/circle/people" element={<Navigate to="/circle" replace />} />
                 <Route path="/u/:handle" element={guarded(<UserProfilePage />)} />
 
                 {/* First run */}
