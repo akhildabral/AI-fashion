@@ -16,6 +16,78 @@ const transport = smtpConfigured
     })
   : null;
 
+// ---- Branded HTML wrapper ------------------------------------------------
+// Email clients need table layout + inline styles (no external CSS, no web
+// fonts). Palette mirrors the app: bone ground, ink text, vermilion accent.
+
+const C = {
+  bone: '#FBFAF8',
+  surface: '#FFFFFF',
+  ink: '#1D1512',
+  inkSoft: '#6F6660',
+  iris: '#D9481F',
+  border: '#EDE9E4',
+};
+
+const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+const SERIF = "Georgia,'Times New Roman',serif";
+
+interface EmailBody {
+  /** Big display line, e.g. "You're in." */
+  headline: string;
+  /** Italic serif line under the headline. */
+  tagline: string;
+  /** Paragraphs between tagline and button. */
+  paragraphs: string[];
+  /** Button label + destination. */
+  cta: { label: string; url: string };
+  /** Small print under the button (validity, ignore-note). */
+  footnote: string;
+}
+
+export function renderEmail(b: EmailBody): string {
+  const paragraphs = b.paragraphs
+    .map(
+      (p) =>
+        `<p style="margin:0 0 14px;font-family:${SANS};font-size:15px;line-height:1.6;color:${C.ink};">${p}</p>`,
+    )
+    .join('');
+
+  return `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background-color:${C.bone};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${C.bone};">
+    <tr><td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+
+        <tr><td align="center" style="padding:0 0 28px;">
+          <span style="font-family:${SANS};font-size:18px;font-weight:800;letter-spacing:-0.3px;color:${C.ink};">AI&nbsp;Fashion</span><span style="font-family:${SANS};font-size:18px;font-weight:800;color:${C.iris};">*</span>
+        </td></tr>
+
+        <tr><td style="background-color:${C.surface};border:1px solid ${C.border};border-radius:16px;padding:36px 36px 32px;">
+          <h1 style="margin:0 0 6px;font-family:${SANS};font-size:32px;font-weight:800;letter-spacing:-0.8px;line-height:1.1;color:${C.ink};">${b.headline}</h1>
+          <p style="margin:0 0 22px;font-family:${SERIF};font-style:italic;font-size:15px;color:${C.inkSoft};">${b.tagline}</p>
+          ${paragraphs}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
+            <tr><td style="background-color:${C.iris};border-radius:999px;">
+              <a href="${b.cta.url}" style="display:inline-block;padding:13px 30px;font-family:${SANS};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${b.cta.label}</a>
+            </td></tr>
+          </table>
+          <p style="margin:14px 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.inkSoft};">${b.footnote}</p>
+          <p style="margin:16px 0 0;font-family:${SANS};font-size:11px;line-height:1.5;color:${C.inkSoft};word-break:break-all;">Button not working? Paste this link into your browser:<br><a href="${b.cta.url}" style="color:${C.iris};">${b.cta.url}</a></p>
+        </td></tr>
+
+        <tr><td align="center" style="padding:22px 0 0;">
+          <p style="margin:0;font-family:${SERIF};font-style:italic;font-size:13px;color:${C.inkSoft};">Every morning, an outfit — already waiting.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export async function sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
   if (!transport) {
     console.log(`[mailer] SMTP not configured — verification link for ${to}: ${verifyUrl}`);
@@ -32,12 +104,18 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
       `The link is valid for 24 hours. After verification your account joins ` +
       `the waitlist — we'll let you know when access is approved.\n\n` +
       `If you didn't sign up, you can ignore this email.`,
-    html:
-      `<p>Welcome to <strong>AI Fashion</strong>!</p>` +
-      `<p><a href="${verifyUrl}">Confirm your email</a> (valid for 24 hours).</p>` +
-      `<p>After verification your account joins the waitlist — we'll let you ` +
-      `know when access is approved.</p>` +
-      `<p style="color:#888">If you didn't sign up, you can ignore this email.</p>`,
+    html: renderEmail({
+      headline: 'Almost there.',
+      tagline: 'one click between you and your stylist',
+      paragraphs: [
+        `Confirm this email address to finish setting up your <strong>AI&nbsp;Fashion</strong> account.`,
+      ],
+      cta: { label: 'Confirm my email', url: verifyUrl },
+      footnote:
+        `The link is valid for 24 hours. After verification your account joins the ` +
+        `waitlist — we'll let you know when access is approved. If you didn't sign ` +
+        `up, you can ignore this email.`,
+    }),
   });
 }
 
@@ -54,6 +132,16 @@ export async function sendInviteEmail(to: string, inviteUrl: string): Promise<bo
       `You're off the waitlist!\n\n` +
       `Your personal stylist is ready. Set your password and step in:\n${inviteUrl}\n\n` +
       `This invite link is valid for 7 days.`,
+    html: renderEmail({
+      headline: "You're in.",
+      tagline: 'your personal stylist has been expecting you',
+      paragraphs: [
+        `You're off the waitlist. Your closet, your daily outfit brief, and the ` +
+          `Mirror are ready — set your password and step inside.`,
+      ],
+      cta: { label: 'Claim my account', url: inviteUrl },
+      footnote: `This invite is personal to you and valid for 7 days.`,
+    }),
   });
   return true;
 }
