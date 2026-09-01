@@ -58,7 +58,7 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
         <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">{copy.subtitle}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 shadow-sm">
+      <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 ">
         <div>
           <label htmlFor="email" className="label">
             Email

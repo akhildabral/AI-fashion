@@ -165,7 +165,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
   }
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-surface ">
       {/* Image */}
       <div className="relative aspect-[3/4] bg-gradient-to-br from-bone to-clay/20">
         {hasImage ? (
@@ -187,7 +187,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             aria-pressed={favorite}
             aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
             title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink  backdrop-blur transition hover:bg-surface disabled:opacity-60"
           >
             <HeartIcon filled={favorite} />
           </button>

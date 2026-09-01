@@ -146,7 +146,7 @@ export function AdminPage() {
               required
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-64 rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+              className="w-64 rounded-lg border border-ink/15 bg-surface px-3 py-2 text-sm text-ink"
               placeholder="person@example.com"
             />
           </label>
@@ -158,7 +158,7 @@ export function AdminPage() {
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-56 rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+              className="w-56 rounded-lg border border-ink/15 bg-surface px-3 py-2 text-sm text-ink"
               placeholder="min 8 characters"
             />
           </label>
@@ -229,7 +229,7 @@ export function AdminPage() {
                           plan: e.target.value,
                         })
                       }
-                      className="rounded-lg border border-ink/15 bg-white px-2 py-1 text-xs text-ink"
+                      className="rounded-lg border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
                     >
                       {['free', 'plus', 'pro', 'founder'].map((p) => (
                         <option key={p} value={p}>

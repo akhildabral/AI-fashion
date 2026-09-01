@@ -168,7 +168,7 @@ export function UserProfilePage() {
           </div>
 
           {overlap && overlap.matchedCount > 0 && (
-            <div className="mb-8 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+            <div className="mb-8 rounded-2xl border border-ink/10 bg-surface p-5 ">
               <p className="font-medium text-ink">
                 You could recreate {overlap.matchedCount} of their {overlap.theirCount} public
                 piece{overlap.theirCount === 1 ? '' : 's'} from your own wardrobe
@@ -252,8 +252,8 @@ export function UserProfilePage() {
                     key={item.id}
                     className={
                       selectedIndex >= 0
-                        ? 'relative overflow-hidden rounded-2xl border-2 border-clay bg-white shadow-md'
-                        : 'relative overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm'
+                        ? 'relative overflow-hidden rounded-2xl border-2 border-clay bg-surface shadow-md'
+                        : 'relative overflow-hidden rounded-2xl border border-ink/10 bg-surface '
                     }
                   >
                     {picking && (

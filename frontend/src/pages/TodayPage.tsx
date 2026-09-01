@@ -188,7 +188,7 @@ export function TodayPage() {
       </p>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-white shadow-card">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
           {toast}
         </div>
       )}
@@ -386,7 +386,7 @@ export function TodayPage() {
             <Link
               key={i}
               to="/circle"
-              className="card animate-rise p-4 transition hover:-translate-y-0.5 hover:shadow-card"
+              className="card card-hover animate-rise p-4"
             >
               <p className="text-[10px] font-semibold uppercase tracking-widest text-iris">
                 {card.type === 'pick_received' && 'A friend styled you'}

@@ -143,7 +143,7 @@ export function CirclePage() {
                               : 'border-ink/10'
                           }`}
                         />
-                        <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold text-bone">
                           {counts[o.id] ?? 0}
                         </span>
                       </div>

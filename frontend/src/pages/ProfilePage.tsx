@@ -207,7 +207,7 @@ export function ProfilePage() {
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-8 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8"
+        className="space-y-8 rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8"
       >
         {/* Fit */}
         <fieldset className="space-y-5">

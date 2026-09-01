@@ -3,12 +3,52 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
+import { isDark, toggleTheme } from '../lib/theme'
 import type { Look, LooksResponse, TryOn, TryOnResponse } from '../lib/types'
+import { Spinner } from '../components/Spinner'
 
-// Mirror: every render of you, one dark stage. Looks and try-ons merge
-// here; "See it on you" from anywhere in the app lands on this screen.
+// Mirror: every render of you, one stage. Follows the app theme — and the
+// pull-cord on the frame is a real light switch for the whole app.
 
 type Tab = 'on-you' | 'looks'
+
+const FRAME_RADIUS = '10rem 10rem 1.5rem 1.5rem'
+
+function PullCord() {
+  const [dark, setDark] = useState(() => isDark())
+  const [pulling, setPulling] = useState(false)
+  useEffect(() => {
+    const onChange = () => setDark(isDark())
+    window.addEventListener('themechange', onChange)
+    return () => window.removeEventListener('themechange', onChange)
+  }, [])
+  function pull() {
+    setPulling(true)
+    window.setTimeout(() => {
+      setDark(toggleTheme())
+      setPulling(false)
+    }, 180)
+  }
+  return (
+    <button
+      type="button"
+      onClick={pull}
+      aria-label={dark ? 'Turn the lights on' : 'Turn the lights off'}
+      title={dark ? 'Lights on' : 'Lights off'}
+      className="group absolute -top-1 right-8 z-10 flex flex-col items-center"
+      style={{
+        transform: pulling ? 'translateY(14px)' : 'translateY(0)',
+        transition: 'transform 180ms cubic-bezier(0.3, 0.9, 0.4, 1.4)',
+      }}
+    >
+      <span className="block h-16 w-px bg-gradient-to-b from-ink/10 via-ink/35 to-ink/50" />
+      <span className="mt-0.5 block h-7 w-3.5 rounded-full border border-ink/25 bg-surface transition-colors group-hover:border-iris group-hover:bg-iris-soft" />
+      <span className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink/35 transition-colors group-hover:text-iris">
+        {dark ? 'lights' : 'dim'}
+      </span>
+    </button>
+  )
+}
 
 export function MirrorPage() {
   const [params, setParams] = useSearchParams()
@@ -113,42 +153,54 @@ export function MirrorPage() {
     }
   }
 
-  const gallery = tab === 'on-you' ? tryOns : null
-
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-theater text-[#F3F1EA]">
+    <div className="relative min-h-[calc(100vh-73px)]">
+      {/* Ambient glow — a soft wash in the light, the theater in the dark */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 dark:hidden"
+        style={{
+          background:
+            'radial-gradient(560px 300px at 18% 8%, rgba(75,59,228,0.06), transparent 60%), radial-gradient(520px 300px at 85% 90%, rgba(255,106,61,0.05), transparent 62%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          background:
+            'radial-gradient(560px 320px at 20% 10%, rgba(229,71,109,0.16), transparent 60%), radial-gradient(520px 320px at 85% 90%, rgba(75,59,228,0.2), transparent 62%)',
+        }}
+      />
+
       <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-        {/* glow */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{
-            background:
-              'radial-gradient(560px 320px at 20% 10%, rgba(229,71,109,0.22), transparent 60%), radial-gradient(520px 320px at 85% 90%, rgba(75,59,228,0.28), transparent 62%)',
-          }}
-        />
         {toast && (
-          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-theater-iris px-5 py-3 text-sm font-semibold text-theater shadow-card">
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
             {toast}
           </div>
         )}
 
-        <div className="relative">
-          <p className="animate-rise font-serif text-sm italic text-theater-spark">
-            Show yourself
-          </p>
-          <h1 className="mt-1 animate-rise-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-            The Mirror
-          </h1>
+        <p className="animate-rise font-serif text-sm italic text-spark">Show yourself</p>
+        <h1 className="mt-1 animate-rise-1 font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
+          The Mirror
+        </h1>
 
-          <div className="mt-8 grid animate-rise-2 gap-8 lg:grid-cols-[minmax(280px,380px)_1fr]">
-            {/* Stage */}
-            <div>
-              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-theater-surface">
+        <div className="mt-8 grid animate-rise-2 gap-10 lg:grid-cols-[minmax(280px,380px)_1fr]">
+          {/* The mirror itself */}
+          <div className="relative pt-6">
+            <PullCord />
+            <div
+              className="bg-gradient-to-b from-[#E5E1D4] via-[#CFC9B8] to-[#B4AD99] p-2.5 dark:from-[#3E3A31] dark:via-[#2A2721] dark:to-[#1C1A15]"
+              style={{ borderRadius: FRAME_RADIUS }}
+            >
+              <div
+                className="relative overflow-hidden border border-black/10 bg-surface dark:border-white/5"
+                style={{ borderRadius: '9.5rem 9.5rem 1.1rem 1.1rem' }}
+              >
                 {rendering ? (
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-6 text-center">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-theater-iris border-t-transparent" />
-                    <p className="font-serif italic text-theater-mist">
+                    <Spinner className="h-8 w-8 text-iris" />
+                    <p className="font-serif italic text-ink/55">
                       rendering it on you — ~20 seconds…
                     </p>
                   </div>
@@ -159,181 +211,188 @@ export function MirrorPage() {
                     className="aspect-[3/4] w-full object-cover"
                   />
                 ) : (
-                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-8 text-center text-theater-mist">
-                    <p className="font-display text-lg font-bold text-[#F3F1EA]">Nothing here yet</p>
-                    <p className="text-sm">
-                      Hit "See it on you" on today's brief — or on any closet item — and the render
-                      lands on this stage.
+                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-8 text-center">
+                    <p className="font-display text-lg font-bold text-ink">Nothing here yet</p>
+                    <p className="text-sm text-ink/55">
+                      Hit "See it on you" on today's brief — or on any closet item — and the
+                      render lands on this stage.
                     </p>
                   </div>
                 )}
+                {/* glass sheen */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.10) 47%, rgba(255,255,255,0.02) 55%, transparent 60%)',
+                  }}
+                />
               </div>
-              {stage && !rendering && (
-                <p className="mt-3 text-center font-serif text-sm italic text-theater-mist">
-                  {stage.caption}
-                </p>
-              )}
             </div>
+            {stage && !rendering && (
+              <p className="mt-3 text-center font-serif text-sm italic text-ink/50">
+                {stage.caption}
+              </p>
+            )}
+          </div>
 
-            {/* Gallery */}
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex gap-1 rounded-full border border-white/12 bg-white/5 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setTab('on-you')}
-                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                      tab === 'on-you' ? 'bg-[#F3F1EA] text-theater' : 'text-theater-mist hover:text-white'
-                    }`}
-                  >
-                    On you {tryOns ? `· ${tryOns.length}` : ''}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTab('looks')}
-                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                      tab === 'looks' ? 'bg-[#F3F1EA] text-theater' : 'text-theater-mist hover:text-white'
-                    }`}
-                  >
-                    Looks {looks ? `· ${looks.length}` : ''}
-                  </button>
-                </div>
-                {tab === 'on-you' && (tryOns?.length ?? 0) >= 2 && (
-                  <div className="flex items-center gap-2">
-                    {compareMode && compare.length === 2 && (
-                      <button
-                        type="button"
-                        onClick={() => void createPollFromCompare()}
-                        disabled={pollBusy}
-                        className="rounded-xl bg-theater-iris px-4 py-2 text-sm font-semibold text-theater transition hover:-translate-y-px disabled:opacity-50"
-                      >
-                        {pollBusy ? 'Creating…' : 'Ask the Circle →'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCompareMode((v) => !v)
-                        setCompare([])
-                      }}
-                      className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                        compareMode
-                          ? 'border-theater-iris text-theater-iris'
-                          : 'border-white/15 text-theater-mist hover:text-white'
-                      }`}
-                    >
-                      {compareMode ? 'Cancel face-off' : 'A/B face-off'}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {compareMode && (
-                <p className="mt-2 text-xs text-theater-mist">
-                  Pick two renders, then send them to your Circle as a poll.
-                </p>
-              )}
-
-              {error && (
-                <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-2.5 text-sm text-red-300">
-                  {error}
-                </p>
-              )}
-
-              {tab === 'on-you' && (
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {(gallery ?? []).map((t) => {
-                    const idx = compare.indexOf(t.id)
-                    return (
-                      <div key={t.id} className="group relative">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            compareMode
-                              ? toggleCompare(t.id, t.imageUrl)
-                              : setStage({
-                                  imageUrl: t.imageUrl,
-                                  caption: new Date(t.createdAt).toLocaleDateString(undefined, {
-                                    day: 'numeric',
-                                    month: 'short',
-                                  }),
-                                })
-                          }
-                          className={`block w-full overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 ${
-                            idx >= 0 ? 'border-theater-iris ring-2 ring-theater-iris/40' : 'border-white/10'
-                          }`}
-                        >
-                          <img
-                            src={resolveImageUrl(t.imageUrl)}
-                            alt="Try-on render"
-                            loading="lazy"
-                            className="aspect-[3/4] w-full object-cover"
-                          />
-                        </button>
-                        {idx >= 0 && (
-                          <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-theater-iris text-xs font-bold text-theater">
-                            {idx === 0 ? 'A' : 'B'}
-                          </span>
-                        )}
-                        {!compareMode && (
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(t.id)}
-                            aria-label="Remove render"
-                            className="absolute right-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition hover:bg-black group-hover:flex"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {tryOns !== null && tryOns.length === 0 && (
-                    <p className="col-span-full rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-theater-mist">
-                      No renders yet — "See it on you" on the Today brief makes your first.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {tab === 'looks' && (
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {(looks ?? []).map((l, i) => (
-                    <button
-                      key={l.id ?? i}
-                      type="button"
-                      onClick={() =>
-                        l.imageUrl && setStage({ imageUrl: l.imageUrl, caption: l.occasion ?? 'A look' })
-                      }
-                      className="block overflow-hidden rounded-2xl border border-white/10 transition hover:-translate-y-0.5"
-                    >
-                      <img
-                        src={resolveImageUrl(l.imageUrl!)}
-                        alt={l.occasion ?? 'Generated look'}
-                        loading="lazy"
-                        className="aspect-[3/4] w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                  {looks !== null && looks.length === 0 && (
-                    <p className="col-span-full rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-theater-mist">
-                      Generated looks with images appear here.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <p className="mt-6 text-xs text-theater-mist">
-                Want a fresh render?{' '}
+          {/* Gallery */}
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-1 rounded-full border border-ink/10 bg-surface p-1">
                 <button
                   type="button"
-                  onClick={() => navigate('/')}
-                  className="font-semibold text-theater-iris hover:underline"
+                  onClick={() => setTab('on-you')}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    tab === 'on-you' ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
+                  }`}
                 >
-                  Style today's brief
-                </button>{' '}
-                and tap "See it on you".
-              </p>
+                  On you {tryOns ? `· ${tryOns.length}` : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab('looks')}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    tab === 'looks' ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
+                  }`}
+                >
+                  Looks {looks ? `· ${looks.length}` : ''}
+                </button>
+              </div>
+              {tab === 'on-you' && (tryOns?.length ?? 0) >= 2 && (
+                <div className="flex items-center gap-2">
+                  {compareMode && compare.length === 2 && (
+                    <button
+                      type="button"
+                      onClick={() => void createPollFromCompare()}
+                      disabled={pollBusy}
+                      className="btn-primary !px-4 !py-2"
+                    >
+                      {pollBusy ? 'Creating…' : 'Ask the Circle →'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompareMode((v) => !v)
+                      setCompare([])
+                    }}
+                    className={`chip ${compareMode ? '!border-iris !text-iris' : ''}`}
+                  >
+                    {compareMode ? 'Cancel face-off' : 'A/B face-off'}
+                  </button>
+                </div>
+              )}
             </div>
+            {compareMode && (
+              <p className="mt-2 text-xs text-ink/50">
+                Pick two renders, then send them to your Circle as a poll.
+              </p>
+            )}
+
+            {error && (
+              <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                {error}
+              </p>
+            )}
+
+            {tab === 'on-you' && (
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {(tryOns ?? []).map((t) => {
+                  const idx = compare.indexOf(t.id)
+                  return (
+                    <div key={t.id} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          compareMode
+                            ? toggleCompare(t.id, t.imageUrl)
+                            : setStage({
+                                imageUrl: t.imageUrl,
+                                caption: new Date(t.createdAt).toLocaleDateString(undefined, {
+                                  day: 'numeric',
+                                  month: 'short',
+                                }),
+                              })
+                        }
+                        className={`block w-full overflow-hidden rounded-2xl border transition-colors ${
+                          idx >= 0
+                            ? 'border-iris ring-2 ring-iris/30'
+                            : 'border-ink/10 hover:border-ink/35'
+                        }`}
+                      >
+                        <img
+                          src={resolveImageUrl(t.imageUrl)}
+                          alt="Try-on render"
+                          loading="lazy"
+                          className="aspect-[3/4] w-full object-cover"
+                        />
+                      </button>
+                      {idx >= 0 && (
+                        <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-iris text-xs font-bold text-bone">
+                          {idx === 0 ? 'A' : 'B'}
+                        </span>
+                      )}
+                      {!compareMode && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(t.id)}
+                          aria-label="Remove render"
+                          className="absolute right-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+                {tryOns !== null && tryOns.length === 0 && (
+                  <p className="col-span-full rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
+                    No renders yet — "See it on you" on the Today brief makes your first.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {tab === 'looks' && (
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {(looks ?? []).map((l, i) => (
+                  <button
+                    key={l.id ?? i}
+                    type="button"
+                    onClick={() =>
+                      l.imageUrl && setStage({ imageUrl: l.imageUrl, caption: l.occasion ?? 'A look' })
+                    }
+                    className="block overflow-hidden rounded-2xl border border-ink/10 transition-colors hover:border-ink/35"
+                  >
+                    <img
+                      src={resolveImageUrl(l.imageUrl!)}
+                      alt={l.occasion ?? 'Generated look'}
+                      loading="lazy"
+                      className="aspect-[3/4] w-full object-cover"
+                    />
+                  </button>
+                ))}
+                {looks !== null && looks.length === 0 && (
+                  <p className="col-span-full rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
+                    Generated looks with images appear here.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p className="mt-6 text-xs text-ink/45">
+              Want a fresh render?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="font-semibold text-iris hover:underline"
+              >
+                Style today's brief
+              </button>{' '}
+              and tap "See it on you".
+            </p>
           </div>
         </div>
       </div>

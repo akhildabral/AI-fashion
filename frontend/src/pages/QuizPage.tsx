@@ -91,13 +91,13 @@ export function QuizPage() {
                 key={`${pair.id}-${side}`}
                 type="button"
                 onClick={() => choose(side)}
-                className="group overflow-hidden rounded-2xl border border-ink/10 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-clay/50 hover:shadow-md"
+                className="group overflow-hidden rounded-2xl border border-ink/10 bg-surface text-left  transition hover:border-iris/60"
               >
                 <div className="aspect-square overflow-hidden bg-bone">
                   <img
                     src={pair[side].imageUrl}
                     alt={pair[side].label}
-                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+                    className="h-full w-full object-cover transition duration-200"
                   />
                 </div>
                 <p className="px-4 py-3 text-center text-sm font-medium text-ink/80">

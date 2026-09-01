@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { isDark, toggleTheme } from '../lib/theme'
 
 const NAV = [
   { to: '/', label: 'Today', match: ['/'] },
@@ -18,6 +19,26 @@ const MENU = [
 
 function isActive(pathname: string, match: string[]) {
   return match.some((m) => (m === '/' ? pathname === '/' : pathname.startsWith(m)))
+}
+
+function ThemeToggle({ className = '' }: { className?: string }) {
+  const [dark, setDark] = useState(() => isDark())
+  useEffect(() => {
+    const onChange = () => setDark(isDark())
+    window.addEventListener('themechange', onChange)
+    return () => window.removeEventListener('themechange', onChange)
+  }, [])
+  return (
+    <button
+      type="button"
+      onClick={() => setDark(toggleTheme())}
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={dark ? 'Lights on' : 'Lights off'}
+      className={`flex h-9 w-9 items-center justify-center rounded-full border border-ink/15 text-base text-ink/70 transition-colors hover:border-ink/35 hover:text-ink ${className}`}
+    >
+      {dark ? '☀' : '☾'}
+    </button>
+  )
 }
 
 export function Header() {
@@ -66,7 +87,7 @@ export function Header() {
                   to={item.to}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     isActive(pathname, item.match)
-                      ? 'bg-ink text-white'
+                      ? 'bg-ink text-bone'
                       : 'text-ink/55 hover:text-ink'
                   }`}
                 >
@@ -75,18 +96,20 @@ export function Header() {
               ))}
             </nav>
 
+            <div className="flex items-center gap-2">
+            <ThemeToggle />
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-white transition hover:scale-105"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-bone transition"
               >
                 {initials}
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-ink/10 bg-surface py-2 shadow-card">
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-ink/10 bg-surface py-2 shadow-float">
                   <p className="truncate px-4 py-2 text-xs text-ink/45">{user.email}</p>
                   {MENU.map((item) => (
                     <Link
@@ -116,6 +139,7 @@ export function Header() {
                 </div>
               )}
             </div>
+            </div>
           </>
         )}
       </div>
@@ -128,7 +152,7 @@ export function Header() {
               to={item.to}
               className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${
                 isActive(pathname, item.match)
-                  ? 'bg-ink text-white'
+                  ? 'bg-ink text-bone'
                   : 'text-ink/55 hover:text-ink'
               }`}
             >

@@ -56,20 +56,20 @@ export function GarmentTile({
       disabled={!onClick}
       className={`group relative overflow-hidden rounded-2xl border bg-surface text-left transition ${
         selected ? 'border-iris ring-2 ring-iris/30' : 'border-ink/10'
-      } ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-card' : 'cursor-default'}`}
+      } ${onClick ? 'cursor-pointer hover:border-ink/35' : 'cursor-default'}`}
     >
-      <div className={`${aspect} w-full overflow-hidden bg-bone`}>
+      <div className={`${aspect} w-full overflow-hidden bg-white`}>
         <img
           src={resolveImageUrl(imageUrl)}
           alt={label ?? ''}
           loading="lazy"
-          className={`h-full w-full object-contain p-2 transition group-hover:scale-[1.03] ${
+          className={`h-full w-full object-contain p-2 transition ${
             processing ? 'opacity-40 blur-[1px]' : ''
           }`}
         />
       </div>
       {processing && (
-        <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
+        <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-bone">
           analyzing…
         </span>
       )}
@@ -119,7 +119,7 @@ export function SlideOver({
         onClick={onClose}
         className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full max-w-md animate-rise flex-col overflow-y-auto bg-bone shadow-2xl">
+      <div className="absolute inset-y-0 right-0 flex w-full max-w-md animate-rise flex-col overflow-y-auto bg-bone shadow-float">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-bone/90 px-5 py-4 backdrop-blur">
           <p className="font-display text-base font-bold text-ink">{title ?? 'Details'}</p>
           <button

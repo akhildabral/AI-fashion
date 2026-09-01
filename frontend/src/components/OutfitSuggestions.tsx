@@ -52,7 +52,7 @@ function ItemFeedbackMenu({ itemId, itemName }: { itemId: string; itemName: stri
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-1/2 z-20 mt-1 w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-ink/10 bg-white py-1 shadow-lg">
+          <div className="absolute left-1/2 z-20 mt-1 w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-ink/10 bg-surface py-1 shadow-lg">
             {FEEDBACK_OPTIONS.map((opt) => (
               <button
                 key={opt.signal}
@@ -163,7 +163,7 @@ function OutfitRow({
   const itemIds = outfit.items.map((i) => i.id)
 
   return (
-    <article className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+    <article className="rounded-xl border border-ink/10 bg-surface p-4 ">
       <div className="flex flex-wrap gap-3">
         {outfit.items.map((item) => (
           <div key={item.id} className="w-24">
@@ -247,7 +247,7 @@ function MixAndMatch() {
   }
 
   return (
-    <div className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8">
+    <div className="rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8">
       <h3 className="font-serif text-2xl font-semibold text-ink">Mix &amp; match</h3>
       <p className="mt-1.5 text-sm text-ink/60">
         Name an occasion and we'll assemble outfits from what you already own.
@@ -323,7 +323,7 @@ function WhatToWearToday() {
   }
 
   return (
-    <div className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8">
+    <div className="rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8">
       <h3 className="font-serif text-2xl font-semibold text-ink">What to wear today</h3>
       <p className="mt-1.5 text-sm text-ink/60">
         Give us your city and we'll dress you for the weather.

@@ -45,7 +45,7 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
       aria-modal="true"
     >
       <div
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl sm:p-8"
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -131,7 +131,7 @@ function LogRow({ log, onDeleted }: { log: WearLogEntry; onDeleted: (id: string)
   }
 
   return (
-    <article className="flex items-center gap-4 rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+    <article className="flex items-center gap-4 rounded-xl border border-ink/10 bg-surface p-4 ">
       <div className="w-24 shrink-0">
         <p className="text-xs uppercase tracking-[0.15em] text-clay">{formatDay(log.wornOn)}</p>
         {log.eventType && <p className="mt-1 text-xs capitalize text-ink/50">{log.eventType}</p>}
@@ -220,19 +220,19 @@ export function JournalPage() {
 
       {!loading && !error && insights && (
         <section className="mb-10 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-ink/10 bg-surface p-5 ">
             <p className="text-xs uppercase tracking-[0.2em] text-clay">Outfits logged</p>
             <p className="mt-1 font-serif text-3xl font-semibold text-ink">
               {insights.totals.logged}
             </p>
           </div>
-          <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-ink/10 bg-surface p-5 ">
             <p className="text-xs uppercase tracking-[0.2em] text-clay">Wardrobe items</p>
             <p className="mt-1 font-serif text-3xl font-semibold text-ink">
               {insights.totals.items}
             </p>
           </div>
-          <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-ink/10 bg-surface p-5 ">
             <p className="text-xs uppercase tracking-[0.2em] text-clay">Orphans (90+ days)</p>
             <p className="mt-1 font-serif text-3xl font-semibold text-ink">
               {insights.totals.orphans}

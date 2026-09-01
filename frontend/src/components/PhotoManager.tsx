@@ -87,7 +87,7 @@ export function PhotoManager() {
   return (
     <section
       id="photo"
-      className="scroll-mt-24 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8"
+      className="scroll-mt-24 rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8"
     >
       <div className="mb-6 max-w-2xl">
         <h2 className="font-serif text-2xl font-semibold text-ink">Your photo</h2>

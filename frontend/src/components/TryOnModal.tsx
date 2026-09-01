@@ -85,14 +85,14 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-xl"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-ink shadow-sm backdrop-blur transition hover:bg-white"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-ink  backdrop-blur transition hover:bg-surface"
         >
           <span aria-hidden="true" className="text-lg leading-none">
             ×

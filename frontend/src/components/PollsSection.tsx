@@ -54,7 +54,7 @@ export function PollsSection({ refreshKey }: { refreshKey: number }) {
           return (
             <article
               key={poll.id}
-              className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm"
+              className="rounded-2xl border border-ink/10 bg-surface p-5 "
             >
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-medium text-ink">{poll.question}</p>

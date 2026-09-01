@@ -44,7 +44,7 @@ function HandleCard({ me, onSet }: { me: SocialMe; onSet: (h: string) => void })
         Your name in the community — friends find and follow you by it.
       </p>
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row">
-        <div className="flex flex-1 items-center gap-1 rounded-lg border border-ink/15 bg-white px-3">
+        <div className="flex flex-1 items-center gap-1 rounded-lg border border-ink/15 bg-surface px-3">
           <span className="text-ink/40">@</span>
           <input
             type="text"
@@ -70,7 +70,7 @@ function PickCard({ pick, onGone }: { pick: FriendPick; onGone: (id: string) => 
   const [logged, setLogged] = useState(false)
 
   return (
-    <article className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-ink/10 bg-surface p-5 ">
       <p className="text-sm text-ink/70">
         <Link to={`/u/${pick.byHandle}`} className="font-medium text-clay hover:underline">
           @{pick.byHandle}
@@ -198,7 +198,7 @@ export function FriendsPage() {
                   <Link
                     key={u.handle}
                     to={`/u/${u.handle}`}
-                    className="rounded-full border border-ink/15 bg-white px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
+                    className="rounded-full border border-ink/15 bg-surface px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
                   >
                     @{u.handle}
                   </Link>
@@ -221,7 +221,7 @@ export function FriendsPage() {
                   <Link
                     key={twin.handle}
                     to={`/u/${twin.handle}`}
-                    className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm transition hover:border-clay/50"
+                    className="rounded-2xl border border-ink/10 bg-surface p-4  transition hover:border-clay/50"
                   >
                     <div className="flex items-baseline justify-between">
                       <p className="font-medium text-ink">@{twin.handle}</p>
@@ -271,7 +271,7 @@ export function FriendsPage() {
                     <Link
                       key={u.handle}
                       to={`/u/${u.handle}`}
-                      className="rounded-full border border-ink/15 bg-white px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
+                      className="rounded-full border border-ink/15 bg-surface px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
                     >
                       @{u.handle} {u.isFriend ? '· friends' : ''}
                     </Link>
@@ -287,7 +287,7 @@ export function FriendsPage() {
                     <Link
                       key={u.handle}
                       to={`/u/${u.handle}`}
-                      className="rounded-full border border-ink/15 bg-white px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
+                      className="rounded-full border border-ink/15 bg-surface px-4 py-1.5 text-sm text-ink/75 transition hover:border-clay/50"
                     >
                       @{u.handle} {u.isFriend ? '· friends' : ''}
                     </Link>

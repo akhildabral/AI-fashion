@@ -65,7 +65,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
   const hasCleanedVersion = !!item.originalUrl && item.originalUrl !== item.imageUrl
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-surface ">
       <div className="relative aspect-square bg-gradient-to-br from-bone to-clay/20">
         <ZoomableImage
           src={showOriginal && item.originalUrl ? item.originalUrl : item.imageUrl}
@@ -75,7 +75,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
           <button
             type="button"
             onClick={() => setShowOriginal((v) => !v)}
-            className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink/70 shadow-sm transition hover:bg-white"
+            className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink/70  transition hover:bg-surface"
           >
             {showOriginal ? 'Show clean' : 'Show original'}
           </button>
@@ -88,19 +88,19 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                 .then(({ item: updated }) => onUpdated?.(updated))
                 .catch(() => {})
             }}
-            className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-white shadow-sm transition hover:bg-ink"
+            className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-bone  transition hover:bg-ink"
           >
             Excluded — tap to include
           </button>
         )}
         {item.status === 'processing' && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs text-ink/70 shadow-sm">
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs text-ink/70 ">
             <Spinner className="h-3 w-3" />
             Analyzing…
           </span>
         )}
         {item.status === 'failed' && (
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs text-red-700 shadow-sm">
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs text-red-700 ">
             Tagging failed — edit manually
           </span>
         )}

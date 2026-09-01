@@ -60,7 +60,7 @@ export function PackingPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="mb-10 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8"
+        className="mb-10 rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8"
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -148,7 +148,7 @@ export function PackingPage() {
                 {result.forecast.days.map((d) => (
                   <div
                     key={d.date}
-                    className="min-w-[7.5rem] shrink-0 rounded-xl border border-ink/10 bg-white p-3 text-center shadow-sm"
+                    className="min-w-[7.5rem] shrink-0 rounded-xl border border-ink/10 bg-surface p-3 text-center "
                   >
                     <p className="text-xs uppercase tracking-wide text-clay">{formatDay(d.date)}</p>
                     <p className="mt-1 font-serif text-lg text-ink tabular-nums">
@@ -197,7 +197,7 @@ export function PackingPage() {
                 {result.plan.days.map((day) => (
                   <article
                     key={day.label}
-                    className="flex items-center gap-4 rounded-xl border border-ink/10 bg-white p-4 shadow-sm"
+                    className="flex items-center gap-4 rounded-xl border border-ink/10 bg-surface p-4 "
                   >
                     <div className="w-36 shrink-0">
                       <p className="text-sm font-medium text-ink">{day.label}</p>
@@ -228,7 +228,7 @@ export function PackingPage() {
                 return (
                   <label
                     key={key}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-ink/10 bg-white px-4 py-2.5 text-sm"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-ink/10 bg-surface px-4 py-2.5 text-sm"
                   >
                     <input
                       type="checkbox"
