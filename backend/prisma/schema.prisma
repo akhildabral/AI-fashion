@@ -49,6 +49,7 @@ model User {
   picksSent     FriendPick[] @relation("picksBy")
   usageEvents   UsageEvent[]
   billingEvents BillingEvent[]
+  dailyBriefs   DailyBrief[]
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -151,6 +152,8 @@ model StyleProfile {
   // Taste-quiz output: { signals: string[], takenAt: ISO string }. Cold-start
   // personalization until the wear log takes over.
   styleSignals Json?
+  // Home city for the daily brief's weather (optional).
+  city        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -272,4 +275,20 @@ model BillingEvent {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// The pre-composed outfit that greets the user each morning. One row per
+// user per day; "another" regenerates payload in place. wornLogId links the
+// one-tap wear so the evening card knows the day is settled.
+model DailyBrief {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String   // YYYY-MM-DD in the user's day, client-supplied
+  payload   Json
+  wornLogId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  @@unique([userId, date])
 }

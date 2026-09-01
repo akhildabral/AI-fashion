@@ -15,6 +15,7 @@ import { pollRouter, votePageRouter } from './routes/poll.routes';
 import { socialRouter } from './routes/social.routes';
 import { adminRouter } from './routes/admin.routes';
 import { billingRouter } from './routes/billing.routes';
+import { briefRouter } from './routes/brief.routes';
 import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
@@ -74,6 +75,7 @@ export function createApp() {
   app.use('/api', socialRouter);
   app.use('/api', adminRouter);
   app.use('/api', billingRouter);
+  app.use('/api', briefRouter);
   app.use(votePageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);

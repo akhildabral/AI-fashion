@@ -337,7 +337,7 @@ export async function setVisibility(req: Request, res: Response) {
 // sees what actually gets worn) and the ranker (most-loved pieces score up).
 export type StyleableItem = Awaited<ReturnType<typeof loadStyleableWardrobe>>[number];
 
-async function loadStyleableWardrobe(userId: string) {
+export async function loadStyleableWardrobe(userId: string) {
   const [items, logs, polls, tryOns] = await Promise.all([
     prisma.wardrobeItem.findMany({
       where: { userId, status: { not: 'processing' }, state: 'clean', suppressed: false },
@@ -394,7 +394,7 @@ async function loadStyleableWardrobe(userId: string) {
   }));
 }
 
-async function loadRecentWear(userId: string): Promise<RecentWear[]> {
+export async function loadRecentWear(userId: string): Promise<RecentWear[]> {
   const since = new Date(Date.now() - 14 * 86_400_000);
   const logs = await prisma.wearLog.findMany({
     where: { userId, wornOn: { gte: since } },
@@ -413,7 +413,7 @@ export interface ValidatedOutfit extends SuggestedOutfit {
 // nothing passes — then the least-bad ones are returned with their violations
 // attached so the client can say why they're a stretch), the rest are ranked
 // by validator score plus a revealed-preference bonus for well-worn pieces.
-function validateAndRank(
+export function validateAndRank(
   outfits: SuggestedOutfit[],
   opts: {
     eventType?: EventType;
