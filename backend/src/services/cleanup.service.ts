@@ -83,20 +83,24 @@ export async function cleanGarmentImage(
       const prompt = target ? targetedPrompt(target) : CLEAN_PROMPT;
       const cleaned = await editImage(prompt, [{ data: image, mime }]);
       if (cleaned) {
-        const png = await sharp(cleaned)
+        const studio = await sharp(cleaned)
           .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
           .png()
           .toBuffer();
-        // Matting a white studio shot is the easy case — used only to sample
-        // the palette from garment pixels, never for display.
-        const matted = await removeBackground(png);
-        return {
-          png,
-          ...(matted
-            ? { rgba: { data: matted.rgba, width: matted.width, height: matted.height } }
-            : {}),
-          method: 'generative',
-        };
+        // Matte the clean studio shot to a transparent cutout — a single
+        // garment on seamless white is the easiest matting case, so this is
+        // reliable, and the garment then floats in the UI's lit niche instead
+        // of reading as a white box. The matte also samples the palette.
+        // If matting is uncertain, fall back to the white-studio image.
+        const matted = await removeBackground(studio);
+        if (matted && matted.coverage <= MAX_PLAUSIBLE_COVERAGE) {
+          return {
+            png: matted.png,
+            rgba: { data: matted.rgba, width: matted.width, height: matted.height },
+            method: 'generative',
+          };
+        }
+        return { png: studio, method: 'generative' };
       }
     } catch (err) {
       console.error(

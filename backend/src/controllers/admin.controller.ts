@@ -214,3 +214,52 @@ export async function inviteByEmail(req: Request, res: Response) {
   });
   res.json({ inviteUrl, email: normalized, emailed });
 }
+
+/**
+ * Maintenance: re-matte existing garment display images to transparent
+ * cutouts. Older items were stored as white-studio product shots (opaque
+ * white background); this re-runs local matting on the stored display image
+ * — free, no model/API calls beyond the local matte — so garments float in
+ * the UI's lit niche instead of reading as a white box. Idempotent-ish:
+ * an already-transparent cutout re-mattes to itself; a matte the model is
+ * unsure about is skipped and the item is left untouched.
+ */
+export async function rematteCutouts(_req: Request, res: Response) {
+  const { readStored, saveImageBuffer, deleteFile } = await import('../lib/storage');
+  const { removeBackground } = await import('../services/matting.service');
+
+  const items = await prisma.wardrobeItem.findMany({
+    select: { id: true, imageUrl: true, originalUrl: true },
+  });
+
+  let processed = 0;
+  let converted = 0;
+  let skipped = 0;
+  for (const it of items) {
+    if (!it.imageUrl) continue;
+    processed++;
+    try {
+      const buf = await readStored(it.imageUrl);
+      const matted = await removeBackground(buf);
+      if (!matted || matted.coverage > 0.7) {
+        skipped++;
+        continue;
+      }
+      const stored = await saveImageBuffer(matted.png, 'png');
+      const previous = it.imageUrl;
+      await prisma.wardrobeItem.update({
+        where: { id: it.id },
+        data: { imageUrl: stored.url },
+      });
+      if (previous !== it.originalUrl) {
+        await deleteFile(previous).catch(() => undefined);
+      }
+      converted++;
+    } catch (err) {
+      console.error(`[rematte] item ${it.id} failed:`, err instanceof Error ? err.message : err);
+      skipped++;
+    }
+  }
+
+  res.json({ processed, converted, skipped });
+}

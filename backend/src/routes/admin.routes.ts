@@ -9,6 +9,7 @@ import {
   setPlan,
   resetPassword,
   suspendUser,
+  rematteCutouts,
 } from '../controllers/admin.controller';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 
@@ -26,3 +27,4 @@ adminRouter.post('/admin/users/:id/reset-password', resetPassword);
 adminRouter.post('/admin/users/:id/plan', setPlan);
 adminRouter.post('/admin/users/:id/invite', approveAndInvite);
 adminRouter.post('/admin/invite', inviteByEmail);
+adminRouter.post('/admin/maintenance/rematte', rematteCutouts);
