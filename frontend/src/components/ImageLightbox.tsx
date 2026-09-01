@@ -85,11 +85,11 @@ export function ImageLightbox({
       </button>
 
       <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/15 px-2 py-1">
-        <ZoomButton onClick={(e) => { e.stopPropagation(); changeZoom(zoom - 0.5) }}>−</ZoomButton>
+        <ZoomButton label="Zoom out" onClick={(e) => { e.stopPropagation(); changeZoom(zoom - 0.5) }}>−</ZoomButton>
         <span className="min-w-[3.5rem] text-center text-sm tabular-nums text-white/90">
           {Math.round(zoom * 100)}%
         </span>
-        <ZoomButton onClick={(e) => { e.stopPropagation(); changeZoom(zoom + 0.5) }}>+</ZoomButton>
+        <ZoomButton label="Zoom in" onClick={(e) => { e.stopPropagation(); changeZoom(zoom + 0.5) }}>+</ZoomButton>
       </div>
 
       <div
@@ -117,13 +117,16 @@ export function ImageLightbox({
 function ZoomButton({
   onClick,
   children,
+  label,
 }: {
   onClick: (e: React.MouseEvent) => void
   children: ReactNode
+  label: string
 }) {
   return (
     <button
       type="button"
+      aria-label={label}
       onClick={onClick}
       className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-white transition hover:bg-white/20"
     >

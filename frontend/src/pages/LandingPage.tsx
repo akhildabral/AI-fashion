@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
@@ -6,6 +7,7 @@ import { Spinner } from '../components/Spinner'
 // The public front door: invite-only, so strangers meet the story and a
 // waitlist form — not a signup form.
 export function LandingPage() {
+  usePageTitle('Every morning, an outfit')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<string | null>(null)
@@ -53,7 +55,7 @@ export function LandingPage() {
           <>
             <form
               onSubmit={join}
-              className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-5"
+              className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-5 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
             >
               <input
                 type="email"
@@ -67,7 +69,7 @@ export function LandingPage() {
                 {busy ? <Spinner className="h-4 w-4" /> : 'Join the waitlist'}
               </button>
             </form>
-            {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+            {error && <p className="mt-3 alert-error">{error}</p>}
             <p className="mt-3 text-xs text-ink/40">
               Invite-only while we grow — spots open regularly.
             </p>

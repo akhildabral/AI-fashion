@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
@@ -7,6 +8,7 @@ import type { User } from '../lib/types'
 
 // The invite landing: set a password, claim your name, step inside.
 export function InvitePage() {
+  usePageTitle('You\'re invited')
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const navigate = useNavigate()
@@ -93,7 +95,7 @@ export function InvitePage() {
 
       {state === 'ready' && (
         <form onSubmit={accept} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="firstName" className="label">
                 First name
@@ -137,7 +139,7 @@ export function InvitePage() {
             />
           </div>
           {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+            <p className="alert-error" role="alert">
               {error}
             </p>
           )}

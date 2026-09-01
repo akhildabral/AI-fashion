@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 
 /** Landing page for the emailed verification link. */
 export function VerifyEmailPage() {
+  usePageTitle('Verify email')
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const [state, setState] = useState<'working' | 'ok' | 'error'>('working')

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link } from 'react-router-dom'
 import {
   getExplore,
@@ -37,6 +38,7 @@ function timeAgo(iso: string): string {
 }
 
 export function CirclePage() {
+  usePageTitle('Circle')
   const navigate = useNavigate()
   const { user } = useAuth()
   const [tab, setTab] = useState<'circle' | 'explore'>('circle')
@@ -147,7 +149,7 @@ export function CirclePage() {
         </div>
       )}
       {tab === 'circle' && error && (
-        <p className="mt-6 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>
+        <p className="mt-6 alert-error">{error}</p>
       )}
 
       {tab === 'circle' && cards !== null && cards.length === 0 && (

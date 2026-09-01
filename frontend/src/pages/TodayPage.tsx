@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { useProfile } from '../context/useProfile'
@@ -41,6 +42,7 @@ function itemLabel(i: BriefItem): string {
 }
 
 export function TodayPage() {
+  usePageTitle('Today')
   const { user } = useAuth()
   const { profile } = useProfile()
   const navigate = useNavigate()
@@ -278,7 +280,7 @@ export function TodayPage() {
           </div>
 
           {error && (
-            <p className="mt-6 animate-rise rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+            <p className="mt-6 animate-rise alert-error" role="alert">
               {error}
             </p>
           )}
@@ -296,7 +298,7 @@ export function TodayPage() {
       {!loading && mode === 'brief' && brief && (
         <>
           {error && (
-            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300" role="alert">
+            <p className="mt-4 alert-error" role="alert">
               {error}
             </p>
           )}
@@ -328,7 +330,11 @@ export function TodayPage() {
               </p>
               {brief.trip && (
                 <p className="mt-2 inline-flex animate-rise-2 items-center gap-2 rounded-full bg-spark-soft/70 px-3 py-1.5 text-xs font-medium text-spark-deep">
-                  Styling from your {brief.trip.destination} capsule · until {brief.trip.endDate}
+                  Styling from your {brief.trip.destination} capsule · until{' '}
+                  {new Date(`${brief.trip.endDate}T00:00:00`).toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
                 </p>
               )}
 
@@ -339,7 +345,7 @@ export function TodayPage() {
                 </p>
                 <form
                   onSubmit={handleOccasionSubmit}
-                  className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
+                  className="flex max-w-xl items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
                 >
                   <input
                     value={occasionText}
@@ -544,7 +550,11 @@ export function TodayPage() {
               </p>
             )}
             {alternatives !== null && alternatives.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
+              <div
+                className={
+                  busy === 'swap' ? 'pointer-events-none grid grid-cols-2 gap-3 opacity-50' : 'grid grid-cols-2 gap-3'
+                }
+              >
                 {alternatives.map((alt) => (
                   <GarmentTile
                     key={alt.id}
@@ -554,6 +564,11 @@ export function TodayPage() {
                     onClick={() => void handleSwap(alt)}
                   />
                 ))}
+              </div>
+            )}
+            {busy === 'swap' && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-ink/50">
+                <Spinner className="h-4 w-4" /> swapping…
               </div>
             )}
           </>

@@ -4,6 +4,7 @@ import { ProfileProvider } from './context/ProfileProvider'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
+import { RequireAdmin } from './components/RequireAdmin'
 import { LoginPage } from './pages/LoginPage'
 import { LandingPage } from './pages/LandingPage'
 import { InvitePage } from './pages/InvitePage'
@@ -21,6 +22,7 @@ import { FriendsPage } from './pages/FriendsPage'
 import { UserProfilePage } from './pages/UserProfilePage'
 import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 function guarded(element: JSX.Element, withProfile = true) {
   return (
@@ -76,7 +78,7 @@ export default function App() {
                 <Route path="/profile" element={guarded(<ProfilePage />, false)} />
                 <Route path="/journal" element={guarded(<JournalPage />)} />
                 <Route path="/billing" element={guarded(<BillingPage />, false)} />
-                <Route path="/admin" element={guarded(<AdminPage />, false)} />
+                <Route path="/admin" element={guarded(<RequireAdmin><AdminPage /></RequireAdmin>, false)} />
 
                 {/* Old structure → new spaces */}
                 <Route path="/wardrobe" element={<Navigate to="/closet" replace />} />
@@ -85,7 +87,7 @@ export default function App() {
                 <Route path="/friends" element={<Navigate to="/circle" replace />} />
                 <Route path="/packing" element={<Navigate to="/trips" replace />} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>
           </div>

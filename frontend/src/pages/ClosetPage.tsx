@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
@@ -28,6 +29,7 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
 ]
 
 export function ClosetPage() {
+  usePageTitle('Closet')
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
@@ -47,7 +49,7 @@ export function ClosetPage() {
   const dragDepth = useRef(0)
 
   const loadInsights = useCallback(() => {
-    apiFetch<{ items: InsightItem[] }>('/wear/insights')
+    apiFetch<{ items: InsightItem[] }>('/wearlog/insights')
       .then((r) => setInsights(new Map(r.items.map((i) => [i.itemId, i]))))
       .catch(() => undefined)
   }, [])
@@ -194,7 +196,8 @@ export function ClosetPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="⌕ Search"
+              aria-label="Search your closet"
+              placeholder="Search"
               className="w-40 rounded-full border border-ink/10 bg-surface px-4 py-2 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-iris/60 sm:w-52"
             />
             <input
@@ -232,7 +235,7 @@ export function ClosetPage() {
         </div>
 
         {uploadError && (
-          <p className="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+          <p className="mt-3 alert-error" role="alert">
             {uploadError}
           </p>
         )}
@@ -291,7 +294,7 @@ export function ClosetPage() {
           </div>
         )}
         {!loading && error && (
-          <p className="mt-6 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>
+          <p className="mt-6 alert-error">{error}</p>
         )}
         {!loading && !error && list.length === 0 && (
           <div className="mt-10 rounded-3xl border border-dashed border-ink/15 py-20 text-center">

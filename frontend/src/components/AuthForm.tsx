@@ -4,31 +4,20 @@ import { Spinner } from './Spinner'
 import { GoogleButton } from './GoogleButton'
 
 interface AuthFormProps {
-  mode: 'login' | 'register'
   onSubmit: (email: string, password: string) => Promise<void>
 }
 
-const COPY = {
-  login: {
-    title: 'Welcome back',
-    subtitle: 'Your stylist has been expecting you.',
-    action: 'Sign in',
-    footer: 'New here?',
-    footerLink: 'Join the waitlist',
-    footerTo: '/landing',
-  },
-  register: {
-    title: 'Meet your stylist',
-    subtitle: 'A personal stylist that knows your closet — and your taste.',
-    action: 'Create account',
-    footer: 'Already have an account?',
-    footerLink: 'Sign in',
-    footerTo: '/login',
-  },
+// Sign-in only: account creation is invite-only via /landing.
+const copy = {
+  title: 'Welcome back',
+  subtitle: 'Your stylist has been expecting you.',
+  action: 'Sign in',
+  footer: 'New here?',
+  footerLink: 'Join the waitlist',
+  footerTo: '/landing',
 } as const
 
-export function AuthForm({ mode, onSubmit }: AuthFormProps) {
-  const copy = COPY[mode]
+export function AuthForm({ onSubmit }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,11 +48,9 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
         <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">{copy.subtitle}</p>
       </div>
 
-      {mode === 'login' && (
-        <div className="mb-6">
-          <GoogleButton onMessage={(m) => setError(m)} />
-        </div>
-      )}
+      <div className="mb-6">
+        <GoogleButton onMessage={(m) => setError(m)} />
+      </div>
 
       <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 ">
         <div>
@@ -89,7 +76,7 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
           <input
             id="password"
             type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
             required
             minLength={6}
             value={password}
@@ -100,7 +87,7 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+          <p className="alert-error" role="alert">
             {error}
           </p>
         )}

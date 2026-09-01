@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { copyText } from '../lib/clipboard'
+import { usePageTitle } from '../lib/usePageTitle'
 import { deleteWearLog, getWearInsights, getWearLog } from '../lib/wearlog'
 import { getResaleDraft } from '../lib/wardrobe'
 import type { ResaleDraftResponse, WearInsightsResponse, WearLogEntry } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { ZoomableImage } from '../components/ImageLightbox'
+import { PageShell, Toast, useFlash } from '../components/ui'
 
 /**
  * Resale is the plan's first monetization surface: turn an orphan into a
@@ -31,7 +34,8 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
   function copyAll() {
     if (!result) return
     const text = `${result.draft.title}\n\n${result.draft.description}\n\nAsking price: ${result.draft.suggestedPrice}`
-    void navigator.clipboard?.writeText(text).then(() => {
+    void copyText(text).then((ok) => {
+      if (!ok) return
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     })
@@ -45,7 +49,7 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
       aria-modal="true"
     >
       <div
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl sm:p-8"
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-6 shadow-float sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -68,7 +72,7 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
         )}
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+          <p className="alert-error" role="alert">
             {error}
           </p>
         )}
@@ -116,7 +120,15 @@ function formatDay(iso: string): string {
 }
 
 /** One wear-log entry: date, item thumbnails, context chips. */
-function LogRow({ log, onDeleted }: { log: WearLogEntry; onDeleted: (id: string) => void }) {
+function LogRow({
+  log,
+  onDeleted,
+  onError,
+}: {
+  log: WearLogEntry
+  onDeleted: (id: string) => void
+  onError: (msg: string) => void
+}) {
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {
@@ -127,6 +139,7 @@ function LogRow({ log, onDeleted }: { log: WearLogEntry; onDeleted: (id: string)
       onDeleted(log.id)
     } catch {
       setDeleting(false)
+      onError('Could not remove that entry — try again.')
     }
   }
 
@@ -166,6 +179,8 @@ function LogRow({ log, onDeleted }: { log: WearLogEntry; onDeleted: (id: string)
 }
 
 export function JournalPage() {
+  usePageTitle('Wear journal')
+  const { toast, flash } = useFlash()
   const [logs, setLogs] = useState<WearLogEntry[] | null>(null)
   const [insights, setInsights] = useState<WearInsightsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -196,7 +211,8 @@ export function JournalPage() {
   const orphans = insights ? insights.items.filter((i) => i.orphan).slice(0, 6) : []
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <PageShell>
+      <Toast msg={toast} />
       <div className="mb-10 max-w-2xl">
         <h1 className="font-serif text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           Journal
@@ -213,7 +229,7 @@ export function JournalPage() {
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+        <p className="alert-error" role="alert">
           {error}
         </p>
       )}
@@ -308,6 +324,7 @@ export function JournalPage() {
                   key={log.id}
                   log={log}
                   onDeleted={(id) => setLogs((prev) => prev?.filter((l) => l.id !== id) ?? prev)}
+                  onError={flash}
                 />
               ))}
             </div>
@@ -316,6 +333,6 @@ export function JournalPage() {
       )}
 
       {resaleItemId && <ResaleModal itemId={resaleItemId} onClose={() => setResaleItemId(null)} />}
-    </div>
+    </PageShell>
   )
 }

@@ -187,7 +187,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             aria-pressed={favorite}
             aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
             title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-ink  backdrop-blur transition hover:bg-surface disabled:opacity-60"
+            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface/85 backdrop-blur transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
           >
             <HeartIcon filled={favorite} />
           </button>
@@ -252,7 +252,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
         )}
 
         {error && (
-          <p className="text-sm text-red-700" role="alert">
+          <p className="alert-error" role="alert">
             {error}
           </p>
         )}
@@ -312,8 +312,8 @@ function HeartIcon({ filled }: { filled: boolean }) {
     <svg
       viewBox="0 0 24 24"
       className="h-5 w-5"
-      fill={filled ? '#b98d6f' : 'none'}
-      stroke={filled ? '#b98d6f' : 'currentColor'}
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"

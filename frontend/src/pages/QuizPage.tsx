@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { PageShell } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getQuiz, submitQuiz } from '../lib/quiz'
 import { useProfile } from '../context/useProfile'
@@ -11,6 +13,7 @@ import { Spinner } from '../components/Spinner'
  * exists. Feels like a personality quiz, not setup.
  */
 export function QuizPage() {
+  usePageTitle('Style quiz')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromWelcome = searchParams.get('from') === 'welcome'
@@ -60,9 +63,11 @@ export function QuizPage() {
   const pair = pairs?.[index]
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
+    <PageShell narrow>
       <div className="mb-8 text-center">
-        <p className="text-xs uppercase tracking-[0.25em] text-clay">Style quiz</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-clay">
+          {fromWelcome ? 'step 2 of 3 · Style quiz' : 'Style quiz'}
+        </p>
         <h1 className="mt-2 font-serif text-3xl font-semibold text-ink sm:text-4xl">
           {pair ? pair.question : 'Finding your taste'}
         </h1>
@@ -78,7 +83,7 @@ export function QuizPage() {
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-center text-sm text-red-700" role="alert">
+        <p className="alert-error" role="alert">
           {error}
         </p>
       )}
@@ -130,6 +135,6 @@ export function QuizPage() {
           <p className="text-sm">Tuning your stylist…</p>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

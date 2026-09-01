@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns } from '../lib/tryon'
@@ -20,6 +21,7 @@ import {
 type Tab = 'on-you' | 'looks'
 
 export function MirrorPage() {
+  usePageTitle('Mirror')
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('on-you')
@@ -161,7 +163,7 @@ export function MirrorPage() {
 
   return (
     <div className="relative">
-            <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {toast && (
           <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-rise rounded-xl bg-ink px-5 py-3 text-sm font-medium text-bone shadow-float">
             {toast}
@@ -297,9 +299,20 @@ export function MirrorPage() {
             )}
 
             {error && (
-              <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              <p className="mt-4 alert-error">
                 {error}
               </p>
+            )}
+
+            {tab === 'on-you' && tryOns === null && (
+              <div className="mt-8 flex justify-center text-ink/40">
+                <Spinner className="h-5 w-5" />
+              </div>
+            )}
+            {tab === 'looks' && looks === null && (
+              <div className="mt-8 flex justify-center text-ink/40">
+                <Spinner className="h-5 w-5" />
+              </div>
             )}
 
             {tab === 'on-you' && (
@@ -351,7 +364,7 @@ export function MirrorPage() {
                             type="button"
                             onClick={() => void handleDelete(t.id)}
                             aria-label="Remove render"
-                            className="absolute right-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
+                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-ink opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                           >
                             ✕
                           </button>
@@ -360,9 +373,9 @@ export function MirrorPage() {
                             onClick={() => setPickerFor(t.id)}
                             aria-label="Save to lookbook"
                             title="Save to a lookbook"
-                            className="absolute left-2 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black group-hover:flex"
+                            className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-ink opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                           >
-                            ＋
+                            +
                           </button>
                         </>
                       )}
@@ -448,7 +461,7 @@ export function MirrorPage() {
                 })}
               </div>
             )}
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-ink/10 bg-surface p-1.5 pl-4">
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20">
               <input
                 value={newBookName}
                 onChange={(e) => setNewBookName(e.target.value)}

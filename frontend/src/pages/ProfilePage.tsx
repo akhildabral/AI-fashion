@@ -5,6 +5,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import type { ProfileResponse, StyleProfile } from '../lib/types'
 import { useProfile } from '../context/useProfile'
@@ -12,7 +13,7 @@ import { Spinner } from '../components/Spinner'
 import { PhotoManager } from '../components/PhotoManager'
 import { Link } from 'react-router-dom'
 import { getRitualStats, type RitualStats } from '../lib/brief'
-import { Stat } from '../components/ui'
+import { PageShell, Stat } from '../components/ui'
 
 const BODY_TYPES = ['slim', 'athletic', 'average', 'curvy', 'plus'] as const
 const SKIN_TONES = ['fair', 'light', 'medium', 'tan', 'deep'] as const
@@ -76,6 +77,7 @@ function toFormState(profile: StyleProfile): FormState {
 }
 
 export function ProfilePage() {
+  usePageTitle('Your style profile')
   const [ritual, setRitual] = useState<RitualStats | null>(null)
   useEffect(() => {
     getRitualStats().then(setRitual).catch(() => undefined)
@@ -201,7 +203,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
+    <PageShell narrow>
       <div className="mb-10 max-w-2xl">
         {isOnboarding && (
           <p className="mb-2 text-xs uppercase tracking-[0.3em] text-clay">Welcome</p>
@@ -437,7 +439,7 @@ export function ProfilePage() {
         </fieldset>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+          <p className="alert-error" role="alert">
             {error}
           </p>
         )}
@@ -471,6 +473,6 @@ export function ProfilePage() {
       <div className="mt-8">
         <PhotoManager />
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -1,4 +1,6 @@
 import { useState, type FormEvent, useEffect } from 'react'
+import { PageShell, Toast, useFlash } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { packForTrip } from '../lib/wardrobe'
 import { createTrip, deleteTrip, getTrips, type Trip } from '../lib/brief'
 import type { PackingResponse } from '../lib/types'
@@ -14,6 +16,8 @@ function formatDay(iso: string): string {
  * wardrobe, a day-by-day outfit plan, and a checklist of essentials.
  */
 export function PackingPage() {
+  const { toast, flash } = useFlash()
+  usePageTitle('Trips')
   const today = new Date().toISOString().slice(0, 10)
   const [destination, setDestination] = useState('')
   const [startDate, setStartDate] = useState(today)
@@ -57,7 +61,7 @@ export function PackingPage() {
       setTrips((prev) => prev.filter((t) => t.id !== id))
       if (savedTripId === id) setSavedTripId(null)
     } catch {
-      // best-effort
+      flash('Could not delete the trip — try again.')
     }
   }
 
@@ -85,7 +89,8 @@ export function PackingPage() {
   const toggle = (key: string) => setChecked((prev) => ({ ...prev, [key]: !prev[key] }))
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <PageShell>
+      <Toast msg={toast} />
       <div className="mb-10 max-w-2xl">
         <h1 className="font-serif text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           Pack for a trip
@@ -196,7 +201,7 @@ export function PackingPage() {
           )}
         </button>
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
+          <p className="mt-4 alert-error" role="alert">
             {error}
           </p>
         )}
@@ -347,6 +352,6 @@ export function PackingPage() {
           </section>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

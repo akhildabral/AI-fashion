@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { PageShell, Toast, useFlash } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Link } from 'react-router-dom'
 import {
   dismissPick,
@@ -44,7 +46,7 @@ function HandleCard({ me, onSet }: { me: SocialMe; onSet: (h: string) => void })
         Your name in the community — friends find and follow you by it.
       </p>
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row">
-        <div className="flex flex-1 items-center gap-1 rounded-lg border border-ink/15 bg-surface px-3">
+        <div className="flex flex-1 items-center gap-1 rounded-lg border border-ink/15 bg-surface px-3 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20">
           <span className="text-ink/40">@</span>
           <input
             type="text"
@@ -61,12 +63,20 @@ function HandleCard({ me, onSet }: { me: SocialMe; onSet: (h: string) => void })
           {saving ? 'Saving…' : 'Claim it'}
         </button>
       </form>
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="mt-3 alert-error">{error}</p>}
     </div>
   )
 }
 
-function PickCard({ pick, onGone }: { pick: FriendPick; onGone: (id: string) => void }) {
+function PickCard({
+  pick,
+  onGone,
+  onActionError,
+}: {
+  pick: FriendPick
+  onGone: (id: string) => void
+  onActionError: (msg: string) => void
+}) {
   const [logged, setLogged] = useState(false)
 
   return (
@@ -97,11 +107,11 @@ function PickCard({ pick, onGone }: { pick: FriendPick; onGone: (id: string) => 
           onClick={() => {
             void logWear({ itemIds: pick.items.map((i) => i.id) })
               .then(() => setLogged(true))
-              .catch(() => {})
+              .catch(() => onActionError('Could not log the wear — try again.'))
           }}
           className={
             logged
-              ? 'inline-flex items-center rounded-full border border-sage/40 bg-sage/10 px-4 py-1.5 text-sm text-sage'
+              ? 'inline-flex items-center rounded-full border border-spark/40 bg-spark/10 px-4 py-1.5 text-sm text-spark-deep dark:text-spark'
               : 'btn-ghost'
           }
         >
@@ -112,7 +122,7 @@ function PickCard({ pick, onGone }: { pick: FriendPick; onGone: (id: string) => 
           onClick={() => {
             void dismissPick(pick.id)
               .then(() => onGone(pick.id))
-              .catch(() => {})
+              .catch(() => onActionError('Could not dismiss that — try again.'))
           }}
           className="text-xs text-ink/35 transition hover:text-red-600"
         >
@@ -124,6 +134,8 @@ function PickCard({ pick, onGone }: { pick: FriendPick; onGone: (id: string) => 
 }
 
 export function FriendsPage() {
+  const { toast, flash } = useFlash()
+  usePageTitle('People')
   const [me, setMe] = useState<SocialMe | null>(null)
   const [network, setNetwork] = useState<{ following: NetworkEntry[]; followers: NetworkEntry[] } | null>(null)
   const [picks, setPicks] = useState<FriendPick[] | null>(null)
@@ -151,10 +163,11 @@ export function FriendsPage() {
   }, [query])
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <PageShell>
+      <Toast msg={toast} />
       <div className="mb-10 max-w-2xl">
         <h1 className="font-serif text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-          Friends
+          People
         </h1>
         <p className="mt-3 text-ink/60">
           Follow people, browse their public wardrobes, and dress each other. Friends are
@@ -207,6 +220,20 @@ export function FriendsPage() {
             )}
           </section>
 
+          {twins.length === 0 &&
+            (!picks || picks.length === 0) &&
+            network &&
+            network.following.length === 0 &&
+            network.followers.length === 0 && (
+              <section className="rounded-2xl border border-dashed border-ink/15 p-8 text-center">
+                <p className="font-display text-lg font-bold text-ink">Nobody in your circle yet</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-ink/55">
+                  Search a handle above to follow your first person — you'll see their shared
+                  outfits, trade picks, and find your style twins here.
+                </p>
+              </section>
+            )}
+
           {/* Style twins */}
           {twins.length > 0 && (
             <section className="mb-10">
@@ -253,6 +280,7 @@ export function FriendsPage() {
                     key={pick.id}
                     pick={pick}
                     onGone={(id) => setPicks((prev) => prev?.filter((p) => p.id !== id) ?? prev)}
+                    onActionError={flash}
                   />
                 ))}
               </div>
@@ -298,6 +326,6 @@ export function FriendsPage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   )
 }

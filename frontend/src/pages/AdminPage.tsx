@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { Modal, PageShell } from '../components/ui'
@@ -38,6 +39,7 @@ function displayName(u: AdminUser): string {
 }
 
 export function AdminPage() {
+  usePageTitle('Admin')
   const { user: me } = useAuth()
   const [tab, setTab] = useState<'waitlist' | 'members'>('waitlist')
   const [users, setUsers] = useState<AdminUser[] | null>(null)
@@ -218,7 +220,7 @@ export function AdminPage() {
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        <p className="mt-4 alert-error">
           {error}
         </p>
       )}
@@ -227,7 +229,7 @@ export function AdminPage() {
         <div className="mt-6">
           <form
             onSubmit={inviteSomeone}
-            className="flex max-w-md items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4"
+            className="flex max-w-md items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
           >
             <input
               type="email"

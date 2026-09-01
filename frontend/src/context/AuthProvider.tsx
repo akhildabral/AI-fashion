@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthContextValue } from './auth-context'
-import { ApiError, apiFetch, clearToken, getToken, setToken } from '../lib/api'
+import { ApiError, AUTH_EXPIRED_EVENT, apiFetch, clearToken, getToken, setToken } from '../lib/api'
 import type { AuthResponse, MeResponse, RegisterResponse, User } from '../lib/types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,6 +34,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // A 401 on any authenticated request means the session died mid-use —
+  // api.ts clears the token and broadcasts; we drop the user so routing
+  // falls back to the landing page instead of pages rendering raw errors.
+  useEffect(() => {
+    const onExpired = () => setUser(null)
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired)
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {

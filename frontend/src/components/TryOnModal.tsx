@@ -85,14 +85,14 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-xl"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-ink  backdrop-blur transition hover:bg-surface"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/85 text-ink  backdrop-blur transition hover:bg-surface"
         >
           <span aria-hidden="true" className="text-lg leading-none">
             ×
@@ -147,7 +147,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
                 />
               </div>
               <Link
-                to="/tryons"
+                to="/mirror"
                 onClick={onClose}
                 className="inline-flex text-sm font-medium text-clay underline-offset-4 hover:underline"
               >
@@ -161,7 +161,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
               <h3 className="font-serif text-2xl font-semibold text-ink">
                 Couldn't render this look
               </h3>
-              <p className="max-w-xs text-sm text-red-700">{error}</p>
+              <p className="max-w-xs alert-error">{error}</p>
               <button type="button" onClick={onClose} className="btn-ghost mt-2">
                 Close
               </button>

@@ -93,6 +93,7 @@ export function Header() {
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
+                aria-label="Account menu"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-spark text-xs font-bold text-bone transition-colors hover:bg-spark-deep"
               >
                 {initials}

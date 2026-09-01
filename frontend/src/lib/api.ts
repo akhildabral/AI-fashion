@@ -13,6 +13,13 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY)
 }
 
+/**
+ * Fired on window when an authenticated request comes back 401 — the token
+ * expired or was revoked. AuthProvider listens and signs the user out so
+ * pages never render raw "Invalid token" strings.
+ */
+export const AUTH_EXPIRED_EVENT = 'auth:expired'
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -47,10 +54,12 @@ export async function apiFetch<T>(
     headers['Content-Type'] = 'application/json'
   }
 
+  let authed = false
   if (auth) {
     const token = getToken()
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
+      authed = true
     }
   }
 
@@ -71,6 +80,10 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401 && authed) {
+      clearToken()
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+    }
     const message =
       (data && typeof data === 'object' && 'error' in data
         ? String((data as { error: unknown }).error)
@@ -95,10 +108,12 @@ export async function apiUpload<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {}
 
+  let authed = false
   if (auth) {
     const token = getToken()
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
+      authed = true
     }
   }
 
@@ -119,6 +134,10 @@ export async function apiUpload<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401 && authed) {
+      clearToken()
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+    }
     const message =
       (data && typeof data === 'object' && 'error' in data
         ? String((data as { error: unknown }).error)

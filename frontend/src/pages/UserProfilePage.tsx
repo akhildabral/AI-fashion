@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PageShell, Toast, useFlash } from '../components/ui'
 import { Link, useParams } from 'react-router-dom'
 import {
   followUser,
@@ -17,6 +18,7 @@ const MAX_PICK_ITEMS = 8
 /** Someone else's profile: their public wardrobe, follow, and — between
  * friends — assembling an outfit for them. */
 export function UserProfilePage() {
+  const { toast, flash } = useFlash()
   const { handle = '' } = useParams()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [overlap, setOverlap] = useState<OverlapResult | null>(null)
@@ -76,7 +78,7 @@ export function UserProfilePage() {
         })
       }
     } catch {
-      // Leave state as-is.
+      flash('Could not update follow — try again.')
     } finally {
       setBusy(false)
     }
@@ -110,7 +112,8 @@ export function UserProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <PageShell>
+      <Toast msg={toast} />
       {!profile && !error && (
         <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
           <Spinner className="h-6 w-6" />
@@ -120,8 +123,8 @@ export function UserProfilePage() {
       {error && (
         <div className="rounded-2xl border border-dashed border-ink/15 py-16 text-center text-ink/50">
           <p>{error}</p>
-          <Link to="/friends" className="mt-3 inline-block text-sm text-clay hover:underline">
-            ← Back to Friends
+          <Link to="/circle/people" className="mt-3 inline-block text-sm text-clay hover:underline">
+            ← Back to People
           </Link>
         </div>
       )}
@@ -185,7 +188,7 @@ export function UserProfilePage() {
                       />
                     </div>
                     <span className="text-ink/35">≈</span>
-                    <div className="h-16 w-16 overflow-hidden rounded-lg border-2 border-sage/60 bg-bone">
+                    <div className="h-16 w-16 overflow-hidden rounded-lg border-2 border-spark/60 bg-bone">
                       <img
                         src={m.yours.imageUrl}
                         alt="Your similar piece"
@@ -201,7 +204,7 @@ export function UserProfilePage() {
           )}
 
           {sent && (
-            <p className="mb-6 rounded-2xl border border-sage/40 bg-sage/10 px-5 py-3 text-sm text-ink/75">
+            <p className="mb-6 rounded-2xl border border-spark/40 bg-spark/10 px-5 py-3 text-sm text-ink/75">
               Outfit sent — it's waiting in their picks ✓
             </p>
           )}
@@ -252,7 +255,7 @@ export function UserProfilePage() {
                     key={item.id}
                     className={
                       selectedIndex >= 0
-                        ? 'relative overflow-hidden rounded-2xl border-2 border-clay bg-surface shadow-md'
+                        ? 'relative overflow-hidden rounded-2xl border-2 border-clay bg-surface '
                         : 'relative overflow-hidden rounded-2xl border border-ink/10 bg-surface '
                     }
                   >
@@ -283,6 +286,6 @@ export function UserProfilePage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   )
 }

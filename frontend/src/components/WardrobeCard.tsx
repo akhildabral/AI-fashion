@@ -75,7 +75,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
           <button
             type="button"
             onClick={() => setShowOriginal((v) => !v)}
-            className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink/70  transition hover:bg-surface"
+            className="absolute bottom-3 right-3 rounded-full bg-surface/90 px-3 py-1 text-xs font-medium text-ink/70  transition hover:bg-surface"
           >
             {showOriginal ? 'Show clean' : 'Show original'}
           </button>
@@ -86,7 +86,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             onClick={() => {
               void updateWardrobeItem(item.id, { suppressed: false })
                 .then(({ item: updated }) => onUpdated?.(updated))
-                .catch(() => {})
+                .catch(() => setError('Could not restore this item — try again.'))
             }}
             className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-bone  transition hover:bg-ink"
           >
@@ -94,13 +94,13 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
           </button>
         )}
         {item.status === 'processing' && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs text-ink/70 ">
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2.5 py-1 text-xs text-ink/70 ">
             <Spinner className="h-3 w-3" />
             Analyzing…
           </span>
         )}
         {item.status === 'failed' && (
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs text-red-700 ">
+          <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs text-red-700 ">
             Tagging failed — edit manually
           </span>
         )}
@@ -138,7 +138,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             )}
 
             {error && (
-              <p className="text-sm text-red-700" role="alert">
+              <p className="alert-error" role="alert">
                 {error}
               </p>
             )}
@@ -165,11 +165,11 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                   const visibility = item.visibility === 'public' ? 'private' : 'public'
                   void updateWardrobeItem(item.id, { visibility })
                     .then(({ item: updated }) => onUpdated?.(updated))
-                    .catch(() => {})
+                    .catch(() => setError('Could not change visibility — try again.'))
                 }}
                 className={
                   item.visibility === 'public'
-                    ? 'rounded-full border border-sage/50 bg-sage/10 px-3 py-1 text-xs font-medium text-sage'
+                    ? 'rounded-full border border-spark/50 bg-spark/10 px-3 py-1 text-xs font-medium text-spark-deep dark:text-spark'
                     : 'rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/50 transition hover:border-ink/30'
                 }
               >
@@ -394,7 +394,7 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
       </div>
 
       {error && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="alert-error" role="alert">
           {error}
         </p>
       )}

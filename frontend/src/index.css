@@ -70,6 +70,10 @@
   .label {
     @apply mb-1.5 block text-xs font-medium uppercase tracking-widest text-ink/50;
   }
+  .alert-error {
+    @apply rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300;
+  }
+
 
   .chip {
     @apply inline-flex items-center rounded-full border border-ink/10 bg-surface px-4 py-2 text-sm font-medium text-ink/60 transition-colors hover:border-iris hover:text-iris active:bg-iris-soft;

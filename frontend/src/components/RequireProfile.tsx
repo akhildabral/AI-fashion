@@ -9,12 +9,23 @@ import { Spinner } from './Spinner'
  * user to the /welcome onboarding flow.
  */
 export function RequireProfile({ children }: { children: ReactNode }) {
-  const { profile, loading } = useProfile()
+  const { profile, loading, loadFailed, refresh } = useProfile()
 
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-ink/50">
         <Spinner className="h-6 w-6" />
+      </div>
+    )
+  }
+
+  if (!profile && loadFailed) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-ink/60">We couldn't reach your stylist — check your connection.</p>
+        <button type="button" onClick={() => void refresh()} className="btn-primary">
+          Try again
+        </button>
       </div>
     )
   }

@@ -6,6 +6,7 @@ export interface ProfileContextValue {
   profile: StyleProfile | null
   /** True while the initial profile fetch (after auth) is in flight. */
   loading: boolean
+  loadFailed: boolean
   /** Replace the cached profile (e.g. after a successful save). */
   setProfile: (profile: StyleProfile) => void
   /** Re-fetch the profile from the server. */

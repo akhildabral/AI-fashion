@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { PageShell } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useProfile } from '../context/useProfile'
@@ -17,13 +19,14 @@ const GENDERS = [
 // First run: three steps from signup to styled. Taste capture IS the
 // onboarding; the reward is the Today brief waiting at the end.
 export function WelcomePage() {
+  usePageTitle('Welcome')
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { setProfile } = useProfile()
   const { user } = useAuth()
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName, setLastName] = useState(user?.lastName ?? '')
-  const [step, setStep] = useState(() => (params.get('step') === '3' ? 3 : 1))
+  const [step] = useState(() => (params.get('step') === '3' ? 3 : 1))
   const [vibe, setVibe] = useState<string | null>(null)
   const [city, setCity] = useState('')
   const [gender, setGender] = useState('female')
@@ -58,7 +61,7 @@ export function WelcomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <PageShell narrow>
       <p className="animate-rise text-xs font-semibold uppercase tracking-[0.25em] text-iris">
         Welcome · step {step} of 3
       </p>
@@ -145,7 +148,7 @@ export function WelcomePage() {
                 </select>
               </div>
             </div>
-            {error && <p className="text-sm text-red-700">{error}</p>}
+            {error && <p className="alert-error">{error}</p>}
             <button
               type="button"
               onClick={() => void saveBasics()}
@@ -182,14 +185,14 @@ export function WelcomePage() {
             </button>
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => navigate('/quiz?from=welcome')}
               className="btn-ghost"
             >
-              ← Back
+              ← Back to the quiz
             </button>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

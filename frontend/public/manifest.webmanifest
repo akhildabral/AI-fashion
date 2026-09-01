@@ -3,9 +3,11 @@
   "short_name": "AI Fashion",
   "description": "Your wardrobe, styled by AI: daily outfits, virtual try-on, and a wear journal.",
   "start_url": "/",
+  "id": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#F8F4EF",
-  "theme_color": "#F8F4EF",
+  "background_color": "#FBFAF8",
+  "theme_color": "#FBFAF8",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

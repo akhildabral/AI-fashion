@@ -43,10 +43,22 @@ export async function listTrips(req: Request, res: Response) {
 
 export async function deleteTrip(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const result = await prisma.trip.deleteMany({
+  const trip = await prisma.trip.findFirst({
     where: { id: String(req.params.id), userId: req.user.id },
   });
-  if (result.count === 0) throw new HttpError(404, 'Trip not found');
+  if (!trip) throw new HttpError(404, 'Trip not found');
+  // Cached briefs composed from this trip's capsule are stale once the trip
+  // is gone — drop the un-worn ones in its date range so they recompose.
+  await prisma.$transaction([
+    prisma.trip.delete({ where: { id: trip.id } }),
+    prisma.dailyBrief.deleteMany({
+      where: {
+        userId: req.user.id,
+        date: { gte: trip.startDate, lte: trip.endDate },
+        wornLogId: null,
+      },
+    }),
+  ]);
   res.status(204).send();
 }
 

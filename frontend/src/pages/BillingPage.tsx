@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { PageShell } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { useAuth } from '../context/useAuth'
@@ -79,6 +81,7 @@ function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: str
 }
 
 export function BillingPage() {
+  usePageTitle('Subscription')
   const { user } = useAuth()
   const [summary, setSummary] = useState<BillingSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -114,7 +117,7 @@ export function BillingPage() {
         name: 'AI Fashion',
         description: `${plan === 'plus' ? 'Plus' : 'Pro'} subscription`,
         prefill: { email: session.email },
-        theme: { color: '#B0704F' },
+        theme: { color: '#D9481F' },
         handler: () => {
           setNotice(
             'Payment received! Your plan activates as soon as the payment is confirmed — refresh in a few seconds.',
@@ -158,25 +161,25 @@ export function BillingPage() {
     : null
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="font-serif text-3xl font-semibold text-ink">Plan &amp; usage</h1>
+    <PageShell narrow>
+      <h1 className="font-display text-4xl font-extrabold tracking-tight text-ink">Plan &amp; usage</h1>
 
       {notice && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>
+        <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
       )}
       {error && (
-        <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+        <p className="mt-4 alert-error !py-3">{error}</p>
       )}
 
       {summary && (
         <>
-          <div className="mt-6 rounded-xl border border-ink/10 bg-white/60 p-6">
+          <div className="mt-6 rounded-xl border border-ink/10 bg-surface p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-ink/50">Current plan</p>
-                <p className="font-serif text-2xl font-semibold text-ink">{summary.label}</p>
+                <p className="font-display text-2xl font-bold text-ink">{summary.label}</p>
                 {summary.planStatus === 'grace' && (
-                  <p className="mt-1 text-sm text-amber-700">
+                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
                     A payment failed — update your payment method or your plan will lapse.
                   </p>
                 )}
@@ -197,7 +200,7 @@ export function BillingPage() {
                   type="button"
                   disabled={busy === 'cancel'}
                   onClick={() => void cancelPlan()}
-                  className="rounded-lg border border-ink/15 px-4 py-2 text-sm text-ink/70 transition hover:bg-ink/5 disabled:opacity-50"
+                  className="btn-ghost !px-4 !py-2 !text-sm"
                 >
                   Cancel subscription
                 </button>
@@ -225,9 +228,9 @@ export function BillingPage() {
 
           {user?.role !== 'admin' && summary.plan !== 'pro' && summary.plan !== 'founder' && (
             <>
-              <h2 className="mt-10 font-serif text-2xl font-semibold text-ink">Upgrade</h2>
+              <h2 className="mt-10 font-display text-2xl font-bold text-ink">Upgrade</h2>
               {!summary.billingConfigured && (
-                <p className="mt-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="mt-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                   Payments aren't switched on yet — plans will be purchasable soon.
                 </p>
               )}
@@ -235,9 +238,9 @@ export function BillingPage() {
                 {PLANS.filter((p) => p.id !== summary.plan).map((p) => (
                   <div
                     key={p.id}
-                    className="flex flex-col rounded-xl border border-ink/10 bg-white/60 p-6"
+                    className="flex flex-col rounded-xl border border-ink/10 bg-surface p-6"
                   >
-                    <p className="font-serif text-xl font-semibold text-ink">{p.name}</p>
+                    <p className="font-display text-xl font-bold text-ink">{p.name}</p>
                     <p className="mt-1 text-2xl font-semibold text-ink">{p.price}</p>
                     <ul className="mt-3 flex-1 space-y-1 text-sm text-ink/70">
                       {p.perks.map((perk) => (
@@ -248,7 +251,7 @@ export function BillingPage() {
                       type="button"
                       disabled={!summary.billingConfigured || busy === p.id}
                       onClick={() => void upgrade(p.id)}
-                      className="mt-4 rounded-lg bg-ink px-4 py-2 text-sm font-medium text-bone transition hover:bg-ink/85 disabled:opacity-40"
+                      className="btn-dark mt-4 !px-4 !py-2 !text-sm"
                     >
                       {busy === p.id ? 'Opening checkout…' : `Get ${p.name}`}
                     </button>
@@ -259,6 +262,6 @@ export function BillingPage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   )
 }
