@@ -6,11 +6,8 @@ import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
-import { WardrobeCard } from '../components/WardrobeCard'
 import { GarmentTile, PageShell, Modal, Tabs, Filter } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
-import { GoesWith } from '../components/GoesWith'
-import { PieceStory } from '../components/PieceStory'
 import { LetGoModal } from '../components/LetGo'
 import { PriceDrawer } from '../components/PriceDrawer'
 import { Spinner } from '../components/Spinner'
@@ -55,7 +52,6 @@ export function ClosetPage() {
   const [category, setCategory] = useState<string | null>(null)
   const [collection, setCollection] = useState<Collection>('all')
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<WardrobeItem | null>(null)
   const [pricing, setPricing] = useState(false)
   const [addChooserOpen, setAddChooserOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -144,12 +140,6 @@ export function ClosetPage() {
 
   function handleUpdated(updated: WardrobeItem) {
     setItems((prev) => (prev ? prev.map((it) => (it.id === updated.id ? updated : it)) : prev))
-    setSelected((prev) => (prev && prev.id === updated.id ? updated : prev))
-  }
-
-  function handleDeleted(id: string) {
-    setItems((prev) => (prev ? prev.filter((it) => it.id !== id) : prev))
-    setSelected(null)
   }
 
   const list = items ?? []
@@ -403,7 +393,7 @@ export function ClosetPage() {
                     label={item.subtype ?? item.category}
                     sublabel={cpwLabel(item)}
                     processing={item.status === 'processing'}
-                    onClick={() => setSelected(item)}
+                    onClick={() => navigate(`/closet/piece/${item.id}`)}
                   />
                 ))}
               </div>
@@ -465,7 +455,7 @@ export function ClosetPage() {
                         imageUrl={item.imageUrl}
                         label={item.subtype ?? item.category}
                         sublabel={cpwLabel(item)}
-                        onClick={() => setSelected(item)}
+                        onClick={() => navigate(`/closet/piece/${item.id}`)}
                       />
                     </div>
                   ))}
@@ -489,7 +479,7 @@ export function ClosetPage() {
                     <div key={item.id}>
                       <button
                         type="button"
-                        onClick={() => setSelected(item)}
+                        onClick={() => navigate(`/closet/piece/${item.id}`)}
                         className="press group block w-full text-left opacity-70 grayscale-[0.25] transition hover:opacity-100 hover:grayscale-0"
                       >
                         <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel="idle" />
@@ -559,25 +549,6 @@ export function ClosetPage() {
           onNote={(l) => setUploadError(l)}
         />
 
-        {/* Item detail */}
-        <Modal
-          open={selected !== null}
-          onClose={() => setSelected(null)}
-          title={selected ? (selected.subtype ?? selected.category) : 'Item'}
-        >
-          {selected && (
-            <WardrobeCard
-              item={selected}
-              onUpdated={(u) => {
-                handleUpdated(u)
-                loadInsights()
-              }}
-              onDeleted={handleDeleted}
-            />
-          )}
-          {selected && selected.status === 'ready' && <PieceStory itemId={selected.id} />}
-          {selected && selected.status === 'ready' && <GoesWith itemId={selected.id} />}
-        </Modal>
       </div>
       <PriceDrawer
         open={pricing}

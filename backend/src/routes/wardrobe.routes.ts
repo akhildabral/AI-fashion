@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   addItem,
   deleteItem,
+  getItem,
   itemFeedback,
   listItems,
   mixAndMatch,
@@ -34,6 +35,7 @@ wardrobeRouter.post('/:id/feedback', requireAuth, itemFeedback);
 wardrobeRouter.post('/:id/resale-draft', requireAuth, resaleDraft);
 wardrobeRouter.post('/tryon', requireAuth, quota('tryon'), createOutfitTryOn);
 wardrobeRouter.post('/:id/recatalog', requireAuth, quota('catalog'), recatalogItem);
+wardrobeRouter.get('/:id', requireAuth, getItem);
 wardrobeRouter.get('/:id/pairs', requireAuth, itemPairs);
 wardrobeRouter.get('/:id/story', requireAuth, itemStory);
 wardrobeRouter.get('/:id/verdict', requireAuth, itemVerdict);

@@ -294,6 +294,14 @@ const updateSchema = z.object({
   nudgeAt: z.coerce.date().nullish(),
 });
 
+/** One piece, yours. */
+export async function getItem(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const item = await prisma.wardrobeItem.findFirst({ where: { id: String(req.params.id), userId: req.user.id } });
+  if (!item) throw new HttpError(404, 'Item not found');
+  res.json({ item });
+}
+
 export async function updateItem(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const id = String(req.params.id);

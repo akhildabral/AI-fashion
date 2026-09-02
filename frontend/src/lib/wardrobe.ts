@@ -89,6 +89,16 @@ export function updateWardrobeItem(
 }
 
 /** DELETE /api/wardrobe/:id — remove a garment (204 No Content). */
+/** One piece, with everything it knows about itself. */
+export function getWardrobeItem(id: string): Promise<WardrobeItemResponse> {
+  return apiFetch<WardrobeItemResponse>(`/wardrobe/${id}`)
+}
+
+/** Read the piece again from its original photo; facts you set are kept. */
+export function recatalogWardrobeItem(id: string): Promise<WardrobeItemResponse> {
+  return apiFetch<WardrobeItemResponse>(`/wardrobe/${id}/recatalog`, { method: 'POST' })
+}
+
 export function deleteWardrobeItem(id: string): Promise<void> {
   return apiFetch<void>(`/wardrobe/${id}`, { method: 'DELETE' })
 }
