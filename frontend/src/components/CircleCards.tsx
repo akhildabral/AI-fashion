@@ -165,13 +165,13 @@ export function FlatLay({ items }: { items: PostItem[] }) {
           <div
             key={it.id}
             className="absolute"
-            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.w}%`, height: `${p.h}%`, zIndex: p.z, transform: `rotate(${p.rot}deg)` }}
+            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.w}%`, zIndex: p.z, transform: `rotate(${p.rot}deg)`, transformOrigin: '50% 50%' }}
           >
             <img
               src={resolveImageUrl(it.imageUrl)}
               alt={it.subtype ?? it.category}
               loading="lazy"
-              className="h-full w-full object-contain object-center"
+              className="block h-auto w-full"
               style={{ filter: 'drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14))' }}
             />
           </div>

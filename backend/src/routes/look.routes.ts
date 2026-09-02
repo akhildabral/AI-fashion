@@ -49,7 +49,7 @@ lookPageRouter.get('/look/:id', async (req, res) => {
     : `<div class="bezel"><div class="niche lay">${composeLook(ordered)
         .map((p) => {
           const it = ordered[p.index];
-          return `<div class="piece" style="left:${p.left}%;top:${p.top}%;width:${p.w}%;height:${p.h}%;z-index:${p.z};transform:rotate(${p.rot}deg)"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div>`;
+          return `<div class="piece" style="left:${p.left}%;top:${p.top}%;width:${p.w}%;z-index:${p.z};transform:rotate(${p.rot}deg)"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div>`;
         })
         .join('')}</div></div>`;
   const recipe = strip
@@ -113,7 +113,7 @@ ${o.ogImage ? `<meta property="og:image" content="${esc(o.ogImage)}" />\n<meta n
   .bezel.tall .niche { aspect-ratio: 3/4; }
   .niche .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .piece { position: absolute; }
-  .piece img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
+  .piece img { width: 100%; height: auto; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
   @media (max-width: 480px) { .look { grid-template-columns: 1fr; } .recipe { flex-direction: row; flex-wrap: wrap; } .recipe li { width: 56px; } .down { display: none; } }
   .state { margin-top: 44px; text-align: center; }
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; max-width: 22ch; text-wrap: balance; line-height: 1.15; }
