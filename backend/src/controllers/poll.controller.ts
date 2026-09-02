@@ -82,7 +82,23 @@ export async function deletePoll(req: Request, res: Response) {
   const id = String(req.params.id);
   const result = await prisma.poll.deleteMany({ where: { id, userId: req.user.id } });
   if (result.count === 0) throw new HttpError(404, 'Poll not found');
+  await Promise.all([
+    prisma.comment.deleteMany({ where: { targetType: 'verdict', targetId: id } }),
+    prisma.reaction.deleteMany({ where: { targetType: 'verdict', targetId: id } }),
+  ]);
   res.status(204).send();
+}
+
+// POST /polls/:id/settle — the asker closes it early; the scheduler tells everyone.
+export async function settlePoll(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const poll = await prisma.poll.findFirst({ where: { id, userId: req.user.id } });
+  if (!poll) throw new HttpError(404, 'Poll not found');
+  if (poll.expiresAt.getTime() > Date.now()) {
+    await prisma.poll.update({ where: { id }, data: { expiresAt: new Date() } });
+  }
+  res.json({ ok: true, settled: true });
 }
 
 // ---- Public (no auth): what a friend with the link can see and do --------

@@ -28,11 +28,11 @@ export async function settleVerdicts(now = new Date()): Promise<number> {
       const winner = ranked[0]?.[0] ?? null;
       const tie = ranked.length > 1 && ranked[0][1] === ranked[1][1];
       const payload = { pollId: poll.id, winner: tie ? null : winner, counts, totalVotes: poll.votes.length, question: poll.question };
-      await notify(poll.userId, 'verdict_settled', null, payload);
+      await notify(poll.userId, 'verdict_settled', null, { ...payload, target: 'verdict', targetId: poll.id });
       // Signed-in voters hear how it went too.
       const voterIds = [...new Set(poll.votes.map((v) => v.voterKey).filter((k) => k.startsWith('user:')).map((k) => k.slice(5)))];
       for (const uid of voterIds) {
-        if (uid !== poll.userId) await notify(uid, 'verdict_settled', poll.userId, payload);
+        if (uid !== poll.userId) await notify(uid, 'verdict_settled', poll.userId, { ...payload, target: 'verdict', targetId: poll.id });
       }
       notified++;
     }

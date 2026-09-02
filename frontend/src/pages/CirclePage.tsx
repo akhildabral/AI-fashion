@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
@@ -7,6 +7,10 @@ import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { InviteSheet } from '../components/InviteSheet'
+import { ReportSheet } from '../components/ReportSheet'
+import type { CardActions } from '../components/CircleCards'
+import { deletePoll } from '../lib/polls'
+import { muteUser, type ReportTarget } from '../lib/social'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
 import { AskCircleModal, ShareLookModal } from '../components/ComposeModals'
 import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
@@ -16,9 +20,7 @@ import {
   getCircleFeed,
   getCircleSaved,
   getCircleToday,
-  reactToLook,
   saveLook,
-  unreactToLook,
   unsaveLook,
   voteOnVerdict,
   type CirclePost,
@@ -26,6 +28,12 @@ import {
   type LookPost,
   type PostItem,
   type ReactionKind,
+  getPost,
+  reactToPost,
+  settleVerdict,
+  unreactToPost,
+  unshareLook,
+  type PostTarget,
 } from '../lib/circle'
 
 // The Circle — a salon where friends dress each other. One ranked column
@@ -63,6 +71,9 @@ export function CirclePage() {
   const [sharing, setSharing] = useState(false)
   const [asking, setAsking] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [reporting, setReporting] = useState<{ type: ReportTarget; id: string; label: string } | null>(null)
+  const [focus, setFocus] = useState<{ type: PostTarget; id: string } | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [railDismissed, setRailDismissed] = useState(() => {
     try {
       return localStorage.getItem(RAIL_DISMISS_KEY) === '1'
@@ -124,14 +135,78 @@ export function CirclePage() {
     setToday((prev) => (prev ? prev.map((p) => apply(p) as LookPost) : prev))
   }
 
-  async function handleReact(wearLogId: string, kind: ReactionKind | null) {
+  const patchPost = (target: PostTarget, id: string, fn: (p: CirclePost) => CirclePost) =>
+    setPosts((prev) => (prev ? prev.map((p) => (p.type === target && p.id === id ? fn(p) : p)) : prev))
+
+  async function handleReact(target: PostTarget, id: string, kind: ReactionKind | null) {
     try {
-      const { reactions } = kind ? await reactToLook(wearLogId, kind) : await unreactToLook(wearLogId)
-      patchLook(wearLogId, (p) => ({ ...p, reactions }))
+      const { reactions } = kind ? await reactToPost(target, id, kind) : await unreactToPost(target, id)
+      if (target === 'look') patchLook(id, (p) => ({ ...p, reactions }))
+      else patchPost(target, id, (p) => ({ ...p, reactions }))
     } catch {
       flash('Could not react to that.')
     }
   }
+
+  async function handleTakeDown(target: PostTarget, id: string) {
+    try {
+      if (target === 'look') await unshareLook(id)
+      else if (target === 'verdict') await deletePoll(id)
+      setPosts((prev) => (prev ? prev.filter((p) => !(p.type === target && p.id === id)) : prev))
+      if (target === 'look') setToday((prev) => (prev ? prev.filter((p) => p.id !== id) : prev))
+      flash(target === 'look' ? 'Taken down.' : 'Verdict withdrawn.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not take that down.')
+    }
+  }
+
+  async function handleSettle(pollId: string) {
+    try {
+      await settleVerdict(pollId)
+      const { post } = await getPost('verdict', pollId)
+      patchPost('verdict', pollId, () => post)
+      flash('Settled. Everyone who voted will hear.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not settle that.')
+    }
+  }
+
+  async function handleMute(handle: string) {
+    try {
+      await muteUser(handle, 30)
+      setPosts((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
+      setToday((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
+      flash(`Muted @${handle} for 30 days. Undo it from Your people.`)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not mute them.')
+    }
+  }
+
+  // A notification lands on its post: pull it in if the feed doesn't have it, then scroll to it.
+  useEffect(() => {
+    const f = searchParams.get('focus')
+    if (!f || posts === null) return
+    const [type, id] = f.split(':') as [PostTarget, string]
+    if (!['look', 'verdict', 'pick'].includes(type) || !id) return
+    const done = () => {
+      setFocus({ type, id })
+      setSearchParams({}, { replace: true })
+      window.setTimeout(() => document.getElementById(`post-${type}-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80)
+      window.setTimeout(() => setFocus(null), 4000)
+    }
+    if (posts.some((p) => p.type === type && p.id === id)) done()
+    else
+      getPost(type, id)
+        .then(({ post }) => {
+          setPosts((prev) => [post, ...(prev ?? [])])
+          done()
+        })
+        .catch(() => {
+          setSearchParams({}, { replace: true })
+          flash('That post isn’t on the circle any more.')
+        })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, posts === null])
 
   async function handleSave(wearLogId: string, saved: boolean) {
     patchLook(wearLogId, (p) => ({ ...p, saved }))
@@ -146,7 +221,7 @@ export function CirclePage() {
     }
   }
 
-  function handleCommentCount(target: 'look' | 'verdict', id: string, n: number) {
+  function handleCommentCount(target: PostTarget, id: string, n: number) {
     setPosts((prev) => (prev ? prev.map((p) => (p.type === target && p.id === id ? { ...p, comments: n } : p)) : prev))
   }
 
@@ -219,26 +294,26 @@ export function CirclePage() {
   const suggested = twins.filter((t) => !t.isFollowing)
   const showRail = !railDismissed && suggested.length > 0 && (posts?.length ?? 0) > 0
 
+  const actions: CardActions = {
+    react: handleReact,
+    commentCount: handleCommentCount,
+    note: flash,
+    mute: (h) => void handleMute(h),
+    report: (type, id, label) => setReporting({ type, id, label }),
+    takeDown: handleTakeDown,
+    settle: handleSettle,
+    save: handleSave,
+    recreate: openRecreate,
+    gone: (type, id) => setPosts((prev) => (prev ? prev.filter((x) => !(x.type === type && x.id === id)) : prev)),
+  }
+  const isFocus = (p: CirclePost) => focus?.type === p.type && focus.id === p.id
   const renderPost = (p: CirclePost) =>
     p.type === 'look' ? (
-      <LookCard
-        key={`l-${p.id}`}
-        post={p}
-        onReact={handleReact}
-        onSave={handleSave}
-        onRecreate={openRecreate}
-        onError={flash}
-        onCommentCount={(id, n) => handleCommentCount('look', id, n)}
-      />
+      <LookCard key={`l-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
     ) : p.type === 'verdict' ? (
-      <VerdictCard key={`v-${p.id}`} post={p} onVote={handleVote} onError={flash} onCommentCount={(id, n) => handleCommentCount('verdict', id, n)} />
+      <VerdictCard key={`v-${p.id}`} post={p} actions={actions} onVote={handleVote} highlight={isFocus(p)} />
     ) : (
-      <PickCard
-        key={`p-${p.id}`}
-        post={p}
-        onGone={(id) => setPosts((prev) => (prev ? prev.filter((x) => !(x.type === 'pick' && x.id === id)) : prev))}
-        onError={flash}
-      />
+      <PickCard key={`p-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
     )
 
   return (
@@ -408,6 +483,7 @@ export function CirclePage() {
       </div>
 
       <InviteSheet open={inviting} onClose={() => setInviting(false)} onNote={flash} />
+      <ReportSheet target={reporting} onClose={() => setReporting(null)} onNote={flash} />
       <PeopleDrawer
         open={people.open}
         initialTab={people.tab}

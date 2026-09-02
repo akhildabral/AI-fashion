@@ -14,6 +14,9 @@ import {
   markNotificationsRead,
   myRecentLooks,
   reactToLook,
+  reactToPost,
+  unreactToPost,
+  getPost,
   saveLook,
   shareLook,
   unreactToLook,
@@ -27,6 +30,9 @@ import { handlePhotoUpload } from '../middleware/upload';
 export const circleRouter = Router();
 
 circleRouter.get('/circle/feed', requireAuth, circleFeed);
+circleRouter.get('/circle/post/:type/:id', requireAuth, getPost);
+circleRouter.post('/posts/:type/:id/react', requireAuth, reactToPost);
+circleRouter.delete('/posts/:type/:id/react', requireAuth, unreactToPost);
 circleRouter.get('/circle/today', requireAuth, circleToday);
 circleRouter.get('/circle/explore', requireAuth, circleExplore);
 circleRouter.get('/circle/saved', requireAuth, circleSaved);

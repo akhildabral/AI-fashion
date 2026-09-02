@@ -250,7 +250,7 @@ export async function createPick(req: Request, res: Response) {
   const pick = await prisma.friendPick.create({
     data: { forUserId: target.id, byUserId: req.user.id, itemIds, note: note?.trim() || null },
   });
-  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id });
+  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id });
   res.status(201).json({ pick });
 }
 

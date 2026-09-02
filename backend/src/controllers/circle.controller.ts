@@ -8,18 +8,72 @@ import { saveImageBuffer } from '../lib/storage';
 import { dropHidden, hiddenIds } from '../lib/hidden';
 import { extForMime } from '../middleware/upload';
 import {
+  EMPTY_REACTIONS,
   REACTION_KINDS,
   affinityFor,
   commentCounts,
   graphFor,
   itemsById,
+  reactionSummaries,
   score,
   serializeLooks,
   voterKeyFor,
   type CirclePost,
   type PickPost,
+  type PostTarget,
   type VerdictPost,
 } from '../services/circle.service';
+
+type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; votes: { optionId: string; voterKey: string }[]; user: { handle: string | null } };
+type PickRow = { id: string; byUserId: string; itemIds: string[]; note: string | null; createdAt: Date; byUser: { handle: string | null } };
+
+/** Shape polls into verdict posts from the viewer's side. */
+async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now()): Promise<VerdictPost[]> {
+  if (polls.length === 0) return [];
+  const ids = polls.map((p) => p.id);
+  const [comments, reactions] = await Promise.all([commentCounts('verdict', ids), reactionSummaries('verdict', ids, me)]);
+  const myKey = voterKeyFor(me);
+  return polls.map((poll) => {
+    const isMine = poll.userId === me;
+    const settled = poll.expiresAt.getTime() < now;
+    const myVote = poll.votes.find((v) => v.voterKey === myKey)?.optionId ?? null;
+    const counts: Record<string, number> = {};
+    for (const v of poll.votes) counts[v.optionId] = (counts[v.optionId] ?? 0) + 1;
+    return {
+      type: 'verdict',
+      id: poll.id,
+      at: (settled ? poll.expiresAt : poll.createdAt).toISOString(),
+      handle: poll.user.handle,
+      isMine,
+      question: poll.question,
+      options: poll.options as unknown as { id: string; imageUrl: string }[],
+      expiresAt: poll.expiresAt.toISOString(),
+      settled,
+      counts: isMine || settled || myVote ? counts : null,
+      totalVotes: poll.votes.length,
+      myVote,
+      comments: comments.get(poll.id) ?? 0,
+      reactions: reactions.get(poll.id) ?? EMPTY_REACTIONS,
+    };
+  });
+}
+
+/** Shape friend picks into pick posts. */
+async function serializePicks(picks: PickRow[], me: string): Promise<PickPost[]> {
+  if (picks.length === 0) return [];
+  const ids = picks.map((p) => p.id);
+  const [items, comments, reactions] = await Promise.all([itemsById(picks.flatMap((p) => p.itemIds)), commentCounts('pick', ids), reactionSummaries('pick', ids, me)]);
+  return picks.map((p) => ({
+    type: 'pick',
+    id: p.id,
+    at: p.createdAt.toISOString(),
+    handle: p.byUser.handle,
+    note: p.note,
+    items: p.itemIds.map((id) => items.get(id)).filter((i): i is NonNullable<typeof i> => Boolean(i)),
+    reactions: reactions.get(p.id) ?? EMPTY_REACTIONS,
+    comments: comments.get(p.id) ?? 0,
+  }));
+}
 
 const PAGE = 20;
 
@@ -75,45 +129,8 @@ export async function circleFeed(req: Request, res: Response) {
   const picks = dropHidden(picksRaw, hidden, (p) => p.byUserId);
   const posts: CirclePost[] = [];
   posts.push(...(await serializeLooks(logs, me, friendIds)));
-
-  const myKey = voterKeyFor(me);
-  const verdictComments = await commentCounts('verdict', polls.map((p) => p.id));
-  for (const poll of polls) {
-    const isMine = poll.userId === me;
-    const settled = poll.expiresAt.getTime() < now;
-    const myVote = poll.votes.find((v) => v.voterKey === myKey)?.optionId ?? null;
-    const counts: Record<string, number> = {};
-    for (const v of poll.votes) counts[v.optionId] = (counts[v.optionId] ?? 0) + 1;
-    const post: VerdictPost = {
-      type: 'verdict',
-      id: poll.id,
-      at: (settled ? poll.expiresAt : poll.createdAt).toISOString(),
-      handle: poll.user.handle,
-      isMine,
-      question: poll.question,
-      options: poll.options as unknown as { id: string; imageUrl: string }[],
-      expiresAt: poll.expiresAt.toISOString(),
-      settled,
-      counts: isMine || settled || myVote ? counts : null,
-      totalVotes: poll.votes.length,
-      myVote,
-      comments: verdictComments.get(poll.id) ?? 0,
-    };
-    posts.push(post);
-  }
-
-  const pickItems = await itemsById(picks.flatMap((p) => p.itemIds));
-  for (const p of picks) {
-    const post: PickPost = {
-      type: 'pick',
-      id: p.id,
-      at: p.createdAt.toISOString(),
-      handle: p.byUser.handle,
-      note: p.note,
-      items: p.itemIds.map((id) => pickItems.get(id)).filter((i): i is NonNullable<typeof i> => Boolean(i)),
-    };
-    posts.push(post);
-  }
+  posts.push(...(await serializeVerdicts(polls, me, now)));
+  posts.push(...(await serializePicks(picks, me)));
 
   if (lens === 'following') posts.sort((a, b) => (a.at < b.at ? 1 : -1));
   else {
@@ -128,6 +145,38 @@ export async function circleFeed(req: Request, res: Response) {
     nextOffset: offset + PAGE < posts.length ? offset + PAGE : null,
     circleSize: circle.length,
   });
+}
+
+// GET /circle/post/:type/:id — one post, for a notification to land on.
+export async function getPost(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const me = req.user.id;
+  const type = String(req.params.type) as PostTarget;
+  const id = String(req.params.id);
+  const hidden = await hiddenIds(me);
+  if (type === 'look') {
+    const log = await prisma.wearLog.findFirst({ where: { id, sharedAt: { not: null } }, include: { user: { select: { handle: true } } } });
+    if (!log || hidden.has(log.userId)) throw new HttpError(404, 'That look isn’t on the circle');
+    const { friendIds } = await graphFor(me);
+    const [post] = await serializeLooks([log], me, friendIds);
+    res.json({ post });
+    return;
+  }
+  if (type === 'verdict') {
+    const poll = await prisma.poll.findUnique({ where: { id }, include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true } } } });
+    if (!poll || hidden.has(poll.userId)) throw new HttpError(404, 'That verdict isn’t here');
+    const [post] = await serializeVerdicts([poll], me);
+    res.json({ post });
+    return;
+  }
+  if (type === 'pick') {
+    const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: me }, include: { byUser: { select: { handle: true } } } });
+    if (!pick || hidden.has(pick.byUserId)) throw new HttpError(404, 'That pick isn’t here');
+    const [post] = await serializePicks([pick], me);
+    res.json({ post });
+    return;
+  }
+  throw new HttpError(400, 'Unknown kind of post');
 }
 
 // GET /circle/today — the rail: who in your circle shared a look today.
@@ -166,52 +215,40 @@ export async function circleExplore(req: Request, res: Response) {
 // ---- Reactions -------------------------------------------------------------
 
 const reactSchema = z.object({ kind: z.enum(REACTION_KINDS) });
+const postTypeSchema = z.enum(['look', 'verdict', 'pick']);
 
-async function reactionSummary(wearLogId: string, viewerId: string) {
-  const rs = await prisma.lookReaction.findMany({
-    where: { wearLogId },
-    select: { userId: true, kind: true, user: { select: { handle: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
-  const counts: Record<string, number> = {};
-  for (const r of rs) counts[r.kind] = (counts[r.kind] ?? 0) + 1;
-  return {
-    counts,
-    total: rs.length,
-    sample: rs.filter((r) => r.userId !== viewerId && r.user.handle).slice(0, 3).map((r) => r.user.handle as string),
-    mine: rs.find((r) => r.userId === viewerId)?.kind ?? null,
-  };
+async function summaryOf(target: PostTarget, id: string, viewerId: string) {
+  return (await reactionSummaries(target, [id], viewerId)).get(id) ?? EMPTY_REACTIONS;
 }
 
-// POST /looks/:id/react — set (or change) your reaction to a shared look.
-export async function reactToLook(req: Request, res: Response) {
+// POST /posts/:type/:id/react — set (or change) your reaction to any post.
+export async function reactToPost(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const wearLogId = String(req.params.id);
+  const target = postTypeSchema.parse(req.params.type ?? 'look');
+  const id = String(req.params.id);
   const { kind } = reactSchema.parse(req.body);
-  const log = await prisma.wearLog.findUnique({ where: { id: wearLogId }, select: { id: true, userId: true, sharedAt: true } });
-  if (!log || !log.sharedAt) throw new HttpError(404, 'Shared look not found');
-
-  const existing = await prisma.lookReaction.findUnique({
-    where: { wearLogId_userId: { wearLogId, userId: req.user.id } },
-  });
-  await prisma.lookReaction.upsert({
-    where: { wearLogId_userId: { wearLogId, userId: req.user.id } },
-    create: { wearLogId, userId: req.user.id, kind },
-    update: { kind },
-  });
+  const { ownerId } = await assertTarget(target, id);
+  const key = { userId_targetType_targetId: { userId: req.user.id, targetType: target, targetId: id } };
+  const existing = await prisma.reaction.findUnique({ where: key });
+  await prisma.reaction.upsert({ where: key, create: { userId: req.user.id, targetType: target, targetId: id, kind }, update: { kind } });
   if (!existing) {
-    void notify(log.userId, 'look_reacted', req.user.id, { wearLogId, kind }, { dedupeKey: `react:${wearLogId}` });
+    void notify(ownerId, 'look_reacted', req.user.id, { target, targetId: id, kind, wearLogId: target === 'look' ? id : undefined }, { dedupeKey: `react:${target}:${id}` });
   }
-  res.json({ reactions: await reactionSummary(wearLogId, req.user.id) });
+  res.json({ reactions: await summaryOf(target, id, req.user.id) });
 }
 
-// DELETE /looks/:id/react — take it back.
-export async function unreactToLook(req: Request, res: Response) {
+// DELETE /posts/:type/:id/react — take it back.
+export async function unreactToPost(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const wearLogId = String(req.params.id);
-  await prisma.lookReaction.deleteMany({ where: { wearLogId, userId: req.user.id } });
-  res.json({ reactions: await reactionSummary(wearLogId, req.user.id) });
+  const target = postTypeSchema.parse(req.params.type ?? 'look');
+  const id = String(req.params.id);
+  await prisma.reaction.deleteMany({ where: { userId: req.user.id, targetType: target, targetId: id } });
+  res.json({ reactions: await summaryOf(target, id, req.user.id) });
 }
+
+// The old look-only routes keep working.
+export const reactToLook = reactToPost;
+export const unreactToLook = unreactToPost;
 
 // ---- Notifications ---------------------------------------------------------
 
@@ -260,16 +297,22 @@ export async function markNotificationsRead(req: Request, res: Response) {
 // ---- Comments --------------------------------------------------------------
 
 const targetSchema = z.object({
-  target: z.enum(['look', 'verdict']),
+  target: z.enum(['look', 'verdict', 'pick']),
   id: z.string().uuid(),
 });
 const commentSchema = targetSchema.extend({ body: z.string().trim().min(1).max(500) });
 
-async function assertTarget(targetType: 'look' | 'verdict', targetId: string): Promise<{ ownerId: string }> {
+/** The post exists; who should hear about it (the owner, and for a pick the one it was made for too). */
+async function assertTarget(targetType: PostTarget, targetId: string): Promise<{ ownerId: string; alsoId?: string }> {
   if (targetType === 'look') {
     const log = await prisma.wearLog.findUnique({ where: { id: targetId }, select: { userId: true, sharedAt: true } });
     if (!log || !log.sharedAt) throw new HttpError(404, 'Shared look not found');
     return { ownerId: log.userId };
+  }
+  if (targetType === 'pick') {
+    const pick = await prisma.friendPick.findUnique({ where: { id: targetId }, select: { byUserId: true, forUserId: true } });
+    if (!pick) throw new HttpError(404, 'Pick not found');
+    return { ownerId: pick.byUserId, alsoId: pick.forUserId };
   }
   const poll = await prisma.poll.findUnique({ where: { id: targetId }, select: { userId: true } });
   if (!poll) throw new HttpError(404, 'Verdict not found');
@@ -298,7 +341,7 @@ export async function listComments(req: Request, res: Response) {
 export async function addComment(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const { target, id, body } = commentSchema.parse(req.body);
-  const { ownerId } = await assertTarget(target, id);
+  const { ownerId, alsoId } = await assertTarget(target, id);
   const comment = await prisma.comment.create({
     data: { userId: req.user.id, targetType: target, targetId: id, body },
     include: { user: { select: { handle: true } } },
@@ -306,6 +349,7 @@ export async function addComment(req: Request, res: Response) {
 
   const payload = { target, targetId: id, commentId: comment.id, preview: body.slice(0, 80) };
   void notify(ownerId, 'commented', req.user.id, payload);
+  if (alsoId && alsoId !== ownerId) void notify(alsoId, 'commented', req.user.id, payload);
   const handles = mentionedHandles(body);
   if (handles.length > 0) {
     const mentioned = await prisma.user.findMany({ where: { handle: { in: handles } }, select: { id: true } });
@@ -324,7 +368,7 @@ export async function deleteComment(req: Request, res: Response) {
   if (!c) throw new HttpError(404, 'Comment not found');
   let allowed = c.userId === req.user.id;
   if (!allowed) {
-    const { ownerId } = await assertTarget(c.targetType as 'look' | 'verdict', c.targetId).catch(() => ({ ownerId: '' }));
+    const { ownerId } = await assertTarget(c.targetType as PostTarget, c.targetId).catch(() => ({ ownerId: '' }));
     allowed = ownerId === req.user.id;
   }
   if (!allowed) throw new HttpError(403, 'Not your comment');
@@ -407,6 +451,11 @@ export async function unshareLook(req: Request, res: Response) {
   const id = String(req.params.id);
   const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { sharedAt: null, featuredAt: null } });
   if (r.count === 0) throw new HttpError(404, 'Wear not found');
+  await Promise.all([
+    prisma.comment.deleteMany({ where: { targetType: 'look', targetId: id } }),
+    prisma.reaction.deleteMany({ where: { targetType: 'look', targetId: id } }),
+    prisma.savedLook.deleteMany({ where: { wearLogId: id } }),
+  ]);
   res.json({ shared: false });
 }
 

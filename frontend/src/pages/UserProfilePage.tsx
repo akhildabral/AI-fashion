@@ -24,7 +24,8 @@ import {
   type PublicProfile,
   type ReportReason,
 } from '../lib/social'
-import { reactToLook, saveLook, unreactToLook, unsaveLook, type LookPost, type PostItem, type ReactionKind } from '../lib/circle'
+import { reactToPost, saveLook, unreactToPost, unsaveLook, type LookPost, type PostItem, type PostTarget, type ReactionKind } from '../lib/circle'
+import type { CardActions } from '../components/CircleCards'
 
 const MAX_PICK_ITEMS = 8
 
@@ -170,13 +171,26 @@ export function UserProfilePage() {
   const patchLook = (id: string, fn: (p: LookPost) => LookPost) =>
     setProfile((p) => (p ? { ...p, looks: p.looks.map((l) => (l.id === id ? fn(l) : l)) } : p))
 
-  async function handleReact(id: string, kind: ReactionKind | null) {
+  async function handleReact(target: PostTarget, id: string, kind: ReactionKind | null) {
     try {
-      const { reactions } = kind ? await reactToLook(id, kind) : await unreactToLook(id)
+      const { reactions } = kind ? await reactToPost(target, id, kind) : await unreactToPost(target, id)
       patchLook(id, (p) => ({ ...p, reactions }))
     } catch {
       flash('Could not react to that.')
     }
+  }
+  const cardActions: CardActions = {
+    react: handleReact,
+    commentCount: (_t, id, n) => patchLook(id, (x) => ({ ...x, comments: n })),
+    note: flash,
+    save: handleSave,
+    recreate: openRecreate,
+    report: (type, id, label) => {
+      void type
+      void id
+      void label
+      setReporting(true)
+    },
   }
   async function handleSave(id: string, saved: boolean) {
     patchLook(id, (p) => ({ ...p, saved }))
@@ -350,15 +364,7 @@ export function UserProfilePage() {
                 </div>
               )}
               {profile.looks.map((p) => (
-                <LookCard
-                  key={p.id}
-                  post={p}
-                  onReact={handleReact}
-                  onSave={handleSave}
-                  onRecreate={openRecreate}
-                  onError={flash}
-                  onCommentCount={(id, n) => patchLook(id, (x) => ({ ...x, comments: n }))}
-                />
+                <LookCard key={p.id} post={p} actions={cardActions} />
               ))}
             </div>
           )}

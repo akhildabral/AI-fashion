@@ -52,6 +52,7 @@ export interface VerdictPost {
   totalVotes: number
   myVote: string | null
   comments: number
+  reactions: ReactionSummary
 }
 
 export interface PickPost {
@@ -61,6 +62,8 @@ export interface PickPost {
   handle: string | null
   note: string | null
   items: PostItem[]
+  reactions: ReactionSummary
+  comments: number
 }
 
 export type CirclePost = LookPost | VerdictPost | PickPost
@@ -78,6 +81,22 @@ export function getCircleExplore() {
 
 export function getCircleToday() {
   return apiFetch<{ entries: LookPost[] }>('/circle/today')
+}
+
+/** React to any post — a look, a verdict, a pick. */
+export function reactToPost(target: PostTarget, id: string, kind: ReactionKind): Promise<{ reactions: ReactionSummary }> {
+  return apiFetch(`/posts/${target}/${id}/react`, { method: 'POST', body: { kind } })
+}
+export function unreactToPost(target: PostTarget, id: string): Promise<{ reactions: ReactionSummary }> {
+  return apiFetch(`/posts/${target}/${id}/react`, { method: 'DELETE' })
+}
+/** One post by kind and id, for a notification to land on. */
+export function getPost(target: PostTarget, id: string): Promise<{ post: CirclePost }> {
+  return apiFetch(`/circle/post/${target}/${id}`)
+}
+/** The asker closes a verdict early. */
+export function settleVerdict(pollId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`/polls/${pollId}/settle`, { method: 'POST' })
 }
 
 export function reactToLook(wearLogId: string, kind: ReactionKind) {
@@ -149,7 +168,8 @@ export interface Comment {
   handle: string | null
   isMine: boolean
 }
-export type CommentTarget = 'look' | 'verdict'
+export type CommentTarget = 'look' | 'verdict' | 'pick'
+export type PostTarget = CommentTarget
 
 export function getComments(target: CommentTarget, id: string) {
   return apiFetch<{ comments: Comment[] }>(`/comments?target=${target}&id=${id}`)

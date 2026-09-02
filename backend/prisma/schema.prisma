@@ -68,7 +68,7 @@ model User {
   dailyBriefs   DailyBrief[]
   trips         Trip[]
   lookbooks     Lookbook[]
-  lookReactions     LookReaction[]
+  reactions         Reaction[]
   notifications     Notification[] @relation("notificationsFor")
   notificationsSent Notification[] @relation("notificationsBy")
   comments          Comment[]
@@ -279,23 +279,24 @@ model WearLog {
   recreatedCount Int @default(0)
   // Optional OOTD photo (uploaded, or a Mirror render) shown as the hero.
   photoUrl  String?
-  reactions LookReaction[]
   savedBy   SavedLook[]
 }
 
 // A taste-relevant reaction on a shared look ("would wear", "bold", "love").
 // One per person per look — this is signal, not a like count to farm.
-model LookReaction {
-  id        String   @id @default(uuid())
-  wearLogId String
-  wearLog   WearLog  @relation(fields: [wearLogId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind      String
-  createdAt DateTime @default(now())
+// A reaction to any post — a look (wearLogId), a verdict (pollId) or a pick
+// (pickId). One per person per post; kind: would_wear | bold | love.
+model Reaction {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType String
+  targetId   String
+  kind       String
+  createdAt  DateTime @default(now())
 
-  @@unique([wearLogId, userId])
-  @@index([userId])
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
 }
 
 // Things that happened to you. They live behind the bell, never in the

@@ -33,6 +33,15 @@ export interface LookPost {
   photoUrl: string | null;
 }
 
+export interface ReactionSummary {
+  counts: Record<string, number>;
+  total: number;
+  sample: string[];
+  mine: ReactionKind | null;
+}
+
+export type PostTarget = 'look' | 'verdict' | 'pick';
+
 export interface VerdictPost {
   type: 'verdict';
   id: string; // pollId
@@ -48,6 +57,7 @@ export interface VerdictPost {
   totalVotes: number;
   myVote: string | null;
   comments: number;
+  reactions: ReactionSummary;
 }
 
 export interface PickPost {
@@ -57,6 +67,8 @@ export interface PickPost {
   handle: string | null; // who styled you
   note: string | null;
   items: PostItem[];
+  reactions: ReactionSummary;
+  comments: number;
 }
 
 export type CirclePost = LookPost | VerdictPost | PickPost;
@@ -87,8 +99,40 @@ export async function graphFor(userId: string) {
   return { followingIds, followerIds, friendIds };
 }
 
+/** Reaction summaries per post id, for one kind of post, from the viewer's side. */
+export async function reactionSummaries(targetType: PostTarget, ids: string[], viewerId: string): Promise<Map<string, ReactionSummary>> {
+  const out = new Map<string, ReactionSummary>();
+  if (ids.length === 0) return out;
+  const rows = await prisma.reaction.findMany({
+    where: { targetType, targetId: { in: ids } },
+    select: { targetId: true, userId: true, kind: true, user: { select: { handle: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+  const by = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const list = by.get(r.targetId) ?? [];
+    list.push(r);
+    by.set(r.targetId, list);
+  }
+  for (const id of ids) {
+    const rs = by.get(id) ?? [];
+    const counts: Record<string, number> = {};
+    for (const r of rs) counts[r.kind] = (counts[r.kind] ?? 0) + 1;
+    const mine = rs.find((r) => r.userId === viewerId)?.kind ?? null;
+    out.set(id, {
+      counts,
+      total: rs.length,
+      sample: rs.filter((r) => r.userId !== viewerId && r.user.handle).slice(0, 3).map((r) => r.user.handle as string),
+      mine: (REACTION_KINDS as readonly string[]).includes(mine ?? '') ? (mine as ReactionKind) : null,
+    });
+  }
+  return out;
+}
+
+export const EMPTY_REACTIONS: ReactionSummary = { counts: {}, total: 0, sample: [], mine: null };
+
 /** Comment counts per target id, for one target type. */
-export async function commentCounts(targetType: 'look' | 'verdict', ids: string[]): Promise<Map<string, number>> {
+export async function commentCounts(targetType: PostTarget, ids: string[]): Promise<Map<string, number>> {
   if (ids.length === 0) return new Map();
   const rows = await prisma.comment.groupBy({
     by: ['targetId'],
@@ -121,28 +165,14 @@ export async function serializeLooks(
   const ids = logs.map((l) => l.id);
   const [byId, reactions, comments, saved, saveCounts] = await Promise.all([
     itemsById(logs.flatMap((l) => l.itemIds)),
-    prisma.lookReaction.findMany({
-      where: { wearLogId: { in: ids } },
-      select: { wearLogId: true, userId: true, kind: true, user: { select: { handle: true } } },
-      orderBy: { createdAt: 'desc' },
-    }),
+    reactionSummaries('look', ids, viewerId),
     commentCounts('look', ids),
     prisma.savedLook.findMany({ where: { userId: viewerId, wearLogId: { in: ids } }, select: { wearLogId: true } }),
     prisma.savedLook.groupBy({ by: ['wearLogId'], where: { wearLogId: { in: ids } }, _count: { _all: true } }),
   ]);
   const savedSet = new Set(saved.map((s) => s.wearLogId));
   const savesBy = new Map(saveCounts.map((s) => [s.wearLogId, s._count._all]));
-  const byLog = new Map<string, typeof reactions>();
-  for (const r of reactions) {
-    const list = byLog.get(r.wearLogId) ?? [];
-    list.push(r);
-    byLog.set(r.wearLogId, list);
-  }
   return logs.map((l) => {
-    const rs = byLog.get(l.id) ?? [];
-    const counts: Record<string, number> = {};
-    for (const r of rs) counts[r.kind] = (counts[r.kind] ?? 0) + 1;
-    const mine = rs.find((r) => r.userId === viewerId)?.kind ?? null;
     return {
       type: 'look',
       id: l.id,
@@ -153,15 +183,7 @@ export async function serializeLooks(
       eventType: l.eventType,
       featured: Boolean(l.featuredAt),
       items: l.itemIds.map((id) => byId.get(id)).filter((i): i is PostItem => Boolean(i)),
-      reactions: {
-        counts,
-        total: rs.length,
-        sample: rs
-          .filter((r) => r.userId !== viewerId && r.user.handle)
-          .slice(0, 3)
-          .map((r) => r.user.handle as string),
-        mine: (REACTION_KINDS as readonly string[]).includes(mine ?? '') ? (mine as ReactionKind) : null,
-      },
+      reactions: reactions.get(l.id) ?? EMPTY_REACTIONS,
       comments: comments.get(l.id) ?? 0,
       saved: savedSet.has(l.id),
       saves: savesBy.get(l.id) ?? 0,
@@ -177,7 +199,9 @@ export async function standingFor(userId: string) {
     prisma.notification.count({ where: { userId, type: 'pick_worn' } }),
     prisma.wearLog.aggregate({ where: { userId }, _sum: { recreatedCount: true } }).then((r) => r._sum.recreatedCount ?? 0),
     prisma.wearLog.count({ where: { userId, sharedAt: { not: null } } }),
-    prisma.lookReaction.count({ where: { wearLog: { userId }, kind: 'would_wear' } }),
+    prisma.wearLog
+      .findMany({ where: { userId, sharedAt: { not: null } }, select: { id: true } })
+      .then((logs) => (logs.length ? prisma.reaction.count({ where: { targetType: 'look', kind: 'would_wear', targetId: { in: logs.map((l) => l.id) } } }) : 0)),
   ]);
   return { picksWorn, recreated, looksShared, wouldWear };
 }
@@ -190,10 +214,7 @@ export async function standingFor(userId: string) {
 export async function affinityFor(viewerId: string): Promise<Map<string, number>> {
   const since = new Date(Date.now() - 60 * 86_400_000);
   const [reactions, comments, saves, recreates] = await Promise.all([
-    prisma.lookReaction.findMany({
-      where: { userId: viewerId, createdAt: { gte: since } },
-      select: { wearLog: { select: { user: { select: { handle: true } } } } },
-    }),
+    prisma.reaction.findMany({ where: { userId: viewerId, createdAt: { gte: since } }, select: { targetType: true, targetId: true } }),
     prisma.comment.findMany({ where: { userId: viewerId, createdAt: { gte: since } }, select: { targetType: true, targetId: true } }),
     prisma.savedLook.findMany({
       where: { userId: viewerId, createdAt: { gte: since } },
@@ -208,18 +229,23 @@ export async function affinityFor(viewerId: string): Promise<Map<string, number>
   const add = (h: string | null | undefined, w: number) => {
     if (h) m.set(h, (m.get(h) ?? 0) + w);
   };
-  for (const r of reactions) add(r.wearLog.user.handle, 1);
   for (const s of saves) add(s.wearLog.user.handle, 2);
   for (const r of recreates) add(r.user.handle, 3);
-  if (comments.length > 0) {
-    const lookIds = comments.filter((c) => c.targetType === 'look').map((c) => c.targetId);
-    const pollIds = comments.filter((c) => c.targetType === 'verdict').map((c) => c.targetId);
-    const [logs, polls] = await Promise.all([
-      lookIds.length ? prisma.wearLog.findMany({ where: { id: { in: lookIds } }, select: { id: true, user: { select: { handle: true } } } }) : [],
-      pollIds.length ? prisma.poll.findMany({ where: { id: { in: pollIds } }, select: { id: true, user: { select: { handle: true } } } }) : [],
+  // Reactions and notes: resolve who owns each post, then credit them.
+  const touched = [...reactions.map((r) => ({ ...r, w: 1 })), ...comments.map((c) => ({ ...c, w: 2 }))];
+  if (touched.length > 0) {
+    const ids = (t: string) => touched.filter((x) => x.targetType === t).map((x) => x.targetId);
+    const [logs, polls, picks] = await Promise.all([
+      ids('look').length ? prisma.wearLog.findMany({ where: { id: { in: ids('look') } }, select: { id: true, user: { select: { handle: true } } } }) : [],
+      ids('verdict').length ? prisma.poll.findMany({ where: { id: { in: ids('verdict') } }, select: { id: true, user: { select: { handle: true } } } }) : [],
+      ids('pick').length ? prisma.friendPick.findMany({ where: { id: { in: ids('pick') } }, select: { id: true, byUser: { select: { handle: true } } } }) : [],
     ]);
-    const owner = new Map<string, string | null>([...logs.map((l) => [l.id, l.user.handle] as const), ...polls.map((p) => [p.id, p.user.handle] as const)]);
-    for (const c of comments) add(owner.get(c.targetId), 2);
+    const owner = new Map<string, string | null>([
+      ...logs.map((l) => [l.id, l.user.handle] as const),
+      ...polls.map((p) => [p.id, p.user.handle] as const),
+      ...picks.map((p) => [p.id, p.byUser.handle] as const),
+    ]);
+    for (const t of touched) add(owner.get(t.targetId), t.w);
   }
   return m;
 }
@@ -243,7 +269,9 @@ export function score(post: CirclePost, now: number, ctx: RankContext = {}): num
     else if (post.settled && post.isMine) s += 25;
     else if (!post.settled) s += 10;
     s += Math.min(12, post.comments * 3);
+    s += Math.min(8, (post.reactions?.total ?? 0) * 2);
   }
+  if (post.type === 'pick') s += Math.min(6, (post.comments ?? 0) * 3);
   if (post.type === 'look') {
     if (post.isFriend) s += 8;
     if (post.featured) s += 5;

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
 import { Arch } from './ui'
@@ -19,7 +19,9 @@ import {
   type LookPost,
   type PickPost,
   type PostItem,
+  type PostTarget,
   type ReactionKind,
+  type ReactionSummary,
   type VerdictPost,
 } from '../lib/circle'
 
@@ -41,7 +43,7 @@ export function Plate({ children }: { children: ReactNode }) {
   return <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{children}</p>
 }
 
-function PostHeader({ handle, meta, plate }: { handle: string | null; meta: ReactNode; plate?: ReactNode }) {
+function PostHeader({ handle, meta, plate, menu }: { handle: string | null; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-4">
       <Link to={handle ? `/u/${handle}` : '#'} className="press">
@@ -52,6 +54,7 @@ function PostHeader({ handle, meta, plate }: { handle: string | null; meta: Reac
         <p className="truncate text-xs text-ink/45">{meta}</p>
       </div>
       {plate && <div className="shrink-0">{plate}</div>}
+      {menu}
     </div>
   )
 }
@@ -214,7 +217,7 @@ function ActionButton({
       aria-pressed={on}
       aria-label={label}
       onClick={onClick}
-      className={`press inline-flex items-center gap-1.5 rounded-[3px] px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+      className={`press inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-xs font-semibold transition-colors sm:px-2.5 ${
         on ? 'text-brass' : 'text-ink/55 hover:text-ink'
       }`}
     >
@@ -239,6 +242,17 @@ const ICON = {
       <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
     </svg>
   ),
+  star: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+    </svg>
+  ),
+  recreate: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" />
+      <path d="M18 3v4h-4M6 21v-4h4" />
+    </svg>
+  ),
   bookmark: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
       <path d="M6 3h12v18l-6-4-6 4z" />
@@ -261,17 +275,6 @@ async function sharePage(path: string, title: string, onDone: (msg: string) => v
   onDone((await copyText(url)) ? 'Link copied — paste it anywhere.' : url)
 }
 
-function ShareButton({ path, title, onDone }: { path: string; title: string; onDone: (msg: string) => void }) {
-  return (
-    <ActionButton label="Share" onClick={() => void sharePage(path, title, onDone)}>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-        <path d="M12 3v12M7 8l5-5 5 5" />
-        <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
-      </svg>
-      Share
-    </ActionButton>
-  )
-}
 
 /* ---------- comments ---------- */
 
@@ -406,10 +409,31 @@ export function CommentThread({
   )
 }
 
-/* ---------- cards ---------- */
+/* ---------- the grammar ---------- */
 
-function reactionLine(p: LookPost): string | null {
-  const { total, sample, mine } = p.reactions
+/**
+ * What a card can ask of the page. One object, passed to every card, so a
+ * look, a verdict and a pick read and behave the same wherever they hang.
+ */
+export interface CardActions {
+  react: (target: PostTarget, id: string, kind: ReactionKind | null) => Promise<void>
+  commentCount: (target: PostTarget, id: string, n: number) => void
+  note: (msg: string) => void
+  /** Mute the author for a while; the page drops their posts. */
+  mute?: (handle: string) => void
+  report?: (target: PostTarget, id: string, label: string) => void
+  /** Your own post: take it off the circle. */
+  takeDown?: (target: PostTarget, id: string) => Promise<void>
+  /** Your own open verdict: close it now. */
+  settle?: (pollId: string) => Promise<void>
+  save?: (wearLogId: string, saved: boolean) => Promise<void>
+  recreate?: (handle: string | null, items: PostItem[]) => void
+  /** A pick you dismissed or wore: it leaves the feed. */
+  gone?: (target: PostTarget, id: string) => void
+}
+
+function reactionLine(r: ReactionSummary, verb = 'would wear this'): string | null {
+  const { total, sample, mine } = r
   if (total === 0) return null
   const others = total - (mine ? 1 : 0)
   const names = sample.map((h) => `@${h}`)
@@ -419,29 +443,117 @@ function reactionLine(p: LookPost): string | null {
   const rest = others - Math.min(2, names.length)
   let s = parts.join(', ')
   if (rest > 0) s += ` and ${rest} other${rest === 1 ? '' : 's'}`
-  return `${s} would wear this`
+  return `${s} ${verb}`
 }
 
-export function LookCard({
-  post,
-  onReact,
-  onSave,
-  onRecreate,
-  onError,
-  onCommentCount,
-}: {
-  post: LookPost
-  onReact: (id: string, kind: ReactionKind | null) => Promise<void>
-  onSave: (id: string, saved: boolean) => Promise<void>
-  onRecreate: (handle: string | null, items: PostItem[]) => void
-  onError: (msg: string) => void
-  onCommentCount: (id: string, n: number) => void
-}) {
+/** The same three reactions on every post. On a look, "Would wear" is the primary verb and sits first. */
+function Reactions({ target, post, mine, counts, actions, skipWouldWear = false }: { target: PostTarget; post: { id: string }; mine: ReactionKind | null; counts: Record<string, number>; actions: CardActions; skipWouldWear?: boolean }) {
+  const toggle = (k: ReactionKind) => void actions.react(target, post.id, mine === k ? null : k)
+  return (
+    <>
+      {!skipWouldWear && (
+        <ActionButton label="Would wear" on={mine === 'would_wear'} onClick={() => toggle('would_wear')}>
+          {ICON.heart}
+          Would wear
+          {counts.would_wear ? <Count n={counts.would_wear} /> : null}
+        </ActionButton>
+      )}
+      <ActionButton label="Bold" on={mine === 'bold'} onClick={() => toggle('bold')}>
+        {ICON.bolt}
+        Bold
+        {counts.bold ? <Count n={counts.bold} /> : null}
+      </ActionButton>
+      <ActionButton label="Love" on={mine === 'love'} onClick={() => toggle('love')}>
+        {ICON.star}
+        Love
+        {counts.love ? <Count n={counts.love} /> : null}
+      </ActionButton>
+    </>
+  )
+}
+
+function NotesButton({ open, count, onClick }: { open: boolean; count: number; onClick: () => void }) {
+  return (
+    <ActionButton label="Notes" on={open} onClick={onClick}>
+      {ICON.comment}
+      {count > 0 ? <Count n={count} /> : 'Note'}
+    </ActionButton>
+  )
+}
+
+/** The "···" on every card: the rest, one list, closes on any choice. */
+export function CardMenu({ items }: { items: { label: string; danger?: boolean; onSelect: () => void }[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  if (items.length === 0) return null
+  return (
+    <div ref={ref} className="relative -mr-2 shrink-0">
+      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="press rounded-[3px] px-2 py-1.5 text-xs font-semibold tracking-[0.2em] text-ink/45 hover:text-ink">
+        ···
+      </button>
+      {open && (
+        <div role="menu" className="card absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden py-1 text-left">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                it.onSelect()
+              }}
+              className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-ink/5 ${it.danger ? 'text-red-500 dark:text-red-300' : 'text-ink/80'}`}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A card's foot. Three parts that wrap as wholes, never one control alone on
+ * a line: the verbs (primary first), the shared row (reactions, notes, more),
+ * and the "···" pushed right.
+ */
+function CardFoot({ verbs, children, tone = 'border-ink/10' }: { verbs?: ReactNode; children: ReactNode; tone?: string }) {
+  return (
+    <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t ${tone} px-3 py-2.5`}>
+      {verbs && <div className="flex flex-wrap items-center gap-2">{verbs}</div>}
+      <div className="flex flex-wrap items-center gap-x-0.5">{children}</div>
+    </div>
+  )
+}
+
+/* ---------- cards ---------- */
+
+export function LookCard({ post, actions, highlight = false }: { post: LookPost; actions: CardActions; highlight?: boolean }) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const line = reactionLine(post)
+  const line = reactionLine(post.reactions)
+  const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
+  if (!post.isMine && actions.save) menu.push({ label: post.saved ? 'Remove from your board' : 'Save to your board', onSelect: () => void actions.save?.(post.id, !post.saved) })
+  if (post.isMine) menu.push({ label: 'Share the page', onSelect: () => void sharePage(`/look/${post.id}`, 'Wore this today', actions.note) })
+  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('look', post.id, post.handle ? `@${post.handle}’s look` : 'this look') })
+  if (post.isMine && actions.takeDown) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown?.('look', post.id) })
   return (
-    <article className={`card overflow-hidden ${post.featured ? '!border-brass/45' : ''}`}>
+    <article id={`post-look-${post.id}`} className={`card overflow-hidden transition-shadow ${post.featured ? '!border-brass/45' : ''} ${highlight ? 'ring-1 ring-brass' : ''}`}>
       <PostHeader
         handle={post.handle}
         meta={
@@ -449,56 +561,33 @@ export function LookCard({
             Outfit of the day{post.eventType ? ` · ${post.eventType}` : ''} · {timeAgo(post.at)}
           </>
         }
-        plate={post.featured ? <Plate>Featured</Plate> : undefined}
+        plate={<Plate>{post.featured ? 'Featured' : 'Look'}</Plate>}
+        menu={<CardMenu items={menu} />}
       />
       <LookHero items={post.items} photoUrl={post.photoUrl} expanded={expanded} onToggle={() => setExpanded((v) => !v)} />
       {line && <p className="px-4 pt-3 text-xs text-ink/50">{line}</p>}
-      <div className="mt-3 flex flex-wrap items-center gap-0.5 border-t border-ink/10 px-3 py-2.5">
-        {!post.isMine && (
-          <>
-            <ActionButton
-              label="Would wear"
-              on={post.reactions.mine === 'would_wear'}
-              onClick={() => void onReact(post.id, post.reactions.mine === 'would_wear' ? null : 'would_wear')}
-            >
-              {ICON.heart}
-              Would wear
+      <CardFoot
+        verbs={
+          post.isMine ? (
+            <span className="px-1 text-xs text-ink/45">Your look, on the circle.</span>
+          ) : (
+            <button type="button" aria-pressed={post.reactions.mine === 'would_wear'} onClick={() => void actions.react('look', post.id, post.reactions.mine === 'would_wear' ? null : 'would_wear')} className={post.reactions.mine === 'would_wear' ? 'btn-ghost !border-brass/60 btn-sm !text-brass' : 'btn-primary btn-sm'}>
+              {post.reactions.mine === 'would_wear' ? 'Would wear ✓' : 'Would wear'}
               {post.reactions.counts.would_wear ? <Count n={post.reactions.counts.would_wear} /> : null}
-            </ActionButton>
-            <ActionButton
-              label="Bold"
-              on={post.reactions.mine === 'bold'}
-              onClick={() => void onReact(post.id, post.reactions.mine === 'bold' ? null : 'bold')}
-            >
-              {ICON.bolt}
-              Bold
-              {post.reactions.counts.bold ? <Count n={post.reactions.counts.bold} /> : null}
-            </ActionButton>
-          </>
-        )}
-        <ActionButton label="Notes" on={open} onClick={() => setOpen((v) => !v)}>
-          {ICON.comment}
-          {post.comments > 0 ? <Count n={post.comments} /> : 'Note'}
-        </ActionButton>
-        {!post.isMine && (
-          <ActionButton label={post.saved ? 'Saved' : 'Save'} on={post.saved} onClick={() => void onSave(post.id, !post.saved)}>
-            {ICON.bookmark}
-            {post.saved ? 'Saved' : 'Save'}
+            </button>
+          )
+        }
+>
+        {!post.isMine && <Reactions target="look" post={post} mine={post.reactions.mine} counts={post.reactions.counts} actions={actions} skipWouldWear />}
+        <NotesButton open={open} count={post.comments} onClick={() => setOpen((v) => !v)} />
+        {!post.isMine && post.items.length > 0 && actions.recreate && (
+          <ActionButton label="Recreate from my closet" onClick={() => actions.recreate?.(post.handle, post.items)}>
+            {ICON.recreate}
+            Recreate
           </ActionButton>
         )}
-        {!post.isMine && post.items.length > 0 && (
-          <button type="button" onClick={() => onRecreate(post.handle, post.items)} className="btn-primary ml-auto btn-sm">
-            Recreate
-          </button>
-        )}
-        {post.isMine && (
-          <span className="ml-auto flex items-center gap-1">
-            <span className="hidden px-1 text-xs text-ink/45 sm:inline">Your look, on the circle.</span>
-            <ShareButton path={`/look/${post.id}`} title="Wore this today" onDone={onError} />
-          </span>
-        )}
-      </div>
-      {open && <CommentThread target="look" id={post.id} onCount={(n) => onCommentCount(post.id, n)} onError={onError} />}
+      </CardFoot>
+      {open && <CommentThread target="look" id={post.id} onCount={(n) => actions.commentCount('look', post.id, n)} onError={actions.note} />}
     </article>
   )
 }
@@ -507,33 +596,26 @@ function Count({ n }: { n: number }) {
   return <span className="text-ink/40 [font-variant-numeric:tabular-nums]">{n}</span>
 }
 
-export function VerdictCard({
-  post,
-  onVote,
-  onError,
-  onCommentCount,
-}: {
-  post: VerdictPost
-  onVote: (pollId: string, optionId: string) => Promise<void>
-  onError: (msg: string) => void
-  onCommentCount: (id: string, n: number) => void
-}) {
+export function VerdictCard({ post, actions, onVote, highlight = false }: { post: VerdictPost; actions: CardActions; onVote: (pollId: string, optionId: string) => Promise<void>; highlight?: boolean }) {
   const [voting, setVoting] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const canVote = !post.settled && !post.isMine && !post.myVote
   const counts = post.counts
   const leader = counts ? Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] : null
+  const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
+  if (post.isMine && !post.settled) menu.push({ label: 'Share the vote page', onSelect: () => void sharePage(`/vote/${post.id}`, post.question, actions.note) })
+  if (post.isMine && !post.settled && actions.settle) menu.push({ label: 'Settle it now', onSelect: () => void actions.settle?.(post.id) })
+  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('verdict', post.id, post.handle ? `@${post.handle}’s verdict` : 'this verdict') })
+  if (post.isMine && actions.takeDown) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown?.('verdict', post.id) })
 
   return (
-    <article className="card overflow-hidden">
+    <article id={`post-verdict-${post.id}`} className={`card overflow-hidden ${highlight ? 'ring-1 ring-brass' : ''}`}>
       <PostHeader
         handle={post.handle}
-        meta={
-          post.isMine
-            ? `Your verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`
-            : `needs a verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`
-        }
+        meta={post.isMine ? `Your verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}` : `needs a verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`}
         plate={<Plate>{post.settled ? 'Verdict is in' : 'Verdict'}</Plate>}
+        menu={<CardMenu items={menu} />}
       />
       <p className="mt-2 px-4 font-display text-lg font-medium text-ink">{post.question}</p>
 
@@ -562,9 +644,7 @@ export function VerdictCard({
                   </div>
                 </>
               ) : (
-                <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50">
-                  {voting === o.id ? 'Sending…' : o.id.toUpperCase()}
-                </p>
+                <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50">{voting === o.id ? 'Sending…' : o.id.toUpperCase()}</p>
               )}
             </>
           )
@@ -589,34 +669,41 @@ export function VerdictCard({
           )
         })}
       </div>
+      <p className="mt-3 px-4 text-xs text-ink/50">
+        {canVote
+          ? 'Tap the one they should wear.'
+          : post.settled
+            ? `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} · settled`
+            : `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} so far${post.myVote ? ' · you weighed in' : ''}`}
+      </p>
 
-      <div className="mt-3 flex items-center gap-2 border-t border-ink/10 px-3 py-2.5">
-        <p className="px-1 text-xs text-ink/50">
-          {canVote
-            ? 'Tap the one they should wear.'
-            : post.settled
-              ? `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} · settled`
-              : `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} so far${post.myVote ? ' · you weighed in' : ''}`}
-        </p>
-        <span className="ml-auto flex items-center gap-0.5">
-          {post.isMine && !post.settled && <ShareButton path={`/vote/${post.id}`} title={post.question} onDone={onError} />}
-          <ActionButton label="Notes" on={open} onClick={() => setOpen((v) => !v)}>
-            {ICON.comment}
-            {post.comments > 0 ? <Count n={post.comments} /> : 'Note'}
-          </ActionButton>
-        </span>
-      </div>
-      {open && <CommentThread target="verdict" id={post.id} onCount={(n) => onCommentCount(post.id, n)} onError={onError} />}
+      <CardFoot>
+        {!post.isMine && <Reactions target="verdict" post={post} mine={post.reactions.mine} counts={post.reactions.counts} actions={actions} />}
+        <NotesButton open={open} count={post.comments} onClick={() => setOpen((v) => !v)} />
+      </CardFoot>
+      {open && <CommentThread target="verdict" id={post.id} onCount={(n) => actions.commentCount('verdict', post.id, n)} onError={actions.note} />}
     </article>
   )
 }
 
-export function PickCard({ post, onGone, onError }: { post: PickPost; onGone: (id: string) => void; onError: (msg: string) => void }) {
+export function PickCard({ post, actions, highlight = false }: { post: PickPost; actions: CardActions; highlight?: boolean }) {
   const navigate = useNavigate()
   const [worn, setWorn] = useState(false)
+  const [open, setOpen] = useState(false)
+  const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
+  if (post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('pick', post.id, post.handle ? `@${post.handle}’s pick` : 'this pick') })
+  menu.push({
+    label: 'Dismiss',
+    danger: true,
+    onSelect: () =>
+      void dismissPick(post.id)
+        .then(() => actions.gone?.('pick', post.id))
+        .catch(() => actions.note('Could not dismiss that — try again.')),
+  })
   return (
-    <article className="card overflow-hidden !border-brass/35 bg-iris-soft/40">
-      <PostHeader handle={post.handle} meta={`styled a look for you · ${timeAgo(post.at)}`} plate={<Plate>For you</Plate>} />
+    <article id={`post-pick-${post.id}`} className={`card overflow-hidden !border-brass/35 bg-iris-soft/40 ${highlight ? 'ring-1 ring-brass' : ''}`}>
+      <PostHeader handle={post.handle} meta={`styled a look for you · ${timeAgo(post.at)}`} plate={<Plate>For you</Plate>} menu={<CardMenu items={menu} />} />
       {post.note && <p className="mt-2 px-4 font-display text-sm italic text-ink/70">“{post.note}”</p>}
       {post.items.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2 px-4">
@@ -625,34 +712,32 @@ export function PickCard({ post, onGone, onError }: { post: PickPost; onGone: (i
           ))}
         </div>
       )}
-      <div className="action-row mt-4 border-t border-brass/20 px-4 py-3 !gap-x-3">
-        <button
-          type="button"
-          disabled={worn || post.items.length === 0}
-          onClick={() =>
-            void logWear({ itemIds: post.items.map((i) => i.id), pickId: post.id })
-              .then(() => setWorn(true))
-              .catch(() => onError('Could not log the wear — try again.'))
-          }
-          className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
-        >
-          {worn ? 'Worn — they’ll know' : 'I wore it'}
-        </button>
-        <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost btn-sm">
-          See it on me
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            void dismissPick(post.id)
-              .then(() => onGone(post.id))
-              .catch(() => onError('Could not dismiss that — try again.'))
-          }
-          className="btn-quiet ml-auto !h-9 !text-xs !text-ink/40"
-        >
-          Dismiss
-        </button>
-      </div>
+      <CardFoot
+        tone="border-brass/20"
+        verbs={
+          <>
+            <button
+              type="button"
+              disabled={worn || post.items.length === 0}
+              onClick={() =>
+                void logWear({ itemIds: post.items.map((i) => i.id), pickId: post.id })
+                  .then(() => setWorn(true))
+                  .catch(() => actions.note('Could not log the wear — try again.'))
+              }
+              className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
+            >
+              {worn ? 'Worn — they’ll know' : 'I wore it'}
+            </button>
+            <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost btn-sm">
+              See it on me
+            </button>
+          </>
+        }
+>
+        <Reactions target="pick" post={post} mine={post.reactions.mine} counts={post.reactions.counts} actions={actions} />
+        <NotesButton open={open} count={post.comments} onClick={() => setOpen((v) => !v)} />
+      </CardFoot>
+      {open && <CommentThread target="pick" id={post.id} onCount={(n) => actions.commentCount('pick', post.id, n)} onError={actions.note} />}
     </article>
   )
 }

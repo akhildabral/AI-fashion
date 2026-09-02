@@ -4,6 +4,7 @@ import {
   deletePoll,
   getPublicPoll,
   listPolls,
+  settlePoll,
   votePoll,
 } from '../controllers/poll.controller';
 import { requireAuth } from '../middleware/auth';
@@ -16,6 +17,7 @@ export const pollRouter = Router();
 pollRouter.post('/polls', requireAuth, createPoll);
 pollRouter.get('/polls', requireAuth, listPolls);
 pollRouter.delete('/polls/:id', requireAuth, deletePoll);
+pollRouter.post('/polls/:id/settle', requireAuth, settlePoll);
 
 // Public — a friend with the link needs no account.
 pollRouter.get('/polls/:id/public', getPublicPoll);
