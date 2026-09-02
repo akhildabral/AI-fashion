@@ -269,18 +269,18 @@ the backend logs (`[mailer] SMTP not configured — invite link for ...`) and
 the admin panel's copy-link button covers invites. With SMTP, emails send
 for real.
 
-Current setup — **Gmail with an App Password** (fine up to ~500/day):
-
-1. On the Google account: enable 2-Step Verification, then create an App
-   Password at `myaccount.google.com/apppasswords`.
-2. `.deploy-secrets/smtp-keys`:
+Current setup — **Resend** on the domain (free tier: 100/day, 3,000/month).
+The domain is verified in Resend (DKIM TXT on `resend._domainkey`, MX + SPF
+on the `send` subdomain); inbound mail is ImprovMX on the apex (MX + SPF)
+forwarding to Gmail; `_dmarc` is `p=none`. Do not put a second SPF record on
+the apex.
 
 ```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=you@gmail.com
-SMTP_PASS=<16-char app password, spaces removed>
-SMTP_FROM=ZAUQ <you@gmail.com>
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=465
+SMTP_USER=resend
+SMTP_PASS=<Resend API key, "Sending access">
+SMTP_FROM=ZAUQ <no-reply@myzauq.com>
 ```
 
    Port 587 = STARTTLS; the mailer switches to implicit TLS automatically
