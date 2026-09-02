@@ -81,6 +81,12 @@ export function Header() {
           <span className="hidden font-display text-xs italic text-ink/40 lg:inline">your daily stylist</span>
         </Link>
 
+        {!user && pathname !== '/login' && (
+          <Link to="/login" className="btn-ghost btn-sm self-center">
+            Sign in
+          </Link>
+        )}
+
         {user && !inFitting && (
           <nav aria-label="Rooms" className="hidden items-stretch gap-7 sm:flex">
             {NAV.map((item) => (
