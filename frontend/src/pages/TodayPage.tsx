@@ -419,24 +419,52 @@ export function TodayPage() {
             </button>
           </div>
 
-          {/* Ghost niches — the shape of tomorrow's brief */}
-          <div className="mt-12 animate-rise-3">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {['Top', 'Bottom', 'Shoes', 'Accessory'].map((slot) => (
-                <div key={slot}>
-                  <div className="arch-bezel aspect-[3/4] opacity-40">
-                    <div className="arch-niche flex h-full w-full items-center justify-center">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/30">
-                        {slot}
-                      </span>
+          {/* An example brief hangs in the niches until there is a closet to compose from */}
+          <div className="mt-12 grid animate-rise-3 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center lg:gap-12">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What a brief looks like</p>
+              <div className="mt-3 grid max-w-2xl grid-cols-4 gap-3 sm:gap-4">
+                {[
+                  ['blazer', 'A layer'],
+                  ['tank', 'A top'],
+                  ['trousers', 'A bottom'],
+                  ['pumps', 'Shoes'],
+                ].map(([file, slot]) => (
+                  <div key={file} className="min-w-0">
+                    <div className="arch-bezel aspect-[4/5]">
+                      <div className="arch-niche flex h-full w-full items-center justify-center">
+                        <img src={`/landing/${file}.webp`} alt={slot} className="relative z-[1] h-full w-full object-contain p-[12%]" />
+                      </div>
                     </div>
+                    <p className="mt-2 truncate text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{slot}</p>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <p className="mt-3 max-w-2xl font-display text-sm italic text-ink/45">An example, not yours yet. Once the closet has a few pieces, tomorrow’s outfit hangs here every night.</p>
             </div>
-            <p className="mt-4 text-center font-display text-sm italic text-ink/40">
-              your first brief will hang here
-            </p>
+            <aside className="plaque p-5 pl-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What to add first</p>
+              <ul className="mt-3 space-y-2 text-sm text-ink/70">
+                <li className="flex gap-3">
+                  <span className="w-4 shrink-0 font-display text-brass">1</span>
+                  <span>
+                    <b className="font-semibold text-ink">Four pieces</b> make the first brief: a top, a bottom, shoes, and one more thing.
+                  </span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="w-4 shrink-0 font-display text-brass">2</span>
+                  <span>
+                    <b className="font-semibold text-ink">One photo each</b>, on any background. The closet reads colour, cut and warmth itself.
+                  </span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="w-4 shrink-0 font-display text-brass">3</span>
+                  <span>
+                    <b className="font-semibold text-ink">Tonight at eight</b> the stylist lays out tomorrow. Say “Wearing it” in the morning and the record begins.
+                  </span>
+                </li>
+              </ul>
+            </aside>
           </div>
 
           {error && (

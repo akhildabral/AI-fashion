@@ -167,8 +167,8 @@ export function StorePage() {
 
       {/* Viewfinder: the words and the actions on one side, the frame on the other */}
       {stage === 'viewfinder' && (
-        <div className="animate-rise grid gap-8 md:grid-cols-[minmax(0,1fr)_300px] md:grid-rows-[auto_auto] md:items-start md:gap-x-12 md:gap-y-6">
-          <div className="min-w-0 md:col-start-1 md:row-start-1">
+        <div className="animate-rise grid gap-8 sm:grid-cols-[minmax(0,1fr)_260px] sm:grid-rows-[auto_auto] sm:items-start sm:gap-x-10 sm:gap-y-6 md:grid-cols-[minmax(0,1fr)_300px] md:gap-x-12">
+          <div className="min-w-0 sm:col-start-1 sm:row-start-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
             <h1 className="mt-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
               Hold it <em className="text-brass">up.</em>
@@ -186,7 +186,7 @@ export function StorePage() {
               </button>
             </div>
           </div>
-          <div className="mx-auto w-full max-w-[260px] md:col-start-2 md:row-span-2 md:row-start-1 md:max-w-none md:self-center">
+          <div className="w-full max-w-[240px] sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:max-w-none sm:self-center">
             <div className="arch-bezel aspect-[3/4]">
               <div className="relative h-full w-full overflow-hidden" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px', background: 'radial-gradient(90% 70% at 50% 40%, #2a2620, #0b0a08 90%)' }}>
                 <div className="pointer-events-none absolute inset-[16%_14%_24%]">
@@ -198,7 +198,7 @@ export function StorePage() {
               </div>
             </div>
           </div>
-          <div className="min-w-0 md:col-start-1 md:row-start-2">
+          <div className="min-w-0 sm:col-start-1 sm:row-start-2">
             <ol className="max-w-md space-y-3 border-t border-ink/10 pt-6 text-sm text-ink/60">
               <li className="flex gap-3">
                 <span className="w-5 shrink-0 font-display text-base text-brass">1</span>
