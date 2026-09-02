@@ -125,6 +125,33 @@ export async function apiFetch<T>(
  * browser can set the correct `multipart/form-data` boundary itself. Still
  * attaches the Bearer token and throws an `ApiError` on non-2xx like `apiFetch`.
  */
+/**
+ * Read a picked file into memory now, while its handle is still good. iOS
+ * Safari can drop a picker's file handle after the picker closes (or when
+ * the tab is backgrounded), and a multipart body streamed from it then ends
+ * early — the server sees "Unexpected end of form". A file pinned into a
+ * Blob uploads whole every time. A file with no type is given one from its
+ * name so the server's filter can read it.
+ */
+export async function pinFile(file: File): Promise<File> {
+  const buf = await file.arrayBuffer()
+  const name = file.name || 'photo.jpg'
+  const type = file.type || (/\.hei[cf]$/i.test(name) ? 'image/heic' : /\.png$/i.test(name) ? 'image/png' : /\.webp$/i.test(name) ? 'image/webp' : 'image/jpeg')
+  return new File([buf], name, { type, lastModified: file.lastModified })
+}
+
+/** The same form, with every file pinned into memory. */
+async function pinForm(formData: FormData): Promise<FormData> {
+  const out = new FormData()
+  for (const [key, value] of formData.entries()) {
+    if (value instanceof File) out.append(key, await pinFile(value), value.name || 'photo.jpg')
+    else out.append(key, value)
+  }
+  return out
+}
+
+const CUT_SHORT = /unexpected end of form|multipart|boundary|load failed|network/i
+
 export async function apiUpload<T>(
   path: string,
   formData: FormData,
@@ -141,11 +168,26 @@ export async function apiUpload<T>(
     }
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: formData,
-  })
+  let body: FormData
+  try {
+    body = await pinForm(formData)
+  } catch {
+    throw new ApiError('That photo could not be read — pick it again.', 400)
+  }
+
+  // An upload cut short (a flaky connection, a backgrounded tab) is tried
+  // once more: nothing was created when the body never arrived whole.
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { method, headers, body })
+    if (res.status === 400 && CUT_SHORT.test(await res.clone().text())) {
+      res = await fetch(`${BASE_URL}${path}`, { method, headers, body })
+    }
+  } catch (err) {
+    if (err instanceof TypeError && CUT_SHORT.test(err.message)) {
+      res = await fetch(`${BASE_URL}${path}`, { method, headers, body })
+    } else throw err
+  }
 
   const raw = await res.text()
   let data: unknown = undefined

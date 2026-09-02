@@ -26,7 +26,7 @@ export const wardrobeRouter = Router();
 wardrobeRouter.get('/', requireAuth, listItems);
 wardrobeRouter.get('/basket', requireAuth, getBasket);
 wardrobeRouter.post('/basket/clean', requireAuth, basketClean);
-wardrobeRouter.post('/', requireAuth, quota('catalog'), handleItemUpload, addItem);
+wardrobeRouter.post('/', requireAuth, handleItemUpload, quota('catalog'), addItem);
 wardrobeRouter.post('/outfit', requireAuth, mixAndMatch);
 wardrobeRouter.post('/today', requireAuth, whatToWearToday);
 wardrobeRouter.post('/pack', requireAuth, packForTrip);

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEv
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate } from 'react-router-dom'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
-import { apiFetch } from '../lib/api'
+import { apiFetch, pinFile } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
 import { GarmentTile, PageShell, Modal, Tabs, Filter } from '../components/ui'
@@ -86,6 +86,9 @@ export function ClosetPage() {
   }, [hasProcessing])
 
   async function uploadFiles(files: File[]) {
+    // Pin every photo into memory now: a phone can drop the picker's file
+    // handle before a queued upload reaches it.
+    files = (await Promise.all(files.map((f) => pinFile(f).catch(() => null)))).filter((f): f is File => f !== null)
     const valid = files.filter((f) => (ACCEPTED.includes(f.type) || /\.hei[cf]$/i.test(f.name)) && f.size <= MAX_BYTES)
     if (valid.length === 0) {
       setUploadError('Use JPG, PNG, WebP or HEIC photos up to 12MB.')

@@ -14,8 +14,21 @@ const EXT_BY_MIME: Record<string, string> = {
 const HEIC = new Set(['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence']);
 
 function looksHeic(file: { mimetype: string; originalname: string }): boolean {
-  return HEIC.has(file.mimetype) || (/\.hei[cf]$/i.test(file.originalname) && file.mimetype === 'application/octet-stream');
+  return HEIC.has(file.mimetype) || (/\.hei[cf]$/i.test(file.originalname) && (file.mimetype === 'application/octet-stream' || !file.mimetype));
 }
+
+// Phones sometimes send a photo with no type, or as octet-stream. The bytes
+// know what they are: read the magic numbers instead of trusting the label.
+function sniffMime(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  const brand = buf.toString('ascii', 8, 12);
+  if (buf.toString('ascii', 4, 8) === 'ftyp' && /^(heic|heix|hevc|hevx|mif1|msf1|heim|heis)$/.test(brand)) return 'image/heic';
+  return null;
+}
+const UNTYPED = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
 
 export function extForMime(mime: string): string {
   return EXT_BY_MIME[mime] ?? 'png';
@@ -27,7 +40,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024 }, // 12 MB (HEIC originals run large)
   fileFilter: (_req, file, cb) => {
-    if (EXT_BY_MIME[file.mimetype] || looksHeic(file)) cb(null, true);
+    // Untyped files are let through and sniffed once the bytes are in.
+    if (EXT_BY_MIME[file.mimetype] || looksHeic(file) || UNTYPED.has(file.mimetype)) cb(null, true);
     else cb(new Error('Only JPEG, PNG, WebP or HEIC images are allowed'));
   },
 });
@@ -39,8 +53,17 @@ function singleImageUpload(field: string) {
   return function (req: Request, res: Response, next: NextFunction) {
     handler(req, res, (err: unknown) => {
       if (err) {
-        const message = err instanceof Error ? err.message : 'Upload failed';
+        const raw = err instanceof Error ? err.message : 'Upload failed';
+        // busboy's words for a body that ended before its closing boundary.
+        const message = /unexpected end of form|unexpected end of multipart|malformed part header/i.test(raw)
+          ? 'The upload was cut short — try that photo again.'
+          : raw;
         return next(new HttpError(400, message));
+      }
+      if (req.file && UNTYPED.has(req.file.mimetype)) {
+        const sniffed = sniffMime(req.file.buffer);
+        if (!sniffed) return next(new HttpError(400, 'Only JPEG, PNG, WebP or HEIC images are allowed'));
+        req.file.mimetype = sniffed;
       }
       if (req.file && looksHeic(req.file)) {
         convert({ buffer: new Uint8Array(req.file.buffer), format: 'JPEG', quality: 0.92 })
