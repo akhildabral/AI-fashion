@@ -1,6 +1,18 @@
 import { Router, type Request } from 'express';
 import { prisma } from '../lib/prisma';
+import sharp from 'sharp';
 import { composeLook, dressingOrder } from '../lib/flatlay';
+import { readStored } from '../lib/storage';
+
+// Image height ÷ width, so the board can size each piece by its real shape.
+async function aspectOf(imageUrl: string): Promise<number | undefined> {
+  try {
+    const meta = await sharp(await readStored(imageUrl)).metadata();
+    return meta.width && meta.height ? meta.height / meta.width : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // A shared look's public page — the card a link unfurls into when someone
 // posts it to a group chat. No account needed; the only ask is to come
@@ -41,15 +53,16 @@ lookPageRouter.get('/look/:id', async (req, res) => {
   const who = log.user.handle ? `@${esc(log.user.handle)}` : 'Someone';
   const title = `${who} wore this${log.eventType ? ` — ${esc(log.eventType)}` : ''}`;
   const strip = dressingOrder(ordered);
+  const measured = await Promise.all(ordered.map(async (it) => ({ ...it, aspect: await aspectOf(it.imageUrl) })));
 
   // The hero: their photo when there is one, otherwise the flat-lay; the
   // recipe strip (pieces in dressing order) sits beside either.
   const hero = log.photoUrl
     ? `<div class="bezel tall"><div class="niche"><img class="photo" src="${esc(absoluteImage(base, log.photoUrl))}" alt="${who} wearing the look" /></div></div>`
-    : `<div class="bezel"><div class="niche lay">${composeLook(ordered)
+    : `<div class="bezel"><div class="niche lay">${composeLook(measured, 5 / 4)
         .map((p) => {
           const it = ordered[p.index];
-          return `<div class="piece" style="left:${p.left}%;top:${p.top}%;width:${p.w}%;z-index:${p.z};transform:rotate(${p.rot}deg)"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div>`;
+          return `<div class="piece" style="left:${p.left}%;top:${p.top}%;width:${p.w}%;height:${p.h}%;z-index:${p.z};transform:rotate(${p.rot}deg)"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div>`;
         })
         .join('')}</div></div>`;
   const recipe = strip
@@ -113,7 +126,7 @@ ${o.ogImage ? `<meta property="og:image" content="${esc(o.ogImage)}" />\n<meta n
   .bezel.tall .niche { aspect-ratio: 3/4; }
   .niche .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .piece { position: absolute; }
-  .piece img { width: 100%; height: auto; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
+  .piece img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
   @media (max-width: 480px) { .look { grid-template-columns: 1fr; } .recipe { flex-direction: row; flex-wrap: wrap; } .recipe li { width: 56px; } .down { display: none; } }
   .state { margin-top: 44px; text-align: center; }
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; max-width: 22ch; text-wrap: balance; line-height: 1.15; }

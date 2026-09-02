@@ -1,19 +1,19 @@
 // (Mirror of frontend/src/lib/flatlay.ts — keep in sync.)
-// The flat-lay: a deterministic, stacked composition for a look made of
-// items. Same items, same board. See composeLook for the arrangement.
-
-export interface Slot {
-  left: number
-  top: number
-  w: number
-  h: number
-  rot: number
-  z: number
-}
+// The flat-lay: a deterministic composition for a look made of items.
+//
+// Every piece is sized by its real-world height (a pair of jeans is about
+// a body long, a crop top a third of that, sneakers a quarter), its width
+// following the image's own proportions. Pieces are anchored in body order
+// (the upper garment leads, trousers hang from its hem, shoes beside the
+// hem, small things at the edges), then the whole cluster is scaled and
+// centred to fit the frame. Same items, same board, and nothing ever runs
+// off the edge.
 
 export interface LayoutItem {
   category: string
   subtype: string | null
+  /** Image height ÷ width. Measured from the image; a role default until then. */
+  aspect?: number
 }
 
 export type Role =
@@ -33,8 +33,8 @@ export function roleOf(item: LayoutItem): Role {
   const s = (item.subtype ?? '').toLowerCase()
   if (c === 'outerwear' || /blazer|jacket|coat|trench|cardigan|overshirt|parka|hoodie|vest/.test(s)) return 'outerwear'
   if (c === 'dress' || /dress|jumpsuit|gown|romper/.test(s)) return 'dress'
-  if (c === 'bottom' || /trouser|pant|jean|skirt|short|chino/.test(s)) return 'bottom'
-  if (c === 'footwear' || /shoe|sneaker|boot|heel|pump|loafer|sandal|flip/.test(s)) return 'footwear'
+  if (c === 'bottom' || /trouser|pant|jean|skirt|short|chino|legging/.test(s)) return 'bottom'
+  if (c === 'footwear' || /shoe|sneaker|boot|heel|pump|loafer|sandal|flip|trainer/.test(s)) return 'footwear'
   if (/bag|tote|clutch|backpack|purse/.test(s)) return 'bag'
   if (/earring|necklace|ring|bracelet|watch|jewel|pendant|brooch/.test(s)) return 'jewel'
   if (/hat|cap|beanie|beret/.test(s)) return 'hat'
@@ -43,96 +43,241 @@ export function roleOf(item: LayoutItem): Role {
   return 'top'
 }
 
-export interface Placed extends Slot {
+/** Real-world height of a piece, in body units (1 = a full leg length). */
+export function bodyHeight(item: LayoutItem): number {
+  const r = roleOf(item)
+  const s = (item.subtype ?? '').toLowerCase()
+  switch (r) {
+    case 'outerwear':
+      return /coat|trench|parka/.test(s) ? 0.95 : 0.76
+    case 'top':
+      if (/crop|cami|bralette|tube/.test(s)) return 0.36
+      if (/tank|vest/.test(s)) return 0.5
+      if (/shirt|blouse|sweater|jumper|knit|hoodie/.test(s)) return 0.6
+      return 0.55
+    case 'dress':
+      return /mini/.test(s) ? 0.9 : 1.25
+    case 'bottom':
+      if (/short/.test(s)) return 0.45
+      if (/mini/.test(s)) return 0.42
+      if (/skirt/.test(s)) return 0.7
+      return 1.0
+    case 'footwear':
+      return /boot/.test(s) ? 0.38 : 0.3
+    case 'bag':
+      return /clutch/.test(s) ? 0.2 : /backpack/.test(s) ? 0.45 : 0.36
+    case 'glasses':
+      return 0.13
+    case 'hat':
+      return 0.24
+    case 'jewel':
+      return 0.12
+    default:
+      return 0.2
+  }
+}
+
+/** A sensible image aspect (h ÷ w) per role, used until the image is measured. */
+export function defaultAspect(item: LayoutItem): number {
+  switch (roleOf(item)) {
+    case 'outerwear':
+      return 1.05
+    case 'top':
+      return 0.95
+    case 'dress':
+      return 1.7
+    case 'bottom':
+      return 1.9
+    case 'footwear':
+      return 0.85
+    case 'bag':
+      return 1.0
+    case 'glasses':
+      return 0.4
+    case 'hat':
+      return 0.75
+    default:
+      return 1.0
+  }
+}
+
+/** Widest a piece may be, in body units, so a cropped image can't dominate. */
+function maxWidth(role: Role): number {
+  switch (role) {
+    case 'outerwear':
+      return 0.72
+    case 'top':
+      return 0.62
+    case 'dress':
+      return 0.66
+    case 'bottom':
+      return 0.5
+    case 'footwear':
+      return 0.4
+    case 'bag':
+      return 0.38
+    case 'glasses':
+      return 0.3
+    case 'hat':
+      return 0.3
+    case 'jewel':
+      return 0.18
+    default:
+      return 0.28
+  }
+}
+
+export interface Placed {
   index: number
   role: Role
+  /** % of the frame's width / height. */
+  left: number
+  top: number
+  w: number
+  h: number
+  rot: number
+  z: number
 }
 
-const isAcc = (r: Role) => r === 'bag' || r === 'jewel' || r === 'hat' || r === 'glasses' || r === 'small'
-
-// Slots are left/top/width (% of the frame) plus rotation and stacking
-// order; height follows each image's own proportions. Pieces cluster
-// around the centre so the board never has an empty side, shoes stay clear
-// of the trouser hem, and small things sit beside the lead garment.
-const ACC: Record<Exclude<Role, 'outerwear' | 'top' | 'dress' | 'bottom' | 'footwear'>, Slot> = {
-  glasses: { left: 74, top: 22, w: 12, h: 0, rot: 12, z: 6 },
-  hat: { left: 28, top: 2, w: 16, h: 0, rot: -8, z: 6 },
-  bag: { left: 72, top: 36, w: 20, h: 0, rot: 6, z: 4 },
-  jewel: { left: 6, top: 58, w: 9, h: 0, rot: -6, z: 6 },
-  small: { left: 6, top: 74, w: 14, h: 0, rot: 3, z: 5 },
+interface Box {
+  index: number
+  role: Role
+  x: number
+  y: number
+  w: number
+  h: number
+  rot: number
+  z: number
 }
-// A second of the same accessory finds a free pocket of the frame.
-const ACC_FALLBACK: Slot[] = [
-  { left: 6, top: 40, w: 11, h: 0, rot: -4, z: 6 },
-  { left: 80, top: 60, w: 12, h: 0, rot: 8, z: 6 },
-  { left: 40, top: 88, w: 12, h: 0, rot: 2, z: 6 },
-]
 
-export function composeLook(items: LayoutItem[]): Placed[] {
+/**
+ * Lay a look out inside a frame of the given width÷height ratio.
+ * Positions are computed in body units, then the cluster is fitted.
+ */
+export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.05): Placed[] {
+  if (items.length === 0) return []
   const roles = items.map(roleOf)
-  const first = (r: Role) => roles.indexOf(r)
-  const out: Placed[] = []
-  const used = new Set<number>()
-  const place = (index: number, slot: Slot) => {
-    if (index < 0 || used.has(index)) return
-    used.add(index)
-    out.push({ ...slot, index, role: roles[index] })
-  }
-
-  const hasOuter = first('outerwear') >= 0
-  const hasTop = first('top') >= 0
-  const hasDress = first('dress') >= 0
-  const hasBottom = first('bottom') >= 0
-  const hasShoes = first('footwear') >= 0
-
-  if (hasDress) {
-    // The dress is the spine; a jacket leans in from the right, shoes at the foot.
-    place(first('dress'), { left: 24, top: 6, w: 38, h: 0, rot: -3, z: 5 })
-    if (hasOuter) place(first('outerwear'), { left: 56, top: 12, w: 28, h: 0, rot: 6, z: 4 })
-    if (hasShoes) place(first('footwear'), { left: 64, top: 66, w: 18, h: 0, rot: -12, z: 6 })
-  } else if (hasOuter && hasTop) {
-    // Jacket leads; the top shows its right half behind it; the trousers hang
-    // from the hem, slightly right; shoes sit beside the hem, never on it.
-    place(first('outerwear'), { left: 14, top: 7, w: 40, h: 0, rot: -4, z: 5 })
-    place(first('top'), { left: 44, top: 11, w: 30, h: 0, rot: 5, z: 4 })
-    if (hasBottom) place(first('bottom'), { left: 24, top: 52, w: 28, h: 0, rot: 3, z: 3 })
-    if (hasShoes) place(first('footwear'), { left: 62, top: 64, w: 18, h: 0, rot: -12, z: 6 })
-  } else if (hasOuter || hasTop) {
-    // One upper garment leads, larger; trousers from its hem; shoes beside.
-    const lead = hasOuter ? first('outerwear') : first('top')
-    place(lead, { left: 18, top: 7, w: 42, h: 0, rot: -4, z: 5 })
-    if (hasBottom) place(first('bottom'), { left: 30, top: 50, w: 30, h: 0, rot: 3, z: 3 })
-    if (hasShoes) place(first('footwear'), { left: 66, top: 62, w: 18, h: 0, rot: -12, z: 6 })
-    if (!hasShoes && first('bag') >= 0) place(first('bag'), { left: 66, top: 30, w: 22, h: 0, rot: 6, z: 4 })
-  } else {
-    // Bottoms lead: they take the centre-left, a bag beside the hip, shoes
-    // beside the hem, so the board is balanced without an upper garment.
-    if (hasBottom) place(first('bottom'), { left: 24, top: 8, w: 38, h: 0, rot: -2, z: 3 })
-    if (first('bag') >= 0) place(first('bag'), { left: 64, top: 16, w: 24, h: 0, rot: 6, z: 4 })
-    if (hasShoes) place(first('footwear'), { left: 60, top: 62, w: 20, h: 0, rot: -12, z: 6 })
-  }
-
-  // Accessories: each where a hand would leave it; a second finds a free pocket.
-  let fallback = 0
-  const taken = new Set<string>()
-  items.forEach((_, index) => {
-    const r = roles[index]
-    if (used.has(index) || !isAcc(r)) return
-    const key = r as keyof typeof ACC
-    const slot = taken.has(key) ? ACC_FALLBACK[fallback++ % ACC_FALLBACK.length] : ACC[key]
-    taken.add(key)
-    place(index, slot)
+  const size = items.map((it, i) => {
+    const a = it.aspect && it.aspect > 0 ? it.aspect : defaultAspect(it)
+    let h = bodyHeight(it)
+    let w = h / a
+    const cap = maxWidth(roles[i])
+    if (w > cap) {
+      w = cap
+      h = w * a
+    }
+    return { h, w }
   })
+  const first = (r: Role) => roles.indexOf(r)
+  const boxes: Box[] = []
+  const used = new Set<number>()
+  const put = (index: number, x: number, y: number, rot: number, z: number): Box | null => {
+    if (index < 0 || used.has(index)) return null
+    used.add(index)
+    const b: Box = { index, role: roles[index], x, y, w: size[index].w, h: size[index].h, rot, z }
+    boxes.push(b)
+    return b
+  }
+  const GAP = 0.06
 
-  // Anything still unplaced (a second top, a second pair of shoes): small,
-  // along the bottom-left, so nothing is silently dropped.
-  let extra = 0
+  const iOuter = first('outerwear')
+  const iTop = first('top')
+  const iDress = first('dress')
+  const iBottom = first('bottom')
+  const iShoes = first('footwear')
+  const iBag = first('bag')
+
+  let lead: Box | null = null
+  let bottom: Box | null = null
+
+  if (iDress >= 0) {
+    lead = put(iDress, 0, 0, -3, 5)
+    const beside = iOuter >= 0 && lead ? put(iOuter, lead.w + GAP, 0.1, 5, 4) : null
+    if (iShoes >= 0 && lead) put(iShoes, (beside ? beside.x : lead.w + GAP) + 0.04, lead.h - size[iShoes].h - 0.04, -12, 6)
+  } else if (iOuter >= 0 || iTop >= 0) {
+    const iLead = iOuter >= 0 ? iOuter : iTop
+    lead = put(iLead, 0, 0, -4, 5)
+    if (iOuter >= 0 && iTop >= 0 && lead) put(iTop, lead.w + GAP * 0.6, 0.08, 5, 4)
+    if (iBottom >= 0 && lead) {
+      // Trousers hang from the hem, a touch right of centre, tucked under it.
+      const bw = size[iBottom].w
+      bottom = put(iBottom, lead.x + lead.w * 0.5 - bw * 0.42, lead.h - 0.1, 2, 3)
+    }
+    if (iShoes >= 0) {
+      const ref = bottom ?? lead
+      if (ref) put(iShoes, ref.x + ref.w + GAP, ref.y + ref.h - size[iShoes].h - 0.03, -12, 6)
+    }
+  } else {
+    if (iBottom >= 0) bottom = put(iBottom, 0, 0, -2, 3)
+    // A bag beside the hip, then the shoes beside the hem, never on the bag.
+    const bag = iBag >= 0 && bottom ? put(iBag, bottom.w + GAP, 0.05, 5, 4) : null
+    if (iShoes >= 0 && bottom) {
+      const y = Math.max(bottom.h - size[iShoes].h - 0.02, bag ? bag.y + bag.h + GAP : 0)
+      put(iShoes, bottom.w + GAP, y, -12, 6)
+    }
+    if (iShoes >= 0 && !bottom) put(iShoes, 0, 0, -12, 6)
+  }
+
+  // The right column: glasses above, bag below, beside the upper garments.
+  const upperRight = boxes.filter((b) => b.y < 0.5).map((b) => b.x + b.w)
+  const colX = (upperRight.length ? Math.max(...upperRight) : 0) + GAP
+  let colY = 0.02
+  const iGlasses = first('glasses')
+  if (iGlasses >= 0 && !used.has(iGlasses)) {
+    const g = put(iGlasses, colX + 0.02, colY, 10, 6)
+    if (g) colY = g.y + g.h + GAP
+  }
+  if (iBag >= 0 && !used.has(iBag)) {
+    const b = put(iBag, colX, Math.max(colY, 0.14), 5, 4)
+    if (b) colY = b.y + b.h + GAP
+  }
+  const iHat = first('hat')
+  if (iHat >= 0 && !used.has(iHat) && lead) put(iHat, lead.w * 0.55, -size[iHat].h * 0.7, -8, 6)
+
+  // Small things sit at the left edge, beside the trousers.
+  const leftRef = bottom ?? lead
+  let leftY = leftRef ? leftRef.y + 0.12 : 0
+  const leftX = leftRef ? leftRef.x - GAP : 0
   items.forEach((_, index) => {
     if (used.has(index)) return
-    place(index, { left: 6 + (extra++ % 2) * 14, top: 86, w: 12, h: 0, rot: -3 + extra * 4, z: 2 })
+    const r = roles[index]
+    if (r === 'jewel' || r === 'small') {
+      const b = put(index, leftX - size[index].w, leftY, -6, 6)
+      if (b) leftY = b.y + b.h + GAP
+    }
+  })
+  // Whatever is left (a second top, a second pair of shoes) lines up under the cluster.
+  let extraX = 0
+  const floor = (boxes.length ? Math.max(...boxes.map((b) => b.y + b.h)) : 0) + GAP
+  items.forEach((_, index) => {
+    if (used.has(index)) return
+    const b = put(index, extraX, floor, 0, 2)
+    if (b) extraX += b.w + GAP
   })
 
-  return out
+  // Fit: scale and centre the cluster inside the frame (frame height = 1).
+  const minX = Math.min(...boxes.map((b) => b.x))
+  const minY = Math.min(...boxes.map((b) => b.y))
+  const maxX = Math.max(...boxes.map((b) => b.x + b.w))
+  const maxY = Math.max(...boxes.map((b) => b.y + b.h))
+  const cw = maxX - minX
+  const ch = maxY - minY
+  const availW = frameRatio * (1 - 2 * margin)
+  const availH = 1 - 2 * margin
+  const scale = Math.min(availW / cw, availH / ch)
+  const offX = (frameRatio - cw * scale) / 2 - minX * scale
+  const offY = (1 - ch * scale) / 2 - minY * scale
+
+  return boxes.map((b) => ({
+    index: b.index,
+    role: b.role,
+    left: ((b.x * scale + offX) / frameRatio) * 100,
+    top: (b.y * scale + offY) * 100,
+    w: ((b.w * scale) / frameRatio) * 100,
+    h: b.h * scale * 100,
+    rot: b.rot,
+    z: b.z,
+  }))
 }
 
 /** Dressing order for the recipe strip: outer, top, bottom, shoes, then extras. */

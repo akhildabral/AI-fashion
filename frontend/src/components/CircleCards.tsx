@@ -154,9 +154,18 @@ export function LookHero({
   )
 }
 
-/** Pieces placed by role inside a 4:3 vitrine, with warm contact shadows. */
-export function FlatLay({ items }: { items: PostItem[] }) {
-  const placed = composeLook(items)
+/**
+ * Pieces sized by their real-world height and their own image proportions,
+ * anchored in body order and fitted to the vitrine. Aspects are measured as
+ * the images load (a role default stands in until then), so the board
+ * settles into place with a soft shift rather than a jump.
+ */
+export function FlatLay({ items, frameRatio = 1.25 }: { items: PostItem[]; frameRatio?: number }) {
+  const [aspects, setAspects] = useState<Record<string, number>>({})
+  const placed = composeLook(
+    items.map((it) => ({ ...it, aspect: aspects[it.id] })),
+    frameRatio,
+  )
   return (
     <div className="relative z-[1] h-full w-full">
       {placed.map((p) => {
@@ -164,14 +173,21 @@ export function FlatLay({ items }: { items: PostItem[] }) {
         return (
           <div
             key={it.id}
-            className="absolute"
-            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.w}%`, zIndex: p.z, transform: `rotate(${p.rot}deg)`, transformOrigin: '50% 50%' }}
+            className="absolute transition-[left,top,width,height] duration-300 ease-out motion-reduce:transition-none"
+            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.w}%`, height: `${p.h}%`, zIndex: p.z, transform: `rotate(${p.rot}deg)` }}
           >
             <img
               src={resolveImageUrl(it.imageUrl)}
               alt={it.subtype ?? it.category}
               loading="lazy"
-              className="block h-auto w-full"
+              onLoad={(e) => {
+                const img = e.currentTarget
+                if (img.naturalWidth > 0) {
+                  const a = img.naturalHeight / img.naturalWidth
+                  setAspects((prev) => (prev[it.id] === a ? prev : { ...prev, [it.id]: a }))
+                }
+              }}
+              className="block h-full w-full object-contain"
               style={{ filter: 'drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14))' }}
             />
           </div>
