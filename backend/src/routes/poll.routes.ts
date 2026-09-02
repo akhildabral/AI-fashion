@@ -81,7 +81,7 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
   .bezel { border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px; padding: 3px; background: linear-gradient(160deg, var(--brass-hi), var(--brass-lo) 62%, var(--brass-lo)); transition: filter .2s; }
   .opt:hover .bezel, .opt.chosen .bezel { filter: brightness(1.18) saturate(1.05); }
   .niche { position: relative; border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px; overflow: hidden; aspect-ratio: 3/4; background: radial-gradient(76% 66% at 50% 30%, #211d17, #0c0b09 84%); }
-  .niche img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .niche img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6%; box-sizing: border-box; }
   .niche::after { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg, transparent 42%, rgba(233,217,188,.16) 48%, transparent 57%); }
   .seam { flex: 0 0 auto; width: 44px; text-align: center; font-family: 'Bodoni Moda', Georgia, serif; font-style: italic; font-size: 20px; color: var(--faint); }
   .state { margin-top: 44px; text-align: center; }

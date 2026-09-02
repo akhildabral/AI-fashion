@@ -546,7 +546,7 @@ export function VerdictCard({
           const inner = (
             <>
               <Arch aspect="aspect-[3/4]" bright={won || chosen}>
-                <img src={resolveImageUrl(o.imageUrl)} alt={`Option ${o.id.toUpperCase()}`} loading="lazy" className="relative z-[1] h-full w-full object-cover" />
+                <img src={resolveImageUrl(o.imageUrl)} alt={`Option ${o.id.toUpperCase()}`} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[6%]" />
               </Arch>
               {counts ? (
                 <>

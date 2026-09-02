@@ -242,7 +242,7 @@ export function CirclePage() {
     )
 
   return (
-    <PageShell wide>
+    <PageShell>
       <Toast msg={toast} />
 
       {/* ---- mantel ---- */}
@@ -254,7 +254,7 @@ export function CirclePage() {
 
       <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
         {/* ================= main column ================= */}
-        <div className="mx-auto w-full max-w-2xl lg:mx-0">
+        <div className="mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-none">
           {/* ---- today rail ---- */}
           <section aria-label="Today in your circle" className="animate-rise-1">
             <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
