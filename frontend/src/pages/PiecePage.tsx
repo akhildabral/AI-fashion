@@ -426,16 +426,16 @@ export function PiecePage() {
 
           <section className="plaque mt-6 grid grid-cols-3 gap-3 p-4 pl-5 sm:gap-4">
             <div className="min-w-0">
-              <p className="font-display text-xl text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{story ? story.wearCount : '–'}</p>
+              <p className="font-display text-lg text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{story ? story.wearCount : '–'}</p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">wears</p>
             </div>
             <div className="min-w-0">
-              <p className="truncate font-display text-xl text-ink sm:text-2xl">{story ? (story.lastWorn ? formatDay(story.lastWorn) : 'never') : '–'}</p>
+              <p className="font-display text-lg leading-tight text-ink sm:text-2xl">{story ? (story.lastWorn ? formatDay(story.lastWorn) : 'never') : '–'}</p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">last worn</p>
             </div>
             <div className="min-w-0">
               {story?.costPerWear != null ? (
-                <p className="truncate font-display text-xl text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{money(story.costPerWear)}</p>
+                <p className="font-display text-lg leading-tight text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{money(story.costPerWear)}</p>
               ) : (
                 <button type="button" onClick={() => { setTab('facts'); setOpenFact('price') }} className="font-display text-lg italic text-brass hover:underline">
                   Add what it cost
