@@ -6,6 +6,7 @@ import { deleteWearLog, getWearInsights, getWearLog } from '../lib/wearlog'
 import { getResaleDraft } from '../lib/wardrobe'
 import type { ResaleDraftResponse, WearInsightsResponse, WearLogEntry } from '../lib/types'
 import { Spinner } from '../components/Spinner'
+import { ShareButton } from '../components/ShareButton'
 import { Arch, GarmentTile, Modal, PageShell, Stat, Toast, useFlash } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
 
@@ -116,6 +117,7 @@ function LogRow({ log, onDeleted, onError }: { log: WearLogEntry; onDeleted: (id
         ))}
         {log.items.length === 0 && <p className="text-sm text-ink/40">Pieces no longer in your closet.</p>}
       </div>
+      <ShareButton target={{ kind: 'look', id: log.id, title: 'What I wore', text: `What I wore on ${formatDay(log.wornOn)}.`, url: (log as { sharedAt?: string | null }).sharedAt ? `${window.location.origin}/look/${log.id}` : undefined }} onDone={(l) => l && onError(l)} className="press shrink-0 inline-flex items-center text-xs text-ink/50 transition-colors hover:text-ink" />
       <button type="button" onClick={handleDelete} disabled={deleting} className="press shrink-0 text-xs text-ink/35 transition-colors hover:text-ink/70">
         {deleting ? 'Removing…' : 'Remove'}
       </button>

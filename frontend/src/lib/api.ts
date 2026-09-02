@@ -154,3 +154,13 @@ export async function apiUpload<T>(
 export function resolveImageUrl(url: string): string {
   return url
 }
+
+/** GET a binary response (a share card) with the session attached. */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {}
+  const token = getToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${BASE_URL}${path}`, { headers })
+  if (!res.ok) throw new ApiError('Could not prepare the card.', res.status)
+  return res.blob()
+}

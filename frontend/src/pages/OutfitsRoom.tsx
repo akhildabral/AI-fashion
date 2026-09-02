@@ -15,6 +15,7 @@ import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
 import { PageShell, Toast, useFlash } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
+import { ShareButton } from "../components/ShareButton";
 import type { WardrobeItem } from "../lib/types";
 
 // The Outfits room: every look the closet can make. Suggested by the engine
@@ -299,6 +300,7 @@ export function OutfitsRoom() {
                   >
                     See it on me
                   </Link>
+                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} />
                   <Link
                     to={`/closet/compose?from=${o.id}`}
                     className="btn-ghost !px-4 !py-2 !text-xs"

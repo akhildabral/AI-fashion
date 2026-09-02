@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns, getPhoto, uploadPhoto } from '../lib/tryon'
 import { setLookPhotoFromRender } from '../lib/circle'
+import { ShareButton } from '../components/ShareButton'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
@@ -333,6 +334,11 @@ export function MirrorPage() {
 
           {stage && !rendering && photoUrl && (
             <p className="mt-3 text-center font-display text-sm italic text-ink/55">{stage.caption}</p>
+          )}
+          {stage?.tryOnId && !rendering && !shareFor && (
+            <div className="mt-3 flex animate-rise justify-center">
+              <ShareButton target={{ kind: 'render', id: stage.tryOnId, title: 'Me, in the Mirror', text: 'Rendered on me from my own closet.' }} onDone={(l) => l && flash(l)} label="Share this" />
+            </div>
           )}
           {shareFor && stage?.fresh && stage.tryOnId && !rendering && (
             <div className="mt-4 flex animate-rise items-center justify-center gap-2">

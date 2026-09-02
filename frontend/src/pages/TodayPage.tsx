@@ -26,6 +26,7 @@ import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
 import { GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
 import { Spinner } from '../components/Spinner'
+import { shareCard, outcomeLine } from '../lib/share'
 
 const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
 
@@ -680,7 +681,7 @@ function ShareSheet({
   onError: (msg: string) => void
   onMirror: (wearLogId: string) => void
 }) {
-  const [busy, setBusy] = useState<'pieces' | 'photo' | 'mirror' | null>(null)
+  const [busy, setBusy] = useState<'pieces' | 'photo' | 'mirror' | 'elsewhere' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function share(): Promise<string | undefined> {
@@ -742,6 +743,27 @@ function ShareSheet({
         </button>
         <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-ghost !px-4 !py-2 !text-xs">
           {busy === 'mirror' ? 'Opening the Mirror…' : 'Render it on me first'}
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={async () => {
+            setBusy('elsewhere')
+            try {
+              const id = await share()
+              if (!id) throw new Error('no wear')
+              const o = await shareCard({ kind: 'look', id, title: 'What I’m wearing today', text: 'Today’s look, from my own closet.', url: `${window.location.origin}/look/${id}` })
+              const l = outcomeLine(o)
+              if (l) onDone(l)
+            } catch {
+              onError('Could not prepare the card right now.')
+            } finally {
+              setBusy(null)
+            }
+          }}
+          className="btn-ghost !px-4 !py-2 !text-xs"
+        >
+          {busy === 'elsewhere' ? 'Preparing…' : 'Share elsewhere'}
         </button>
         <button type="button" onClick={onDismiss} className="press ml-auto text-xs text-ink/45 hover:text-ink/70">
           Not now

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { deleteWardrobeItem, updateWardrobeItem } from '../lib/wardrobe'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
 import { Spinner } from './Spinner'
+import { ShareButton } from './ShareButton'
 import { ZoomableImage } from './ImageLightbox'
 
 const CATEGORIES = [
@@ -185,6 +186,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
               >
                 {item.visibility === 'public' ? 'Public' : 'Private'}
               </button>
+              <ShareButton target={{ kind: 'piece', id: item.id, title: `${item.subtype ?? item.category} from my closet` }} className="rounded-[3px] border border-ink/15 px-3 py-1 text-xs text-ink/60 transition hover:border-brass hover:text-ink inline-flex items-center" />
               <button
                 type="button"
                 onClick={handleDelete}

@@ -16,8 +16,11 @@ RUN pnpm build
 
 FROM node:22-slim
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates curl \
+  && apt-get install -y --no-install-recommends openssl ca-certificates curl fontconfig \
   && rm -rf /var/lib/apt/lists/*
+# The Atelier faces, for server-rendered share cards.
+COPY assets/fonts/*.ttf /usr/share/fonts/truetype/atelier/
+RUN fc-cache -f
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
