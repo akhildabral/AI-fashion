@@ -1,4 +1,5 @@
 import { useState as useFlashState, useRef as useFlashRef, useEffect as useFlashEffect,  useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { resolveImageUrl } from '../lib/api'
 
 /**
@@ -153,7 +154,7 @@ export function Modal({
   }, [open, onClose])
 
   if (!open) return null
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
       <div
         aria-hidden
@@ -183,7 +184,8 @@ export function Modal({
         </div>
         <div className="overflow-y-auto p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

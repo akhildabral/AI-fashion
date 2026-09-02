@@ -50,6 +50,8 @@ const FEEDBACK: { signal: FeedbackSignal; label: string; done: string }[] = [
   { signal: 'dont-suggest', label: 'Stop suggesting this', done: "Off the rail. I won't put it forward again." },
 ]
 
+const EVENT_WORD: Record<string, string> = { work: 'work', casual: 'weekend', evening: 'evening', occasion: 'special-occasion', athletic: 'training' }
+
 function greeting(): string {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -93,6 +95,7 @@ export function TodayPage() {
   const [alternatives, setAlternatives] = useState<BriefItem[] | null>(null)
   const [fbNote, setFbNote] = useState<string | null>(null)
   const [occasionText, setOccasionText] = useState('')
+  const [dayOpen, setDayOpen] = useState(false)
   const [starterLooks, setStarterLooks] = useState<Look[] | null>(null)
   const [sharePrompt, setSharePrompt] = useState<'hidden' | 'offer' | 'shared'>('hidden')
   const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null)
@@ -572,27 +575,43 @@ export function TodayPage() {
             )}
           </div>
 
-          {/* The kind of day: the stylist's guess, changeable in a tap */}
+          {/* The kind of day, in one line; the chips only when asked for */}
           {!worn && (
-            <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2">
-              <span className="mr-2 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The day</span>
-              {(
-                [
-                  ['work', 'Work'],
-                  ['casual', 'Weekend'],
-                  ['evening', 'Evening'],
-                  ['occasion', 'Occasion'],
-                  ['athletic', 'Training'],
-                ] as const
-              ).map(([k, l]) => (
-                <button key={k} type="button" disabled={busy !== null} onClick={() => void load({ eventType: k })} className={`chip ${brief.eventType === k && !brief.occasion ? 'chip-on' : ''}`}>
-                  {l}
+            <div className="mt-6 border-t border-ink/10 pt-5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-sm text-ink/60">
+                  Composed for <b className="font-semibold text-ink">{brief.occasion ? brief.occasion.toLowerCase() : `a ${EVENT_WORD[brief.eventType] ?? brief.eventType} day`}</b>
+                  {brief.weather ? `, ${Math.round(brief.weather.temperatureC)}° and ${brief.weather.description}` : ''}, from what’s clean in your closet.
+                </p>
+                <button type="button" onClick={() => setDayOpen((v) => !v)} className="btn-quiet !h-8 !text-xs">
+                  {dayOpen ? 'Keep it' : 'Not that kind of day?'}
                 </button>
-              ))}
-              <form onSubmit={handleOccasionSubmit} className="flex gap-2">
-                <input value={occasionText} onChange={(e) => setOccasionText(e.target.value)} className="field field-sm !w-48" placeholder="or name it: a wedding…" />
-                <button type="submit" disabled={busy !== null || !occasionText.trim()} className="btn-ghost btn-sm">
-                  Go
+              </div>
+              {dayOpen && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {(
+                    [
+                      ['work', 'Work'],
+                      ['casual', 'Weekend'],
+                      ['evening', 'Evening'],
+                      ['occasion', 'Occasion'],
+                      ['athletic', 'Training'],
+                    ] as const
+                  ).map(([k, l]) => (
+                    <button key={k} type="button" disabled={busy !== null} onClick={() => void load({ eventType: k })} className={`chip ${brief.eventType === k && !brief.occasion ? 'chip-on' : ''}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Ask the stylist: a sentence in, an outfit from your closet out */}
+              <form onSubmit={handleOccasionSubmit} className="mt-4 flex max-w-2xl gap-2">
+                <label htmlFor="ask-stylist" className="sr-only">
+                  Dress me for
+                </label>
+                <input id="ask-stylist" value={occasionText} onChange={(e) => setOccasionText(e.target.value)} className="field" placeholder="Dress me for… a client lunch, a first date, a long flight" />
+                <button type="submit" disabled={busy !== null || !occasionText.trim()} className="btn-ghost">
+                  {busy === 'occasion' ? 'Composing…' : 'Compose'}
                 </button>
               </form>
             </div>
@@ -622,7 +641,7 @@ export function TodayPage() {
           </div>
 
           {/* Right rail on desktop: the payoff and the dial, beside the look */}
-          <aside className="mt-10 lg:mt-0 lg:self-start">
+          <aside className="mt-10 md:grid md:grid-cols-2 md:gap-6 lg:mt-0 lg:block lg:self-start">
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (
             <div className="plaque max-w-md animate-rise p-5 pl-6">

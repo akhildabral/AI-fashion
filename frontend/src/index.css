@@ -121,21 +121,22 @@
 
   /* Tabs: text on a hairline. */
   .tabs {
-    @apply flex items-end gap-x-5 overflow-x-auto border-b border-ink/10 sm:gap-x-6;
+    @apply flex items-end gap-x-5 overflow-x-auto sm:gap-x-6;
+    box-shadow: inset 0 -1px 0 rgb(var(--c-ink) / 0.1);
     scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar {
     display: none;
   }
   .tab {
-    @apply relative -mb-px flex-none whitespace-nowrap pb-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50 transition-colors duration-150 hover:text-ink sm:text-[12px];
+    @apply relative flex-none whitespace-nowrap pb-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50 transition-colors duration-150 hover:text-ink sm:text-[12px];
   }
   .tab::after {
     content: '';
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -1px;
+    bottom: 0;
     height: 2px;
     background: transparent;
     transition: background-color 0.15s;
@@ -206,15 +207,18 @@
 
   /* ---- The arch: the one curved form. A brass-bezel aperture with a
      lit niche inside — used wherever a garment or reflection appears. ---- */
+  /* The crown is 46% of the width across and 0.373× the width tall, whatever the
+     frame's aspect — so a landscape board and a portrait mirror share one arch.
+     --arch-h is that height as a % of the frame's height (0.373 × w/h). */
   .arch-bezel {
-    border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px;
+    border-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
     padding: 2px;
     background: linear-gradient(160deg, var(--c-brass-hi), var(--c-brass-lo) 62%, var(--c-brass-lo));
   }
   .arch-niche {
     /* Same radius as the bezel so the niche nests cleanly inside it — a
        smaller radius here makes the fill's corners spill past the brass line. */
-    border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px;
+    border-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
     background: var(--c-niche);
     position: relative;
     overflow: hidden;
@@ -224,6 +228,13 @@
       inset 0 3px 12px rgba(40, 25, 8, 0.14),
       inset 0 -20px 30px -12px rgba(40, 25, 8, 0.08);
   }
+  .arch-bezel.aspect-\[3\/4\] { --arch-h: 28%; }
+  .arch-bezel.aspect-\[4\/5\] { --arch-h: 29.8%; }
+  .arch-bezel.aspect-\[5\/6\] { --arch-h: 31.1%; }
+  .arch-bezel.aspect-square { --arch-h: 37.3%; }
+  .arch-bezel.aspect-\[5\/4\] { --arch-h: 46.6%; }
+  .arch-bezel.aspect-\[4\/3\] { --arch-h: 49.7%; }
+
   /* A soft vignette melts product-shot white edges into the warm ground. */
   .arch-niche::before {
     content: '';
