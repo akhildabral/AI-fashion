@@ -165,34 +165,58 @@ export function StorePage() {
       <input ref={camera} type="file" accept="image/*" capture="environment" onChange={(e) => void onShot(e)} className="hidden" />
       <input ref={gallery} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={(e) => void onShot(e)} className="hidden" />
 
-      {/* Viewfinder */}
+      {/* Viewfinder: the words and the actions on one side, the frame on the other */}
       {stage === 'viewfinder' && (
-        <div className="animate-rise">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
-          <h1 className="mt-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
-            Hold it <em className="text-brass">up.</em>
-          </h1>
-          <p className="mt-4 max-w-md font-display text-lg italic text-ink/60">One clear shot of the piece; the label can wait. Your closet answers in a moment.</p>
-          <div className="arch-bezel mt-8 aspect-[3/4] max-w-[320px]">
-            <div className="relative h-full w-full overflow-hidden" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px', background: 'radial-gradient(90% 70% at 50% 40%, #2a2620, #0b0a08 90%)' }}>
-              <div className="pointer-events-none absolute inset-[14%_12%_22%]">
-                {[0, 1, 2, 3].map((i) => (
-                  <i key={i} className={`absolute h-5 w-5 border-brass ${i === 0 ? 'left-0 top-0 border-l-2 border-t-2' : i === 1 ? 'right-0 top-0 border-r-2 border-t-2' : i === 2 ? 'bottom-0 left-0 border-b-2 border-l-2' : 'bottom-0 right-0 border-b-2 border-r-2'}`} />
-                ))}
-              </div>
-              <p className="absolute inset-x-0 bottom-6 text-center font-display text-sm italic text-[#ECE5D8]/70">the piece, in the frame</p>
+        <div className="animate-rise grid gap-8 md:grid-cols-[minmax(0,1fr)_300px] md:items-center md:gap-12">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
+            <h1 className="mt-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
+              Hold it <em className="text-brass">up.</em>
+            </h1>
+            <p className="mt-4 max-w-md font-display text-lg italic text-ink/60">One clear shot of the piece; the label can wait. Your closet answers in a moment.</p>
+            <div className="action-row mt-6">
+              <button type="button" onClick={() => camera.current?.click()} className="btn-primary">
+                Open the camera
+              </button>
+              <button type="button" onClick={() => gallery.current?.click()} className="btn-ghost">
+                Choose a photo
+              </button>
+              <button type="button" onClick={() => navigate('/closet')} className="btn-quiet">
+                Back to the closet
+              </button>
             </div>
+            <ol className="mt-8 max-w-md space-y-3 border-t border-ink/10 pt-6 text-sm text-ink/60">
+              <li className="flex gap-3">
+                <span className="w-5 shrink-0 font-display text-base text-brass">1</span>
+                <span>
+                  <b className="font-semibold text-ink">One shot.</b> The same reading that catalogues your closet reads the piece: colour, cut, warmth.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="w-5 shrink-0 font-display text-base text-brass">2</span>
+                <span>
+                  <b className="font-semibold text-ink">The closet answers.</b> How many outfits it unlocks, what it goes with, and what each wear would cost.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="w-5 shrink-0 font-display text-base text-brass">3</span>
+                <span>
+                  <b className="font-semibold text-ink">Keep it in mind, pass, or buy.</b> A kept piece waits on your wishlist and nudges you in a fortnight.
+                </span>
+              </li>
+            </ol>
           </div>
-          <div className="action-row mt-6">
-            <button type="button" onClick={() => camera.current?.click()} className="btn-primary">
-              Open the camera
-            </button>
-            <button type="button" onClick={() => gallery.current?.click()} className="btn-ghost">
-              Choose a photo
-            </button>
-            <button type="button" onClick={() => navigate('/closet')} className="btn-quiet">
-              Back to the closet
-            </button>
+          <div className="mx-auto w-full max-w-[260px] md:max-w-none">
+            <div className="arch-bezel aspect-[3/4]">
+              <div className="relative h-full w-full overflow-hidden" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px', background: 'radial-gradient(90% 70% at 50% 40%, #2a2620, #0b0a08 90%)' }}>
+                <div className="pointer-events-none absolute inset-[16%_14%_24%]">
+                  {[0, 1, 2, 3].map((i) => (
+                    <i key={i} className={`absolute h-5 w-5 border-brass ${i === 0 ? 'left-0 top-0 border-l-2 border-t-2' : i === 1 ? 'right-0 top-0 border-r-2 border-t-2' : i === 2 ? 'bottom-0 left-0 border-b-2 border-l-2' : 'bottom-0 right-0 border-b-2 border-r-2'}`} />
+                  ))}
+                </div>
+                <p className="absolute inset-x-0 bottom-6 text-center font-display text-sm italic text-[#ECE5D8]/70">the piece, in the frame</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
