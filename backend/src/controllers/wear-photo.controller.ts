@@ -23,6 +23,10 @@ import { catalogItem, cropToRegion } from './wardrobe.controller';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_ROWS = 8;
+// A garment read out of a photo of the day is a harder read than a re-upload
+// (light, drape, a colour called "dark"), and asking "yours?" costs one tap
+// where a miss costs a duplicate piece. So the photo asks from a lower line.
+const PHOTO_NEAR_AT = 4.5;
 
 export interface PhotoRow {
   index: number;
@@ -107,8 +111,8 @@ async function readPhoto(jobId: string, buffer: Buffer, mime: string): Promise<v
         category: tags.category,
         subtype: tags.subtype,
         color: tags.primaryColor,
-        band: matches[0]?.band ?? 'new',
-        matches: matches.filter((m) => m.band !== 'new').map((m) => ({ itemId: m.candidate.id, score: m.score, reasons: m.reasons })),
+        band: matches[0] ? (matches[0].band !== 'new' ? matches[0].band : matches[0].score >= PHOTO_NEAR_AT ? 'near' : 'new') : 'new',
+        matches: matches.filter((m) => m.score >= PHOTO_NEAR_AT).map((m) => ({ itemId: m.candidate.id, score: m.score, reasons: m.reasons })),
       });
     } catch (err) {
       console.error('Wear photo: a garment could not be read:', err instanceof Error ? err.message : err);

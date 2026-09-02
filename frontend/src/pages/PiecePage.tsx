@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { deleteWardrobeItem, getWardrobeItem, recatalogWardrobeItem, resolveTwin, updateWardrobeItem } from '../lib/wardrobe'
-import { logWear } from '../lib/wearlog'
 import { getStory, type StoryResponse } from '../lib/outfits'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
 import { resolveImageUrl } from '../lib/api'
@@ -269,7 +268,7 @@ export function PiecePage() {
   const [menu, setMenu] = useState(false)
   const [lettingGo, setLettingGo] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
-  const [busy, setBusy] = useState<string | null>(null)
+  const [, setBusy] = useState<string | null>(null)
   const [whisper, setWhisper] = useState('')
   const poll = useRef<number | null>(null)
 
@@ -316,19 +315,6 @@ export function PiecePage() {
       await save({ details })
     } else await save({ [fact.key]: value } as WardrobeItemEdit)
     if (fact.kind !== 'multi') setOpenFact(null)
-  }
-  async function wearToday() {
-    if (!item) return
-    setBusy('wear')
-    try {
-      await logWear({ itemIds: [item.id] })
-      flash('Logged for today. The record has it.')
-      getStory(id).then(setStory).catch(() => undefined)
-    } catch (err) {
-      flash(err instanceof Error ? err.message : 'Could not log that.')
-    } finally {
-      setBusy(null)
-    }
   }
   async function reread() {
     if (!item) return
@@ -430,17 +416,16 @@ export function PiecePage() {
           {item.description && <p className="mt-3 max-w-xl font-display text-lg italic text-ink/55">{item.description}</p>}
 
           <div className="action-row mt-6">
-            <button type="button" disabled={busy === 'wear' || item.state !== 'clean'} onClick={() => void wearToday()} className="btn-primary disabled:opacity-40">
-              {busy === 'wear' ? 'Logging…' : 'Wearing it today'}
-            </button>
-            <Link to={`/closet/compose?pin=${item.id}`} className="btn-ghost">
+            {/* Wears are logged where the day is: Today, or the Journal. A piece
+                page only reads the record, so nothing here can add to it by accident. */}
+            <Link to={`/closet/compose?pin=${item.id}`} className="btn-primary">
               Style it
             </Link>
             <Link to={`/mirror?items=${item.id}`} className="btn-quiet">
               See it on me
             </Link>
             <div className="relative">
-              <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-quiet" aria-label="More">
+              <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-ghost !px-4" aria-label="More">
                 ···
               </button>
               {menu && (

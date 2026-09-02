@@ -3,6 +3,7 @@ import { pinFile, resolveImageUrl } from '../lib/api'
 import type { EventType } from '../lib/types'
 import { confirmWearPhoto, getWearPhoto, readWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '../lib/wear-photo'
 import { Spinner } from './Spinner'
+import { Arch } from './ui'
 
 /**
  * "This is what I wore." One photo in; every garment found in it comes back
@@ -191,13 +192,15 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
   return (
     <li className="plaque p-3">
       <div className="flex items-start gap-3">
-        <div className="arch-niche h-20 w-16 shrink-0 overflow-hidden bg-bone">
-          <img src={resolveImageUrl(row.cropUrl)} alt={row.description} className="h-full w-full object-contain" />
-        </div>
+        {/* The crop is a photograph: lit by itself, no vitrine glow. The
+            piece beside it is a cut-out, and sits in its niche as everywhere. */}
+        <Arch className="arch-photo w-16 shrink-0" aspect="aspect-[4/5]">
+          <img src={resolveImageUrl(row.cropUrl)} alt={row.description} className="h-full w-full object-cover" />
+        </Arch>
         {chosen && d.action === 'use' && (
-          <div className="arch-niche h-20 w-16 shrink-0 overflow-hidden bg-bone">
-            <img src={resolveImageUrl(chosen.item.imageUrl)} alt={nameOf(chosen.item)} className="h-full w-full object-contain" />
-          </div>
+          <Arch className="w-16 shrink-0" aspect="aspect-[4/5]">
+            <img src={resolveImageUrl(chosen.item.imageUrl)} alt={nameOf(chosen.item)} className="relative z-[1] h-full w-full object-contain p-[7%]" />
+          </Arch>
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">{row.description}</p>
@@ -238,7 +241,9 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
             <div className="mt-3 flex flex-wrap gap-2">
               {row.matches.map((m) => (
                 <button key={m.itemId} type="button" onClick={() => onChange({ index: row.index, action: 'use', itemId: m.itemId, open: false })} className={`press flex items-center gap-2 border p-1 pr-3 text-left text-xs ${d.itemId === m.itemId ? 'border-brass' : 'border-ink/15'}`}>
-                  <img src={resolveImageUrl(m.item.imageUrl)} alt="" className="h-12 w-10 object-contain" />
+                  <Arch className="w-10 shrink-0" aspect="aspect-[4/5]">
+                    <img src={resolveImageUrl(m.item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[7%]" />
+                  </Arch>
                   <span>
                     <b className="block font-semibold text-ink">{nameOf(m.item)}</b>
                     <span className="text-ink/55">{m.reasons.join(', ') || 'the same kind'}</span>

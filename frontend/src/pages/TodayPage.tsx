@@ -579,16 +579,18 @@ export function TodayPage() {
             />
           </div>
           {data?.wornLook && (
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/60">
-              <span>
+            <div className="mt-5 border-t border-ink/10 pt-4">
+              <p className="text-sm text-ink/60">
                 <b className="font-semibold text-ink">What you wore, from your photo.</b>{' '}
-                {data.wornLook.instead ? 'The stylist had laid out:' : 'Laid out that morning:'}
-              </span>
-              <span className="flex items-center gap-1.5">
+                {data.wornLook.instead ? 'The stylist had laid out these; they stay on record.' : 'Laid out that morning:'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
                 {brief.items.map((item) => (
-                  <img key={item.id} src={resolveImageUrl(item.imageUrl)} alt={itemLabel(item)} title={itemLabel(item)} className="h-10 w-8 object-contain" />
+                  <div key={item.id} className="w-16 sm:w-20">
+                    <GarmentTile imageUrl={item.imageUrl} label={itemLabel(item)} />
+                  </div>
                 ))}
-              </span>
+              </div>
             </div>
           )}
 
