@@ -77,7 +77,6 @@ export function Header() {
           <span className="font-display text-xl font-extrabold tracking-tight text-ink">
             ZAUQ
           </span>
-          <span className="hidden font-display text-xs italic text-ink/40 lg:inline">your daily stylist</span>
         </Link>
 
         {!user && pathname !== '/login' && (
