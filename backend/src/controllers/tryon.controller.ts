@@ -56,9 +56,17 @@ async function runJob(tryOnId: string) {
       prisma.wardrobeItem.findMany({ where: { id: { in: job.itemIds }, userId: job.userId }, select: itemSelect }),
     ]);
     if (!user?.photoPath) throw new HttpError(400, 'Upload a photo before trying on an outfit');
-    const ordered = job.itemIds.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => !!i);
-    const r = await generateOutfitTryOn(user.photoPath, ordered, (job.mode as 'references' | 'text') ?? defaultTryOnMode());
-    await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null } });
+    if (job.lookId) {
+      // An inspiration look: dressed from its pieces' rendering lines.
+      const look = await prisma.look.findUnique({ where: { id: job.lookId }, select: { outfit: true } });
+      if (!look) throw new HttpError(404, 'Look not found');
+      const url = await generateTryOn(user.photoPath, look.outfit);
+      await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: url, error: null } });
+    } else {
+      const ordered = job.itemIds.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => !!i);
+      const r = await generateOutfitTryOn(user.photoPath, ordered, (job.mode as 'references' | 'text') ?? defaultTryOnMode());
+      await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null } });
+    }
     // Tell them, if they left.
     const subs = await prisma.pushSubscription.findMany({ where: { userId: job.userId }, take: 5 });
     for (const d of subs) void sendPush(d, { title: 'Your render is ready', body: 'The Mirror has you dressed. Tap to look.', url: `/mirror?render=${tryOnId}`, tag: `render-${tryOnId}` }).catch(() => undefined);
@@ -78,9 +86,21 @@ export async function createTryOn(req: Request, res: Response) {
   ]);
   if (!look) throw new HttpError(404, 'Look not found');
   if (!user?.photoPath) throw new HttpError(400, 'Upload a photo before trying on a look');
-  const imageUrl = await generateTryOn(user.photoPath, look.outfit);
-  const tryOn = await prisma.tryOn.create({ data: { userId: req.user.id, lookId, imageUrl, status: 'ready', mode: 'look', usageEventId: req.usageEventId ?? null }, select: tryOnSelect });
-  res.status(201).json({ tryOn });
+  // Same look, same photo: the render already made, free.
+  const model = process.env.IMAGE_MODEL ?? 'default';
+  const key = createHash('sha1').update([user.photoPath, `look:${lookId}`, model].join('|')).digest('hex');
+  const cached = await prisma.tryOn.findFirst({ where: { userId: req.user.id, key, status: 'ready', reportedAt: null }, orderBy: { createdAt: 'desc' }, select: tryOnSelect });
+  if (cached) {
+    if (req.usageEventId) await prisma.usageEvent.deleteMany({ where: { id: req.usageEventId } }).catch(() => undefined);
+    res.json({ tryOn: { ...cached, items: [] }, cached: true });
+    return;
+  }
+  const tryOn = await prisma.tryOn.create({
+    data: { userId: req.user.id, lookId, imageUrl: '', itemIds: [], status: 'queued', mode: 'look', model, key, photoPath: user.photoPath, usageEventId: req.usageEventId ?? null },
+    select: tryOnSelect,
+  });
+  void runJob(tryOn.id);
+  res.status(202).json({ tryOn: { ...tryOn, items: [] }, cached: false });
 }
 
 const outfitTryOnSchema = z.object({

@@ -413,6 +413,8 @@ model Look {
   rationale String
   imageUrl  String?
   favorite  Boolean  @default(false)
+  // Inspiration: kept, or thrown back ("keep" | "no"). Both teach the stylist.
+  verdict   String?
   createdAt DateTime @default(now())
 
   tryOns TryOn[]

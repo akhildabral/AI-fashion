@@ -7,7 +7,19 @@ import { generateImage } from '../lib/imagegen';
 import { saveImageBuffer } from '../lib/storage';
 import { HttpError } from '../middleware/error';
 
+/** A garment in the closet's own vocabulary, so a look can be matched and rendered like a piece. */
+export interface LookPiece {
+  category: 'top' | 'bottom' | 'outerwear' | 'footwear' | 'accessory' | 'dress';
+  subtype: string;
+  color: string;
+  material: string | null;
+  pattern: string | null;
+  /** One rendering line: shade, fabric, cut, closures, any detail the Mirror must show. */
+  render: string;
+}
+
 export interface OutfitPlan {
+  title: string;
   items: {
     top: string;
     bottom: string;
@@ -15,6 +27,7 @@ export interface OutfitPlan {
     footwear: string;
     accessories: string[];
   };
+  pieces: LookPiece[];
   palette: string[];
   rationale: string;
   imagePrompt: string;
@@ -30,6 +43,18 @@ export interface GeneratedLook {
 const looksSchema = z.object({
   looks: z.array(
     z.object({
+      // Three or four words, the way a stylist names a look: "Camel and ink, after dark".
+      title: z.string(),
+      pieces: z.array(
+        z.object({
+          category: z.enum(['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress']),
+          subtype: z.string(),
+          color: z.string(),
+          material: z.string().nullable(),
+          pattern: z.string().nullable(),
+          render: z.string(),
+        }),
+      ),
       items: z.object({
         top: z.string(),
         bottom: z.string(),
@@ -73,6 +98,30 @@ function describeProfile(profile: StyleProfile | null): string {
   return parts.length ? parts.join('\n') : 'No detailed style profile provided.';
 }
 
+// The frame every look is painted in: the clothes are the subject, and the
+// only face in the room is the wearer's own, in the Mirror.
+const MODEL_FRAME =
+  'an editorial e-commerce photograph of a neutral, anonymous adult model (plain features, ' +
+  'neutral expression, hair tied back) standing full-length, front-on, in a plain seamless ' +
+  'light studio with soft even light, wearing the complete outfit exactly as described';
+
+/**
+ * "Surprise me": a brief built from what the profile already knows — taste
+ * signals from the fitting, the month, and the looks kept before — so a
+ * surprise is still this person's surprise.
+ */
+export function surpriseBrief(profile: StyleProfile | null, kept: string[]): string {
+  const month = new Date().toLocaleString('en', { month: 'long' });
+  const signals = (profile?.styleSignals as { signals?: string[] } | null)?.signals ?? [];
+  const parts = [
+    `A surprise: a look they would not have thought to ask for, still unmistakably theirs. It is ${month}.`,
+    signals.length ? `Their taste, from the fitting: ${signals.slice(0, 6).join('; ')}.` : '',
+    kept.length ? `Looks they kept before: ${kept.slice(0, 5).join(' / ')}. Rhyme with these; do not repeat them.` : '',
+    'One of the two looks should be a step bolder than their usual.',
+  ];
+  return parts.filter(Boolean).join(' ');
+}
+
 async function planLooks(
   occasion: string,
   gender: string,
@@ -90,9 +139,14 @@ async function planLooks(
         `occasion, propose exactly ${count} DISTINCT, cohesive, currently-fashionable ` +
         'outfits tailored to THIS client. Respect their body type, skin tone, style ' +
         'preference, budget, and any colors to avoid. Recommend concrete garments ' +
-        '(fabric, cut, color). In each "rationale", explain specifically why the outfit ' +
-        "flatters this client (reference their profile). In each \"imagePrompt\", write a " +
-        'vivid photographic prompt of a person wearing the full outfit, for an image model.',
+        '(fabric, cut, color). Give each look a "title" of three or four words, the way a ' +
+        'stylist names a look. List every garment once more in "pieces", one entry per ' +
+        'physical item (a suit is a jacket and trousers), with category, a short subtype ' +
+        '(blazer, wide-leg trousers, loafers), one colour word, material, pattern, and a ' +
+        '"render" line of 15–30 words naming the shade, fabric, cut, closures and any detail ' +
+        'an image model must show. In each "rationale", explain specifically why the outfit ' +
+        "flatters this client (reference their profile) in two sentences. In each \"imagePrompt\", " +
+        `describe ${MODEL_FRAME}; name each garment as in its render line; no text, no props.`,
       prompt:
         `Client profile:\n${describeProfile(profile)}\n\n` +
         `Occasion: ${occasion}\nGender presentation: ${gender}\n\n` +
@@ -133,7 +187,7 @@ export async function generateLooks(
   const images = await Promise.all(plans.map((p) => renderOutfitImage(p.imagePrompt)));
 
   return plans.map((plan, i) => ({
-    outfit: { items: plan.items, palette: plan.palette },
+    outfit: { items: plan.items, palette: plan.palette, pieces: plan.pieces, title: plan.title },
     rationale: plan.rationale,
     imageUrl: images[i] ?? null,
   }));

@@ -31,6 +31,12 @@ interface OutfitItems {
 }
 
 function describeOutfit(outfit: unknown): string {
+  // A look with pieces carries a rendering line per garment — the same
+  // brief a closet piece gets — and that is what the Mirror dresses with.
+  const pieces = (outfit as { pieces?: { category: string; render?: string; color?: string; subtype?: string }[] } | null)?.pieces;
+  if (pieces?.length) {
+    return pieces.map((p) => `${p.category}: ${p.render?.trim() || [p.color, p.subtype].filter(Boolean).join(' ')}`).join('; ');
+  }
   const items = (outfit as { items?: OutfitItems } | null)?.items ?? {};
   const parts = [
     items.top && `top: ${items.top}`,
@@ -86,10 +92,10 @@ export async function generateTryOn(photoFilename: string, outfit: unknown): Pro
   requireImages();
   const person = await sourceFromStored(photoFilename, 'Your uploaded photo could not be found; please re-upload it');
   const prompt =
-    'Edit this photograph so the same person is wearing the following outfit, ' +
-    'while keeping their face, identity, body shape, skin tone, hair, and pose ' +
-    'unchanged — never replace them with a different person or model. ' +
-    `Outfit — ${describeOutfit(outfit)}. Produce a realistic, full-body fashion photograph.`;
+    'Edit this photograph so the very same person is dressed in a different outfit. Remove ALL the clothing ' +
+    'they are currently wearing and dress them instead in exactly these garments, all together: ' +
+    `${describeOutfit(outfit)}. Every detail named must appear as described: the stated shade, fabric, cut, ` +
+    `closures and hardware. Do not simplify a garment into a plain one. Fit each piece naturally to their body at true-to-life proportions. ${KEEP}`;
   return runEdit(prompt, [person]);
 }
 

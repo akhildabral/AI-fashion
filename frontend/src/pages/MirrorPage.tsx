@@ -11,7 +11,8 @@ import { logWear } from '../lib/wearlog'
 import { saveOutfit } from '../lib/outfits'
 import type { Reflection, TryOn, WardrobeItem } from '../lib/types'
 import { Spinner } from '../components/Spinner'
-import { MirrorFrame, Modal, Toast, useFlash } from '../components/ui'
+import { MirrorFrame, Modal, Tabs, Toast, useFlash } from '../components/ui'
+import { InspirationLens } from '../components/InspirationLens'
 
 // The Mirror, as a fitting room. The glass in the centre; under it the rail —
 // the pieces on you, each a switch — and the meter; after a render, the
@@ -33,6 +34,9 @@ export function MirrorPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const { toast, flash } = useFlash()
+
+  // ---- the lens: your closet on you, or looks you don't own ----
+  const [lens, setLens] = useState<'closet' | 'inspiration'>(params.get('lens') === 'inspiration' ? 'inspiration' : 'closet')
 
   // ---- the closet, the rail ----
   const [closet, setCloset] = useState<Piece[] | null>(null)
@@ -541,7 +545,29 @@ export function MirrorPage() {
 
         {/* ---------------- The rail, the meter, the decision ---------------- */}
         <div className="mt-10 lg:mt-0">
+          <Tabs
+            label="What the Mirror dresses you in"
+            value={lens}
+            onChange={setLens}
+            items={[
+              { key: 'closet', label: 'Your closet' },
+              { key: 'inspiration', label: 'Inspiration' },
+            ]}
+            className="mb-6"
+          />
+          {lens === 'inspiration' && (
+            <InspirationLens
+              hasPhoto={Boolean(photoUrl)}
+              onRender={(t) => {
+                setCurrent(t)
+                setFresh(false)
+                setError(null)
+              }}
+              onNote={flash}
+            />
+          )}
           {/* the rail: pieces on you, each a switch */}
+          {lens === 'closet' && (
           <section>
             <div className="flex h-8 items-center justify-between gap-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">On you</p>
@@ -636,6 +662,7 @@ export function MirrorPage() {
               )}
             </div>
           </section>
+          )}
 
           {/* your reflections: up to three, one dressed */}
           {photoChecked && (photos.length > 0 || photoUrl) && (
@@ -664,8 +691,25 @@ export function MirrorPage() {
             </section>
           )}
 
+          {/* an inspiration look on you: the doors are on its card */}
+          {ready && current && !compareMode && current.lookId && (
+            <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Then</p>
+              <p className="mt-2 text-sm text-ink/60">
+                An inspiration look, on you. Keep it, or make it from your closet, on its card{lens === 'inspiration' ? '' : ' in the Inspiration lens'}.
+              </p>
+              {lens !== 'inspiration' && (
+                <div className="action-row mt-3">
+                  <button type="button" onClick={() => setLens('inspiration')} className="btn-ghost btn-sm">
+                    Open Inspiration
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* the decision */}
-          {ready && current && !compareMode && (
+          {ready && current && !compareMode && !current.lookId && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Then</p>
               {current.items && current.items.length > 0 && <p className="mt-2 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
