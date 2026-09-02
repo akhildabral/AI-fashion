@@ -63,6 +63,7 @@ export function GoogleButton({
   useEffect(() => {
     if (!clientId || !holder.current) return
     let cancelled = false
+    let cleanup: (() => void) | null = null
     loadGsi()
       .then(() => {
         if (cancelled || !holder.current || !window.google) return
@@ -83,20 +84,39 @@ export function GoogleButton({
               })
           },
         })
-        window.google.accounts.id.renderButton(holder.current, {
-          theme: isDark() ? 'filled_black' : 'outline',
-          size: 'large',
-          shape: 'rectangular',
-          text: 'continue_with',
-          width: Math.min(400, Math.max(200, holder.current.offsetWidth || 360)),
+        const el = holder.current
+        const draw = () => {
+          if (!window.google || !el.isConnected) return
+          const w = Math.min(400, Math.max(200, Math.floor(el.getBoundingClientRect().width) || 360))
+          el.innerHTML = ''
+          window.google.accounts.id.renderButton(el, {
+            theme: isDark() ? 'filled_black' : 'outline',
+            size: 'large',
+            shape: 'rectangular',
+            text: 'continue_with',
+            width: w,
+          })
+        }
+        draw()
+        // Google sizes the button once; keep it fitting the panel as the window changes.
+        let last = el.getBoundingClientRect().width
+        const ro = new ResizeObserver(() => {
+          const w = el.getBoundingClientRect().width
+          if (Math.abs(w - last) > 8) {
+            last = w
+            draw()
+          }
         })
+        ro.observe(el)
+        cleanup = () => ro.disconnect()
       })
       .catch(() => onMessage('Could not load Google sign-in.'))
     return () => {
       cancelled = true
+      cleanup?.()
     }
   }, [clientId, adoptSession, navigate, onMessage, joinCode, redirectTo])
 
   if (!clientId) return null
-  return <div ref={holder} className="flex w-full justify-center [&>div]:w-full" />
+  return <div ref={holder} className="flex w-full justify-center overflow-hidden" />
 }

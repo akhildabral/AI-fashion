@@ -29,7 +29,7 @@ export function DoorShell({
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="grid items-center gap-10 py-10 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:py-16">
-        <div className="w-full max-w-md">
+        <div className="mx-auto w-full max-w-md md:max-w-[480px]">
           {note && <div className="plaque mb-5 p-3 pl-4 text-sm text-ink/70 animate-rise">{note}</div>}
           <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">{eyebrow}</p>
           <h1 className="mt-2 animate-rise-1 font-display text-4xl font-medium leading-[1.02] text-ink sm:text-5xl [text-wrap:balance]">{title}</h1>
