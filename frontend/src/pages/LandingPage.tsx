@@ -40,22 +40,22 @@ export function LandingPage() {
         Every morning, an outfit —{' '}
         <em className="not-italic text-iris">already waiting.</em>
       </h1>
-      <p className="mx-auto mt-5 max-w-xl animate-rise-2 font-serif text-lg italic text-ink/60">
+      <p className="mx-auto mt-5 max-w-xl animate-rise-2 font-display text-lg italic text-ink/60">
         a personal stylist that knows your closet: it composes your look each day, renders it on
         you, and turns what you own into outfits you love
       </p>
 
       <div className="mx-auto mt-10 max-w-md animate-rise-3">
         {done ? (
-          <div className="rounded-2xl border border-iris/25 bg-iris-soft/60 px-6 py-5">
-            <p className="font-display text-lg font-bold text-ink">You're on the list ✦</p>
+          <div className="rounded-[3px] border border-iris/25 bg-iris-soft/60 px-6 py-5">
+            <p className="font-display text-lg font-bold text-ink">You’re on the list.</p>
             <p className="mt-1 text-sm text-ink/60">{done}</p>
           </div>
         ) : (
           <>
             <form
               onSubmit={join}
-              className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-5 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
+              className="flex items-center gap-2 rounded-[3px] border border-ink/10 bg-surface p-1.5 pl-5 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
             >
               <input
                 type="email"

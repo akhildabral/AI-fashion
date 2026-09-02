@@ -70,9 +70,9 @@ function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: str
           {meter.used} / {meter.limit} {per}
         </span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-ink/10">
+      <div className="mt-1 h-2 overflow-hidden rounded-[3px] bg-ink/10">
         <div
-          className={`h-full rounded-full ${full ? 'bg-rose-500' : 'bg-clay'}`}
+          className={`h-full rounded-[3px] ${full ? 'bg-rose-500' : 'bg-iris'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -165,7 +165,7 @@ export function BillingPage() {
       <h1 className="font-display text-4xl font-extrabold tracking-tight text-ink">Plan &amp; usage</h1>
 
       {notice && (
-        <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
+        <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
       )}
       {error && (
         <p className="mt-4 alert-error !py-3">{error}</p>
@@ -173,7 +173,7 @@ export function BillingPage() {
 
       {summary && (
         <>
-          <div className="mt-6 rounded-xl border border-ink/10 bg-surface p-6">
+          <div className="mt-6 rounded-[3px] border border-ink/10 bg-surface p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-ink/50">Current plan</p>
@@ -230,7 +230,7 @@ export function BillingPage() {
             <>
               <h2 className="mt-10 font-display text-2xl font-bold text-ink">Upgrade</h2>
               {!summary.billingConfigured && (
-                <p className="mt-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                <p className="mt-2 rounded-[3px] bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                   Payments aren't switched on yet — plans will be purchasable soon.
                 </p>
               )}
@@ -238,7 +238,7 @@ export function BillingPage() {
                 {PLANS.filter((p) => p.id !== summary.plan).map((p) => (
                   <div
                     key={p.id}
-                    className="flex flex-col rounded-xl border border-ink/10 bg-surface p-6"
+                    className="flex flex-col rounded-[3px] border border-ink/10 bg-surface p-6"
                   >
                     <p className="font-display text-xl font-bold text-ink">{p.name}</p>
                     <p className="mt-1 text-2xl font-semibold text-ink">{p.price}</p>

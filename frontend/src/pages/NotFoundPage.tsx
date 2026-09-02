@@ -10,7 +10,7 @@ export function NotFoundPage() {
       <h1 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink">
         This page doesn't exist
       </h1>
-      <p className="mt-2 font-serif text-sm italic text-ink/55">
+      <p className="mt-2 font-display text-sm italic text-ink/55">
         the link may be old, mistyped, or something we've since moved
       </p>
       <Link to="/" className="btn-primary mt-6">

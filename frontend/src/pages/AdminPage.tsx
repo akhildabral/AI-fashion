@@ -194,7 +194,7 @@ export function AdminPage() {
         </button>
       </div>
 
-      <div className="mt-6 flex animate-rise-1 gap-1 rounded-full border border-ink/10 bg-surface p-1 sm:w-fit">
+      <div className="mt-6 flex animate-rise-1 gap-1 rounded-[3px] border border-ink/10 bg-surface p-1 sm:w-fit">
         {(
           [
             ['waitlist', `Waitlist · ${waiting.length}`],
@@ -205,7 +205,7 @@ export function AdminPage() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`flex-1 rounded-full px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
+            className={`flex-1 rounded-[3px] px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
               tab === key ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
             }`}
           >
@@ -215,7 +215,7 @@ export function AdminPage() {
       </div>
 
       {notice && (
-        <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
           {notice}
         </p>
       )}
@@ -229,7 +229,7 @@ export function AdminPage() {
         <div className="mt-6">
           <form
             onSubmit={inviteSomeone}
-            className="flex max-w-md items-center gap-2 rounded-2xl border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
+            className="flex max-w-md items-center gap-2 rounded-[3px] border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
           >
             <input
               type="email"
@@ -245,7 +245,7 @@ export function AdminPage() {
           </form>
 
           {waiting.length === 0 ? (
-            <p className="mt-8 rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
+            <p className="mt-8 rounded-[3px] border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
               Nobody is waiting right now.
             </p>
           ) : (
@@ -275,7 +275,7 @@ export function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
+                          className={`rounded-[3px] px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
                         >
                           {u.status}
                         </span>
@@ -342,7 +342,7 @@ export function AdminPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
+                      className={`rounded-[3px] px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
                     >
                       {u.status}
                     </span>
@@ -354,7 +354,7 @@ export function AdminPage() {
                       onChange={(e) =>
                         void runAction(u.id, `/admin/users/${u.id}/plan`, { plan: e.target.value })
                       }
-                      className="rounded-lg border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
+                      className="rounded-[3px] border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
                     >
                       {['free', 'plus', 'pro', 'founder'].map((p) => (
                         <option key={p} value={p}>
@@ -431,12 +431,12 @@ export function AdminPage() {
                 <div
                   onClick={selectLinkText}
                   title="Click to select"
-                  className="mt-4 cursor-text select-all break-all rounded-xl border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75"
+                  className="mt-4 cursor-text select-all break-all rounded-[3px] border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75"
                 >
                   {inviteLink.url}
                 </div>
                 <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 !px-4 !py-2 !text-sm">
-                  {copied ? '✓ Copied' : 'Copy invite link'}
+                  {copied ? 'Copied' : 'Copy invite link'}
                 </button>
               </>
             )}

@@ -85,14 +85,14 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-float"
+        className="relative w-full max-w-md overflow-hidden rounded-[3px] border border-ink/10 bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/85 text-ink  backdrop-blur transition hover:bg-surface"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-[3px] bg-surface/85 text-ink  backdrop-blur transition hover:bg-surface"
         >
           <span aria-hidden="true" className="text-lg leading-none">
             ×
@@ -109,9 +109,9 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
 
           {phase === 'rendering' && (
             <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <Spinner className="h-8 w-8 text-clay" />
+              <Spinner className="h-8 w-8 text-brass" />
               <div>
-                <p className="font-serif text-xl font-semibold text-ink">
+                <p className="font-display text-xl font-semibold text-ink">
                   Rendering you in this look…
                 </p>
                 <p className="mt-2 text-sm text-ink/50">
@@ -123,7 +123,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
 
           {phase === 'no-photo' && (
             <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <h3 className="font-serif text-2xl font-semibold text-ink">
+              <h3 className="font-display text-2xl font-semibold text-ink">
                 Add a photo first
               </h3>
               <p className="max-w-xs text-sm text-ink/60">
@@ -138,8 +138,8 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
 
           {phase === 'done' && tryOn && (
             <div className="space-y-4 text-center">
-              <h3 className="font-serif text-2xl font-semibold text-ink">You in this look</h3>
-              <div className="overflow-hidden rounded-xl border border-ink/10 bg-gradient-to-br from-bone to-clay/20">
+              <h3 className="font-display text-2xl font-semibold text-ink">You in this look</h3>
+              <div className="overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-iris-soft">
                 <img
                   src={tryOn.imageUrl}
                   alt="You wearing this look"
@@ -149,16 +149,16 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
               <Link
                 to="/mirror"
                 onClick={onClose}
-                className="inline-flex text-sm font-medium text-clay underline-offset-4 hover:underline"
+                className="inline-flex text-sm font-medium text-brass underline-offset-4 hover:underline"
               >
-                See all your try-ons →
+                See all your try-ons
               </Link>
             </div>
           )}
 
           {phase === 'error' && (
             <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <h3 className="font-serif text-2xl font-semibold text-ink">
+              <h3 className="font-display text-2xl font-semibold text-ink">
                 Couldn't render this look
               </h3>
               <p className="max-w-xs alert-error">{error}</p>

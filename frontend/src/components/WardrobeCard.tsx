@@ -118,8 +118,8 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
 
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-clay">{item.category}</p>
-          <h3 className="font-serif text-xl font-semibold capitalize text-ink">{title}</h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-brass">{item.category}</p>
+          <h3 className="font-display text-xl font-semibold capitalize text-ink">{title}</h3>
         </div>
 
         {editing ? (
@@ -160,7 +160,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                   setError(null)
                   setEditing(true)
                 }}
-                className="text-sm font-medium text-clay underline-offset-4 transition hover:underline"
+                className="text-sm font-medium text-brass underline-offset-4 transition hover:underline"
               >
                 Edit tags
               </button>

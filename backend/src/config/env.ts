@@ -31,6 +31,10 @@ const envSchema = z.object({
   // SMTP for verification emails. When unset, verification links are logged
   // to the server console instead of emailed (dev / pre-SMTP fallback).
   SMTP_HOST: z.string().optional(),
+  // Web push (morning ritual). All three or none.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),

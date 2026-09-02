@@ -59,7 +59,7 @@ export function Header() {
           <span className="font-display text-xl font-extrabold tracking-tight text-ink">
             AI&nbsp;Fashion<span className="text-iris transition-colors group-hover:text-iris-deep">*</span>
           </span>
-          <span className="hidden font-serif text-xs italic text-ink/40 md:inline">
+          <span className="hidden font-display text-xs italic text-ink/40 md:inline">
             your daily stylist
           </span>
         </Link>

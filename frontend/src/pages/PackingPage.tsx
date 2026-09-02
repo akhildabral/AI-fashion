@@ -1,20 +1,20 @@
-import { useState, type FormEvent, useEffect } from 'react'
-import { PageShell, Toast, useFlash } from '../components/ui'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Arch, GarmentTile, PageShell, Toast, useFlash } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { packForTrip } from '../lib/wardrobe'
 import { createTrip, deleteTrip, getTrips, type Trip } from '../lib/brief'
 import type { PackingResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
-import { ZoomableImage } from '../components/ImageLightbox'
+import { resolveImageUrl } from '../lib/api'
+
+// Trips: a destination and dates become a capsule packed from the closet,
+// a day-by-day plan, and a checklist. Save the trip and the daily brief
+// styles from the suitcase while you're away.
 
 function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-/**
- * Travel packing: destination + dates → a capsule packed from the real
- * wardrobe, a day-by-day outfit plan, and a checklist of essentials.
- */
 export function PackingPage() {
   const { toast, flash } = useFlash()
   usePageTitle('Trips')
@@ -48,6 +48,7 @@ export function PackingPage() {
       })
       setTrips((prev) => [...prev, trip].sort((a, b) => (a.startDate < b.startDate ? -1 : 1)))
       setSavedTripId(trip.id)
+      flash('Saved. Your brief will pack from this capsule.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the trip.')
     } finally {
@@ -61,7 +62,7 @@ export function PackingPage() {
       setTrips((prev) => prev.filter((t) => t.id !== id))
       if (savedTripId === id) setSavedTripId(null)
     } catch {
-      flash('Could not delete the trip — try again.')
+      flash('Could not remove the trip — try again.')
     }
   }
 
@@ -72,13 +73,7 @@ export function PackingPage() {
     setResult(null)
     setChecked({})
     try {
-      const res = await packForTrip({
-        destination: destination.trim(),
-        startDate,
-        endDate,
-        activities: activities.trim() || undefined,
-      })
-      setResult(res)
+      setResult(await packForTrip({ destination: destination.trim(), startDate, endDate, activities: activities.trim() || undefined }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not plan your packing.')
     } finally {
@@ -91,35 +86,28 @@ export function PackingPage() {
   return (
     <PageShell>
       <Toast msg={toast} />
-      <div className="mb-10 max-w-2xl">
-        <h1 className="font-serif text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-          Pack for a trip
+      <header>
+        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">Trips</p>
+        <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
+          Pack from <em className="text-brass">your closet.</em>
         </h1>
-        <p className="mt-3 text-ink/60">
-          Tell us where and when — we'll build a capsule from clothes you own, plan
-          each day's outfit, and list what else to bring.
-        </p>
-      </div>
+        <p className="mt-3 max-w-xl animate-rise-1 text-sm text-ink/55">Where and when. Your stylist builds the capsule from clothes you own, plans each day, and lists the rest.</p>
+      </header>
+
       {trips.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 font-display text-lg font-bold text-ink">Upcoming trips</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <section className="mt-8 animate-rise-2">
+          <h2 className="font-display text-2xl font-medium text-ink">Upcoming</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {trips.map((t) => (
-              <div key={t.id} className="card flex items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-ink">{t.destination}</p>
-                  <p className="text-xs text-ink/50">
-                    {t.startDate} → {t.endDate} · {t.packedItemIds.length} pieces packed
+              <div key={t.id} className="plaque flex items-center justify-between gap-3 p-4 pl-5">
+                <div className="min-w-0">
+                  <p className="font-display text-lg font-medium text-ink">{t.destination}</p>
+                  <p className="text-xs text-ink/55">
+                    {formatDay(t.startDate)} to {formatDay(t.endDate)} · {t.packedItemIds.length} pieces packed
                   </p>
-                  <p className="mt-1 font-serif text-xs italic text-ink/45">
-                    your daily brief styles from this capsule while you're away
-                  </p>
+                  <p className="mt-1 font-display text-xs italic text-ink/45">your brief styles from this capsule while you’re away</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteTrip(t.id)}
-                  className="btn-ghost !px-3 !py-1.5 !text-xs"
-                >
+                <button type="button" onClick={() => void handleDeleteTrip(t.id)} className="btn-ghost !px-3 !py-1.5 !text-xs">
                   Remove
                 </button>
               </div>
@@ -128,66 +116,31 @@ export function PackingPage() {
         </section>
       )}
 
-
-      <form
-        onSubmit={handleSubmit}
-        className="mb-10 rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8"
-      >
+      <form onSubmit={handleSubmit} className="card mt-8 animate-rise-2 p-5 sm:p-7">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label htmlFor="pack-destination" className="label">
               Destination
             </label>
-            <input
-              id="pack-destination"
-              type="text"
-              required
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              className="field"
-              placeholder="e.g. Lisbon"
-            />
+            <input id="pack-destination" type="text" required value={destination} onChange={(e) => setDestination(e.target.value)} className="field" placeholder="e.g. Lisbon" />
           </div>
           <div>
             <label htmlFor="pack-start" className="label">
               From
             </label>
-            <input
-              id="pack-start"
-              type="date"
-              required
-              value={startDate}
-              min={today}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="field"
-            />
+            <input id="pack-start" type="date" required value={startDate} min={today} onChange={(e) => setStartDate(e.target.value)} className="field" />
           </div>
           <div>
             <label htmlFor="pack-end" className="label">
               To
             </label>
-            <input
-              id="pack-end"
-              type="date"
-              required
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="field"
-            />
+            <input id="pack-end" type="date" required value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className="field" />
           </div>
           <div>
             <label htmlFor="pack-activities" className="label">
               Plans (optional)
             </label>
-            <input
-              id="pack-activities"
-              type="text"
-              value={activities}
-              onChange={(e) => setActivities(e.target.value)}
-              className="field"
-              placeholder="e.g. hiking, a wedding"
-            />
+            <input id="pack-activities" type="text" value={activities} onChange={(e) => setActivities(e.target.value)} className="field" placeholder="e.g. hiking, a wedding" />
           </div>
         </div>
         <button type="submit" disabled={loading} className="btn-primary mt-5">
@@ -197,7 +150,7 @@ export function PackingPage() {
               Packing…
             </>
           ) : (
-            'Plan my packing'
+            'Plan the capsule'
           )}
         </button>
         {error && (
@@ -208,95 +161,64 @@ export function PackingPage() {
       </form>
 
       {result && (
-        <div className="space-y-10">
-          {/* Weather strip */}
-          <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-ink">
-              {result.forecast.location}
-            </h2>
+        <div className="mt-10 space-y-10">
+          <section className="animate-rise">
+            <h2 className="font-display text-2xl font-medium text-ink">{result.forecast.location}</h2>
             {result.forecast.days.length > 0 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
                 {result.forecast.days.map((d) => (
-                  <div
-                    key={d.date}
-                    className="min-w-[7.5rem] shrink-0 rounded-xl border border-ink/10 bg-surface p-3 text-center "
-                  >
-                    <p className="text-xs uppercase tracking-wide text-clay">{formatDay(d.date)}</p>
-                    <p className="mt-1 font-serif text-lg text-ink tabular-nums">
+                  <div key={d.date} className="plaque min-w-[7.5rem] shrink-0 p-3 pl-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(d.date)}</p>
+                    <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">
                       {d.minC}–{d.maxC}°
                     </p>
                     <p className="mt-0.5 text-xs capitalize text-ink/55">
                       {d.description}
-                      {d.rainChance ? ' ☂' : ''}
+                      {d.rainChance ? ' · rain' : ''}
                     </p>
                   </div>
                 ))}
               </div>
             )}
-            {result.forecast.partial && (
-              <p className="mt-2 text-xs text-ink/45">
-                Part of the trip is beyond the forecast horizon — packed for typical seasonal weather.
-              </p>
-            )}
+            {result.forecast.partial && <p className="mt-2 text-xs text-ink/45">Part of the trip is beyond the forecast horizon, so it’s packed for typical seasonal weather.</p>}
           </section>
 
-          {/* Capsule */}
-          <section>
-            <h2 className="mb-1 font-serif text-2xl font-semibold text-ink">
-              The capsule · {result.plan.capsule.length} pieces
-            </h2>
-            <div className="mt-3">
+          <section className="animate-rise-1">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-medium text-ink">The capsule · {result.plan.capsule.length} pieces</h2>
+                <p className="mt-1 max-w-2xl text-sm text-ink/60">{result.plan.rationale}</p>
+              </div>
               {savedTripId ? (
-                <span className="inline-flex items-center rounded-xl bg-iris-soft px-4 py-2 text-sm font-semibold text-iris">
-                  ✓ Trip saved — your brief packs this capsule
-                </span>
+                <span className="inline-flex items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-2 text-sm font-semibold text-brass">Saved to your trips</span>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => void handleSaveTrip()}
-                  disabled={savingTrip}
-                  className="btn-primary !px-4 !py-2 !text-sm"
-                >
-                  {savingTrip ? 'Saving…' : 'Save trip — style me from this capsule'}
+                <button type="button" onClick={() => void handleSaveTrip()} disabled={savingTrip} className="btn-primary !px-4 !py-2 !text-sm">
+                  {savingTrip ? 'Saving…' : 'Save the trip'}
                 </button>
               )}
             </div>
-            <p className="mb-4 max-w-2xl text-sm text-ink/60">{result.plan.rationale}</p>
-            <div className="flex flex-wrap gap-4">
+            <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
               {result.plan.capsule.map((item) => (
-                <div key={item.id} className="w-24 text-center">
-                  <div className="aspect-square overflow-hidden rounded-xl border border-ink/10 bg-bone">
-                    <ZoomableImage src={item.imageUrl} alt={item.subtype ?? item.category} />
-                  </div>
-                  <p className="mt-1.5 truncate text-xs capitalize text-ink/60">
-                    {item.subtype ?? item.category}
-                  </p>
-                </div>
+                <GarmentTile key={item.id} imageUrl={item.imageUrl} label={item.subtype ?? item.category} />
               ))}
             </div>
           </section>
 
-          {/* Day-by-day */}
           {result.plan.days.length > 0 && (
-            <section>
-              <h2 className="mb-4 font-serif text-2xl font-semibold text-ink">Day by day</h2>
-              <div className="space-y-3">
+            <section className="animate-rise-2">
+              <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
+              <div className="card mt-4 px-5">
                 {result.plan.days.map((day) => (
-                  <article
-                    key={day.label}
-                    className="flex items-center gap-4 rounded-xl border border-ink/10 bg-surface p-4 "
-                  >
+                  <article key={day.label} className="flex items-center gap-4 border-t border-ink/10 py-4 first:border-t-0">
                     <div className="w-36 shrink-0">
-                      <p className="text-sm font-medium text-ink">{day.label}</p>
-                      <p className="mt-1 text-xs text-ink/50">{day.note}</p>
+                      <p className="text-sm font-semibold text-ink">{day.label}</p>
+                      <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>
                     </div>
-                    <div className="flex flex-1 flex-wrap gap-2">
+                    <div className="flex min-w-0 flex-1 flex-wrap gap-2">
                       {day.items.map((item) => (
-                        <div key={item.id} className="w-14">
-                          <div className="aspect-square overflow-hidden rounded-lg border border-ink/10 bg-bone">
-                            <ZoomableImage src={item.imageUrl} alt={item.subtype ?? item.category} />
-                          </div>
-                        </div>
+                        <Arch key={item.id} aspect="aspect-[4/5]" className="w-12">
+                          <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                        </Arch>
                       ))}
                     </div>
                   </article>
@@ -305,46 +227,25 @@ export function PackingPage() {
             </section>
           )}
 
-          {/* Checklist */}
-          <section>
-            <h2 className="mb-4 font-serif text-2xl font-semibold text-ink">Packing checklist</h2>
-            <div className="grid gap-2 sm:grid-cols-2">
+          <section className="animate-rise-3">
+            <h2 className="font-display text-2xl font-medium text-ink">Checklist</h2>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {result.plan.capsule.map((item) => {
                 const key = `item-${item.id}`
                 const label = item.subtype ?? item.category
                 return (
-                  <label
-                    key={key}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-ink/10 bg-surface px-4 py-2.5 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!checked[key]}
-                      onChange={() => toggle(key)}
-                      className="h-4 w-4 accent-ink"
-                    />
-                    <span className={checked[key] ? 'capitalize text-ink/35 line-through' : 'capitalize text-ink/80'}>
-                      {label}
-                    </span>
+                  <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-ink/10 bg-surface px-4 py-2.5 text-sm">
+                    <input type="checkbox" checked={!!checked[key]} onChange={() => toggle(key)} className="h-4 w-4 accent-[#B98C3B]" />
+                    <span className={checked[key] ? 'capitalize text-ink/35 line-through' : 'capitalize text-ink/80'}>{label}</span>
                   </label>
                 )
               })}
               {result.plan.essentials.map((extra) => {
                 const key = `extra-${extra}`
                 return (
-                  <label
-                    key={key}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-clay/40 bg-clay/5 px-4 py-2.5 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!checked[key]}
-                      onChange={() => toggle(key)}
-                      className="h-4 w-4 accent-ink"
-                    />
-                    <span className={checked[key] ? 'text-ink/35 line-through' : 'text-ink/80'}>
-                      {extra}
-                    </span>
+                  <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-dashed border-brass/40 bg-iris-soft/40 px-4 py-2.5 text-sm">
+                    <input type="checkbox" checked={!!checked[key]} onChange={() => toggle(key)} className="h-4 w-4 accent-[#B98C3B]" />
+                    <span className={checked[key] ? 'text-ink/35 line-through' : 'text-ink/80'}>{extra}</span>
                   </label>
                 )
               })}

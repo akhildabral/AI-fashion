@@ -152,33 +152,33 @@ export async function getBrief(req: Request, res: Response) {
     return res.json({ mode: 'brief' as const, brief: { ...payload, items }, worn: false });
   }
 
-  const existing = await prisma.dailyBrief.findUnique({
-    where: { userId_date: { userId, date } },
-  });
-  if (existing && !refresh) {
-    const payload = existing.payload as unknown as BriefPayload;
-    const items = await hydrateItems(userId, payload.itemIds);
-    return res.json({
-      mode: 'brief' as const,
-      brief: { ...payload, items },
-      worn: Boolean(existing.wornLogId),
-    });
+  const ensured = await ensureDailyBrief(userId, date, { eventType: event, refresh: Boolean(refresh) });
+  if (!ensured) return res.json({ mode: 'starter' as const });
+  const items = await hydrateItems(userId, ensured.payload.itemIds);
+  res.json({ mode: 'brief' as const, brief: { ...ensured.payload, items }, worn: ensured.worn });
+}
+
+/**
+ * The day's brief, composed once and cached. Shared by the page and by the
+ * morning push, so the look a person is woken for is the one they open to.
+ */
+export async function ensureDailyBrief(
+  userId: string,
+  date: string,
+  opts: { eventType?: EventType; refresh?: boolean } = {},
+): Promise<{ payload: BriefPayload; worn: boolean } | null> {
+  const existing = await prisma.dailyBrief.findUnique({ where: { userId_date: { userId, date } } });
+  if (existing && !opts.refresh) {
+    return { payload: existing.payload as unknown as BriefPayload, worn: Boolean(existing.wornLogId) };
   }
-
-  const payload = await composeOutfit(userId, event, null, date);
-  if (!payload) return res.json({ mode: 'starter' as const });
-
+  const payload = await composeOutfit(userId, opts.eventType ?? 'work', null, date);
+  if (!payload) return null;
   const saved = await prisma.dailyBrief.upsert({
     where: { userId_date: { userId, date } },
     create: { userId, date, payload: payload as unknown as Prisma.InputJsonValue },
     update: { payload: payload as unknown as Prisma.InputJsonValue },
   });
-  const items = await hydrateItems(userId, payload.itemIds);
-  res.json({
-    mode: 'brief' as const,
-    brief: { ...payload, items },
-    worn: Boolean(saved.wornLogId),
-  });
+  return { payload, worn: Boolean(saved.wornLogId) };
 }
 
 const wearSchema = z.object({

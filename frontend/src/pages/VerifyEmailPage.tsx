@@ -47,15 +47,15 @@ export function VerifyEmailPage() {
       ) : (
         <>
           <p className="text-5xl" aria-hidden="true">
-            {state === 'ok' ? '✓' : '✗'}
+            {state === 'ok' ? 'Verified' : 'Not verified'}
           </p>
-          <h1 className="mt-4 font-serif text-3xl font-semibold text-ink">
+          <h1 className="mt-4 font-display text-3xl font-semibold text-ink">
             {state === 'ok' ? 'Email verified' : 'Something went wrong'}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-ink/65">{message}</p>
           <Link
             to="/login"
-            className="mt-6 text-sm font-medium text-clay underline-offset-4 hover:underline"
+            className="mt-6 text-sm font-medium text-brass underline-offset-4 hover:underline"
           >
             Go to sign in
           </Link>

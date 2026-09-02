@@ -1,5 +1,7 @@
 import { prisma } from './prisma';
 import { notify } from './notify';
+import { localNow, pushEnabled, sendPush } from './push';
+import { ensureDailyBrief } from '../controllers/brief.controller';
 
 // Small in-process scheduler for things that happen on a clock rather than
 // on a request. One job for now: telling people a verdict has settled.
@@ -38,11 +40,54 @@ export async function settleVerdicts(now = new Date()): Promise<number> {
   return notified;
 }
 
+// The morning ritual: at each person's chosen hour in their own zone,
+// compose today's brief (if it isn't already) and wake their devices with
+// it. Runs every few minutes; each device is woken once per local day.
+const RITUAL_EVERY_MS = 5 * 60_000;
+
+export async function sendMorningBriefs(now = new Date()): Promise<number> {
+  if (!pushEnabled) return 0;
+  const subs = await prisma.pushSubscription.findMany({ take: 500 });
+  const due = subs.filter((s) => {
+    const { date, hour } = localNow(s.timezone, now);
+    return hour === s.hour && s.lastSentOn !== date;
+  });
+  let sent = 0;
+  const byUser = new Map<string, typeof due>();
+  for (const s of due) byUser.set(s.userId, [...(byUser.get(s.userId) ?? []), s]);
+  for (const [userId, devices] of byUser) {
+    const { date } = localNow(devices[0].timezone, now);
+    let payload: { title: string; body: string };
+    try {
+      const brief = await ensureDailyBrief(userId, date);
+      payload = brief
+        ? { title: brief.payload.title || 'Your look is ready.', body: brief.payload.rationale || 'Composed from what you own. Tap to see it.' }
+        : { title: 'Good morning.', body: 'Add a few pieces to your closet and your stylist will dress you tomorrow.' };
+    } catch {
+      payload = { title: 'Your look is ready.', body: 'Open the app to see today’s outfit.' };
+    }
+    for (const d of devices) {
+      const ok = await sendPush(d, { ...payload, url: '/', tag: `ritual-${date}` });
+      await prisma.pushSubscription.update({ where: { id: d.id }, data: { lastSentOn: date } }).catch(() => undefined);
+      if (ok) sent++;
+    }
+  }
+  return sent;
+}
+
 export function startScheduler(): () => void {
-  const tick = () => {
+  const settle = () => {
     settleVerdicts().catch((err) => console.error('settleVerdicts failed:', err instanceof Error ? err.message : err));
   };
-  tick();
-  const id = setInterval(tick, SETTLE_EVERY_MS);
-  return () => clearInterval(id);
+  const ritual = () => {
+    sendMorningBriefs().catch((err) => console.error('sendMorningBriefs failed:', err instanceof Error ? err.message : err));
+  };
+  settle();
+  ritual();
+  const a = setInterval(settle, SETTLE_EVERY_MS);
+  const b = setInterval(ritual, RITUAL_EVERY_MS);
+  return () => {
+    clearInterval(a);
+    clearInterval(b);
+  };
 }

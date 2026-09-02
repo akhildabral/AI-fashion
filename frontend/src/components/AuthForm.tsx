@@ -45,14 +45,14 @@ export function AuthForm({ onSubmit }: AuthFormProps) {
         <h1 className="mt-4 animate-rise-1 font-display text-4xl font-extrabold tracking-tight text-ink">
           {copy.title}
         </h1>
-        <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">{copy.subtitle}</p>
+        <p className="mt-2 animate-rise-2 font-display text-sm italic text-ink/60">{copy.subtitle}</p>
       </div>
 
       <div className="mb-6">
         <GoogleButton onMessage={(m) => setError(m)} />
       </div>
 
-      <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8 ">
+      <form onSubmit={handleSubmit} className="animate-rise-3 space-y-5 rounded-[3px] border border-ink/10 bg-surface p-8 ">
         <div>
           <label htmlFor="email" className="label">
             Email

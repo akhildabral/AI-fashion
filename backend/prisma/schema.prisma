@@ -64,6 +64,25 @@ model User {
   notificationsSent Notification[] @relation("notificationsBy")
   comments          Comment[]
   savedLooks        SavedLook[]
+  pushSubscriptions PushSubscription[]
+}
+
+// A browser that asked to be woken for the morning ritual. One row per
+// device; the hour and zone are the person's, so the nudge lands at their
+// morning wherever the server is.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  timezone  String   @default("UTC")
+  hour      Int      @default(7)
+  lastSentOn String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // A short styling note on a shared look or a verdict. Plain text; @handles

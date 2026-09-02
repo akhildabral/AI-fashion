@@ -6,6 +6,7 @@ import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } f
 import type { WardrobeItem } from '../lib/types'
 import { WardrobeCard } from '../components/WardrobeCard'
 import { GarmentTile, PageShell, Modal } from '../components/ui'
+import { PriceDrawer } from '../components/PriceDrawer'
 import { Spinner } from '../components/Spinner'
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -47,6 +48,7 @@ export function ClosetPage() {
   const [collection, setCollection] = useState<Collection>('all')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<WardrobeItem | null>(null)
+  const [pricing, setPricing] = useState(false)
   const [addChooserOpen, setAddChooserOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -164,6 +166,7 @@ export function ClosetPage() {
 
   // ---- Valuation + ledger figures ----
   const totalValue = list.reduce((sum, it) => sum + (it.price ?? 0), 0)
+  const unpriced = list.filter((it) => it.price == null).length
   const rotationPct = stats?.rotationPct ?? 0
   const idleItems = list.filter((it) => insights.get(it.id)?.orphan)
   const idleCapital = idleItems.reduce((sum, it) => sum + (it.price ?? 0), 0)
@@ -236,9 +239,24 @@ export function ClosetPage() {
                 <p className="mt-1.5 text-[11px] text-ink/45">
                   <span className="font-semibold text-ink/70">{rotationPct}%</span> worn this quarter
                   {idleCapital > 0 && <> · {inr(idleCapital)} idle</>}
+                  {unpriced > 0 && (
+                    <>
+                      {' · '}
+                      <button type="button" onClick={() => setPricing(true)} className="press font-semibold text-brass hover:underline">
+                        {unpriced} unpriced
+                      </button>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
+          )}
+          {totalValue === 0 && list.length > 0 && (
+            <button type="button" onClick={() => setPricing(true)} className="press text-left">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink/45">Estate value</p>
+              <p className="font-display text-2xl font-medium text-ink/50">Add prices to see it</p>
+              <p className="mt-1 text-[11px] font-semibold text-brass">Price {list.length} piece{list.length === 1 ? '' : 's'} →</p>
+            </button>
           )}
 
           <div className="flex items-center gap-2">
@@ -544,6 +562,12 @@ export function ClosetPage() {
           )}
         </Modal>
       </div>
+      <PriceDrawer
+        open={pricing}
+        items={list}
+        onClose={() => setPricing(false)}
+        onPriced={(id, price) => setItems((prev) => (prev ? prev.map((it) => (it.id === id ? { ...it, price } : it)) : prev))}
+      />
     </PageShell>
   )
 }

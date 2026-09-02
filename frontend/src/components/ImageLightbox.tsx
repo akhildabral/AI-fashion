@@ -79,12 +79,12 @@ export function ImageLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-xl text-white transition hover:bg-white/30"
+        className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-[3px] bg-white/15 text-xl text-white transition hover:bg-white/30"
       >
         ×
       </button>
 
-      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/15 px-2 py-1">
+      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[3px] bg-white/15 px-2 py-1">
         <ZoomButton label="Zoom out" onClick={(e) => { e.stopPropagation(); changeZoom(zoom - 0.5) }}>−</ZoomButton>
         <span className="min-w-[3.5rem] text-center text-sm tabular-nums text-white/90">
           {Math.round(zoom * 100)}%
@@ -106,7 +106,7 @@ export function ImageLightbox({
           src={src}
           alt={alt}
           draggable={false}
-          className="max-h-[88vh] max-w-[92vw] select-none rounded-lg object-contain transition-transform duration-75"
+          className="max-h-[88vh] max-w-[92vw] select-none rounded-[3px] object-contain transition-transform duration-75"
           style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
         />
       </div>
@@ -128,7 +128,7 @@ function ZoomButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-white transition hover:bg-white/20"
+      className="flex h-8 w-8 items-center justify-center rounded-[3px] text-lg text-white transition hover:bg-white/20"
     >
       {children}
     </button>

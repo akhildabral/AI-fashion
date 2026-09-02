@@ -65,10 +65,10 @@ export function QuizPage() {
   return (
     <PageShell narrow>
       <div className="mb-8 text-center">
-        <p className="text-xs uppercase tracking-[0.25em] text-clay">
+        <p className="text-xs uppercase tracking-[0.25em] text-brass">
           {fromWelcome ? 'step 2 of 3 · Style quiz' : 'Style quiz'}
         </p>
-        <h1 className="mt-2 font-serif text-3xl font-semibold text-ink sm:text-4xl">
+        <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
           {pair ? pair.question : 'Finding your taste'}
         </h1>
         <p className="mt-2 text-sm text-ink/55">
@@ -96,7 +96,7 @@ export function QuizPage() {
                 key={`${pair.id}-${side}`}
                 type="button"
                 onClick={() => choose(side)}
-                className="group overflow-hidden rounded-2xl border border-ink/10 bg-surface text-left  transition hover:border-iris/60"
+                className="group overflow-hidden rounded-[3px] border border-ink/10 bg-surface text-left  transition hover:border-iris/60"
               >
                 <div className="aspect-square overflow-hidden bg-bone">
                   <img
@@ -118,10 +118,10 @@ export function QuizPage() {
                 key={p.id}
                 className={
                   i === index
-                    ? 'h-2 w-6 rounded-full bg-ink'
+                    ? 'h-2 w-6 rounded-[3px] bg-ink'
                     : i < index
-                      ? 'h-2 w-2 rounded-full bg-clay'
-                      : 'h-2 w-2 rounded-full bg-ink/15'
+                      ? 'h-2 w-2 rounded-[3px] bg-iris'
+                      : 'h-2 w-2 rounded-[3px] bg-ink/15'
                 }
               />
             ))}

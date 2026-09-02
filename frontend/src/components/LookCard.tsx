@@ -165,9 +165,9 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
   }
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-surface ">
+    <article className="flex flex-col overflow-hidden rounded-[3px] border border-ink/10 bg-surface ">
       {/* Image */}
-      <div className="relative aspect-[3/4] bg-gradient-to-br from-bone to-clay/20">
+      <div className="relative aspect-[3/4] bg-gradient-to-br from-bone to-iris-soft">
         {hasImage ? (
           <ZoomableImage
             src={look.imageUrl as string}
@@ -187,7 +187,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             aria-pressed={favorite}
             aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
             title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface/85 backdrop-blur transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
+            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-[3px] bg-surface/85 backdrop-blur transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
           >
             <HeartIcon filled={favorite} />
           </button>
@@ -198,11 +198,11 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
       <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
         <div>
           {(look.occasion || look.gender) && (
-            <p className="mb-1 text-xs uppercase tracking-[0.25em] text-clay">
+            <p className="mb-1 text-xs uppercase tracking-[0.25em] text-brass">
               {[look.occasion, look.gender].filter(Boolean).join(' · ')}
             </p>
           )}
-          <h2 className="font-serif text-2xl font-semibold text-ink sm:text-3xl">Your Look</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">Your Look</h2>
         </div>
 
         {items.length > 0 && (
@@ -211,7 +211,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             <ul className="space-y-2">
               {items.map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm text-ink/80">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-clay" />
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-[3px] bg-iris" />
                   <span>
                     {item.label && (
                       <span className="font-medium text-ink">{item.label}: </span>
@@ -231,10 +231,10 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
               {palette.map((color, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-bone/60 py-1 pl-1.5 pr-3 text-xs text-ink/70"
+                  className="inline-flex items-center gap-1.5 rounded-[3px] border border-ink/10 bg-bone/60 py-1 pl-1.5 pr-3 text-xs text-ink/70"
                 >
                   <span
-                    className="h-4 w-4 rounded-full border border-ink/10"
+                    className="h-4 w-4 rounded-[3px] border border-ink/10"
                     style={{ backgroundColor: toCssColor(color) }}
                   />
                   {color}

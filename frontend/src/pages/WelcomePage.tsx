@@ -160,7 +160,7 @@ export function WelcomePage() {
                   <Spinner className="mr-2 h-4 w-4" /> Saving…
                 </>
               ) : (
-                'Next: your taste →'
+                'Next: your taste'
               )}
             </button>
           </div>
@@ -181,7 +181,7 @@ export function WelcomePage() {
           </div>
           <div className="mt-8 flex animate-rise-3 gap-3">
             <button type="button" onClick={() => navigate('/', { replace: true })} className="btn-primary">
-              Meet your stylist →
+              Meet your stylist
             </button>
             <button
               type="button"

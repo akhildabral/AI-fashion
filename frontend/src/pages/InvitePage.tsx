@@ -68,7 +68,7 @@ export function InvitePage() {
           You're invited.
         </h1>
         {state === 'ready' && (
-          <p className="mt-2 animate-rise-2 font-serif text-sm italic text-ink/60">
+          <p className="mt-2 animate-rise-2 font-display text-sm italic text-ink/60">
             welcome, {email} — claim your account below
           </p>
         )}
@@ -81,7 +81,7 @@ export function InvitePage() {
       )}
 
       {state === 'invalid' && (
-        <div className="animate-rise rounded-2xl border border-ink/10 bg-surface p-8 text-center">
+        <div className="animate-rise rounded-[3px] border border-ink/10 bg-surface p-8 text-center">
           <p className="font-display text-lg font-bold text-ink">This invite isn't valid</p>
           <p className="mt-2 text-sm text-ink/55">
             The link may have expired — invites last 7 days. Ask for a fresh one, or join the
@@ -94,7 +94,7 @@ export function InvitePage() {
       )}
 
       {state === 'ready' && (
-        <form onSubmit={accept} className="animate-rise-3 space-y-5 rounded-2xl border border-ink/10 bg-surface p-8">
+        <form onSubmit={accept} className="animate-rise-3 space-y-5 rounded-[3px] border border-ink/10 bg-surface p-8">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="firstName" className="label">

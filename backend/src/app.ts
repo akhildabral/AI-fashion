@@ -18,6 +18,7 @@ import { adminRouter } from './routes/admin.routes';
 import { billingRouter } from './routes/billing.routes';
 import { briefRouter } from './routes/brief.routes';
 import { circleRouter } from './routes/circle.routes';
+import { pushRouter } from './routes/push.routes';
 import path from 'node:path';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
 import { errorHandler, notFoundHandler } from './middleware/error';
@@ -79,6 +80,7 @@ export function createApp() {
   app.use('/api', billingRouter);
   app.use('/api', briefRouter);
   app.use('/api', circleRouter);
+  app.use('/api', pushRouter);
   app.use(votePageRouter);
   app.use(lookPageRouter);
   app.use('/api', wearLogRouter);

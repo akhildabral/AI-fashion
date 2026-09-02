@@ -90,10 +90,10 @@ export function PhotoManager() {
   return (
     <section
       id="photo"
-      className="scroll-mt-24 rounded-2xl border border-ink/10 bg-surface p-6  sm:p-8"
+      className="scroll-mt-24 rounded-[3px] border border-ink/10 bg-surface p-6  sm:p-8"
     >
       <div className="mb-6 max-w-2xl">
-        <h2 className="font-serif text-2xl font-semibold text-ink">Your photo</h2>
+        <h2 className="font-display text-2xl font-semibold text-ink">Your photo</h2>
         <p className="mt-2 text-sm text-ink/60">
           Upload a clear, front-facing photo and we'll render your saved looks onto it —
           so you can see yourself in every outfit before you commit.
@@ -108,7 +108,7 @@ export function PhotoManager() {
         <div className="grid gap-8 sm:grid-cols-[auto_1fr] sm:items-start">
           {/* Preview */}
           <div className="mx-auto w-40 sm:mx-0">
-            <div className="relative aspect-[3/4] w-40 overflow-hidden rounded-xl border border-ink/10 bg-gradient-to-br from-bone to-clay/20">
+            <div className="relative aspect-[3/4] w-40 overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-clay/20">
               {photoUrl ? (
                 <img
                   src={photoUrl}
@@ -132,7 +132,7 @@ export function PhotoManager() {
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   disabled={busy}
-                  className="mt-0.5 h-4 w-4 rounded border-ink/30 text-clay focus:ring-clay/30"
+                  className="mt-0.5 h-4 w-4 rounded border-ink/30 text-brass focus:ring-brass/30"
                 />
                 <span>
                   I consent to my photo being stored to generate try-on images.
@@ -218,7 +218,7 @@ export function PhotoManager() {
               setChooserOpen(false)
               cameraRef.current?.click()
             }}
-            className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            className="flex w-full items-center justify-between rounded-[3px] border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
           >
             <span>
               <span className="block text-sm font-semibold text-ink">Take a photo</span>
@@ -232,7 +232,7 @@ export function PhotoManager() {
               setChooserOpen(false)
               inputRef.current?.click()
             }}
-            className="flex w-full items-center justify-between rounded-xl border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            className="flex w-full items-center justify-between rounded-[3px] border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
           >
             <span>
               <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
