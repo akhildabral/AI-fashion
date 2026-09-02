@@ -214,7 +214,7 @@ const EXPIRIES: { key: string; label: string; minutes: () => number }[] = [
   { key: 'three', label: '3 days', minutes: () => 3 * 24 * 60 },
 ]
 
-export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onClose: () => void; onAsked: () => void }) {
+export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null }: { open: boolean; onClose: () => void; onAsked: () => void; initialOutfitId?: string | null }) {
   const [source, setSource] = useState<Source>('outfits')
   const [outfits, setOutfits] = useState<Outfit[] | null>(null)
   const [looks, setLooks] = useState<MyLook[] | null>(null)
@@ -240,14 +240,18 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
     void getOutfits()
       .then((r) => {
         setOutfits(r.outfits)
-        if (r.outfits.length < 2) setSource('looks')
+        const first = initialOutfitId ? r.outfits.find((o) => o.id === initialOutfitId) : null
+        if (first) {
+          setSource('outfits')
+          setChosen([{ key: `o-${first.id}`, label: first.rationale?.slice(0, 40) || first.eventType, items: first.items }])
+        } else if (r.outfits.length < 2) setSource('looks')
       })
       .catch(() => setOutfits([]))
     void getMyRecentLooks().then((r) => setLooks(r.looks)).catch(() => setLooks([]))
     void getTryOns().then((r) => setRenders(r.tryOns.filter((t) => t.status === 'ready' && t.imageUrl))).catch(() => setRenders([]))
     void getWardrobe().then((r) => setCloset(r.items.filter((i) => i.status === 'ready'))).catch(() => setCloset([]))
     void getNetwork().then((n) => setPeople(n.following)).catch(() => setPeople([]))
-  }, [open])
+  }, [open, initialOutfitId])
 
   const pool: Candidate[] =
     source === 'outfits'

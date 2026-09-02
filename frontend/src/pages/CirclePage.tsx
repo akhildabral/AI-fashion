@@ -10,8 +10,9 @@ import { InviteSheet } from '../components/InviteSheet'
 import { ReportSheet } from '../components/ReportSheet'
 import { StyleFriendModal } from '../components/StyleFriendModal'
 import { thankPick, withdrawPick } from '../lib/social'
-import { setLookPhoto } from '../lib/circle'
+import { setLookPhoto, type ExploreOccasion } from '../lib/circle'
 import type { CardActions } from '../components/CircleCards'
+import { WeekCard } from '../components/CircleCards'
 import { deletePoll } from '../lib/polls'
 import { muteUser, type ReportTarget } from '../lib/social'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
@@ -75,6 +76,8 @@ export function CirclePage() {
   const [asking, setAsking] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [styling, setStyling] = useState(false)
+  const [exploreOccasion, setExploreOccasion] = useState<ExploreOccasion | null>(null)
+  const [exploreKindred, setExploreKindred] = useState(false)
   const [reporting, setReporting] = useState<{ type: ReportTarget; id: string; label: string } | null>(null)
   const [focus, setFocus] = useState<{ type: PostTarget; id: string } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -97,7 +100,7 @@ export function CirclePage() {
     } else setLoadingMore(true)
     try {
       if (which === 'explore' || which === 'saved') {
-        const r = which === 'explore' ? await getCircleExplore() : await getCircleSaved()
+        const r = which === 'explore' ? await getCircleExplore({ occasion: exploreOccasion ?? undefined, kindred: exploreKindred }) : await getCircleSaved()
         if (id !== reqId.current) return
         setPosts(r.posts)
         setNextOffset(null)
@@ -115,7 +118,7 @@ export function CirclePage() {
     } finally {
       if (id === reqId.current) setLoadingMore(false)
     }
-  }, [])
+  }, [exploreOccasion, exploreKindred])
 
   const refreshSide = useCallback(() => {
     void getSocialMe().then(setMe).catch(() => setMe({ handle: null, name: 'you', followers: 0, following: 0, picks: 0 }))
@@ -178,7 +181,7 @@ export function CirclePage() {
   async function handleMute(handle: string) {
     try {
       await muteUser(handle, 30)
-      setPosts((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
+      setPosts((prev) => (prev ? prev.filter((p) => p.type === 'week' || p.handle !== handle) : prev))
       setToday((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
       flash('Muted them for 30 days. Undo it from Your people.')
     } catch (err) {
@@ -342,8 +345,10 @@ export function CirclePage() {
       <LookCard key={`l-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
     ) : p.type === 'verdict' ? (
       <VerdictCard key={`v-${p.id}`} post={p} actions={actions} onVote={handleVote} highlight={isFocus(p)} />
-    ) : (
+    ) : p.type === 'pick' ? (
       <PickCard key={`p-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
+    ) : (
+      <WeekCard key={`w-${p.id}`} post={p} onOpen={(t, id) => setSearchParams({ focus: `${t}:${id}` })} />
     )
 
   return (
@@ -409,6 +414,27 @@ export function CirclePage() {
 
           {/* ---- lens ---- */}
           <Tabs className="mt-6 animate-rise-1" label="Feed" value={lens} onChange={(k) => setLens(k)} items={LENSES.map((l) => ({ key: l.key, label: l.label }))} />
+          {lens === 'explore' && (
+            <div className="mt-3 flex flex-wrap items-center gap-1">
+              {(
+                [
+                  [null, 'Everything'],
+                  ['work', 'Work'],
+                  ['casual', 'Weekend'],
+                  ['evening', 'Evening'],
+                  ['occasion', 'Occasion'],
+                ] as [ExploreOccasion | null, string][]
+              ).map(([k, l]) => (
+                <button key={l} type="button" aria-pressed={exploreOccasion === k} onClick={() => setExploreOccasion(k)} className="filter press">
+                  {l}
+                </button>
+              ))}
+              <span className="filter-sep" />
+              <button type="button" aria-pressed={exploreKindred} onClick={() => setExploreKindred((v) => !v)} className="filter press">
+                Kindred taste
+              </button>
+            </div>
+          )}
 
           {/* ---- feed ---- */}
           <div className="mt-5 flex flex-col gap-4">

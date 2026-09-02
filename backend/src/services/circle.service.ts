@@ -91,7 +91,28 @@ export interface PickPost {
   wornLogId: string | null;
 }
 
-export type CirclePost = LookPost | VerdictPost | PickPost;
+/** Sunday's gathering: what the circle did this week, as one card on the table. */
+export interface WeekPost {
+  type: 'week';
+  id: string; // week-YYYY-MM-DD (the Monday)
+  at: string;
+  handle: null;
+  name: string;
+  from: string;
+  to: string;
+  looksShared: number;
+  people: number;
+  /** The piece most often on the table this week. */
+  mostWorn: { item: PostItem; count: number; by: string[] } | null;
+  /** The look with the most would-wears. */
+  topLook: { id: string; name: string; items: PostItem[]; photoUrl: string | null; wouldWear: number } | null;
+  /** The settled verdict with the most votes. */
+  bestVerdict: { id: string; name: string; question: string; winner: string | null; votes: number } | null;
+  /** Who dressed whom, and whether it was worn. */
+  dressed: { by: string; for: string; worn: boolean }[];
+}
+
+export type CirclePost = LookPost | VerdictPost | PickPost | WeekPost;
 
 export function voterKeyFor(userId: string): string {
   return `user:${userId}`;
@@ -281,6 +302,11 @@ export interface RankContext {
 // them) jump ahead; then what's lively (notes, saves, recreates, reactions)
 // and who the viewer actually engages with get a nudge.
 export function score(post: CirclePost, now: number, ctx: RankContext = {}): number {
+  // The week: a recap, not news — near the top on Sunday and Monday, lower after.
+  if (post.type === 'week') {
+    const day = new Date(now).getDay();
+    return day === 0 || day === 1 ? 140 : 30;
+  }
   const ageHours = Math.max(0, (now - new Date(post.at).getTime()) / 3_600_000);
   let s = 100 * Math.exp(-ageHours / 36);
   // A look someone made for you outranks anything fresh for about two days.

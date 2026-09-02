@@ -16,6 +16,7 @@ import { PageShell, Toast, useFlash } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
+import { AskCircleModal } from "../components/ComposeModals";
 import type { WardrobeItem } from "../lib/types";
 
 // The Outfits room: every look the closet can make. Suggested by the engine
@@ -54,6 +55,7 @@ export function OutfitsRoom() {
   const navigate = useNavigate();
   const { toast, flash } = useFlash();
   const [outfits, setOutfits] = useState<Outfit[] | null>(null);
+  const [askingCircle, setAskingCircle] = useState<string | null>(null);
   const [occasion, setOccasion] = useState<string | null>(null);
   const [suggested, setSuggested] = useState<Suggested[] | null>(null);
   const [asking, setAsking] = useState(false);
@@ -300,6 +302,9 @@ export function OutfitsRoom() {
                   >
                     See it on me
                   </Link>
+                  <button type="button" onClick={() => setAskingCircle(o.id)} className="btn-quiet !h-9 !text-xs">
+                    Ask the circle
+                  </button>
                   <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="btn-quiet !h-9 !text-xs" />
                   <Link
                     to={`/closet/compose?from=${o.id}`}
@@ -321,6 +326,7 @@ export function OutfitsRoom() {
           </div>
         )}
       </section>
+          <AskCircleModal open={askingCircle !== null} onClose={() => setAskingCircle(null)} onAsked={() => flash("Asked. The verdict lands in your Circle.")} initialOutfitId={askingCircle} />
     </PageShell>
   );
 }

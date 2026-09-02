@@ -21,12 +21,88 @@ import {
   voterKeyFor,
   type CirclePost,
   type PickPost,
+  type PostItem,
   type PostTarget,
   type VerdictPost,
+  type WeekPost,
 } from '../services/circle.service';
 
 type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; audience: string; audienceIds: string[]; votes: { optionId: string; voterKey: string }[]; user: PersonRow };
 type PickRow = { id: string; byUserId: string; forUserId: string; itemIds: string[]; note: string | null; forDay: string | null; thanksAt: Date | null; reply: string | null; wornAt: Date | null; wornLogId: string | null; createdAt: Date; byUser: PersonRow; forUser: PersonRow };
+
+/**
+ * Sunday's gathering: the last seven days across the viewer's circle (and
+ * themselves), as one card. Null when the week was quiet.
+ */
+async function weekFor(me: string, circle: string[]): Promise<WeekPost | null> {
+  const now = new Date();
+  const since = new Date(now.getTime() - 7 * 86_400_000);
+  const people = [me, ...circle];
+  const [logs, polls, picks] = await Promise.all([
+    prisma.wearLog.findMany({
+      where: { userId: { in: people }, sharedAt: { gte: since, not: null } },
+      include: { user: { select: { handle: true, firstName: true, lastName: true } } },
+    }),
+    prisma.poll.findMany({
+      where: { userId: { in: people }, expiresAt: { gte: since, lt: now }, audience: { not: 'link' } },
+      include: { votes: { select: { optionId: true } }, user: { select: { handle: true, firstName: true, lastName: true } } },
+    }),
+    prisma.friendPick.findMany({
+      where: { createdAt: { gte: since }, withdrawnAt: null, OR: [{ byUserId: { in: people } }, { forUserId: { in: people } }] },
+      include: PICK_INCLUDE,
+    }),
+  ]);
+  if (logs.length + polls.length + picks.length < 2) return null;
+
+  const byId = await itemsById(logs.flatMap((l) => l.itemIds));
+  // The most-shared piece.
+  const pieceCount = new Map<string, { count: number; by: Set<string> }>();
+  for (const l of logs) for (const id of new Set(l.itemIds)) {
+    const e = pieceCount.get(id) ?? { count: 0, by: new Set<string>() };
+    e.count += 1;
+    e.by.add(displayName(l.user));
+    pieceCount.set(id, e);
+  }
+  const top = [...pieceCount.entries()].filter(([id]) => byId.has(id)).sort((a, b) => b[1].count - a[1].count)[0];
+  const mostWorn = top && top[1].count >= 2 ? { item: byId.get(top[0]) as PostItem, count: top[1].count, by: [...top[1].by].slice(0, 3) } : null;
+
+  // The look with the most would-wears.
+  const reactions = logs.length ? await prisma.reaction.groupBy({ by: ['targetId'], where: { targetType: 'look', targetId: { in: logs.map((l) => l.id) }, kind: 'would_wear' }, _count: { _all: true } }) : [];
+  const ww = new Map(reactions.map((r) => [r.targetId, r._count._all]));
+  const best = [...logs].sort((a, b) => (ww.get(b.id) ?? 0) - (ww.get(a.id) ?? 0))[0];
+  const topLook = best && (ww.get(best.id) ?? 0) > 0 ? { id: best.id, name: displayName(best.user), items: best.itemIds.map((id) => byId.get(id)).filter((i): i is PostItem => Boolean(i)), photoUrl: best.photoUrl, wouldWear: ww.get(best.id) ?? 0 } : null;
+
+  // The verdict that drew the most votes.
+  const poll = [...polls].sort((a, b) => b.votes.length - a.votes.length)[0];
+  let bestVerdict: WeekPost['bestVerdict'] = null;
+  if (poll && poll.votes.length > 0) {
+    const counts: Record<string, number> = {};
+    for (const v of poll.votes) counts[v.optionId] = (counts[v.optionId] ?? 0) + 1;
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const winner = sorted.length > 1 && sorted[0][1] === sorted[1][1] ? null : sorted[0][0].toUpperCase();
+    bestVerdict = { id: poll.id, name: displayName(poll.user), question: poll.question, winner, votes: poll.votes.length };
+  }
+
+  const dressed = picks.slice(0, 6).map((p) => ({ by: displayName(p.byUser), for: displayName(p.forUser), worn: Boolean(p.wornAt) }));
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return {
+    type: 'week',
+    id: `week-${monday.toISOString().slice(0, 10)}`,
+    at: now.toISOString(),
+    handle: null,
+    name: 'Your circle',
+    from: since.toISOString(),
+    to: now.toISOString(),
+    looksShared: logs.length,
+    people: new Set(logs.map((l) => l.userId)).size,
+    mostWorn,
+    topLook,
+    bestVerdict,
+    dressed,
+  };
+}
 
 /** Shape polls into verdict posts from the viewer's side. */
 async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now()): Promise<VerdictPost[]> {
@@ -169,6 +245,10 @@ export async function circleFeed(req: Request, res: Response) {
   posts.push(...(await serializeLooks(logs, me, friendIds)));
   posts.push(...(await serializeVerdicts(polls, me, now)));
   posts.push(...(await serializePicks(picks, me)));
+  if (lens === 'foryou' && offset === 0) {
+    const week = await weekFor(me, circle);
+    if (week) posts.push(week);
+  }
 
   if (lens === 'following') posts.sort((a, b) => (a.at < b.at ? 1 : -1));
   else {
@@ -237,12 +317,30 @@ export async function circleToday(req: Request, res: Response) {
 }
 
 // Explore, in the same post shape as the feed so one renderer serves both.
+const exploreQuery = z.object({
+  occasion: z.enum(['work', 'casual', 'evening', 'occasion', 'athletic']).optional(),
+  // Only people whose taste signals overlap yours.
+  kindred: z.coerce.boolean().optional(),
+});
+
 export async function circleExplore(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const me = req.user.id;
+  const { occasion, kindred } = exploreQuery.parse(req.query);
   const [{ friendIds }, hidden] = await Promise.all([graphFor(me), hiddenIds(me)]);
+  let authors: string[] | null = null;
+  if (kindred) {
+    const mine = await prisma.styleProfile.findUnique({ where: { userId: me }, select: { styleSignals: true } });
+    const signals = new Set(((mine?.styleSignals as { signals?: string[] } | null)?.signals ?? []).map((s) => s.toLowerCase()));
+    const others = await prisma.styleProfile.findMany({ where: { userId: { not: me } }, select: { userId: true, styleSignals: true } });
+    authors = others.filter((o) => (((o.styleSignals as { signals?: string[] } | null)?.signals ?? []).some((s) => signals.has(s.toLowerCase())))).map((o) => o.userId);
+  }
   const logs = await prisma.wearLog.findMany({
-    where: { sharedAt: { not: null }, userId: { not: me, notIn: [...hidden] } },
+    where: {
+      sharedAt: { not: null },
+      userId: authors ? { in: authors.filter((a) => a !== me && !hidden.has(a)) } : { not: me, notIn: [...hidden] },
+      ...(occasion ? { eventType: occasion } : {}),
+    },
     orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
     take: 40,
     include: { user: { select: { handle: true, firstName: true, lastName: true } } },

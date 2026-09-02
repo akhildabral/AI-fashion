@@ -81,7 +81,24 @@ export interface PickPost {
   wornLogId: string | null
 }
 
-export type CirclePost = LookPost | VerdictPost | PickPost
+/** Sunday's gathering: the circle's week as one card. */
+export interface WeekPost {
+  type: 'week'
+  id: string
+  at: string
+  handle: null
+  name: string
+  from: string
+  to: string
+  looksShared: number
+  people: number
+  mostWorn: { item: PostItem; count: number; by: string[] } | null
+  topLook: { id: string; name: string; items: PostItem[]; photoUrl: string | null; wouldWear: number } | null
+  bestVerdict: { id: string; name: string; question: string; winner: string | null; votes: number } | null
+  dressed: { by: string; for: string; worn: boolean }[]
+}
+
+export type CirclePost = LookPost | VerdictPost | PickPost | WeekPost
 export type Lens = 'foryou' | 'following' | 'explore' | 'saved'
 
 export function getCircleFeed(lens: 'foryou' | 'following', offset = 0) {
@@ -90,8 +107,13 @@ export function getCircleFeed(lens: 'foryou' | 'following', offset = 0) {
   )
 }
 
-export function getCircleExplore() {
-  return apiFetch<{ posts: LookPost[] }>('/circle/explore')
+export type ExploreOccasion = 'work' | 'casual' | 'evening' | 'occasion' | 'athletic'
+export function getCircleExplore(opts: { occasion?: ExploreOccasion; kindred?: boolean } = {}) {
+  const q = new URLSearchParams()
+  if (opts.occasion) q.set('occasion', opts.occasion)
+  if (opts.kindred) q.set('kindred', '1')
+  const s = q.toString()
+  return apiFetch<{ posts: LookPost[] }>(`/circle/explore${s ? `?${s}` : ''}`)
 }
 
 export function getCircleToday() {

@@ -23,6 +23,7 @@ import {
   type ReactionKind,
   type ReactionSummary,
   type VerdictPost,
+  type WeekPost,
 } from '../lib/circle'
 
 // The Circle's cards — shared by the feed and by profiles, so a look reads
@@ -831,6 +832,77 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
         <NotesButton open={open} count={post.comments} onClick={() => setOpen((v) => !v)} />
       </CardFoot>
       {open && <CommentThread target="pick" id={post.id} onCount={(n) => actions.commentCount('pick', post.id, n)} onError={actions.note} />}
+    </article>
+  )
+}
+
+/** Sunday's gathering: what the circle did this week, as one card. */
+export function WeekCard({ post, onOpen }: { post: WeekPost; onOpen?: (target: PostTarget, id: string) => void }) {
+  const from = new Date(post.from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+  const to = new Date(post.to).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+  return (
+    <article id={`post-week-${post.id}`} className="card overflow-hidden !border-brass/40">
+      <div className="flex items-center gap-3 px-4 pt-4">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[3px] border border-brass/50 font-display text-base text-brass">7</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink">Your circle this week</p>
+          <p className="text-xs text-ink/45">
+            {from} – {to} · {post.looksShared} look{post.looksShared === 1 ? '' : 's'} from {post.people} {post.people === 1 ? 'person' : 'people'}
+          </p>
+        </div>
+        <Plate>The week</Plate>
+      </div>
+      <div className="mt-3 grid gap-3 px-4 pb-4 sm:grid-cols-2">
+        {post.topLook && (
+          <button type="button" onClick={() => onOpen?.('look', post.topLook!.id)} className="press flex items-center gap-3 rounded-[3px] border border-ink/10 p-3 text-left hover:border-brass/50">
+            <div className="w-16 shrink-0">
+              <Arch aspect="aspect-[4/5]" bright className={post.topLook.photoUrl ? 'arch-photo' : ''}>
+                {post.topLook.photoUrl ? <img src={resolveImageUrl(post.topLook.photoUrl)} alt="" className="relative z-[1] h-full w-full object-cover" /> : <FlatLay items={post.topLook.items} frameRatio={0.8} />}
+              </Arch>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Look of the week</p>
+              <p className="mt-1 text-sm text-ink">
+                <b className="font-semibold">{post.topLook.name}</b> · {post.topLook.wouldWear} would wear it
+              </p>
+            </div>
+          </button>
+        )}
+        {post.mostWorn && (
+          <div className="flex items-center gap-3 rounded-[3px] border border-ink/10 p-3">
+            <GarmentThumb item={post.mostWorn.item} className="w-14 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Most on the table</p>
+              <p className="mt-1 text-sm text-ink">
+                The <b className="font-semibold">{post.mostWorn.item.subtype ?? post.mostWorn.item.category}</b>, {post.mostWorn.count} times
+                {post.mostWorn.by.length > 0 ? ` · ${post.mostWorn.by.join(', ')}` : ''}
+              </p>
+            </div>
+          </div>
+        )}
+        {post.bestVerdict && (
+          <button type="button" onClick={() => onOpen?.('verdict', post.bestVerdict!.id)} className="press rounded-[3px] border border-ink/10 p-3 text-left hover:border-brass/50">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">The verdict of the week</p>
+            <p className="mt-1 font-display text-base text-ink">“{post.bestVerdict.question}”</p>
+            <p className="mt-1 text-xs text-ink/55">
+              {post.bestVerdict.name} asked · {post.bestVerdict.votes} vote{post.bestVerdict.votes === 1 ? '' : 's'} · {post.bestVerdict.winner ? `${post.bestVerdict.winner} won` : 'a split'}
+            </p>
+          </button>
+        )}
+        {post.dressed.length > 0 && (
+          <div className="rounded-[3px] border border-ink/10 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Dressed each other</p>
+            <ul className="mt-1 space-y-0.5 text-sm text-ink">
+              {post.dressed.map((d, i) => (
+                <li key={i}>
+                  <b className="font-semibold">{d.by}</b> dressed <b className="font-semibold">{d.for}</b>
+                  {d.worn ? <span className="text-ink/50"> · worn</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </article>
   )
 }
