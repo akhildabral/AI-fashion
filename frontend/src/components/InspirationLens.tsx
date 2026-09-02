@@ -201,7 +201,8 @@ export function InspirationLens({
                   {closet.missing.map((m, i) => (
                     <div key={i} className="text-center">
                       <Arch aspect="aspect-[5/6]">
-                        <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight text-ink/45">{m.color} {m.subtype}</span>
+                        {/* The niche is bone in both themes; the ink token is not. */}
+                        <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight" style={{ color: '#6b5f4a' }}>{m.color} {m.subtype}</span>
                       </Arch>
                       <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/70">{m.subtype}</p>
                       <p className="truncate text-[10px] text-[#D0524E]">missing</p>

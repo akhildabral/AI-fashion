@@ -176,7 +176,7 @@ export async function recreateLook(req: Request, res: Response) {
     );
     // From words alone the bar is lower than for a twin: the same kind of
     // thing in the same colour is a fair stand-in.
-    if (best && best.score >= 4) {
+    if (best && best.score >= 3.5) {
       used.add(best.candidate.id);
       pairs.push({ piece, item: byId.get(best.candidate.id), band: best.band, score: best.score, reasons: best.reasons });
     } else {
