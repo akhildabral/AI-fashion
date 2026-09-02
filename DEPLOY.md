@@ -243,7 +243,7 @@ on the waitlist; `ADMIN_EMAILS` ride straight through.
    test user while unverified) → **Create OAuth client ID → Web
    application**.
 2. **Authorized JavaScript origins**: every origin the app is served from —
-   currently `https://187.77.129.31.sslip.io`, plus `http://localhost:5173`
+   currently `https://myzauq.com` (the old `https://187.77.129.31.sslip.io` still answers), plus `http://localhost:5173`
    for dev and the real domain when DNS lands. No redirect URIs needed (the
    app uses Google Identity Services' ID-token flow, not a redirect flow).
 3. Put both values in `.deploy-secrets/google-sso-keys`:
