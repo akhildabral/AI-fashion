@@ -67,6 +67,8 @@ const envSchema = z.object({
   // openai/gpt-4o-mini, claude-haiku-4-5, us.anthropic.claude-...-v1:0).
   // Empty = a sensible default per provider.
   TEXT_MODEL: z.string().optional(),
+  // Where a photo is read for WHERE things are (boxes), a model that can localise.
+  VISION_MODEL: z.string().optional(),
   AWS_REGION: z.string().optional(),
 
   // ---- Image generation (look rendering + try-on) -----------------------

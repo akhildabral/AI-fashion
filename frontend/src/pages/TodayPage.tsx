@@ -33,6 +33,7 @@ import {
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
 import { GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { WorePhotoPanel } from '../components/WorePhotoPanel'
 import { Spinner } from '../components/Spinner'
 import { shareCard, outcomeLine } from '../lib/share'
 import { ClosetNotes } from '../components/ClosetNotes'
@@ -143,6 +144,8 @@ export function TodayPage() {
       .catch(() => setCloset([]))
   }, [mode])
   const [sharePrompt, setSharePrompt] = useState<'hidden' | 'offer' | 'shared'>('hidden')
+  // "Wore something else": a photo of the day, read into pieces.
+  const [photoOpen, setPhotoOpen] = useState(false)
   const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null)
 
   const name = (() => {
@@ -554,9 +557,9 @@ export function TodayPage() {
           </div>
 
           {/* The outfit — arched apertures, with a one-time light-catch sweep */}
-          <div key={brief.itemIds.join('-')} className="relative mt-8 overflow-hidden">
+          <div key={(data?.wornLook?.items ?? brief.items).map((i) => i.id).join('-')} className="relative mt-8 overflow-hidden">
             <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
-              {brief.items.map((item) => (
+              {(data?.wornLook?.items ?? brief.items).map((item) => (
                 <GarmentTile
                   key={item.id}
                   imageUrl={item.imageUrl}
@@ -575,6 +578,19 @@ export function TodayPage() {
               }}
             />
           </div>
+          {data?.wornLook && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/60">
+              <span>
+                <b className="font-semibold text-ink">What you wore, from your photo.</b>{' '}
+                {data.wornLook.instead ? 'The stylist had laid out:' : 'Laid out that morning:'}
+              </span>
+              <span className="flex items-center gap-1.5">
+                {brief.items.map((item) => (
+                  <img key={item.id} src={resolveImageUrl(item.imageUrl)} alt={itemLabel(item)} title={itemLabel(item)} className="h-10 w-8 object-contain" />
+                ))}
+              </span>
+            </div>
+          )}
 
           {/* Primary actions */}
           <div className="action-row mt-7">
@@ -627,7 +643,31 @@ export function TodayPage() {
                 {busy === 'undo' ? '…' : 'Back to the first'}
               </button>
             )}
+            {!isRefinement && !data?.wornLook && (
+              <button type="button" disabled={busy !== null} onClick={() => setPhotoOpen(true)} className="btn-quiet">
+                {worn ? 'Wore something else?' : 'Wore something else'}
+              </button>
+            )}
           </div>
+
+          <Modal open={photoOpen} onClose={() => setPhotoOpen(false)} title="What you wore">
+            {photoOpen && (
+              <WorePhotoPanel
+                date={todayKey()}
+                eventType={brief.eventType as Parameters<typeof WorePhotoPanel>[0]['eventType']}
+                alreadyLogged={worn}
+                hasSuggestion
+                onLogged={(r) => {
+                  setPhotoOpen(false)
+                  setWorn(true)
+                  setSharePrompt('hidden')
+                  flash(r.added.length ? `Logged. ${r.added.length} new ${r.added.length === 1 ? 'piece is' : 'pieces are'} joining the closet.` : 'Logged what you wore.')
+                  void load()
+                  getRitualStats().then(setStats).catch(() => undefined)
+                }}
+              />
+            )}
+          </Modal>
 
           {/* The kind of day, in one line; the chips only when asked for */}
           {!worn && (

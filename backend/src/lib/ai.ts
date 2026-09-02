@@ -24,18 +24,22 @@ export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 let cached: Promise<LanguageModel> | null = null;
 
 async function createTextModel(): Promise<LanguageModel> {
+  return createTextModelFor(textModelId);
+}
+
+async function createTextModelFor(modelId: string): Promise<LanguageModel> {
   switch (env.AI_PROVIDER) {
     case 'anthropic': {
       const { createAnthropic } = await import('@ai-sdk/anthropic');
       return createAnthropic({
         apiKey: aiApiKey,
         ...(env.AI_BASE_URL ? { baseURL: env.AI_BASE_URL } : {}),
-      })(textModelId);
+      })(modelId);
     }
     case 'bedrock': {
       const { createAmazonBedrock } = await import('@ai-sdk/amazon-bedrock');
       // Credentials come from the standard AWS environment/credential chain.
-      return createAmazonBedrock({ region: env.AWS_REGION })(textModelId);
+      return createAmazonBedrock({ region: env.AWS_REGION })(modelId);
     }
     case 'openrouter':
     case 'custom':
@@ -48,7 +52,7 @@ async function createTextModel(): Promise<LanguageModel> {
         ...(baseURL ? { baseURL } : {}),
       });
       // .chat() pins the Chat Completions API — gateways don't serve /responses.
-      return provider.chat(textModelId);
+      return provider.chat(modelId);
     }
   }
 }
@@ -56,4 +60,16 @@ async function createTextModel(): Promise<LanguageModel> {
 export function textModel(): Promise<LanguageModel> {
   if (!cached) cached = createTextModel();
   return cached;
+}
+
+// Finding WHERE garments are in a photo needs a model that can localise;
+// small chat models guess boxes in round numbers. Gemini Flash does it well
+// and cheaply, so it is the default on OpenRouter; elsewhere, the text model.
+export const visionModelId =
+  env.VISION_MODEL || (env.AI_PROVIDER === 'openrouter' ? 'google/gemini-2.5-flash' : textModelId);
+let cachedVision: Promise<LanguageModel> | null = null;
+export function visionModel(): Promise<LanguageModel> {
+  if (visionModelId === textModelId) return textModel();
+  if (!cachedVision) cachedVision = createTextModelFor(visionModelId);
+  return cachedVision;
 }

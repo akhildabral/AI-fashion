@@ -67,3 +67,27 @@ export async function laundryCheck(userId: string): Promise<void> {
   const day = Math.floor(Date.now() / (3 * 86_400_000));
   await notify(userId, 'laundry_due', null, { count: n }, { dedupeKey: `laundry:${day}` });
 }
+
+/**
+ * Take a wear back off pieces that turned out not to have been worn (a day
+ * corrected from a photo). A piece the wear had sent to the wash comes back
+ * out if it is under its tolerance again.
+ */
+export async function unapplyWear(userId: string, itemIds: string[]): Promise<void> {
+  if (itemIds.length === 0) return;
+  const items = await prisma.wardrobeItem.findMany({
+    where: { id: { in: itemIds }, userId },
+    select: { id: true, category: true, subtype: true, state: true, wearsSinceWash: true },
+  });
+  await Promise.all(
+    items.map(async (it) => {
+      const wears = Math.max(0, it.wearsSinceWash - 1);
+      const tol = washTolerance(it);
+      const backOut = it.state === 'in-wash' && (tol === 0 || wears < tol);
+      await prisma.wardrobeItem.update({
+        where: { id: it.id },
+        data: { wearsSinceWash: wears, ...(backOut ? { state: 'clean' } : {}) },
+      });
+    }),
+  );
+}

@@ -175,6 +175,18 @@ async function respondDay(res: Response, userId: string, row: { payload: Prisma.
   const payload = row.payload as unknown as BriefPayload;
   const items = await hydrateItems(userId, payload.itemIds);
   const evening = payload.evening ? { ...payload.evening, items: await hydrateItems(userId, payload.evening.itemIds) } : null;
+  // When the day was logged from a photo, what was really worn may differ
+  // from what was laid out; the page shows the truth and keeps the suggestion.
+  let worn: { items: BriefItem[]; photoUrl: string | null; instead: boolean } | null = null;
+  let isWorn = false;
+  if (row.wornLogId) {
+    const log = await prisma.wearLog.findUnique({ where: { id: row.wornLogId }, select: { itemIds: true, photoUrl: true, woreInstead: true } });
+    // A pointer at a log that is gone counts for nothing: the day is open.
+    isWorn = Boolean(log);
+    if (log && [...log.itemIds].sort().join() !== [...payload.itemIds].sort().join()) {
+      worn = { items: await hydrateItems(userId, log.itemIds), photoUrl: log.photoUrl, instead: log.woreInstead };
+    }
+  }
   return res.json({
     mode: 'brief' as const,
     brief: { ...payload, alternates: undefined, evening: undefined, items },
@@ -182,7 +194,8 @@ async function respondDay(res: Response, userId: string, row: { payload: Prisma.
     canUndo: (payload.alternates?.length ?? 0) > 0,
     weatherNote: payload.weatherNote ?? null,
     plannedAt: row.plannedAt,
-    worn: Boolean(row.wornLogId),
+    worn: isWorn,
+    wornLook: worn,
   });
 }
 

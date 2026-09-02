@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
-import { textModel } from '../lib/ai';
+import { textModel, visionModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
 import { EVENT_TYPES } from '../lib/attributes';
 import {
@@ -183,36 +183,55 @@ const detectSchema = z.object({
       // Specific enough to single the item out among the others in the photo.
       description: z.string(),
       category: z.enum(['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress', 'other']),
-      // Bounding box in fractions of image width/height, top-left origin.
-      box: z.object({
-        x: z.number().min(0).max(1),
-        y: z.number().min(0).max(1),
-        w: z.number().min(0).max(1),
-        h: z.number().min(0).max(1),
-      }),
+      // [ymin, xmin, ymax, xmax] on a 0–1000 scale: the form vision models
+      // were trained to localise in. Small chat models guess boxes in round
+      // numbers; the crops made from them land on the wall.
+      box_2d: z.array(z.number().min(0).max(1000)).length(4),
     }),
   ),
 });
 
 const MAX_GARMENTS_PER_PHOTO = 8;
 
+function toBox(b: number[]): DetectedGarment['box'] {
+  const [y0, x0, y1, x1] = b.map((v) => Math.min(1, Math.max(0, v / 1000)));
+  return { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+}
+
+// A pair of shoes sometimes comes back as two boxes; one item, one box.
+function mergePairs(list: DetectedGarment[]): DetectedGarment[] {
+  const out: DetectedGarment[] = [];
+  for (const g of list) {
+    const twin = g.category === 'footwear' ? out.find((o) => o.category === 'footwear' && o.description.toLowerCase() === g.description.toLowerCase()) : undefined;
+    if (!twin) {
+      out.push(g);
+      continue;
+    }
+    const x = Math.min(twin.box.x, g.box.x);
+    const y = Math.min(twin.box.y, g.box.y);
+    twin.box = { x, y, w: Math.max(twin.box.x + twin.box.w, g.box.x + g.box.w) - x, h: Math.max(twin.box.y + twin.box.h, g.box.y + g.box.h) - y };
+  }
+  return out;
+}
+
 // Enumerate every distinct garment in a photo — a flat-lay of several items,
 // a rack, or a person wearing an outfit. Feeds one extraction per garment.
 export async function detectGarments(image: Buffer, mime: string): Promise<DetectedGarment[]> {
   const { object } = await generateObject({
-    model: await textModel(),
-    temperature: 0.2,
+    model: await visionModel(),
+    temperature: 0,
     schema: detectSchema,
     instructions:
       'You are a fashion cataloguer. List every DISTINCT physical clothing item, ' +
       'pair of footwear, or accessory clearly visible in the photo — whether laid ' +
       'out, hanging, or worn by a person. One entry per physical item: never split ' +
-      'one garment into multiple entries, never merge two items into one. Ignore ' +
+      'one garment into multiple entries, never merge two items into one. A pair of ' +
+      'shoes is ONE item with ONE box around both shoes. Ignore ' +
       'jewelry, backgrounds, furniture, and items too small or blurry to identify. ' +
       'Each description must be specific enough (color, pattern, garment type) to ' +
-      'single that item out among the others in this photo. For each item also ' +
-      'give its bounding box as fractions of the image size (x,y = top-left ' +
-      'corner, w,h = width and height), generously covering the whole item.',
+      'single that item out among the others in this photo. For each item give ' +
+      'box_2d as [ymin, xmin, ymax, xmax] on a 0-1000 scale of the image, tight ' +
+      'around the whole item.',
     messages: [
       {
         role: 'user',
@@ -223,7 +242,8 @@ export async function detectGarments(image: Buffer, mime: string): Promise<Detec
       },
     ],
   });
-  return (object.garments ?? []).slice(0, MAX_GARMENTS_PER_PHOTO);
+  const list = (object.garments ?? []).map((g) => ({ description: g.description, category: g.category, box: toBox(g.box_2d) }));
+  return mergePairs(list).slice(0, MAX_GARMENTS_PER_PHOTO);
 }
 
 // Deterministic reasoning attributes, looked up — never model-generated —

@@ -56,6 +56,7 @@ model User {
   looks   Look[]
   tryOns  TryOn[]
   wardrobe WardrobeItem[]
+  wearPhotos WearPhotoJob[]
   outfits  Outfit[]
   wearLogs WearLog[]
   polls    Poll[]
@@ -308,6 +309,28 @@ model WearLog {
   // Optional OOTD photo (uploaded, or a Mirror render) shown as the hero.
   photoUrl  String?
   savedBy   SavedLook[]
+  // What the stylist had laid out that day, when the wearer logged something
+  // else from a photo. The ranker reads the difference.
+  suggestedItemIds String[] @default([])
+  woreInstead      Boolean  @default(false)
+}
+
+// A photo of the day being read: which of your pieces are in it, and which
+// are new. Rows are the garments found; the wearer confirms each one.
+model WearPhotoJob {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String   // YYYY-MM-DD in the wearer's day
+  photoUrl       String
+  status         String   @default("processing") // processing | ready | confirmed | failed
+  rows           Json?
+  error          String?
+  confirmedLogId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt @default(now())
+
+  @@index([userId, date])
 }
 
 // A taste-relevant reaction on a shared look ("would wear", "bold", "love").

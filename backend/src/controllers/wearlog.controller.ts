@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { applyWear } from '../lib/wear-rules';
+import { applyWear, unapplyWear } from '../lib/wear-rules';
 import { getWeather } from '../services/weather.service';
 import { EVENT_TYPES } from '../lib/attributes';
 import { HttpError } from '../middleware/error';
@@ -200,6 +200,9 @@ export async function deleteWear(req: Request, res: Response) {
       data: { wearCount: { decrement: 1 } },
     });
   }
+  // The day it was logged against opens again, and the wear comes off the pieces.
+  await prisma.dailyBrief.updateMany({ where: { userId: req.user.id, wornLogId: id }, data: { wornLogId: null } });
+  await unapplyWear(req.user.id, log.itemIds);
   await prisma.wearLog.delete({ where: { id } });
   res.status(204).send();
 }

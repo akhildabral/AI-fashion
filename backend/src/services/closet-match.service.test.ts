@@ -33,3 +33,10 @@ describe('closet matcher', () => {
     expect(matchPiece(base, closet).map((m) => m.candidate.id)).toEqual(['b']);
   });
 });
+
+it('a photo of a plain piece still finds that piece when it has no palette or fingerprint', () => {
+  const seeded = { id: 'tank', category: 'top', subtype: 'tank top', primaryColor: 'black', formalityScore: 2, warmthValue: 0, pattern: 'solid', material: 'cotton', colorPalette: null, fingerprint: null };
+  const fromPhoto = { id: 'photo-0', category: 'top', subtype: 'tank top', primaryColor: 'black', formalityScore: 2, warmthValue: 0, pattern: 'solid', material: 'cotton', colorPalette: [], fingerprint: 'abcdef0123456789' };
+  const [m] = matchPiece(fromPhoto, [seeded]);
+  expect(m.band).not.toBe('new');
+});

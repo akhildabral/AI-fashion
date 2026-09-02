@@ -38,7 +38,7 @@ const MIN_ITEMS_FOR_OUTFIT = 2;
 // Crop a detected garment's region (normalized box, with a generous margin)
 // so extraction and tagging see that item dominating the frame instead of the
 // whole multi-item scene. Falls back to the full photo on any doubt.
-async function cropToRegion(
+export async function cropToRegion(
   image: Buffer,
   box: { x: number; y: number; w: number; h: number },
 ): Promise<Buffer> {
@@ -56,13 +56,21 @@ async function cropToRegion(
     const width = Math.min(W - left, Math.ceil(box.w * (1 + 2 * margin) * W));
     const height = Math.min(H - top, Math.ceil(box.h * (1 + 2 * margin) * H));
     if (width < 32 || height < 32) return image;
-    return await sharp(image).rotate().extract({ left, top, width, height }).png().toBuffer();
+    const crop = sharp(image).rotate().extract({ left, top, width, height });
+    // A small thing in a big photo (a pair of boots under a chair) comes out
+    // a few dozen pixels wide; the readers need more than that to see it.
+    const MIN_SIDE = 384;
+    if (Math.min(width, height) < MIN_SIDE) {
+      const k = MIN_SIDE / Math.min(width, height);
+      return await crop.resize({ width: Math.round(width * k), height: Math.round(height * k), kernel: 'lanczos3' }).png().toBuffer();
+    }
+    return await crop.png().toBuffer();
   } catch {
     return image;
   }
 }
 
-async function catalogItem(
+export async function catalogItem(
   itemId: string,
   image: Buffer,
   mime: string,

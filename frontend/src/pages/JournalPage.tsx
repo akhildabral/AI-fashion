@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { copyText } from '../lib/clipboard'
 import { usePageTitle } from '../lib/usePageTitle'
 import { deleteWearLog, getWearInsights, getWearLog, logWear, rateWearLog } from '../lib/wearlog'
+import { WorePhotoPanel } from '../components/WorePhotoPanel'
 import { getResaleDraft, getWardrobe } from '../lib/wardrobe'
 import { getOutfits, type Outfit } from '../lib/outfits'
 import { getRitualStats, type RitualStats } from '../lib/brief'
@@ -121,7 +122,7 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
   const today = dayKey(new Date())
   const [day, setDay] = useState(date)
   const [occasion, setOccasion] = useState<EventType>('work')
-  const [source, setSource] = useState<'outfits' | 'pieces'>('outfits')
+  const [source, setSource] = useState<'outfits' | 'pieces' | 'photo'>('outfits')
   const [outfits, setOutfits] = useState<Outfit[] | null>(null)
   const [pieces, setPieces] = useState<WardrobeItem[] | null>(null)
   const [outfitId, setOutfitId] = useState<string | null>(null)
@@ -194,7 +195,24 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
         <button type="button" role="tab" aria-selected={source === 'pieces'} onClick={() => setSource('pieces')} className="tab">
           Pieces{picked.length ? ` · ${picked.length}` : ''}
         </button>
+        <button type="button" role="tab" aria-selected={source === 'photo'} onClick={() => setSource('photo')} className="tab">
+          A photo
+        </button>
       </div>
+
+      {source === 'photo' && (
+        <div className="mt-4">
+          <WorePhotoPanel
+            date={day}
+            eventType={occasion}
+            onLogged={(r) => {
+              onLogged(r.log)
+              onNote(r.added.length ? `${formatDay(r.log.wornOn)} logged, ${r.added.length} new ${r.added.length === 1 ? 'piece' : 'pieces'} joining the closet.` : `${formatDay(r.log.wornOn)} logged from the photo.`)
+              onClose()
+            }}
+          />
+        </div>
+      )}
 
       {source === 'outfits' && (
         <div className="mt-4">
@@ -249,6 +267,7 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
         </div>
       )}
 
+      {source !== 'photo' && (
       <div className="action-row mt-5">
         <button type="button" disabled={!ready || saving} onClick={() => void save()} className="btn-primary disabled:opacity-40">
           {saving ? 'Logging…' : `Log ${formatDay(`${day}T12:00:00`)}`}
@@ -257,6 +276,7 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
           Cancel
         </button>
       </div>
+      )}
     </Modal>
   )
 }

@@ -42,6 +42,8 @@ export interface BriefResponse {
   canUndo?: boolean
   weatherNote?: string | null
   plannedAt?: string | null
+  /** Logged from a photo, and not what was laid out: the truth, with the suggestion kept. */
+  wornLook?: { items: BriefItem[]; photoUrl: string | null; instead: boolean } | null
 }
 
 export interface WeekDay {

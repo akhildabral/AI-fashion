@@ -10,6 +10,9 @@ import {
 } from '../controllers/wearlog.controller';
 import { deleteOutfit, validateComposed } from '../controllers/outfits.controller';
 import { requireAuth } from '../middleware/auth';
+import { handlePhotoUpload } from '../middleware/upload';
+import { quota } from '../middleware/quota';
+import { confirmWearPhoto, getWearPhoto, readWearPhoto } from '../controllers/wear-photo.controller';
 
 export const wearLogRouter = Router();
 
@@ -22,3 +25,8 @@ wearLogRouter.get('/wearlog', requireAuth, listWear);
 wearLogRouter.get('/wearlog/insights', requireAuth, wearInsights);
 wearLogRouter.delete('/wearlog/:id', requireAuth, deleteWear);
 wearLogRouter.patch('/wearlog/:id/rating', requireAuth, rateWear);
+
+// What you really wore: a photo of the day, read into pieces, confirmed row by row.
+wearLogRouter.post('/wear/photo', requireAuth, handlePhotoUpload, quota('catalog'), readWearPhoto);
+wearLogRouter.get('/wear/photo/:id', requireAuth, getWearPhoto);
+wearLogRouter.post('/wear/photo/:id/confirm', requireAuth, confirmWearPhoto);

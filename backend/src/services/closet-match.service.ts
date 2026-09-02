@@ -65,6 +65,8 @@ export function scorePair(source: MatchSource, cand: MatchCandidate): { score: n
   const reasons: string[] = [];
   let score = matchScore(source, cand);
   if (source.subtype && source.subtype === cand.subtype) reasons.push('the same type');
+  // Both colours known and different: not the same piece, however alike the cut.
+  if (source.primaryColor && cand.primaryColor && source.primaryColor !== cand.primaryColor) score -= 1;
   if (source.primaryColor && source.primaryColor === cand.primaryColor) reasons.push(`the same ${source.primaryColor}`);
   if (source.pattern && source.pattern === cand.pattern && source.pattern !== 'solid') reasons.push(`the same ${source.pattern}`);
   if (source.material && source.material === cand.material) {
