@@ -92,6 +92,24 @@ cd ~/ai-fashion && git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
+> **Recreating backend/web safely.** `up -d --build` (and especially
+> `--force-recreate`) can fail with *"container name /<hash>_ai-fashion-backend-1
+> is already in use"*: Compose renames the running container while it creates
+> the replacement, and a leftover with that name blocks it, sometimes leaving no
+> backend or web running at all. Prefer this sequence, which never touches the
+> database container (data lives in `db` and the uploads volume):
+>
+> ```bash
+> docker compose -f docker-compose.prod.yml --env-file .env.prod build backend web
+> docker compose -f docker-compose.prod.yml --env-file .env.prod stop backend web
+> docker compose -f docker-compose.prod.yml --env-file .env.prod rm -f backend web
+> docker compose -f docker-compose.prod.yml --env-file .env.prod up -d backend web
+> ```
+>
+> If it has already happened: `docker ps -a | grep -E "ai-fashion-(backend|web)"`,
+> `docker rm -f` those ids (never `db`), then `up -d backend web`.
+
+
 Migrations run on boot; volumes (database, uploads, models, certificates)
 are untouched by rebuilds.
 
