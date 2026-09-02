@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
@@ -14,7 +14,7 @@ import { muteUser, type ReportTarget } from '../lib/social'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
 import { AskCircleModal, ShareLookModal } from '../components/ComposeModals'
 import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
-import { followUser, getSocialMe, getStyleTwins, setHandle, type SocialMe, type StyleTwin } from '../lib/social'
+import { followUser, getSocialMe, getStyleTwins, type SocialMe, type StyleTwin } from '../lib/social'
 import {
   getCircleExplore,
   getCircleFeed,
@@ -114,7 +114,7 @@ export function CirclePage() {
   }, [])
 
   const refreshSide = useCallback(() => {
-    void getSocialMe().then(setMe).catch(() => setMe({ handle: null, followers: 0, following: 0, picks: 0 }))
+    void getSocialMe().then(setMe).catch(() => setMe({ handle: null, name: 'you', followers: 0, following: 0, picks: 0 }))
     void getStyleTwins().then(({ twins: t }) => setTwins(t ?? [])).catch(() => setTwins([]))
     void getCircleToday().then((r) => setToday(r.entries)).catch(() => setToday([]))
   }, [])
@@ -176,7 +176,7 @@ export function CirclePage() {
       await muteUser(handle, 30)
       setPosts((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
       setToday((prev) => (prev ? prev.filter((p) => p.handle !== handle) : prev))
-      flash(`Muted @${handle} for 30 days. Undo it from Your people.`)
+      flash('Muted them for 30 days. Undo it from Your people.')
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Could not mute them.')
     }
@@ -238,7 +238,7 @@ export function CirclePage() {
   }
 
   function openRecreate(handle: string | null, items: PostItem[]) {
-    const h = handle ?? 'them'
+    const h = (posts?.find((p) => p.handle === handle)?.name ?? today?.find((p) => p.handle === handle)?.name) ?? 'them'
     setRecreate({ handle: h, result: null })
     recreateFromCloset(items.map((i) => i.id))
       .then((result) => setRecreate({ handle: h, result }))
@@ -255,7 +255,7 @@ export function CirclePage() {
     try {
       await apiFetch('/outfits', {
         method: 'POST',
-        body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from @${recreate?.handle}'s outfit of the day` },
+        body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from ${recreate?.handle}’s outfit of the day` },
       })
       flash('Saved to your outfits.')
       setRecreate(null)
@@ -272,7 +272,7 @@ export function CirclePage() {
       setTwins((t) => t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)))
       refreshSide()
       void loadFeed(lens)
-      flash(`Following @${handle}.`)
+      flash('Following.')
     } catch {
       flash('Could not follow.')
     }
@@ -324,7 +324,7 @@ export function CirclePage() {
       <header>
         <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">The Circle</p>
         <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium text-ink sm:text-6xl">Circle</h1>
-        {me && <Identity me={me} onSet={(h) => setMe({ ...me, handle: h })} onOpenPeople={openPeople} />}
+        {me && <Identity me={me} onOpenPeople={openPeople} />}
       </header>
 
       <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
@@ -351,7 +351,7 @@ export function CirclePage() {
                 t.photoUrl || t.items[0] ? (
                   <Link key={t.id} to={`/u/${t.handle}`} className="press w-16 shrink-0 text-center">
                     <RailThumb look={t} />
-                    <p className="mt-1.5 truncate text-[11px] text-ink/55">@{t.handle}</p>
+                    <p className="mt-1.5 truncate text-[11px] text-ink/55">{t.name}</p>
                   </Link>
                 ) : null,
               )}
@@ -442,7 +442,7 @@ export function CirclePage() {
                 </div>
               </>
             ) : (
-              <p className="mt-2 text-sm text-ink/55">Claim a handle above to join in.</p>
+              <p className="mt-2 text-sm text-ink/55">One moment…</p>
             )}
           </div>
 
@@ -454,9 +454,9 @@ export function CirclePage() {
                 {twins.slice(0, 3).map((t) => (
                   <div key={t.handle} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
                     <Link to={`/u/${t.handle}`} className="press flex min-w-0 flex-1 items-center gap-3">
-                      <Initials handle={t.handle} className="h-8 w-8" />
+                      <Initials handle={t.handle} name={t.name} className="h-8 w-8" />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-ink">@{t.handle}</span>
+                        <span className="block truncate text-sm font-semibold text-ink">{t.name}</span>
                         <span className="block truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
                       </span>
                     </Link>
@@ -510,7 +510,7 @@ export function CirclePage() {
         }}
       />
 
-      <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={recreate ? `In your closet, @${recreate.handle}'s look` : 'Recreate'}>
+      <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={recreate ? `In your closet, ${recreate.handle}’s look` : 'Recreate'}>
         {recreate && recreate.result === null && (
           <div className="flex justify-center py-10 text-ink/50">
             <Spinner className="h-6 w-6" />
@@ -642,8 +642,8 @@ function SuggestedRail({
         {people.map((t) => (
           <div key={t.handle} className="w-36 shrink-0 rounded-[3px] border border-ink/10 bg-bone p-3 text-center">
             <Link to={`/u/${t.handle}`} className="press inline-flex flex-col items-center">
-              <Initials handle={t.handle} className="h-10 w-10 text-xs" />
-              <span className="mt-2 block max-w-full truncate text-sm font-semibold text-ink">@{t.handle}</span>
+              <Initials handle={t.handle} name={t.name} className="h-10 w-10 text-xs" />
+              <span className="mt-2 block max-w-full truncate text-sm font-semibold text-ink">{t.name}</span>
               <span className="mt-0.5 block max-w-full truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
             </Link>
             <button type="button" onClick={() => onFollow(t.handle)} className="btn-ghost btn-sm mt-3 w-full !border-brass/60 !text-brass hover:!bg-iris-soft">
@@ -697,63 +697,18 @@ function ComposeButton({ onClick, label, icon }: { onClick: () => void; label: s
 }
 
 /* ---- identity: the handle claim lives in the mantel, not a separate card ---- */
-function Identity({ me, onSet, onOpenPeople }: { me: SocialMe; onSet: (h: string) => void; onOpenPeople: (tab: PeopleTab) => void }) {
-  const [value, setValue] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    try {
-      const { user } = await setHandle(value)
-      onSet(user.handle)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not set that handle.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (me.handle) {
-    return (
-      <p className="mt-3 animate-rise-1 text-sm text-ink/55">
-        You are <span className="font-semibold text-ink">@{me.handle}</span>
-        <span className="mx-2 text-ink/25">·</span>
-        <button type="button" onClick={() => onOpenPeople('followers')} className="press hover:text-ink">
-          {me.followers} follower{me.followers === 1 ? '' : 's'}
-        </button>
-        <span className="mx-2 text-ink/25">·</span>
-        <button type="button" onClick={() => onOpenPeople('following')} className="press hover:text-ink">
-          following {me.following}
-        </button>
-      </p>
-    )
-  }
-
+function Identity({ me, onOpenPeople }: { me: SocialMe; onOpenPeople: (tab: PeopleTab) => void }) {
   return (
-    <form onSubmit={submit} className="mt-4 max-w-md animate-rise-1">
-      <p className="mb-2 text-sm text-ink/60">Claim your handle — it’s how friends find and follow you.</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex flex-1 items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-3 focus-within:border-iris/70 focus-within:ring-2 focus-within:ring-iris/20">
-          <span className="text-ink/40">@</span>
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-full border-0 bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-ink/35"
-            placeholder="your_handle"
-            minLength={3}
-            maxLength={20}
-            required
-          />
-        </div>
-        <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? 'Saving…' : 'Claim it'}
-        </button>
-      </div>
-      {error && <p className="mt-2 alert-error">{error}</p>}
-    </form>
+    <p className="mt-3 animate-rise-1 text-sm text-ink/55">
+      You are <span className="font-semibold text-ink">{me.name}</span>
+      <span className="mx-2 text-ink/25">·</span>
+      <button type="button" onClick={() => onOpenPeople('followers')} className="press hover:text-ink">
+        {me.followers} follower{me.followers === 1 ? '' : 's'}
+      </button>
+      <span className="mx-2 text-ink/25">·</span>
+      <button type="button" onClick={() => onOpenPeople('following')} className="press hover:text-ink">
+        following {me.following}
+      </button>
+    </p>
   )
 }

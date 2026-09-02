@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { displayName, type PersonRow } from '../lib/people';
 
 // The Circle feed: shared looks, verdicts (polls) and picks from the people
 // you follow, shaped into posts and ranked so what needs you rises. This is
@@ -20,6 +21,7 @@ export interface LookPost {
   id: string; // wearLogId
   at: string;
   handle: string | null;
+  name: string;
   isMine: boolean;
   isFriend: boolean;
   eventType: string | null;
@@ -47,6 +49,7 @@ export interface VerdictPost {
   id: string; // pollId
   at: string;
   handle: string | null;
+  name: string;
   isMine: boolean;
   question: string;
   options: { id: string; imageUrl: string }[];
@@ -65,6 +68,7 @@ export interface PickPost {
   id: string; // pickId
   at: string;
   handle: string | null; // who styled you
+  name: string;
   note: string | null;
   items: PostItem[];
   reactions: ReactionSummary;
@@ -105,7 +109,7 @@ export async function reactionSummaries(targetType: PostTarget, ids: string[], v
   if (ids.length === 0) return out;
   const rows = await prisma.reaction.findMany({
     where: { targetType, targetId: { in: ids } },
-    select: { targetId: true, userId: true, kind: true, user: { select: { handle: true } } },
+    select: { targetId: true, userId: true, kind: true, user: { select: { handle: true, firstName: true, lastName: true } } },
     orderBy: { createdAt: 'desc' },
   });
   const by = new Map<string, typeof rows>();
@@ -122,7 +126,7 @@ export async function reactionSummaries(targetType: PostTarget, ids: string[], v
     out.set(id, {
       counts,
       total: rs.length,
-      sample: rs.filter((r) => r.userId !== viewerId && r.user.handle).slice(0, 3).map((r) => r.user.handle as string),
+      sample: rs.filter((r) => r.userId !== viewerId).slice(0, 3).map((r) => displayName(r.user)),
       mine: (REACTION_KINDS as readonly string[]).includes(mine ?? '') ? (mine as ReactionKind) : null,
     });
   }
@@ -152,7 +156,7 @@ type LogRow = {
   eventType: string | null;
   recreatedCount: number;
   photoUrl: string | null;
-  user: { handle: string | null };
+  user: PersonRow;
 };
 
 /** Shape shared wear logs into look posts, with reactions attached. */
@@ -178,6 +182,7 @@ export async function serializeLooks(
       id: l.id,
       at: (l.sharedAt ?? l.wornOn).toISOString(),
       handle: l.user.handle,
+      name: displayName(l.user),
       isMine: l.userId === viewerId,
       isFriend: friendIds.has(l.userId),
       eventType: l.eventType,
@@ -218,11 +223,11 @@ export async function affinityFor(viewerId: string): Promise<Map<string, number>
     prisma.comment.findMany({ where: { userId: viewerId, createdAt: { gte: since } }, select: { targetType: true, targetId: true } }),
     prisma.savedLook.findMany({
       where: { userId: viewerId, createdAt: { gte: since } },
-      select: { wearLog: { select: { user: { select: { handle: true } } } } },
+      select: { wearLog: { select: { user: { select: { handle: true, firstName: true, lastName: true } } } } },
     }),
     prisma.notification.findMany({
       where: { actorId: viewerId, type: 'look_recreated', createdAt: { gte: since } },
-      select: { user: { select: { handle: true } } },
+      select: { user: { select: { handle: true, firstName: true, lastName: true } } },
     }),
   ]);
   const m = new Map<string, number>();
@@ -236,9 +241,9 @@ export async function affinityFor(viewerId: string): Promise<Map<string, number>
   if (touched.length > 0) {
     const ids = (t: string) => touched.filter((x) => x.targetType === t).map((x) => x.targetId);
     const [logs, polls, picks] = await Promise.all([
-      ids('look').length ? prisma.wearLog.findMany({ where: { id: { in: ids('look') } }, select: { id: true, user: { select: { handle: true } } } }) : [],
-      ids('verdict').length ? prisma.poll.findMany({ where: { id: { in: ids('verdict') } }, select: { id: true, user: { select: { handle: true } } } }) : [],
-      ids('pick').length ? prisma.friendPick.findMany({ where: { id: { in: ids('pick') } }, select: { id: true, byUser: { select: { handle: true } } } }) : [],
+      ids('look').length ? prisma.wearLog.findMany({ where: { id: { in: ids('look') } }, select: { id: true, user: { select: { handle: true, firstName: true, lastName: true } } } }) : [],
+      ids('verdict').length ? prisma.poll.findMany({ where: { id: { in: ids('verdict') } }, select: { id: true, user: { select: { handle: true, firstName: true, lastName: true } } } }) : [],
+      ids('pick').length ? prisma.friendPick.findMany({ where: { id: { in: ids('pick') } }, select: { id: true, byUser: { select: { handle: true, firstName: true, lastName: true } } } }) : [],
     ]);
     const owner = new Map<string, string | null>([
       ...logs.map((l) => [l.id, l.user.handle] as const),

@@ -9,6 +9,7 @@ import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
 import { sendPasswordResetEmail } from '../lib/mailer';
+import { displayName, ensureHandle } from '../lib/people';
 
 // Invite-only onboarding: nobody self-creates an account. Joining the
 // waitlist logs an email; an admin approval mints an invite link; the link
@@ -105,6 +106,7 @@ export async function acceptInvite(req: Request, res: Response) {
       inviteTokenExpires: null,
     },
   });
+  await ensureHandle(updated.id);
   res.json({
     token: signToken(updated.id),
     user: {
@@ -235,7 +237,7 @@ export async function myInvite(req: Request, res: Response) {
     prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, invitesLeft: true, handle: true } }),
     prisma.user.findMany({
       where: { invitedById: req.user.id },
-      select: { handle: true, firstName: true, createdAt: true },
+      select: { handle: true, firstName: true, lastName: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
@@ -245,7 +247,7 @@ export async function myInvite(req: Request, res: Response) {
     url: `${origin}/join/${code}`,
     profileUrl: me?.handle ? `${origin}/u/${me.handle}` : null,
     left: me?.role === 'admin' ? null : (me?.invitesLeft ?? 0),
-    used: invitees.map((i) => ({ handle: i.handle, firstName: i.firstName, joinedAt: i.createdAt })),
+    used: invitees.map((i) => ({ handle: i.handle, firstName: i.firstName, name: displayName(i), joinedAt: i.createdAt })),
   });
 }
 
@@ -253,7 +255,7 @@ export async function myInvite(req: Request, res: Response) {
 export async function joinInfo(req: Request, res: Response) {
   const inviter = await inviterByCode(String(req.params.code));
   res.json({
-    inviter: { handle: inviter.handle, firstName: inviter.firstName },
+    inviter: { handle: inviter.handle, firstName: inviter.firstName, name: displayName(inviter) },
     open: invitesOpen(inviter),
   });
 }
@@ -270,6 +272,7 @@ async function redeemInvite(inviter: Inviter, userId: string): Promise<void> {
     if (spent.count === 0) throw new HttpError(410, `@${inviter.handle ?? 'your friend'} has used all their invites — ask them to get more`);
   }
   await prisma.user.update({ where: { id: userId }, data: { status: 'approved', invitedById: inviter.id } });
+  await ensureHandle(userId);
   await prisma.follow.createMany({
     data: [
       { followerId: userId, followingId: inviter.id },
@@ -388,6 +391,7 @@ export async function googleAuth(req: Request, res: Response) {
     user = { ...user, status: 'approved' };
   }
 
+  if (user.status === 'approved') await ensureHandle(user.id);
   if (user.status !== 'approved') {
     return res.status(403).json({
       error: "You're on the waitlist — we'll email you when your spot opens.",

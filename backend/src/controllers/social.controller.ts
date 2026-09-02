@@ -6,6 +6,7 @@ import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
 import { graphFor, serializeLooks, standingFor } from '../services/circle.service';
 import { blockedEitherWay, hiddenIds } from '../lib/hidden';
+import { displayName, personOf } from '../lib/people';
 
 // The community layer: handles, an asymmetric follow graph (mutual follows
 // are "friends"), visitable profiles that expose ONLY public items, and the
@@ -43,12 +44,12 @@ export async function setHandle(req: Request, res: Response) {
 export async function socialMe(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const [user, followers, following, picks] = await Promise.all([
-    prisma.user.findUnique({ where: { id: req.user.id }, select: { handle: true } }),
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { handle: true, firstName: true, lastName: true } }),
     prisma.follow.count({ where: { followingId: req.user.id } }),
     prisma.follow.count({ where: { followerId: req.user.id } }),
     prisma.friendPick.count({ where: { forUserId: req.user.id } }),
   ]);
-  res.json({ handle: user?.handle ?? null, followers, following, picks });
+  res.json({ handle: user?.handle ?? null, name: displayName(user), followers, following, picks });
 }
 
 export async function searchUsers(req: Request, res: Response) {
@@ -62,11 +63,15 @@ export async function searchUsers(req: Request, res: Response) {
   }
   const hidden = await hiddenIds(req.user.id);
   const users = await prisma.user.findMany({
-    where: { handle: { contains: q }, id: { not: req.user.id, notIn: [...hidden] } },
-    select: { handle: true },
+    where: {
+      id: { not: req.user.id, notIn: [...hidden] },
+      status: 'approved',
+      OR: [{ handle: { contains: q } }, { firstName: { contains: q, mode: 'insensitive' } }, { lastName: { contains: q, mode: 'insensitive' } }],
+    },
+    select: { handle: true, firstName: true, lastName: true },
     take: 10,
   });
-  res.json({ users });
+  res.json({ users: users.map(personOf) });
 }
 
 async function isMutual(aId: string, bId: string): Promise<boolean> {
@@ -80,7 +85,7 @@ async function isMutual(aId: string, bId: string): Promise<boolean> {
 async function userByHandle(handle: string) {
   const user = await prisma.user.findUnique({
     where: { handle: handle.toLowerCase() },
-    select: { id: true, handle: true },
+    select: { id: true, handle: true, firstName: true, lastName: true },
   });
   if (!user) throw new HttpError(404, 'No one goes by that handle');
   return user;
@@ -90,6 +95,7 @@ async function userByHandle(handle: string) {
 export async function getProfileByHandle(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const target = await userByHandle(String(req.params.handle));
+  const person = target;
 
   // Someone who blocked you isn't here. Someone you blocked is, but only
   // as a door back out.
@@ -101,7 +107,7 @@ export async function getProfileByHandle(req: Request, res: Response) {
   if (theyBlockedMe) throw new HttpError(404, 'No one goes by that handle');
   if (iBlocked) {
     res.json({
-      user: { handle: target.handle },
+      user: { handle: target.handle, name: displayName(person) },
       counts: { followers: 0, following: 0, publicItems: 0 },
       isFollowing: false,
       followsYou: false,
@@ -145,14 +151,14 @@ export async function getProfileByHandle(req: Request, res: Response) {
       where: { userId: target.id, sharedAt: { not: null } },
       orderBy: { sharedAt: 'desc' },
       take: 24,
-      include: { user: { select: { handle: true } } },
+      include: { user: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     graphFor(req.user.id),
   ]);
   const looks = await serializeLooks(sharedLogs, req.user.id, friendIds);
 
   res.json({
-    user: { handle: target.handle },
+    user: { handle: target.handle, name: displayName(person) },
     counts: { followers, following, publicItems: publicItems.length },
     isFollowing: !!iFollow,
     followsYou: !!followsMe,
@@ -196,12 +202,12 @@ export async function network(req: Request, res: Response) {
   const [followingRows, followerRows] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: req.user.id },
-      include: { following: { select: { id: true, handle: true } } },
+      include: { following: { select: { id: true, handle: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.follow.findMany({
       where: { followingId: req.user.id },
-      include: { follower: { select: { id: true, handle: true } } },
+      include: { follower: { select: { id: true, handle: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
@@ -211,11 +217,11 @@ export async function network(req: Request, res: Response) {
 
   res.json({
     following: followingRows.map((f) => ({
-      handle: f.following.handle,
+      ...personOf(f.following),
       isFriend: followerIds.has(f.following.id),
     })),
     followers: followerRows.map((f) => ({
-      handle: f.follower.handle,
+      ...personOf(f.follower),
       isFriend: followingIds.has(f.follower.id),
     })),
   });
@@ -260,7 +266,7 @@ export async function listPicks(req: Request, res: Response) {
     where: { forUserId: req.user.id },
     orderBy: { createdAt: 'desc' },
     take: 30,
-    include: { byUser: { select: { handle: true } } },
+    include: { byUser: { select: { handle: true, firstName: true, lastName: true } } },
   });
 
   const allIds = [...new Set(picks.flatMap((p) => p.itemIds))];
@@ -271,6 +277,7 @@ export async function listPicks(req: Request, res: Response) {
     picks: picks.map((p) => ({
       id: p.id,
       byHandle: p.byUser.handle,
+      byName: displayName(p.byUser),
       note: p.note,
       createdAt: p.createdAt,
       items: p.itemIds.map((id) => byId.get(id)).filter(Boolean),
@@ -398,6 +405,8 @@ export async function styleTwins(req: Request, res: Response) {
       select: {
         id: true,
         handle: true,
+        firstName: true,
+        lastName: true,
         profile: { select: { styleSignals: true } },
         wardrobe: {
           where: { status: { not: 'processing' } },
@@ -422,6 +431,7 @@ export async function styleTwins(req: Request, res: Response) {
       const shared = mySignals.filter((s) => theirSignals.includes(s)).slice(0, 3);
       return {
         handle: candidate.handle,
+        name: displayName(candidate),
         match: Math.round(score * 100),
         sharedTaste: shared,
         isFollowing: followingIds.has(candidate.id),

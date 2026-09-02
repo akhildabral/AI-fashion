@@ -38,7 +38,7 @@ export function JoinPage() {
       .catch(() => setState('invalid'))
   }, [code])
 
-  const who = info?.inviter.handle ? `@${info.inviter.handle}` : (info?.inviter.firstName ?? 'A friend')
+  const who = info?.inviter.name ?? 'A friend'
 
   async function join(e: FormEvent) {
     e.preventDefault()

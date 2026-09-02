@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { personOf } from '../lib/people';
 
 // Safety: the ways out of an unwanted presence. Mute (quiet, one way, for a
 // while), remove a follower, block (both ways, and every follow between you
@@ -11,7 +12,7 @@ import { HttpError } from '../middleware/error';
 async function userByHandle(handle: string) {
   const user = await prisma.user.findUnique({
     where: { handle: handle.toLowerCase() },
-    select: { id: true, handle: true },
+    select: { id: true, handle: true, firstName: true, lastName: true },
   });
   if (!user) throw new HttpError(404, 'No one goes by that handle');
   return user;
@@ -91,18 +92,18 @@ export async function listHidden(req: Request, res: Response) {
   const [blocks, mutes] = await Promise.all([
     prisma.block.findMany({
       where: { blockerId: me },
-      include: { blocked: { select: { handle: true } } },
+      include: { blocked: { select: { handle: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.mute.findMany({
       where: { muterId: me, OR: [{ until: null }, { until: { gt: now } }] },
-      include: { muted: { select: { handle: true } } },
+      include: { muted: { select: { handle: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
   res.json({
-    blocked: blocks.map((b) => ({ handle: b.blocked.handle, since: b.createdAt })),
-    muted: mutes.map((m) => ({ handle: m.muted.handle, until: m.until })),
+    blocked: blocks.map((b) => ({ ...personOf(b.blocked), since: b.createdAt })),
+    muted: mutes.map((m) => ({ ...personOf(m.muted), until: m.until })),
   });
 }
 

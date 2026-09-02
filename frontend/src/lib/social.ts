@@ -3,6 +3,7 @@ import type { WardrobeItem } from './types'
 
 export interface SocialMe {
   handle: string | null
+  name: string
   followers: number
   following: number
   picks: number
@@ -10,6 +11,7 @@ export interface SocialMe {
 
 export interface NetworkEntry {
   handle: string
+  name: string
   isFriend: boolean
 }
 
@@ -26,7 +28,7 @@ export interface PublicItem {
 }
 
 export interface PublicProfile {
-  user: { handle: string | null }
+  user: { handle: string | null; name: string }
   counts: { followers: number; following: number; publicItems: number }
   isFollowing: boolean
   followsYou: boolean
@@ -43,6 +45,7 @@ export interface PublicProfile {
 export interface FriendPick {
   id: string
   byHandle: string | null
+  byName: string
   note: string | null
   createdAt: string
   items: WardrobeItem[]
@@ -60,7 +63,7 @@ export function getNetwork(): Promise<{ following: NetworkEntry[]; followers: Ne
   return apiFetch('/social/network')
 }
 
-export function searchUsers(q: string): Promise<{ users: { handle: string }[] }> {
+export function searchUsers(q: string): Promise<{ users: { handle: string; name: string }[] }> {
   return apiFetch(`/users/search?q=${encodeURIComponent(q)}`)
 }
 
@@ -125,8 +128,8 @@ export function report(body: { targetType: ReportTarget; targetId: string; reaso
 }
 
 export interface Hidden {
-  blocked: { handle: string | null; since: string }[]
-  muted: { handle: string | null; until: string | null }[]
+  blocked: { handle: string | null; name: string; since: string }[]
+  muted: { handle: string | null; name: string; until: string | null }[]
 }
 export function getHidden(): Promise<Hidden> {
   return apiFetch('/social/hidden')
@@ -150,6 +153,7 @@ export function getOverlap(handle: string): Promise<OverlapResult> {
 
 export interface StyleTwin {
   handle: string
+  name: string
   match: number
   sharedTaste: string[]
   isFollowing: boolean

@@ -4,6 +4,7 @@ export interface User {
   role?: string
   status?: string
   handle?: string | null
+  name?: string
   firstName?: string | null
   lastName?: string | null
 }

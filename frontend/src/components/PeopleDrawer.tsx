@@ -21,25 +21,37 @@ import {
 
 export type PeopleTab = 'following' | 'followers' | 'find' | 'suggested' | 'hidden'
 
-export function Initials({ handle, className = '' }: { handle: string | null; className?: string }) {
+/** Two letters from a name ("Sam K." → SK), or from the handle when that's all there is. */
+export function initialsOf(name?: string | null, handle?: string | null): string {
+  const n = (name ?? '').trim()
+  if (n) {
+    const parts = n.replace(/\./g, '').split(/\s+/).filter(Boolean)
+    return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2)).toUpperCase()
+  }
+  return (handle ?? '?').slice(0, 2).toUpperCase()
+}
+
+export function Initials({ handle, name, className = '' }: { handle: string | null; name?: string | null; className?: string }) {
   return (
     <span
       aria-hidden
       className={`flex shrink-0 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)] ${className}`}
     >
-      {(handle ?? '?').slice(0, 2).toUpperCase()}
+      {initialsOf(name, handle)}
     </span>
   )
 }
 
 function PersonRow({
   handle,
+  name,
   sub,
   following,
   onToggle,
   onNavigate,
 }: {
   handle: string
+  name: string
   sub?: string
   following: boolean | null
   onToggle?: () => Promise<void>
@@ -49,9 +61,9 @@ function PersonRow({
   return (
     <div className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
       <Link to={`/u/${handle}`} onClick={onNavigate} className="press flex min-w-0 flex-1 items-center gap-3">
-        <Initials handle={handle} className="h-9 w-9" />
+        <Initials handle={handle} name={name} className="h-9 w-9" />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-ink">@{handle}</span>
+          <span className="block truncate text-sm font-semibold text-ink">{name}</span>
           {sub && <span className="block truncate text-xs text-ink/50">{sub}</span>}
         </span>
       </Link>
@@ -92,7 +104,7 @@ export function PeopleDrawer({
   const [twins, setTwins] = useState<StyleTwin[] | null>(null)
   const [hidden, setHidden] = useState<Hidden | null>(null)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<{ handle: string }[]>([])
+  const [results, setResults] = useState<{ handle: string; name: string }[]>([])
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
@@ -130,7 +142,8 @@ export function PeopleDrawer({
       setNetwork((n) => (n ? { ...n, following: n.following.filter((u) => u.handle !== handle) } : n))
     } else {
       const { isFriend } = await followUser(handle)
-      setNetwork((n) => (n ? { ...n, following: [{ handle, isFriend }, ...n.following] } : n))
+      const known = network?.followers.find((u) => u.handle === handle) ?? twins?.find((t) => t.handle === handle) ?? results.find((r) => r.handle === handle)
+      setNetwork((n) => (n ? { ...n, following: [{ handle, name: known?.name ?? handle, isFriend }, ...n.following] } : n))
       setTwins((t) => (t ? t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)) : t))
     }
     onChanged?.()
@@ -172,7 +185,7 @@ export function PeopleDrawer({
       {tab === 'find' && (
         <div className="mt-4">
           <label htmlFor="people-search" className="sr-only">
-            Find people by handle
+            Find people by name
           </label>
           <input
             id="people-search"
@@ -181,7 +194,7 @@ export function PeopleDrawer({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="field"
-            placeholder="Search by handle…"
+            placeholder="Search by name…"
           />
           <div className="mt-2">
             {searching && (
@@ -196,6 +209,7 @@ export function PeopleDrawer({
               <PersonRow
                 key={u.handle}
                 handle={u.handle}
+                name={u.name}
                 following={followingSet.has(u.handle)}
                 onToggle={() => toggle(u.handle)}
                 onNavigate={onClose}
@@ -222,6 +236,7 @@ export function PeopleDrawer({
               <PersonRow
                 key={u.handle}
                 handle={u.handle}
+                name={u.name}
                 sub={u.isFriend ? 'Friends — you follow each other' : undefined}
                 following={followingSet.has(u.handle)}
                 onToggle={() => toggle(u.handle)}
@@ -236,9 +251,9 @@ export function PeopleDrawer({
           <p className="pb-2 text-xs text-ink/50">People you’ve muted or blocked. They don’t know; you can undo it here.</p>
           {hidden.muted.map((m) => (
             <div key={`m-${m.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
-              <Initials handle={m.handle} className="h-9 w-9 opacity-60" />
+              <Initials handle={m.handle} name={m.name} className="h-9 w-9 opacity-60" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-ink">@{m.handle}</span>
+                <span className="block truncate text-sm font-semibold text-ink">{m.name}</span>
                 <span className="block truncate text-xs text-ink/50">
                   Muted{m.until ? ` until ${new Date(m.until).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}
                 </span>
@@ -250,9 +265,9 @@ export function PeopleDrawer({
           ))}
           {hidden.blocked.map((b) => (
             <div key={`b-${b.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
-              <Initials handle={b.handle} className="h-9 w-9 opacity-60" />
+              <Initials handle={b.handle} name={b.name} className="h-9 w-9 opacity-60" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-ink">@{b.handle}</span>
+                <span className="block truncate text-sm font-semibold text-ink">{b.name}</span>
                 <span className="block truncate text-xs text-ink/50">Blocked — invisible both ways</span>
               </span>
               <button type="button" onClick={() => void unhide('block', b.handle ?? '')} className="btn-ghost btn-sm shrink-0">
@@ -278,6 +293,7 @@ export function PeopleDrawer({
             <PersonRow
               key={t.handle}
               handle={t.handle}
+              name={t.name}
               sub={t.sharedTaste.length > 0 ? `You both: ${t.sharedTaste.join(' · ')}` : `${t.match}% match`}
               following={t.isFollowing || followingSet.has(t.handle)}
               onToggle={() => toggle(t.handle)}

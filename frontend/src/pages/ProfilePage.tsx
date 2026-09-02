@@ -1,4 +1,6 @@
 import { CURRENCIES, guessCurrency, money } from '../lib/money'
+import { setHandle } from '../lib/social'
+import { checkHandle } from '../lib/fitting'
 import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -234,7 +236,7 @@ export function ProfilePage() {
         </div>
         {!isOnboarding && user?.handle && (
           <Link to={`/u/${user.handle}`} className="btn-ghost animate-rise-1">
-            Your room · @{user.handle}
+            Your room
           </Link>
         )}
       </header>
@@ -363,6 +365,7 @@ export function ProfilePage() {
         {!isOnboarding && (
           <aside className="mt-8 flex flex-col gap-5 lg:mt-0 lg:self-start">
             <RitualSettings onNotice={flash} />
+            <AddressCard current={user?.handle ?? null} onChanged={(h) => flash(`Your address is now /u/${h}.`)} />
             <section className="card p-5">
               <p className="font-display text-xl font-medium text-ink">The fitting</p>
               <p className="mt-1 text-sm text-ink/55">Start the fitting again — who you dress for, your week, your pieces. Your closet and history stay.</p>
@@ -397,5 +400,92 @@ export function ProfilePage() {
         )}
       </div>
     </PageShell>
+  )
+}
+
+/** Your address on the circle: given automatically, changeable here, never asked for. */
+function AddressCard({ current, onChanged }: { current: string | null; onChanged: (handle: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(current ?? '')
+  const [state, setState] = useState<{ ok: boolean; msg: string }>({ ok: false, msg: '' })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState<string | null>(null)
+  const handle = saved ?? current
+
+  useEffect(() => {
+    if (!editing) return
+    const h = value.trim()
+    if (h === handle) {
+      setState({ ok: false, msg: 'That’s your address now.' })
+      return
+    }
+    if (!/^[a-z0-9_]{3,20}$/.test(h)) {
+      setState({ ok: false, msg: '3–20 characters: a–z, 0–9, underscore.' })
+      return
+    }
+    const t = window.setTimeout(() => {
+      checkHandle(h)
+        .then((r) => setState(r.available ? { ok: true, msg: 'Free.' } : { ok: false, msg: 'Taken — try another.' }))
+        .catch(() => setState({ ok: false, msg: 'Could not check that just now.' }))
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [value, editing, handle])
+
+  async function save() {
+    if (!state.ok || saving) return
+    setSaving(true)
+    try {
+      const { user } = await setHandle(value.trim())
+      setSaved(user.handle)
+      setEditing(false)
+      onChanged(user.handle)
+    } catch (err) {
+      setState({ ok: false, msg: err instanceof Error ? err.message : 'Could not change that.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <p className="font-display text-xl font-medium text-ink">Your address</p>
+      <p className="mt-1 text-sm text-ink/55">Friends see your name. This is the link to your room.</p>
+      {!editing ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <code className="text-sm text-ink">/u/{handle ?? '…'}</code>
+          <button type="button" onClick={() => setEditing(true)} className="btn-quiet !h-8 !text-xs">
+            Change
+          </button>
+        </div>
+      ) : (
+        <form
+          className="mt-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void save()
+          }}
+        >
+          <div className="flex gap-2">
+            <input
+              value={value}
+              onChange={(e) => setValue(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20))}
+              className="field field-sm min-w-0 flex-1"
+              autoCapitalize="none"
+              autoFocus
+              aria-label="Your address"
+            />
+            <button type="submit" disabled={!state.ok || saving} className="btn-primary btn-sm shrink-0">
+              {saving ? '…' : 'Save'}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="btn-quiet !h-9 !text-xs">
+              Cancel
+            </button>
+          </div>
+          <p className={`mt-1.5 text-xs ${state.ok ? 'text-brass' : 'text-ink/50'}`} aria-live="polite">
+            {state.msg}
+          </p>
+        </form>
+      )}
+    </section>
   )
 }

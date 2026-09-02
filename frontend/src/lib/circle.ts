@@ -25,6 +25,7 @@ export interface LookPost {
   id: string
   at: string
   handle: string | null
+  name: string
   isMine: boolean
   isFriend: boolean
   eventType: string | null
@@ -43,6 +44,7 @@ export interface VerdictPost {
   id: string
   at: string
   handle: string | null
+  name: string
   isMine: boolean
   question: string
   options: { id: string; imageUrl: string }[]
@@ -60,6 +62,7 @@ export interface PickPost {
   id: string
   at: string
   handle: string | null
+  name: string
   note: string | null
   items: PostItem[]
   reactions: ReactionSummary
@@ -122,6 +125,7 @@ export interface Notification {
   id: string
   type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge' | 'invite_joined'
   actorHandle: string | null
+  actorName: string | null
   payload: Record<string, unknown>
   read: boolean
   at: string
@@ -165,7 +169,7 @@ export interface Comment {
   id: string
   body: string
   at: string
-  handle: string | null
+  handle: string | null; name: string
   isMine: boolean
 }
 export type CommentTarget = 'look' | 'verdict' | 'pick'

@@ -30,11 +30,13 @@ import {
 
 /* ---------- atoms ---------- */
 
-export function Handle({ handle, className = '' }: { handle: string | null; className?: string }) {
-  if (!handle) return <span className={`font-semibold text-ink ${className}`}>someone</span>
+/** A person, by name; the handle is only the address behind the link. */
+export function Handle({ handle, name, className = '' }: { handle: string | null; name?: string | null; className?: string }) {
+  const label = name?.trim() || handle || 'someone'
+  if (!handle) return <span className={`font-semibold text-ink ${className}`}>{label}</span>
   return (
     <Link to={`/u/${handle}`} className={`font-semibold text-ink underline-offset-2 hover:text-brass hover:underline ${className}`}>
-      @{handle}
+      {label}
     </Link>
   )
 }
@@ -43,14 +45,14 @@ export function Plate({ children }: { children: ReactNode }) {
   return <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{children}</p>
 }
 
-function PostHeader({ handle, meta, plate, menu }: { handle: string | null; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
+function PostHeader({ handle, name, meta, plate, menu }: { handle: string | null; name: string; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-4">
       <Link to={handle ? `/u/${handle}` : '#'} className="press">
-        <Initials handle={handle} className="h-9 w-9" />
+        <Initials handle={handle} name={name} className="h-9 w-9" />
       </Link>
       <div className="min-w-0 flex-1">
-        <Handle handle={handle} className="text-sm" />
+        <Handle handle={handle} name={name} className="text-sm" />
         <p className="truncate text-xs text-ink/45">{meta}</p>
       </div>
       {plate && <div className="shrink-0">{plate}</div>}
@@ -368,9 +370,9 @@ export function CommentThread({
         <ul className="flex flex-col gap-2.5 pb-1">
           {comments.map((c) => (
             <li key={c.id} className="group flex items-start gap-2.5">
-              <Initials handle={c.handle} className="mt-0.5 h-6 w-6 !text-[9px]" />
+              <Initials handle={c.handle} name={c.name} className="mt-0.5 h-6 w-6 !text-[9px]" />
               <div className="min-w-0 flex-1 text-sm leading-snug text-ink/80">
-                <Handle handle={c.handle} className="text-xs" />{' '}
+                <Handle handle={c.handle} name={c.name} className="text-xs" />{' '}
                 <Mentions text={c.body} />
                 <span className="ml-2 text-[11px] text-ink/35">{timeAgo(c.at)}</span>
               </div>
@@ -436,7 +438,7 @@ function reactionLine(r: ReactionSummary, verb = 'would wear this'): string | nu
   const { total, sample, mine } = r
   if (total === 0) return null
   const others = total - (mine ? 1 : 0)
-  const names = sample.map((h) => `@${h}`)
+  const names = sample
   const parts: string[] = []
   if (mine) parts.push('You')
   parts.push(...names.slice(0, 2))
@@ -549,13 +551,14 @@ export function LookCard({ post, actions, highlight = false }: { post: LookPost;
   const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
   if (!post.isMine && actions.save) menu.push({ label: post.saved ? 'Remove from your board' : 'Save to your board', onSelect: () => void actions.save?.(post.id, !post.saved) })
   if (post.isMine) menu.push({ label: 'Share the page', onSelect: () => void sharePage(`/look/${post.id}`, 'Wore this today', actions.note) })
-  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
-  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('look', post.id, post.handle ? `@${post.handle}’s look` : 'this look') })
+  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('look', post.id, `${post.name}’s look`) })
   if (post.isMine && actions.takeDown) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown?.('look', post.id) })
   return (
     <article id={`post-look-${post.id}`} className={`card overflow-hidden transition-shadow ${post.featured ? '!border-brass/45' : ''} ${highlight ? 'ring-1 ring-brass' : ''}`}>
       <PostHeader
         handle={post.handle}
+        name={post.name}
         meta={
           <>
             Outfit of the day{post.eventType ? ` · ${post.eventType}` : ''} · {timeAgo(post.at)}
@@ -605,14 +608,15 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
   const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
   if (post.isMine && !post.settled) menu.push({ label: 'Share the vote page', onSelect: () => void sharePage(`/vote/${post.id}`, post.question, actions.note) })
   if (post.isMine && !post.settled && actions.settle) menu.push({ label: 'Settle it now', onSelect: () => void actions.settle?.(post.id) })
-  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
-  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('verdict', post.id, post.handle ? `@${post.handle}’s verdict` : 'this verdict') })
+  if (!post.isMine && post.handle && actions.mute) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('verdict', post.id, `${post.name}’s verdict`) })
   if (post.isMine && actions.takeDown) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown?.('verdict', post.id) })
 
   return (
     <article id={`post-verdict-${post.id}`} className={`card overflow-hidden ${highlight ? 'ring-1 ring-brass' : ''}`}>
       <PostHeader
         handle={post.handle}
+        name={post.name}
         meta={post.isMine ? `Your verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}` : `needs a verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`}
         plate={<Plate>{post.settled ? 'Verdict is in' : 'Verdict'}</Plate>}
         menu={<CardMenu items={menu} />}
@@ -691,8 +695,8 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
   const [worn, setWorn] = useState(false)
   const [open, setOpen] = useState(false)
   const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
-  if (post.handle && actions.mute) menu.push({ label: `Mute @${post.handle} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
-  if (actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('pick', post.id, post.handle ? `@${post.handle}’s pick` : 'this pick') })
+  if (post.handle && actions.mute) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('pick', post.id, `${post.name}’s pick`) })
   menu.push({
     label: 'Dismiss',
     danger: true,
@@ -703,7 +707,7 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
   })
   return (
     <article id={`post-pick-${post.id}`} className={`card overflow-hidden !border-brass/35 bg-iris-soft/40 ${highlight ? 'ring-1 ring-brass' : ''}`}>
-      <PostHeader handle={post.handle} meta={`styled a look for you · ${timeAgo(post.at)}`} plate={<Plate>For you</Plate>} menu={<CardMenu items={menu} />} />
+      <PostHeader handle={post.handle} name={post.name} meta={`styled a look for you · ${timeAgo(post.at)}`} plate={<Plate>For you</Plate>} menu={<CardMenu items={menu} />} />
       {post.note && <p className="mt-2 px-4 font-display text-sm italic text-ink/70">“{post.note}”</p>}
       {post.items.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2 px-4">

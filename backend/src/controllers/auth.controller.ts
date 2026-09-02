@@ -8,6 +8,7 @@ import {
 } from '../services/auth.service';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { displayName, ensureHandle } from '../lib/people';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -89,5 +90,6 @@ export async function me(req: Request, res: Response) {
   if (!user) {
     throw new HttpError(404, 'User not found');
   }
-  res.json({ user });
+  if (!user.handle && user.status === 'approved') user.handle = await ensureHandle(user.id);
+  res.json({ user: { ...user, name: displayName(user) } });
 }

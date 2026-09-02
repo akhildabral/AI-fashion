@@ -1229,12 +1229,13 @@ export function FittingPage() {
                 How should friends <em className="text-brass">find you?</em>
               </Ask>
               <Lead>
-                A handle is how people follow your closet and send you looks.
-                Yours can be changed later.
+                Friends see you by name. Your address on the circle is
+                given to you; you can change it any time from your profile.
               </Lead>
               {claimed ? (
                 <p className="mt-6 animate-rise-2 text-sm text-ink/60">
-                  You go by <b className="text-ink">@{claimed}</b>.
+                  You go by <b className="text-ink">{user?.name ?? user?.firstName ?? claimed}</b>
+                  {' '}— your address is <span className="text-ink/45">/u/{claimed}</span>.
                 </p>
               ) : (
                 <form

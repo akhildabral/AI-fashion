@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { composeLook, dressingOrder } from '../lib/flatlay';
 import { readStored } from '../lib/storage';
 import { joinLinkFor } from '../controllers/invite.controller';
+import { displayName } from '../lib/people';
 
 // Image height ÷ width, so the board can size each piece by its real shape.
 async function aspectOf(imageUrl: string): Promise<number | undefined> {
@@ -40,7 +41,7 @@ lookPageRouter.get('/look/:id', async (req, res) => {
   const base = origin(req);
   const log = await prisma.wearLog.findFirst({
     where: { id, sharedAt: { not: null } },
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
   if (!log) {
     res.status(404).type('html').send(page({ title: 'This look isn’t here', base, body: `<div class="state"><div class="big">This look isn’t on the circle.</div><a href="${base}">Come see what is</a></div>` }));
@@ -51,7 +52,7 @@ lookPageRouter.get('/look/:id', async (req, res) => {
     select: { id: true, imageUrl: true, subtype: true, category: true },
   });
   const ordered = log.itemIds.map((i) => items.find((x) => x.id === i)).filter((x): x is (typeof items)[number] => Boolean(x));
-  const who = log.user.handle ? `@${esc(log.user.handle)}` : 'Someone';
+  const who = esc(displayName(log.user));
   const title = `${who} wore this${log.eventType ? ` — ${esc(log.eventType)}` : ''}`;
   const strip = dressingOrder(ordered);
   const [measured, door] = await Promise.all([

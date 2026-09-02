@@ -70,7 +70,7 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
       ? 'No one has come in on it yet.'
       : `Used by ${used
           .slice(0, 4)
-          .map((u) => (u.handle ? `@${u.handle}` : (u.firstName ?? 'a friend')))
+          .map((u) => u.name)
           .join(', ')}${used.length > 4 ? ` and ${used.length - 4} more` : ''}.`
 
   return (

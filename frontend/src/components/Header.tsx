@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { PullCord } from './PullCord'
+import { initialsOf } from './PeopleDrawer'
 import { isDark, toggleTheme } from '../lib/theme'
 import { NotificationsBell } from './NotificationsBell'
 
@@ -68,7 +69,7 @@ export function Header() {
     navigate('/login')
   }
 
-  const initials = (user?.handle ?? user?.email ?? '?').slice(0, 2).toUpperCase()
+  const initials = initialsOf(user?.name ?? [user?.firstName, user?.lastName].filter(Boolean).join(' '), user?.handle ?? user?.email ?? null)
 
   return (
     <header className="sticky top-0 z-30 bg-bone/80 backdrop-blur-md" style={{ boxShadow: 'inset 0 -1px 0 rgb(var(--c-ink) / 0.1)' }}>

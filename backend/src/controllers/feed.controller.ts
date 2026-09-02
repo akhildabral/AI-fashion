@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { hiddenIds } from '../lib/hidden';
+import { displayName } from '../lib/people';
 
 // Circle ring 1: the feed is action cards aggregated from what already
 // exists — picks received, poll results, new followers, friends to style.
@@ -23,7 +24,7 @@ export async function getFeed(req: Request, res: Response) {
       where: { forUserId: userId, createdAt: { gte: twoWeeksAgo } },
       orderBy: { createdAt: 'desc' },
       take: 10,
-      include: { byUser: { select: { handle: true } } },
+      include: { byUser: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     prisma.poll.findMany({
       where: { userId, createdAt: { gte: twoWeeksAgo } },
@@ -35,11 +36,11 @@ export async function getFeed(req: Request, res: Response) {
       where: { followingId: userId, createdAt: { gte: twoWeeksAgo } },
       orderBy: { createdAt: 'desc' },
       take: 10,
-      include: { follower: { select: { handle: true } } },
+      include: { follower: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     prisma.follow.findMany({
       where: { followerId: userId },
-      include: { following: { select: { id: true, handle: true } } },
+      include: { following: { select: { id: true, handle: true, firstName: true, lastName: true } } },
       take: 50,
     }),
   ]);
@@ -56,7 +57,7 @@ export async function getFeed(req: Request, res: Response) {
       where: { userId: { in: followingIds }, sharedAt: { gte: twoWeeksAgo, not: null } },
       orderBy: { sharedAt: 'desc' },
       take: 12,
-      include: { user: { select: { handle: true } } },
+      include: { user: { select: { handle: true, firstName: true, lastName: true } } },
     });
     const ootdItemIds = [...new Set(ootds.flatMap((o) => o.itemIds))];
     const ootdItems = await prisma.wardrobeItem.findMany({
@@ -69,6 +70,7 @@ export async function getFeed(req: Request, res: Response) {
         type: 'ootd',
         at: (o.sharedAt ?? o.wornOn).toISOString(),
         handle: o.user.handle,
+        name: displayName(o.user),
         wornOn: o.wornOn.toISOString(),
         eventType: o.eventType,
         items: o.itemIds.map((id) => ootdItemById.get(id)).filter(Boolean),
@@ -89,6 +91,7 @@ export async function getFeed(req: Request, res: Response) {
       at: p.createdAt.toISOString(),
       pickId: p.id,
       byHandle: p.byUser.handle,
+      byName: displayName(p.byUser),
       note: p.note,
       items: p.itemIds.map((id) => itemById.get(id)).filter(Boolean),
     });
@@ -116,6 +119,7 @@ export async function getFeed(req: Request, res: Response) {
       type: 'new_follower',
       at: f.createdAt.toISOString(),
       handle: f.follower.handle,
+      name: displayName(f.follower),
     });
   }
 
@@ -142,7 +146,7 @@ export async function getExplore(req: Request, res: Response) {
     where: { sharedAt: { not: null }, userId: { not: req.user.id, notIn: [...hidden] } },
     orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
     take: 30,
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
   const itemIds = [...new Set(logs.flatMap((l) => l.itemIds))];
   const items = await prisma.wardrobeItem.findMany({
@@ -156,6 +160,7 @@ export async function getExplore(req: Request, res: Response) {
       wearLogId: l.id,
       at: (l.sharedAt ?? l.wornOn).toISOString(),
       handle: l.user.handle,
+      name: displayName(l.user),
       eventType: l.eventType,
       featured: Boolean(l.featuredAt),
       items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),

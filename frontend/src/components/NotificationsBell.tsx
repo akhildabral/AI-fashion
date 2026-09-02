@@ -17,7 +17,7 @@ import {
 const POLL_MS = 60_000
 
 function line(n: Notification): { text: string; to: string } {
-  const who = n.actorHandle ? `@${n.actorHandle}` : 'Someone'
+  const who = n.actorName ?? n.actorHandle ?? 'Someone'
   const profile = n.actorHandle ? `/u/${n.actorHandle}` : '/circle'
   switch (n.type) {
     case 'new_follower':
@@ -86,18 +86,19 @@ function digest(items: Notification[]): Digest[] {
     const last = out[out.length - 1]
     if (last && last.key === key) {
       last.count++
-      if (n.actorHandle && !last.handles.includes(n.actorHandle)) last.handles.push(n.actorHandle)
+      const nm = n.actorName ?? n.actorHandle
+      if (nm && !last.handles.includes(nm)) last.handles.push(nm)
       last.read = last.read && n.read
       continue
     }
-    out.push({ key, type: n.type, handles: n.actorHandle ? [n.actorHandle] : [], count: 1, at: n.at, read: n.read, first: n })
+    out.push({ key, type: n.type, handles: (n.actorName ?? n.actorHandle) ? [n.actorName ?? (n.actorHandle as string)] : [], count: 1, at: n.at, read: n.read, first: n })
   }
   return out
 }
 
 function digestLine(d: Digest): { text: string; to: string } {
   if (d.count === 1) return line(d.first)
-  const shown = d.handles.slice(0, 2).map((h) => `@${h}`)
+  const shown = d.handles.slice(0, 2)
   const rest = d.count - shown.length
   const who = shown.length === 0 ? `${d.count} people` : rest > 0 ? `${shown.join(', ')} and ${rest} other${rest === 1 ? '' : 's'}` : shown.join(' and ')
   switch (d.type) {

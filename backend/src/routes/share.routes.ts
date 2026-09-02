@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { displayName } from '../lib/people';
 import { requireAuth } from '../middleware/auth';
 import { HttpError } from '../middleware/error';
 import { renderLookCard, renderPhotoCard, renderPieceCard } from '../services/share.service';
@@ -16,8 +17,8 @@ function png(res: Response, buf: Buffer) {
 }
 
 async function who(userId: string): Promise<string | undefined> {
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { handle: true } });
-  return u?.handle ?? undefined;
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { handle: true, firstName: true, lastName: true } });
+  return u ? displayName(u) : undefined;
 }
 
 // GET /share/outfit/:id.png — a saved outfit

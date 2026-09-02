@@ -10,7 +10,7 @@ export interface MyInvite {
   profileUrl: string | null
   /** null = unlimited (admins) */
   left: number | null
-  used: { handle: string | null; firstName: string | null; joinedAt: string }[]
+  used: { handle: string | null; firstName: string | null; name: string; joinedAt: string }[]
 }
 
 export function getMyInvite(): Promise<MyInvite> {
@@ -18,7 +18,7 @@ export function getMyInvite(): Promise<MyInvite> {
 }
 
 export interface JoinInfo {
-  inviter: { handle: string | null; firstName: string | null }
+  inviter: { handle: string | null; firstName: string | null; name: string }
   open: boolean
 }
 

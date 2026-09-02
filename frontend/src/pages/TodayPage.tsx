@@ -299,13 +299,13 @@ export function TodayPage() {
                     {card.type === 'style_a_friend' && 'Your circle'}
                   </p>
                   <p className="mt-1 line-clamp-2 text-sm text-ink/75">
-                    {card.type === 'ootd' && `@${String(card.handle)} shared today's outfit`}
+                    {card.type === 'ootd' && `${String(card.name ?? card.handle)} shared today's outfit`}
                     {card.type === 'pick_received' &&
-                      `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
+                      `${String(card.byName ?? card.byHandle ?? 'A friend')} picked an outfit for you`}
                     {card.type === 'poll_result' &&
                       `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
                     {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
-                    {card.type === 'new_follower' && `@${String(card.handle)} started following you`}
+                    {card.type === 'new_follower' && `${String(card.name ?? card.handle)} started following you`}
                     {card.type === 'style_a_friend' && 'Pick an outfit for a friend'}
                   </p>
                 </Link>

@@ -38,9 +38,10 @@ type Lens = 'looks' | 'wardrobe'
 export function UserProfilePage() {
   const { toast, flash } = useFlash()
   const { handle = '' } = useParams()
-  usePageTitle(handle ? `@${handle}` : 'Profile')
   const navigate = useNavigate()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
+  const who = profile?.user.name ?? handle
+  usePageTitle(who)
   const [overlap, setOverlap] = useState<OverlapResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -70,19 +71,19 @@ export function UserProfilePage() {
     try {
       if (action === 'mute') {
         await muteUser(handle, 30)
-        flash(`Muted @${handle} for 30 days. Their posts leave your table; they won’t know.`)
+        flash(`Muted ${who} for 30 days. Their posts leave your table; they won’t know.`)
       } else if (action === 'unmute') {
         await unmuteUser(handle)
-        flash(`@${handle} is back on your table.`)
+        flash(`${who} is back on your table.`)
       } else if (action === 'remove') {
         await removeFollower(handle)
-        flash(`@${handle} no longer follows you.`)
+        flash(`${who} no longer follows you.`)
       } else if (action === 'block') {
         await blockUser(handle)
-        flash(`Blocked @${handle}. Neither of you sees the other now.`)
+        flash(`Blocked ${who}. Neither of you sees the other now.`)
       } else {
         await unblockUser(handle)
-        flash(`Unblocked @${handle}.`)
+        flash(`Unblocked ${who}.`)
       }
       await reload()
     } catch (err) {
@@ -216,7 +217,7 @@ export function UserProfilePage() {
     if (ids.length === 0) return
     setSaving(true)
     try {
-      await apiFetch('/outfits', { method: 'POST', body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from @${handle}'s look` } })
+      await apiFetch('/outfits', { method: 'POST', body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from ${who}’s look` } })
       flash('Saved to your outfits.')
       setRecreate(null)
     } catch (err) {
@@ -248,12 +249,12 @@ export function UserProfilePage() {
           {/* ---- mantel ---- */}
           <header className="flex flex-wrap items-end justify-between gap-5">
             <div className="flex items-end gap-4">
-              <Initials handle={profile.user.handle} className="h-16 w-16 !text-xl sm:h-20 sm:w-20" />
+              <Initials handle={profile.user.handle} name={profile.user.name} className="h-16 w-16 !text-xl sm:h-20 sm:w-20" />
               <div>
                 <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
                   {profile.isMe ? 'Your room' : profile.isFriend ? 'A friend' : profile.followsYou ? 'Follows you' : 'In the circle'}
                 </p>
-                <h1 className="mt-1 animate-rise-1 font-display text-4xl font-medium text-ink sm:text-5xl">@{profile.user.handle}</h1>
+                <h1 className="mt-1 animate-rise-1 font-display text-4xl font-medium text-ink sm:text-5xl">{profile.user.name}</h1>
                 <p className="mt-1.5 animate-rise-1 text-sm text-ink/55">
                   {profile.counts.followers} follower{profile.counts.followers === 1 ? '' : 's'}
                   <span className="mx-2 text-ink/25">·</span>following {profile.counts.following}
@@ -285,14 +286,14 @@ export function UserProfilePage() {
                 <MoreMenu
                   items={
                     profile.blockedByMe
-                      ? [{ label: `Unblock @${handle}`, onSelect: () => void safety('unblock') }]
+                      ? [{ label: `Unblock ${who}`, onSelect: () => void safety('unblock') }]
                       : [
                           profile.mutedUntil
                             ? { label: 'Unmute', onSelect: () => void safety('unmute') }
                             : { label: 'Mute for 30 days', onSelect: () => void safety('mute') },
                           ...(profile.followsYou ? [{ label: 'Remove as a follower', onSelect: () => void safety('remove') }] : []),
                           { label: 'Report', onSelect: () => setReporting(true) },
-                          { label: `Block @${handle}`, danger: true, onSelect: () => void safety('block') },
+                          { label: `Block ${who}`, danger: true, onSelect: () => void safety('block') },
                         ]
                   }
                 />
@@ -302,7 +303,7 @@ export function UserProfilePage() {
 
           {profile.blockedByMe && (
             <div className="mt-8 rounded-[3px] border border-dashed border-ink/20 px-6 py-14 text-center">
-              <p className="font-display text-2xl font-medium text-ink">You’ve blocked @{handle}</p>
+              <p className="font-display text-2xl font-medium text-ink">You’ve blocked {who}</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">They can’t see you, you won’t see them, and any follows between you are gone. Undo it from the menu above.</p>
             </div>
           )}
@@ -419,7 +420,7 @@ export function UserProfilePage() {
         </>
       )}
 
-      <Modal open={reporting} onClose={() => setReporting(false)} title={`Report @${handle}`}>
+      <Modal open={reporting} onClose={() => setReporting(false)} title={`Report ${who}`}>
         <p className="text-sm text-ink/60">Tell the house what’s wrong. They won’t know it came from you.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {REPORT_REASONS.map((r) => (
@@ -439,7 +440,7 @@ export function UserProfilePage() {
         </div>
       </Modal>
 
-      <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={`In your closet, @${handle}'s look`}>
+      <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={`In your closet, ${who}’s look`}>
         {recreate && recreate.result === null && (
           <div className="flex justify-center py-10 text-ink/50">
             <Spinner className="h-6 w-6" />

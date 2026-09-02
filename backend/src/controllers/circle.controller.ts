@@ -6,6 +6,7 @@ import { HttpError } from '../middleware/error';
 import { mentionedHandles, notify } from '../lib/notify';
 import { saveImageBuffer } from '../lib/storage';
 import { dropHidden, hiddenIds } from '../lib/hidden';
+import { displayName, type PersonRow } from '../lib/people';
 import { extForMime } from '../middleware/upload';
 import {
   EMPTY_REACTIONS,
@@ -24,8 +25,8 @@ import {
   type VerdictPost,
 } from '../services/circle.service';
 
-type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; votes: { optionId: string; voterKey: string }[]; user: { handle: string | null } };
-type PickRow = { id: string; byUserId: string; itemIds: string[]; note: string | null; createdAt: Date; byUser: { handle: string | null } };
+type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; votes: { optionId: string; voterKey: string }[]; user: PersonRow };
+type PickRow = { id: string; byUserId: string; itemIds: string[]; note: string | null; createdAt: Date; byUser: PersonRow };
 
 /** Shape polls into verdict posts from the viewer's side. */
 async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now()): Promise<VerdictPost[]> {
@@ -44,6 +45,7 @@ async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now())
       id: poll.id,
       at: (settled ? poll.expiresAt : poll.createdAt).toISOString(),
       handle: poll.user.handle,
+      name: displayName(poll.user),
       isMine,
       question: poll.question,
       options: poll.options as unknown as { id: string; imageUrl: string }[],
@@ -68,6 +70,7 @@ async function serializePicks(picks: PickRow[], me: string): Promise<PickPost[]>
     id: p.id,
     at: p.createdAt.toISOString(),
     handle: p.byUser.handle,
+    name: displayName(p.byUser),
     note: p.note,
     items: p.itemIds.map((id) => items.get(id)).filter((i): i is NonNullable<typeof i> => Boolean(i)),
     reactions: reactions.get(p.id) ?? EMPTY_REACTIONS,
@@ -101,7 +104,7 @@ export async function circleFeed(req: Request, res: Response) {
           where: { userId: { in: circle }, sharedAt: { gte: monthAgo, not: null } },
           orderBy: { sharedAt: 'desc' },
           take: 80,
-          include: { user: { select: { handle: true } } },
+          include: { user: { select: { handle: true, firstName: true, lastName: true } } },
         }),
     prisma.poll.findMany({
       where: {
@@ -116,13 +119,13 @@ export async function circleFeed(req: Request, res: Response) {
       },
       orderBy: { createdAt: 'desc' },
       take: 40,
-      include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true } } },
+      include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     prisma.friendPick.findMany({
       where: { forUserId: me, createdAt: { gte: monthAgo } },
       orderBy: { createdAt: 'desc' },
       take: 20,
-      include: { byUser: { select: { handle: true } } },
+      include: { byUser: { select: { handle: true, firstName: true, lastName: true } } },
     }),
   ]);
 
@@ -155,7 +158,7 @@ export async function getPost(req: Request, res: Response) {
   const id = String(req.params.id);
   const hidden = await hiddenIds(me);
   if (type === 'look') {
-    const log = await prisma.wearLog.findFirst({ where: { id, sharedAt: { not: null } }, include: { user: { select: { handle: true } } } });
+    const log = await prisma.wearLog.findFirst({ where: { id, sharedAt: { not: null } }, include: { user: { select: { handle: true, firstName: true, lastName: true } } } });
     if (!log || hidden.has(log.userId)) throw new HttpError(404, 'That look isn’t on the circle');
     const { friendIds } = await graphFor(me);
     const [post] = await serializeLooks([log], me, friendIds);
@@ -163,14 +166,14 @@ export async function getPost(req: Request, res: Response) {
     return;
   }
   if (type === 'verdict') {
-    const poll = await prisma.poll.findUnique({ where: { id }, include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true } } } });
+    const poll = await prisma.poll.findUnique({ where: { id }, include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true, firstName: true, lastName: true } } } });
     if (!poll || hidden.has(poll.userId)) throw new HttpError(404, 'That verdict isn’t here');
     const [post] = await serializeVerdicts([poll], me);
     res.json({ post });
     return;
   }
   if (type === 'pick') {
-    const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: me }, include: { byUser: { select: { handle: true } } } });
+    const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: me }, include: { byUser: { select: { handle: true, firstName: true, lastName: true } } } });
     if (!pick || hidden.has(pick.byUserId)) throw new HttpError(404, 'That pick isn’t here');
     const [post] = await serializePicks([pick], me);
     res.json({ post });
@@ -189,7 +192,7 @@ export async function circleToday(req: Request, res: Response) {
   const logs = await prisma.wearLog.findMany({
     where: { userId: { in: ids }, sharedAt: { gte: since, not: null } },
     orderBy: { sharedAt: 'desc' },
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
   // One entry per person — their latest.
   const seen = new Set<string>();
@@ -207,7 +210,7 @@ export async function circleExplore(req: Request, res: Response) {
     where: { sharedAt: { not: null }, userId: { not: me, notIn: [...hidden] } },
     orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
     take: 40,
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
   res.json({ posts: await serializeLooks(logs, me, friendIds) });
 }
@@ -260,7 +263,7 @@ export async function listNotifications(req: Request, res: Response) {
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
       take: 40,
-      include: { actor: { select: { handle: true } } },
+      include: { actor: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     prisma.notification.count({ where: { userId: req.user.id, readAt: null } }),
   ]);
@@ -270,6 +273,7 @@ export async function listNotifications(req: Request, res: Response) {
       id: n.id,
       type: n.type,
       actorHandle: n.actor?.handle ?? null,
+      actorName: n.actor ? displayName(n.actor) : null,
       payload: (n.payload as Prisma.JsonObject | null) ?? {},
       read: Boolean(n.readAt),
       at: n.createdAt.toISOString(),
@@ -319,8 +323,8 @@ async function assertTarget(targetType: PostTarget, targetId: string): Promise<{
   return { ownerId: poll.userId };
 }
 
-function serializeComment(c: { id: string; body: string; createdAt: Date; userId: string; user: { handle: string | null } }, me: string) {
-  return { id: c.id, body: c.body, at: c.createdAt.toISOString(), handle: c.user.handle, isMine: c.userId === me };
+function serializeComment(c: { id: string; body: string; createdAt: Date; userId: string; user: PersonRow }, me: string) {
+  return { id: c.id, body: c.body, at: c.createdAt.toISOString(), handle: c.user.handle, name: displayName(c.user), isMine: c.userId === me };
 }
 
 // GET /comments?target=look|verdict&id=… — oldest first, like a thread.
@@ -331,7 +335,7 @@ export async function listComments(req: Request, res: Response) {
     where: { targetType: target, targetId: id },
     orderBy: { createdAt: 'asc' },
     take: 100,
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
   const hidden = await hiddenIds(req.user.id);
   res.json({ comments: dropHidden(rows, hidden, (c) => c.userId).map((c) => serializeComment(c, req.user!.id)) });
@@ -344,7 +348,7 @@ export async function addComment(req: Request, res: Response) {
   const { ownerId, alsoId } = await assertTarget(target, id);
   const comment = await prisma.comment.create({
     data: { userId: req.user.id, targetType: target, targetId: id, body },
-    include: { user: { select: { handle: true } } },
+    include: { user: { select: { handle: true, firstName: true, lastName: true } } },
   });
 
   const payload = { target, targetId: id, commentId: comment.id, preview: body.slice(0, 80) };
@@ -405,7 +409,7 @@ export async function circleSaved(req: Request, res: Response) {
     where: { userId: me },
     orderBy: { createdAt: 'desc' },
     take: 60,
-    include: { wearLog: { include: { user: { select: { handle: true } } } } },
+    include: { wearLog: { include: { user: { select: { handle: true, firstName: true, lastName: true } } } } },
   });
   const { friendIds } = await graphFor(me);
   const logs = saves.map((s) => s.wearLog).filter((l) => l.sharedAt);
