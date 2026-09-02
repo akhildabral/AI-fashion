@@ -204,6 +204,8 @@ export interface WardrobeItem {
   details?: Record<string, string> | null
   note?: string | null
   care?: string | null
+  /** For the Mirror: the details an image model must reproduce. */
+  renderNotes?: string | null
   /** Per-attribute confidence, 0–1; 1 means you set it. */
   attrConfidence?: Record<string, number> | null
   /** Hidden from suggestion pools ("don't suggest this"). */
@@ -251,6 +253,7 @@ export interface WardrobeItemEdit {
   details?: Record<string, string> | null
   note?: string | null
   care?: string | null
+  renderNotes?: string | null
   state?: 'clean' | 'in-wash' | 'packed' | 'lent-out' | 'retired'
   brand?: string | null
   size?: string | null

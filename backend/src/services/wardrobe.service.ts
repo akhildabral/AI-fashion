@@ -35,6 +35,8 @@ export interface GarmentTags {
   weight: string | null;
   details: Record<string, string> | null;
   description: string | null;
+  /** For the Mirror: every visible detail an image model must reproduce. */
+  renderNotes: string | null;
   attrConfidence: Record<string, number>;
 }
 
@@ -75,6 +77,11 @@ const tagSchema = z.object({
     closure: z.string(),
   }),
   description: z.string(),
+  // A rendering brief for an image model: 60–120 words, concrete and visual —
+  // the exact shade, fabric and weave, fit, collar or neckline, sleeve length,
+  // cuffs and hems, closures and hardware, and EVERY logo, badge, print or
+  // embroidery with its place, size, shape and colours. Nothing that isn't visible.
+  renderNotes: z.string(),
   // Per-attribute confidence, 0–1. Honesty is rewarded: low-confidence
   // values are discarded rather than stored.
   confidence: z.object({
@@ -112,7 +119,12 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
         'colour of a two-tone or patterned piece, empty when there is none. ' +
         'Fill only the details that apply to this kind of piece (neckline and sleeve ' +
         'for tops and dresses; rise and leg for bottoms; heel and toe for shoes; ' +
-        'closure for anything that fastens) and leave the rest empty.',
+        'closure for anything that fastens) and leave the rest empty. ' +
+        'renderNotes is a brief for an image model that will dress a person in this ' +
+        'exact piece: write 60–120 concrete visual words — the precise shade, the fabric ' +
+        'and its weave or knit, the fit, collar or neckline, sleeve length, cuffs and hems, ' +
+        'closures and hardware, and every logo, badge, print or embroidery with where it ' +
+        'sits, how big it is, its shape and its colours. Only what is visible.',
       messages: [
         {
           role: 'user',
@@ -153,6 +165,7 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
     weight: keep('weight', raw.weight),
     details: Object.keys(details).length ? details : null,
     description: raw.description?.trim() || null,
+    renderNotes: raw.renderNotes?.trim() || null,
     attrConfidence: conf,
   };
 }

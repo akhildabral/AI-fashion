@@ -26,7 +26,7 @@ const tryOnSelect = {
   createdAt: true,
 } as const;
 
-const itemSelect = { id: true, imageUrl: true, category: true, subtype: true, primaryColor: true, material: true, pattern: true, description: true } as const;
+const itemSelect = { id: true, imageUrl: true, category: true, subtype: true, primaryColor: true, material: true, pattern: true, description: true, renderNotes: true } as const;
 
 async function refund(usageEventId: string | null | undefined, tryOnId: string) {
   if (!usageEventId) return;

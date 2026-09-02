@@ -241,6 +241,9 @@ model WardrobeItem {
   details        Json?
   note           String?
   care           String?
+  // For the Mirror: a precise visual description an image model can dress
+  // someone in — shade, fabric, collar, closures, every logo and print.
+  renderNotes    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt @default(now())
 

@@ -101,9 +101,14 @@ export interface TryOnItem {
   material?: string | null;
   pattern?: string | null;
   description?: string | null;
+  /** The rendering brief read from the cut-out: shade, fabric, closures, every logo and print. */
+  renderNotes?: string | null;
 }
 
+// The words the Mirror dresses with. The rendering brief carries the details
+// that make a render recognisably THIS piece; the description is the fallback.
 function describeItem(it: TryOnItem): string {
+  if (it.renderNotes?.trim()) return it.renderNotes.trim();
   if (it.description?.trim()) return it.description.trim();
   return [it.primaryColor, it.pattern, it.material, it.subtype?.trim() || it.category].filter(Boolean).join(' ');
 }
@@ -130,8 +135,10 @@ export async function generateOutfitTryOn(photoFilename: string, items: TryOnIte
     const prompt =
       'Edit this photograph so the very same person is dressed in a different outfit. Remove ALL the clothing ' +
       'they are currently wearing — including any dress, top, bottoms, shoes, and bags — and dress them instead in ' +
-      `exactly these items, all together: ${outfitDescription}. Fit each piece naturally to their body at ` +
-      `true-to-life proportions. ${KEEP}`;
+      `exactly these items, all together: ${outfitDescription}. Every detail named must appear as described — ` +
+      'each logo, badge, print or embroidery at its stated place, size, shape and colours; the stated shade, fabric ' +
+      'and weave; the collar, sleeves, cuffs, closures and hardware. Do not simplify a garment into a plain one. ' +
+      `Fit each piece naturally to their body at true-to-life proportions. ${KEEP}`;
     return { url: await runEdit(prompt, [person]), prompt, mode };
   }
 

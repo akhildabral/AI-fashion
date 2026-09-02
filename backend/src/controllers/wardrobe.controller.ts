@@ -304,6 +304,7 @@ const updateSchema = z.object({
   details: z.record(z.string().max(40)).nullish(),
   note: z.string().max(400).nullish(),
   care: z.string().max(60).nullish(),
+  renderNotes: z.string().max(900).nullish(),
   // Wishlist: where you saw it, for how much, and when to be nudged. "Bought
   // it" is owned: true.
   owned: z.boolean().optional(),

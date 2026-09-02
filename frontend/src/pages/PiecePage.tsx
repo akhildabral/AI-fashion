@@ -54,6 +54,7 @@ const FACTS: Fact[] = [
   { key: 'materialNote', group: 'Make', label: 'Material, in detail', kind: 'text', detail: true },
   { key: 'pattern', group: 'Make', label: 'Pattern', kind: 'chips', options: PATTERNS },
   { key: 'texture', group: 'Make', label: 'Texture', kind: 'chips', options: TEXTURES },
+  { key: 'renderNotes', group: 'Make', label: 'For the Mirror', kind: 'note' },
   { key: 'weight', group: 'Make', label: 'Weight', kind: 'chips', options: WEIGHTS },
   { key: 'fit', group: 'Cut and fit', label: 'Fit', kind: 'chips', options: FITS },
   { key: 'length', group: 'Cut and fit', label: 'Length', kind: 'chips', options: LENGTHS },
@@ -176,7 +177,7 @@ function FactRow({ item, fact, open, onOpen, onSave }: { item: WardrobeItem; fac
               }}
             >
               {fact.kind === 'note' ? (
-                <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} maxLength={400} className="field min-w-0 flex-1 !h-auto py-2" placeholder="Sleeves taken up, a gift from…, dry clean only" />
+                <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={fact.key === 'renderNotes' ? 4 : 2} maxLength={fact.key === 'renderNotes' ? 900 : 400} className="field min-w-0 flex-1 !h-auto py-2" placeholder={fact.key === 'renderNotes' ? 'What the Mirror must get right: the exact shade, the fabric, the collar, every logo and where it sits…' : 'Sleeves taken up, a gift from…, dry clean only'} />
               ) : (
                 <input value={draft} onChange={(e) => setDraft(e.target.value)} inputMode={fact.kind === 'money' ? 'decimal' : 'text'} type={fact.kind === 'money' ? 'number' : 'text'} min={0} className="field field-sm min-w-0 flex-1 max-w-xs" placeholder={fact.kind === 'money' ? 'What it cost' : fact.label} autoFocus />
               )}
