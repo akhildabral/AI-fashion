@@ -27,6 +27,7 @@ import { LookCard } from '../components/LookCard'
 import { GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { shareCard, outcomeLine } from '../lib/share'
+import { ClosetNotes } from '../components/ClosetNotes'
 
 const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
 
@@ -263,6 +264,8 @@ export function TodayPage() {
           <span className="btn-primary !px-4 !py-2 !text-xs">Continue</span>
         </Link>
       )}
+
+      {!loading && profile && <ClosetNotes />}
 
       {/* ---------------- STARTER: empty closet ---------------- */}
       {!loading && mode === 'starter' && (
