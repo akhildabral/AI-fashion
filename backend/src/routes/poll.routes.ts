@@ -7,6 +7,8 @@ import {
   votePoll,
 } from '../controllers/poll.controller';
 import { requireAuth } from '../middleware/auth';
+import { prisma } from '../lib/prisma';
+import { absoluteImage } from './look.routes';
 
 export const pollRouter = Router();
 
@@ -22,12 +24,26 @@ pollRouter.post('/polls/:id/vote', votePoll);
 // links work anywhere the API is reachable (including through the dev tunnel).
 export const votePageRouter = Router();
 
-votePageRouter.get('/vote/:id', (req, res) => {
+votePageRouter.get('/vote/:id', async (req, res) => {
   const id = String(req.params.id).replace(/[^a-zA-Z0-9-]/g, '');
-  res.type('html').send(votePage(id));
+  // Open Graph for the unfurl in a group chat: the question and option A.
+  const poll = await prisma.poll.findUnique({ where: { id }, select: { question: true, options: true } }).catch(() => null);
+  const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
+  const base = `${proto}://${req.get('host')}`;
+  const first = ((poll?.options as { imageUrl?: string }[] | null) ?? [])[0]?.imageUrl;
+  res.type('html').send(
+    votePage(id, {
+      title: poll ? poll.question : 'Which one?',
+      image: first ? absoluteImage(base, first) : undefined,
+    }),
+  );
 });
 
-function votePage(pollId: string): string {
+function escapeAttr(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+}
+
+function votePage(pollId: string, og: { title: string; image?: string }): string {
   // Self-contained, in the Atelier language — dark brass-on-black, twin arches,
   // the vote is a tap on the look. Many people's first contact with the
   // product, so it's given real care and needs no account.
@@ -38,7 +54,11 @@ function votePage(pollId: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <meta name="theme-color" content="#0E0D0B" />
-<title>Which one?</title>
+<title>${escapeAttr(og.title)}</title>
+<meta property="og:type" content="website" />
+<meta property="og:title" content="${escapeAttr(og.title)}" />
+<meta property="og:description" content="A friend needs a verdict — tap the one they should wear." />
+${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<meta name="twitter:card" content="summary_large_image" />` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..500&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet" />

@@ -68,7 +68,13 @@ export async function recreateFromCloset(req: Request, res: Response) {
 
   const sourceById = new Map(sources.map((s) => [s.id, s]));
   if (result.matched.length > 0) {
-    void notify(ownerId, 'look_recreated', req.user.id, { wearLogId: sharedLog.id }, { dedupeKey: `recreate:${sharedLog.id}` });
+    // One recreate per person per day counts toward the look's standing.
+    void notify(ownerId, 'look_recreated', req.user.id, { wearLogId: sharedLog.id }, { dedupeKey: `recreate:${sharedLog.id}` }).then(
+      async (created) => {
+        if (!created) return;
+        await prisma.wearLog.update({ where: { id: sharedLog.id }, data: { recreatedCount: { increment: 1 } } }).catch(() => undefined);
+      },
+    );
   }
   res.json({
     pairs: result.matched.map((m) => {

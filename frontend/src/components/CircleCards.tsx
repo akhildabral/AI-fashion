@@ -6,6 +6,7 @@ import { Spinner } from './Spinner'
 import { Initials } from './PeopleDrawer'
 import { dismissPick } from '../lib/social'
 import { logWear } from '../lib/wearlog'
+import { copyText } from '../lib/clipboard'
 import {
   addComment,
   deleteComment,
@@ -137,6 +138,33 @@ const ICON = {
       <path d="M6 3h12v18l-6-4-6 4z" />
     </svg>
   ),
+}
+
+/** Share a public page for one of your own posts — the growth loop. */
+async function sharePage(path: string, title: string, onDone: (msg: string) => void) {
+  const url = `${window.location.origin}${path}`
+  try {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      await (navigator as Navigator & { share: (d: { title: string; url: string }) => Promise<void> }).share({ title, url })
+      onDone('Shared.')
+      return
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return
+  }
+  onDone((await copyText(url)) ? 'Link copied — paste it anywhere.' : url)
+}
+
+function ShareButton({ path, title, onDone }: { path: string; title: string; onDone: (msg: string) => void }) {
+  return (
+    <ActionButton label="Share" onClick={() => void sharePage(path, title, onDone)}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+        <path d="M12 3v12M7 8l5-5 5 5" />
+        <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+      </svg>
+      Share
+    </ActionButton>
+  )
 }
 
 /* ---------- comments ---------- */
@@ -356,7 +384,12 @@ export function LookCard({
             Recreate
           </button>
         )}
-        {post.isMine && <p className="ml-auto px-1 text-xs text-ink/45">Your look, on the circle.</p>}
+        {post.isMine && (
+          <span className="ml-auto flex items-center gap-1">
+            <span className="hidden px-1 text-xs text-ink/45 sm:inline">Your look, on the circle.</span>
+            <ShareButton path={`/look/${post.id}`} title="Wore this today" onDone={onError} />
+          </span>
+        )}
       </div>
       {open && <CommentThread target="look" id={post.id} onCount={(n) => onCommentCount(post.id, n)} onError={onError} />}
     </article>
@@ -458,7 +491,8 @@ export function VerdictCard({
               ? `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} · settled`
               : `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} so far${post.myVote ? ' · you weighed in' : ''}`}
         </p>
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-0.5">
+          {post.isMine && !post.settled && <ShareButton path={`/vote/${post.id}`} title={post.question} onDone={onError} />}
           <ActionButton label="Notes" on={open} onClick={() => setOpen((v) => !v)}>
             {ICON.comment}
             {post.comments > 0 ? <Count n={post.comments} /> : 'Note'}

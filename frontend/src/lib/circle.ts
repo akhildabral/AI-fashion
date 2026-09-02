@@ -33,6 +33,8 @@ export interface LookPost {
   reactions: ReactionSummary
   comments: number
   saved: boolean
+  saves: number
+  recreates: number
 }
 
 export interface VerdictPost {
@@ -98,7 +100,7 @@ export function voteOnVerdict(pollId: string, optionId: string, userId: string) 
 
 export interface Notification {
   id: string
-  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned'
+  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled'
   actorHandle: string | null
   payload: Record<string, unknown>
   read: boolean

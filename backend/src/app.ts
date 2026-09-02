@@ -12,6 +12,7 @@ import { wardrobeRouter } from './routes/wardrobe.routes';
 import { wearLogRouter } from './routes/wearlog.routes';
 import { quizRouter } from './routes/quiz.routes';
 import { pollRouter, votePageRouter } from './routes/poll.routes';
+import { lookPageRouter } from './routes/look.routes';
 import { socialRouter } from './routes/social.routes';
 import { adminRouter } from './routes/admin.routes';
 import { billingRouter } from './routes/billing.routes';
@@ -79,6 +80,7 @@ export function createApp() {
   app.use('/api', briefRouter);
   app.use('/api', circleRouter);
   app.use(votePageRouter);
+  app.use(lookPageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);

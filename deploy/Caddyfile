@@ -10,8 +10,11 @@
 		reverse_proxy backend:3000
 	}
 
-	# Public poll vote pages are served by the backend itself.
+	# Public share pages (verdicts, looks) are served by the backend itself.
 	handle /vote/* {
+		reverse_proxy backend:3000
+	}
+	handle /look/* {
 		reverse_proxy backend:3000
 	}
 

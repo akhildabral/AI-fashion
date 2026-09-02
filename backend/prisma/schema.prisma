@@ -180,6 +180,8 @@ model WearLog {
   sharedAt  DateTime?
   // Explore: set by an admin to pin this shared outfit to the curated feed.
   featuredAt DateTime?
+  // How many people have recreated this look from their own closet.
+  recreatedCount Int @default(0)
   reactions LookReaction[]
   savedBy   SavedLook[]
 }
@@ -285,6 +287,8 @@ model Poll {
   options   Json
   expiresAt DateTime
   createdAt DateTime @default(now())
+  // Set once the asker (and voters) have been told the verdict is in.
+  settledNotifiedAt DateTime?
 
   votes PollVote[]
 

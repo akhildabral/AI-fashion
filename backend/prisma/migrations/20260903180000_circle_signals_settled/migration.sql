@@ -1,0 +1,2 @@
+ALTER TABLE "WearLog" ADD COLUMN "recreatedCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Poll" ADD COLUMN "settledNotifiedAt" TIMESTAMP(3);

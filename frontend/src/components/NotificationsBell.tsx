@@ -39,8 +39,66 @@ function line(n: Notification): { text: string; to: string } {
     }
     case 'mentioned':
       return { text: `${who} mentioned you in a note.`, to: '/circle' }
+    case 'verdict_settled': {
+      const w = n.payload.winner ? String(n.payload.winner).toUpperCase() : null
+      const q = String(n.payload.question ?? 'your verdict')
+      const mine = !n.actorHandle
+      return {
+        text: mine
+          ? w ? `The verdict is in on “${q}”: ${w} won.` : `The verdict is in on “${q}” — a split. Your call.`
+          : w ? `${who}’s verdict settled: ${w} won.` : `${who}’s verdict settled in a split.`,
+        to: '/circle',
+      }
+    }
     default:
       return { text: `${who} did something.`, to: '/circle' }
+  }
+}
+
+const DIGEST_TYPES = new Set<Notification['type']>(['new_follower', 'look_reacted', 'look_recreated'])
+
+interface Digest {
+  key: string
+  type: Notification['type']
+  handles: string[]
+  count: number
+  at: string
+  read: boolean
+  first: Notification
+}
+
+/** Collapse runs of the same low-value event on the same day — "@a, @b and 3 others…" */
+function digest(items: Notification[]): Digest[] {
+  const out: Digest[] = []
+  for (const n of items) {
+    const day = n.at.slice(0, 10)
+    const key = DIGEST_TYPES.has(n.type) ? `${n.type}:${day}` : n.id
+    const last = out[out.length - 1]
+    if (last && last.key === key) {
+      last.count++
+      if (n.actorHandle && !last.handles.includes(n.actorHandle)) last.handles.push(n.actorHandle)
+      last.read = last.read && n.read
+      continue
+    }
+    out.push({ key, type: n.type, handles: n.actorHandle ? [n.actorHandle] : [], count: 1, at: n.at, read: n.read, first: n })
+  }
+  return out
+}
+
+function digestLine(d: Digest): { text: string; to: string } {
+  if (d.count === 1) return line(d.first)
+  const shown = d.handles.slice(0, 2).map((h) => `@${h}`)
+  const rest = d.count - shown.length
+  const who = shown.length === 0 ? `${d.count} people` : rest > 0 ? `${shown.join(', ')} and ${rest} other${rest === 1 ? '' : 's'}` : shown.join(' and ')
+  switch (d.type) {
+    case 'new_follower':
+      return { text: `${who} started following your closet.`, to: '/circle' }
+    case 'look_reacted':
+      return { text: `${who} reacted to your looks.`, to: '/circle' }
+    case 'look_recreated':
+      return { text: `${who} recreated your looks from their own closets.`, to: '/circle' }
+    default:
+      return line(d.first)
   }
 }
 
@@ -112,20 +170,20 @@ export function NotificationsBell() {
         )}
         {items && items.length > 0 && (
           <ul className="-mt-1">
-            {items.map((n) => {
-              const l = line(n)
+            {digest(items).map((d) => {
+              const l = digestLine(d)
               return (
-                <li key={n.id} className="border-t border-ink/10 first:border-t-0">
+                <li key={d.key} className="border-t border-ink/10 first:border-t-0">
                   <Link
                     to={l.to}
                     onClick={() => setOpen(false)}
                     className="press flex items-center gap-3 py-3 transition-colors hover:text-brass"
                   >
-                    <Initials handle={n.actorHandle} className="h-9 w-9" />
-                    <span className={`min-w-0 flex-1 text-sm ${n.read ? 'text-ink/70' : 'font-medium text-ink'}`}>
+                    <Initials handle={d.handles[0] ?? null} className="h-9 w-9" />
+                    <span className={`min-w-0 flex-1 text-sm ${d.read ? 'text-ink/70' : 'font-medium text-ink'}`}>
                       {l.text}
                     </span>
-                    <span className="shrink-0 text-xs text-ink/40">{timeAgo(n.at)}</span>
+                    <span className="shrink-0 text-xs text-ink/40">{timeAgo(d.at)}</span>
                   </Link>
                 </li>
               )

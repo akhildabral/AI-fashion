@@ -6,6 +6,7 @@ import { HttpError } from '../middleware/error';
 import { mentionedHandles, notify } from '../lib/notify';
 import {
   REACTION_KINDS,
+  affinityFor,
   commentCounts,
   graphFor,
   itemsById,
@@ -111,7 +112,11 @@ export async function circleFeed(req: Request, res: Response) {
   }
 
   if (lens === 'following') posts.sort((a, b) => (a.at < b.at ? 1 : -1));
-  else posts.sort((a, b) => score(b, now) - score(a, now));
+  else {
+    const ctx = { affinity: await affinityFor(me) };
+    const scored = new Map(posts.map((p) => [p, score(p, now, ctx)]));
+    posts.sort((a, b) => (scored.get(b) ?? 0) - (scored.get(a) ?? 0));
+  }
 
   const page = posts.slice(offset, offset + PAGE);
   res.json({

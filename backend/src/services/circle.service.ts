@@ -28,6 +28,8 @@ export interface LookPost {
   reactions: { counts: Record<string, number>; total: number; sample: string[]; mine: ReactionKind | null };
   comments: number;
   saved: boolean;
+  saves: number;
+  recreates: number;
 }
 
 export interface VerdictPost {
@@ -45,17 +47,6 @@ export interface VerdictPost {
   totalVotes: number;
   myVote: string | null;
   comments: number;
-}
-
-/** Comment counts per target id, for one target type. */
-export async function commentCounts(targetType: 'look' | 'verdict', ids: string[]): Promise<Map<string, number>> {
-  if (ids.length === 0) return new Map();
-  const rows = await prisma.comment.groupBy({
-    by: ['targetId'],
-    where: { targetType, targetId: { in: ids } },
-    _count: { _all: true },
-  });
-  return new Map(rows.map((r) => [r.targetId, r._count._all]));
 }
 
 export interface PickPost {
@@ -95,6 +86,17 @@ export async function graphFor(userId: string) {
   return { followingIds, followerIds, friendIds };
 }
 
+/** Comment counts per target id, for one target type. */
+export async function commentCounts(targetType: 'look' | 'verdict', ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const rows = await prisma.comment.groupBy({
+    by: ['targetId'],
+    where: { targetType, targetId: { in: ids } },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.targetId, r._count._all]));
+}
+
 type LogRow = {
   id: string;
   userId: string;
@@ -103,6 +105,7 @@ type LogRow = {
   sharedAt: Date | null;
   featuredAt: Date | null;
   eventType: string | null;
+  recreatedCount: number;
   user: { handle: string | null };
 };
 
@@ -114,7 +117,7 @@ export async function serializeLooks(
 ): Promise<LookPost[]> {
   if (logs.length === 0) return [];
   const ids = logs.map((l) => l.id);
-  const [byId, reactions, comments, saved] = await Promise.all([
+  const [byId, reactions, comments, saved, saveCounts] = await Promise.all([
     itemsById(logs.flatMap((l) => l.itemIds)),
     prisma.lookReaction.findMany({
       where: { wearLogId: { in: ids } },
@@ -123,8 +126,10 @@ export async function serializeLooks(
     }),
     commentCounts('look', ids),
     prisma.savedLook.findMany({ where: { userId: viewerId, wearLogId: { in: ids } }, select: { wearLogId: true } }),
+    prisma.savedLook.groupBy({ by: ['wearLogId'], where: { wearLogId: { in: ids } }, _count: { _all: true } }),
   ]);
   const savedSet = new Set(saved.map((s) => s.wearLogId));
+  const savesBy = new Map(saveCounts.map((s) => [s.wearLogId, s._count._all]));
   const byLog = new Map<string, typeof reactions>();
   for (const r of reactions) {
     const list = byLog.get(r.wearLogId) ?? [];
@@ -157,6 +162,8 @@ export async function serializeLooks(
       },
       comments: comments.get(l.id) ?? 0,
       saved: savedSet.has(l.id),
+      saves: savesBy.get(l.id) ?? 0,
+      recreates: l.recreatedCount,
     };
   });
 }
@@ -165,17 +172,65 @@ export async function serializeLooks(
 export async function standingFor(userId: string) {
   const [picksWorn, recreated, looksShared, wouldWear] = await Promise.all([
     prisma.notification.count({ where: { userId, type: 'pick_worn' } }),
-    prisma.notification.count({ where: { userId, type: 'look_recreated' } }),
+    prisma.wearLog.aggregate({ where: { userId }, _sum: { recreatedCount: true } }).then((r) => r._sum.recreatedCount ?? 0),
     prisma.wearLog.count({ where: { userId, sharedAt: { not: null } } }),
     prisma.lookReaction.count({ where: { wearLog: { userId }, kind: 'would_wear' } }),
   ]);
   return { picksWorn, recreated, looksShared, wouldWear };
 }
 
+/**
+ * Affinity: whose things the viewer actually engages with (reactions, notes,
+ * saves, recreates over the last 60 days), keyed by author handle. This is
+ * the personal half of "For you" — the other half is what's lively.
+ */
+export async function affinityFor(viewerId: string): Promise<Map<string, number>> {
+  const since = new Date(Date.now() - 60 * 86_400_000);
+  const [reactions, comments, saves, recreates] = await Promise.all([
+    prisma.lookReaction.findMany({
+      where: { userId: viewerId, createdAt: { gte: since } },
+      select: { wearLog: { select: { user: { select: { handle: true } } } } },
+    }),
+    prisma.comment.findMany({ where: { userId: viewerId, createdAt: { gte: since } }, select: { targetType: true, targetId: true } }),
+    prisma.savedLook.findMany({
+      where: { userId: viewerId, createdAt: { gte: since } },
+      select: { wearLog: { select: { user: { select: { handle: true } } } } },
+    }),
+    prisma.notification.findMany({
+      where: { actorId: viewerId, type: 'look_recreated', createdAt: { gte: since } },
+      select: { user: { select: { handle: true } } },
+    }),
+  ]);
+  const m = new Map<string, number>();
+  const add = (h: string | null | undefined, w: number) => {
+    if (h) m.set(h, (m.get(h) ?? 0) + w);
+  };
+  for (const r of reactions) add(r.wearLog.user.handle, 1);
+  for (const s of saves) add(s.wearLog.user.handle, 2);
+  for (const r of recreates) add(r.user.handle, 3);
+  if (comments.length > 0) {
+    const lookIds = comments.filter((c) => c.targetType === 'look').map((c) => c.targetId);
+    const pollIds = comments.filter((c) => c.targetType === 'verdict').map((c) => c.targetId);
+    const [logs, polls] = await Promise.all([
+      lookIds.length ? prisma.wearLog.findMany({ where: { id: { in: lookIds } }, select: { id: true, user: { select: { handle: true } } } }) : [],
+      pollIds.length ? prisma.poll.findMany({ where: { id: { in: pollIds } }, select: { id: true, user: { select: { handle: true } } } }) : [],
+    ]);
+    const owner = new Map<string, string | null>([...logs.map((l) => [l.id, l.user.handle] as const), ...polls.map((p) => [p.id, p.user.handle] as const)]);
+    for (const c of comments) add(owner.get(c.targetId), 2);
+  }
+  return m;
+}
+
+export interface RankContext {
+  /** Author handle → how much the viewer engages with them. */
+  affinity?: Map<string, number>;
+}
+
 // Ranking for "For you": recency decays over a couple of days; things that
 // need the viewer (an open verdict they haven't voted on, a pick made for
-// them) jump ahead; friends and lively looks get a nudge.
-export function score(post: CirclePost, now: number): number {
+// them) jump ahead; then what's lively (notes, saves, recreates, reactions)
+// and who the viewer actually engages with get a nudge.
+export function score(post: CirclePost, now: number, ctx: RankContext = {}): number {
   const ageHours = Math.max(0, (now - new Date(post.at).getTime()) / 3_600_000);
   let s = 100 * Math.exp(-ageHours / 36);
   // A look someone made for you outranks anything fresh for about two days.
@@ -184,11 +239,21 @@ export function score(post: CirclePost, now: number): number {
     if (!post.settled && !post.isMine && !post.myVote) s += 45;
     else if (post.settled && post.isMine) s += 25;
     else if (!post.settled) s += 10;
+    s += Math.min(12, post.comments * 3);
   }
   if (post.type === 'look') {
     if (post.isFriend) s += 8;
-    s += Math.min(20, post.reactions.total * 2);
     if (post.featured) s += 5;
+    // Lively: what the room is doing with it.
+    s += Math.min(20, post.reactions.total * 2);
+    s += Math.min(12, post.comments * 3);
+    s += Math.min(12, post.saves * 4);
+    s += Math.min(18, post.recreates * 6);
+    // Already kept it — you've seen it; let others through.
+    if (post.saved) s -= 10;
+  }
+  if (post.type !== 'pick' && post.handle && ctx.affinity) {
+    s += Math.min(20, (ctx.affinity.get(post.handle) ?? 0) * 4);
   }
   return s;
 }

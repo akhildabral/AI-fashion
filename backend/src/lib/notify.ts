@@ -8,7 +8,8 @@ export type NotificationType =
   | 'look_reacted'
   | 'look_recreated'
   | 'commented'
-  | 'mentioned';
+  | 'mentioned'
+  | 'verdict_settled';
 
 // @handles in a comment body — lowercase, deduped, in order of appearance.
 export function mentionedHandles(body: string): string[] {
@@ -24,15 +25,15 @@ export function mentionedHandles(body: string): string[] {
 // notification must never fail the action that caused it. Never notifies
 // someone about their own action. `dedupeKey` collapses repeats of the same
 // event within a day (e.g. one friend opening "recreate" on the same look
-// five times).
+// five times). Resolves true only when a new notification was written.
 export async function notify(
   userId: string,
   type: NotificationType,
   actorId: string | null,
   payload: Record<string, unknown> = {},
   opts: { dedupeKey?: string } = {},
-): Promise<void> {
-  if (actorId && actorId === userId) return;
+): Promise<boolean> {
+  if (actorId && actorId === userId) return false;
   try {
     if (opts.dedupeKey) {
       const since = new Date(Date.now() - 86_400_000);
@@ -46,13 +47,15 @@ export async function notify(
         },
         select: { id: true },
       });
-      if (existing) return;
+      if (existing) return false;
       payload = { ...payload, dedupeKey: opts.dedupeKey };
     }
     await prisma.notification.create({
       data: { userId, type, actorId, payload: payload as Prisma.InputJsonValue },
     });
+    return true;
   } catch (err) {
     console.error('notify failed:', err instanceof Error ? err.message : err);
+    return false;
   }
 }
