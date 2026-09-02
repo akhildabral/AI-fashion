@@ -59,6 +59,9 @@ model User {
   dailyBriefs   DailyBrief[]
   trips         Trip[]
   lookbooks     Lookbook[]
+  lookReactions     LookReaction[]
+  notifications     Notification[] @relation("notificationsFor")
+  notificationsSent Notification[] @relation("notificationsBy")
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -147,6 +150,39 @@ model WearLog {
   sharedAt  DateTime?
   // Explore: set by an admin to pin this shared outfit to the curated feed.
   featuredAt DateTime?
+  reactions LookReaction[]
+}
+
+// A taste-relevant reaction on a shared look ("would wear", "bold", "love").
+// One per person per look — this is signal, not a like count to farm.
+model LookReaction {
+  id        String   @id @default(uuid())
+  wearLogId String
+  wearLog   WearLog  @relation(fields: [wearLogId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@unique([wearLogId, userId])
+  @@index([userId])
+}
+
+// Things that happened to you. They live behind the bell, never in the
+// feed, so the feed stays about looks.
+//   type: new_follower | pick_received | pick_worn | look_reacted | look_recreated
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation("notificationsFor", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?     @relation("notificationsBy", fields: [actorId], references: [id], onDelete: SetNull)
+  type      String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // A user's persistent style profile — the "brain" every recommendation builds on.

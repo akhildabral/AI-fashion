@@ -15,6 +15,8 @@ export function logWear(params: {
   eventType?: EventType
   location?: string
   rating?: number
+  /** Wearing a look a friend picked — credits the stylist. */
+  pickId?: string
 }): Promise<{ log: WearLogEntry }> {
   return apiFetch<{ log: WearLogEntry }>('/wearlog', {
     method: 'POST',

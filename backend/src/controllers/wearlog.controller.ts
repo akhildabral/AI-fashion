@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { getWeather } from '../services/weather.service';
 import { EVENT_TYPES } from '../lib/attributes';
 import { HttpError } from '../middleware/error';
+import { notify } from '../lib/notify';
 
 // The wear log is the product's core dataset: what was actually worn, when,
 // in what context. Logging must stay a one-tap action, so every field beyond
@@ -66,6 +67,8 @@ const logWearSchema = z
     wornOn: z.coerce.date().optional(),
     // When provided, today's weather is snapshotted into the log.
     location: z.string().max(120).optional(),
+    // Wearing a look a friend picked for you: credits the stylist.
+    pickId: z.string().uuid().optional(),
   })
   .refine((d) => d.outfitId || d.itemIds?.length, {
     message: 'Provide an outfitId or a list of itemIds',
@@ -111,6 +114,13 @@ export async function logWear(req: Request, res: Response) {
       ...(weather ? { weather } : {}),
     },
   });
+  if (data.pickId) {
+    const pick = await prisma.friendPick.findFirst({
+      where: { id: data.pickId, forUserId: req.user.id },
+      select: { id: true, byUserId: true },
+    });
+    if (pick) void notify(pick.byUserId, 'pick_worn', req.user.id, { pickId: pick.id }, { dedupeKey: `worn:${pick.id}` });
+  }
   res.status(201).json({ log });
 }
 

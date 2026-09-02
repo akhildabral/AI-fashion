@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { notify } from '../lib/notify';
 import { recreateOutfit } from '../services/recreate.service';
 import { loadStyleableWardrobe } from './wardrobe.controller';
 
@@ -66,6 +67,9 @@ export async function recreateFromCloset(req: Request, res: Response) {
   );
 
   const sourceById = new Map(sources.map((s) => [s.id, s]));
+  if (result.matched.length > 0) {
+    void notify(ownerId, 'look_recreated', req.user.id, { wearLogId: sharedLog.id }, { dedupeKey: `recreate:${sharedLog.id}` });
+  }
   res.json({
     pairs: result.matched.map((m) => {
       const src = sourceById.get(m.sourceId);

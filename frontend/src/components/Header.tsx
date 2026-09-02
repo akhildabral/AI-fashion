@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { PullCord } from './PullCord'
+import { NotificationsBell } from './NotificationsBell'
 
 const NAV = [
   { to: '/', label: 'Today', match: ['/'] },
@@ -87,7 +88,8 @@ export function Header() {
               <PullCord />
             </div>
 
-            <div className="relative" ref={menuRef}>
+            <div className="relative flex items-center gap-2" ref={menuRef}>
+              <NotificationsBell />
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}

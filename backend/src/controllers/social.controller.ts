@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { notify } from '../lib/notify';
 
 // The community layer: handles, an asymmetric follow graph (mutual follows
 // are "friends"), visitable profiles that expose ONLY public items, and the
@@ -126,6 +127,7 @@ export async function followUser(req: Request, res: Response) {
 
   try {
     await prisma.follow.create({ data: { followerId: req.user.id, followingId: target.id } });
+    void notify(target.id, 'new_follower', req.user.id);
   } catch (err) {
     if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err;
   }
@@ -199,6 +201,7 @@ export async function createPick(req: Request, res: Response) {
   const pick = await prisma.friendPick.create({
     data: { forUserId: target.id, byUserId: req.user.id, itemIds, note: note?.trim() || null },
   });
+  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id });
   res.status(201).json({ pick });
 }
 
