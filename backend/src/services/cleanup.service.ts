@@ -148,13 +148,13 @@ export async function studioRender(
     // seamless white is the easiest matting case.
     const matted = await removeBackground(studio);
     const png = matted && matted.coverage <= MAX_PLAUSIBLE_COVERAGE ? matted.png : studio;
-    if (local) {
+    // Shoes and bags are photographed from any angle, so their photo's shape
+    // says nothing about the render; the guard is for garments that can be
+    // folded or cropped.
+    const flat = !(category === 'footwear' || category === 'accessory' || category === 'other');
+    if (local && flat) {
       const [want, got] = await Promise.all([shapeOf(local.png), shapeOf(png)]);
-      // Shoes and bags are photographed from any angle; their render is judged loosely.
-      const loose = category === 'footwear' || category === 'accessory' || category === 'other';
-      const lo = loose ? 0.5 : MIN_SHAPE_RATIO;
-      const hi = loose ? 2.2 : MAX_SHAPE_RATIO;
-      if (want && got && (got / want < lo || got / want > hi)) {
+      if (want && got && (got / want < MIN_SHAPE_RATIO || got / want > MAX_SHAPE_RATIO)) {
         console.info(`Studio re-render reshaped the ${category ?? 'garment'} (${want.toFixed(2)} → ${got.toFixed(2)}) — keeping the photo's cut-out`);
         return null;
       }
