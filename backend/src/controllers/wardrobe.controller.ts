@@ -524,7 +524,7 @@ export async function loadStyleableWardrobe(userId: string) {
     }),
     prisma.wearLog.findMany({
       where: { userId },
-      select: { itemIds: true },
+      select: { itemIds: true, suggestedItemIds: true, woreInstead: true },
       take: 500,
       orderBy: { wornOn: 'desc' },
     }),
@@ -544,8 +544,15 @@ export async function loadStyleableWardrobe(userId: string) {
     throw new HttpError(400, `Add at least ${MIN_ITEMS_FOR_OUTFIT} available wardrobe items first`);
   }
   const wearCounts = new Map<string, number>();
+  // Days corrected from a photo teach the most: what was laid out and left
+  // on the chair, and what was reached for instead.
+  const passedOver = new Map<string, number>();
+  const chosenInstead = new Map<string, number>();
   for (const log of logs) {
     for (const id of log.itemIds) wearCounts.set(id, (wearCounts.get(id) ?? 0) + 1);
+    if (!log.woreInstead) continue;
+    for (const id of log.suggestedItemIds) if (!log.itemIds.includes(id)) passedOver.set(id, (passedOver.get(id) ?? 0) + 1);
+    for (const id of log.itemIds) if (!log.suggestedItemIds.includes(id)) chosenInstead.set(id, (chosenInstead.get(id) ?? 0) + 1);
   }
 
   // Friends' verdicts as a preference signal: a poll's winning option maps
@@ -570,6 +577,8 @@ export async function loadStyleableWardrobe(userId: string) {
     ...item,
     wearCount: wearCounts.get(item.id) ?? 0,
     pollWins: pollWins.get(item.id) ?? 0,
+    passedOver: passedOver.get(item.id) ?? 0,
+    chosenInstead: chosenInstead.get(item.id) ?? 0,
   }));
 }
 
@@ -602,6 +611,16 @@ export interface ValidatedOutfit extends SuggestedOutfit {
 // nothing passes — then the least-bad ones are returned with their violations
 // attached so the client can say why they're a stretch), the rest are ranked
 // by validator score plus a revealed-preference bonus for well-worn pieces.
+/**
+ * What a corrected day says about a piece: left on the chair when it was
+ * laid out counts against it, reached for when it wasn't counts for it.
+ * Capped so one habit never drowns the validator's own judgement.
+ */
+export function wearSignalBonus(sig: { passedOver: number; chosenInstead: number } | undefined): number {
+  if (!sig) return 0;
+  return Math.min(sig.chosenInstead, 4) * 2 - Math.min(sig.passedOver, 4) * 1.5;
+}
+
 export function validateAndRank(
   outfits: SuggestedOutfit[],
   opts: {
@@ -610,6 +629,8 @@ export function validateAndRank(
     recentWear: RecentWear[];
     wearCounts?: Map<string, number>;
     pollWins?: Map<string, number>;
+    /** From days corrected by a photo: laid out but not worn, and worn instead. */
+    wearSignals?: Map<string, { passedOver: number; chosenInstead: number }>;
   },
 ): ValidatedOutfit[] {
   const validated = outfits.map((o) => {
@@ -623,7 +644,8 @@ export function validateAndRank(
         sum +
         Math.min(opts.wearCounts?.get(item.id) ?? 0, 5) * 2 +
         // Friend-approved pieces (clear poll wins) get an extra nudge.
-        Math.min(opts.pollWins?.get(item.id) ?? 0, 3) * 3,
+        Math.min(opts.pollWins?.get(item.id) ?? 0, 3) * 3 +
+        wearSignalBonus(opts.wearSignals?.get(item.id)),
       0,
     );
     return { ...o, validation: { ...validation, score: validation.score + preferenceBonus } };
@@ -652,8 +674,9 @@ export async function mixAndMatch(req: Request, res: Response) {
   const proposed = await suggestOutfits(items, context, count ?? 2);
   const suggested = pinned ? proposed.filter((o) => o.items.some((i) => i.id === pinned.id)) : proposed;
   const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
+  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
   const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const outfits = validateAndRank(suggested, { eventType, recentWear, wearCounts, pollWins });
+  const outfits = validateAndRank(suggested, { eventType, recentWear, wearCounts, pollWins, wearSignals });
   res.json({ outfits });
 }
 
@@ -791,7 +814,8 @@ export async function whatToWearToday(req: Request, res: Response) {
     `${weather.description}. The setting is ${eventType}. Choose weather-appropriate items.`;
   const suggested = await suggestOutfits(items, context);
   const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
+  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
   const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const outfits = validateAndRank(suggested, { eventType, weather, recentWear, wearCounts, pollWins });
+  const outfits = validateAndRank(suggested, { eventType, weather, recentWear, wearCounts, pollWins, wearSignals });
   res.json({ weather, outfits });
 }

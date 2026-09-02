@@ -142,7 +142,8 @@ async function composeOutfit(
   const suggested = await suggestOutfits(items, parts.join(' '));
   const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
   const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const ranked = validateAndRank(suggested, { eventType, ...(weather ? { weather } : {}), recentWear, wearCounts, pollWins });
+  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
+  const ranked = validateAndRank(suggested, { eventType, ...(weather ? { weather } : {}), recentWear, wearCounts, pollWins, wearSignals });
   const top = ranked[0];
   if (!top) return null;
 
