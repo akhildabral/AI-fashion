@@ -3,7 +3,6 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { PullCord } from './PullCord'
 import { initialsOf } from './PeopleDrawer'
-import { isDark, toggleTheme } from '../lib/theme'
 import { NotificationsBell } from './NotificationsBell'
 
 // The header: the wordmark, the four rooms as text on the header's own
@@ -99,7 +98,7 @@ export function Header() {
         {user && (
           <div className="flex items-center gap-3 self-center" ref={menuRef}>
             {/* The light cord hangs from the top edge in its own slot, clear of the bell */}
-            <div className="relative hidden h-16 w-6 sm:block">
+            <div className="relative block h-16 w-6">
               <div className="absolute left-1/2 top-0 -translate-x-1/2">
                 <PullCord />
               </div>
@@ -130,14 +129,6 @@ export function Header() {
                     </Link>
                   )}
                   <div className="my-1 border-t border-ink/10" />
-                  <button type="button" role="menuitem" onClick={() => {
-                      toggleTheme()
-                      setMenuOpen(false)
-                    }}
-                    className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink sm:hidden"
-                  >
-                    {isDark() ? 'Lights on' : 'Lights off'}
-                  </button>
                   <button type="button" role="menuitem" onClick={handleLogout} className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink">
                     Log out
                   </button>

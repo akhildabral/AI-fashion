@@ -42,19 +42,15 @@ export function PullCord() {
       title={dark ? 'Lights on' : 'Lights off'}
       className={`group flex origin-top flex-col items-center ${swinging ? 'animate-cord-swing' : ''}`}
     >
-      <span
-        className="flex origin-top flex-col items-center"
-        style={{
-          transform: tugging ? 'translateY(7px)' : 'translateY(0)',
-          transition: 'transform 170ms cubic-bezier(0.3, 0.9, 0.4, 1.3)',
-        }}
-      >
-        {/* braided rope */}
+      <span className="flex origin-top flex-col items-center">
+        {/* braided rope: it lengthens on the pull, so it never leaves the ceiling */}
         <span
-          className="block h-8 w-[2px] rounded-b-sm opacity-60"
+          className="block w-[2px] rounded-b-sm opacity-60"
           style={{
+            height: tugging ? 39 : 32,
             background:
               'repeating-linear-gradient(180deg, rgb(var(--c-spark)) 0px, rgb(var(--c-spark-deep)) 2.5px, rgb(var(--c-spark)) 5px)',
+            transition: 'height 170ms cubic-bezier(0.3, 0.9, 0.4, 1.3)',
           }}
         />
         {/* handle in the brand primary */}
