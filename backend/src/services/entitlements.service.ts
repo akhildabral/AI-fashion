@@ -69,7 +69,7 @@ export async function checkGenerationQuota(
 
 export async function checkItemCapacity(userId: string, plan: string): Promise<QuotaCheck> {
   const limits = planLimits(plan);
-  const used = await prisma.wardrobeItem.count({ where: { userId, suppressed: false } });
+  const used = await prisma.wardrobeItem.count({ where: { userId, owned: true, suppressed: false } });
   return { allowed: used < limits.items, used, limit: limits.items };
 }
 

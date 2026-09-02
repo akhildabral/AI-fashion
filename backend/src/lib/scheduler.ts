@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { sendWishlistNudges } from '../controllers/store.controller';
 import { notify } from './notify';
 import { localNow, pushEnabled, sendPush } from './push';
 import { ensureDailyBrief } from '../controllers/brief.controller';
@@ -82,12 +83,18 @@ export function startScheduler(): () => void {
   const ritual = () => {
     sendMorningBriefs().catch((err) => console.error('sendMorningBriefs failed:', err instanceof Error ? err.message : err));
   };
+  const wish = () => {
+    sendWishlistNudges().catch((err) => console.error('sendWishlistNudges failed:', err instanceof Error ? err.message : err));
+  };
   settle();
   ritual();
+  wish();
   const a = setInterval(settle, SETTLE_EVERY_MS);
   const b = setInterval(ritual, RITUAL_EVERY_MS);
+  const c = setInterval(wish, 10 * 60 * 1000);
   return () => {
     clearInterval(a);
     clearInterval(b);
+    clearInterval(c);
   };
 }

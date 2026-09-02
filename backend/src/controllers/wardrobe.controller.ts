@@ -131,6 +131,10 @@ async function catalogItem(
 export async function addItem(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   if (!req.file) throw new HttpError(400, 'No image file provided');
+  const body = (req.body ?? {}) as Record<string, string | undefined>;
+  const candidate = body.owned === 'false';
+  const candidateStore = candidate && body.store ? String(body.store).slice(0, 120) : null;
+  const candidatePrice = candidate && body.seenPrice && /^\d+$/.test(body.seenPrice) ? Number(body.seenPrice) : null;
 
   if (req.user.role !== 'admin') {
     const capacity = await checkItemCapacity(req.user.id, req.user.plan);
@@ -173,6 +177,8 @@ export async function addItem(req: Request, res: Response) {
           status: 'processing',
           category: garment.category,
           ...(garment.description ? { description: garment.description } : {}),
+          // In the store: a candidate piece, not owned yet.
+          ...(candidate ? { owned: false, seenAt: new Date(), store: candidateStore, seenPrice: candidatePrice } : {}),
         },
       });
       // Only force generative extraction when a photo holds several garments.

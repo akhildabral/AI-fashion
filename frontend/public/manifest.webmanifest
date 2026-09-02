@@ -8,6 +8,10 @@
   "display": "standalone",
   "background_color": "#0E0D0B",
   "theme_color": "#0E0D0B",
+  "shortcuts": [
+    { "name": "In the store", "short_name": "In the store", "description": "Point the camera at a piece and see how it fits your closet.", "url": "/closet/store", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Today", "url": "/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

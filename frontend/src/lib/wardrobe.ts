@@ -33,6 +33,30 @@ export function basketClean(itemIds?: string[]): Promise<{ ok: true; count: numb
   return apiFetch<{ ok: true; count: number }>('/wardrobe/basket/clean', { method: 'POST', body: itemIds ? { itemIds } : {} })
 }
 
+export interface VerdictResponse {
+  status: 'ready' | 'processing' | 'failed'
+  piece: WardrobeItem
+  verdict: { outfits: number; pairs: number; closetSize: number; computedAt: string }
+  outfits: { items: WardrobeItem[]; score: number }[]
+  closest: { item: WardrobeItem; wears: number; likeness: number } | null
+  unlockLine: string | null
+}
+
+/** POST /api/wardrobe with owned=false — a piece seen in a store, not owned yet. */
+export function addCandidate(file: File, meta: { store?: string; seenPrice?: number } = {}): Promise<WardrobeItemResponse> {
+  const form = new FormData()
+  form.append('image', file)
+  form.append('owned', 'false')
+  if (meta.store) form.append('store', meta.store)
+  if (meta.seenPrice != null) form.append('seenPrice', String(meta.seenPrice))
+  return apiUpload<WardrobeItemResponse>('/wardrobe', form)
+}
+
+/** GET /api/wardrobe/:id/verdict — how a piece fits the closet. */
+export function getVerdict(id: string): Promise<VerdictResponse> {
+  return apiFetch<VerdictResponse>(`/wardrobe/${id}/verdict`)
+}
+
 /** GET /api/wardrobe?owned=false — pieces you don't own yet. */
 export function getWishlist(): Promise<WardrobeListResponse> {
   return apiFetch<WardrobeListResponse>('/wardrobe?owned=false')
