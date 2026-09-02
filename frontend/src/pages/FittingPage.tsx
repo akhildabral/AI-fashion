@@ -631,7 +631,8 @@ export function FittingPage() {
               {/* the diamond at the head of the thread, sitting on the line */}
               <span
                 aria-hidden
-                className="absolute -right-[6px] -top-[5px] h-3 w-3 rotate-45 bg-brass-hi"
+                className="absolute -right-[6px] -top-[5px] h-3 w-3 rotate-45"
+                style={{ background: "var(--c-brass-hi)" }}
               />
             </div>
           </div>
