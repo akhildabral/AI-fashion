@@ -324,7 +324,9 @@ export function TodayPage() {
             </p>
           )}
 
-          <div className="mt-3 max-w-3xl">
+          <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
+          <div className="min-w-0">
+          <div className="max-w-3xl">
             <h1 className="animate-rise-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
               {worn ? (
                 <>
@@ -367,7 +369,7 @@ export function TodayPage() {
 
           {/* The outfit — arched apertures, with a one-time light-catch sweep */}
           <div key={brief.itemIds.join('-')} className="relative mt-8">
-            <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4">
               {brief.items.map((item) => (
                 <GarmentTile
                   key={item.id}
@@ -415,14 +417,14 @@ export function TodayPage() {
                 Logged for today
               </span>
             )}
-            <button type="button" onClick={handleSeeOnYou} className="btn-ghost">
+            <button type="button" onClick={handleSeeOnYou} className={worn ? 'btn-primary' : 'btn-ghost'}>
               See it on you
             </button>
-            {!isRefinement ? (
+            {!isRefinement && !worn ? (
               <button
                 type="button"
                 onClick={() => void load({ refresh: true })}
-                disabled={busy === 'another' || worn}
+                disabled={busy === 'another'}
                 className="btn-ghost"
               >
                 {busy === 'another' ? (
@@ -433,11 +435,11 @@ export function TodayPage() {
                   'Another'
                 )}
               </button>
-            ) : (
+            ) : isRefinement ? (
               <button type="button" onClick={() => void load()} className="btn-ghost">
                 Back to today&rsquo;s brief
               </button>
-            )}
+            ) : null}
           </div>
 
           {sharePrompt === 'offer' && (
@@ -469,9 +471,13 @@ export function TodayPage() {
             </div>
           )}
 
+          </div>
+
+          {/* Right rail on desktop: the payoff and the dial, beside the look */}
+          <aside className="mt-10 lg:mt-0 lg:self-start">
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (
-            <div className="plaque mt-8 max-w-md animate-rise p-5 pl-6">
+            <div className="plaque max-w-md animate-rise p-5 pl-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
                 Your closet is working
               </p>
@@ -502,8 +508,8 @@ export function TodayPage() {
             </div>
           )}
 
-          {/* Occasion refinement — below the confident answer */}
-          <div className="mt-10 max-w-xl">
+          {/* Occasion refinement — beside the confident answer */}
+          <div className={`max-w-xl ${stats && stats.monthlyPayback > 0 ? 'mt-8' : ''}`}>
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45">
               Dressing for something else?
             </p>
@@ -537,6 +543,8 @@ export function TodayPage() {
                 </button>
               ))}
             </div>
+          </div>
+          </aside>
           </div>
 
           {/* Trip + circle nudges */}

@@ -18,19 +18,22 @@ const transport = smtpConfigured
 
 // ---- Branded HTML wrapper ------------------------------------------------
 // Email clients need table layout + inline styles (no external CSS, no web
-// fonts). Palette mirrors the app: bone ground, ink text, vermilion accent.
+// fonts). Palette mirrors the app's Atelier "gallery by day": warm paper
+// ground, ink text, brass accent, sharp 3px chrome.
 
 const C = {
-  bone: '#FBFAF8',
-  surface: '#FFFFFF',
-  ink: '#1D1512',
-  inkSoft: '#6F6660',
-  iris: '#D9481F',
-  border: '#EDE9E4',
+  bone: '#EBE5D7',
+  surface: '#F5F0E6',
+  ink: '#221B12',
+  inkSoft: '#6B6252',
+  brass: '#B98C3B',
+  brassInk: '#1A1509',
+  brassText: '#8A6620',
+  border: '#DDD5C3',
 };
 
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
-const SERIF = "Georgia,'Times New Roman',serif";
+const SERIF = "'Bodoni MT','Didot',Georgia,'Times New Roman',serif";
 
 interface EmailBody {
   /** Big display line, e.g. "You're in." */
@@ -61,20 +64,20 @@ export function renderEmail(b: EmailBody): string {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
 
         <tr><td align="center" style="padding:0 0 28px;">
-          <span style="font-family:${SANS};font-size:18px;font-weight:800;letter-spacing:-0.3px;color:${C.ink};">AI&nbsp;Fashion</span><span style="font-family:${SANS};font-size:18px;font-weight:800;color:${C.iris};">*</span>
+          <span style="font-family:${SERIF};font-size:20px;font-weight:700;letter-spacing:-0.2px;color:${C.ink};">AI&nbsp;Fashion</span><span style="font-family:${SERIF};font-size:20px;font-weight:700;color:${C.brass};">*</span>
         </td></tr>
 
-        <tr><td style="background-color:${C.surface};border:1px solid ${C.border};border-radius:16px;padding:36px 36px 32px;">
-          <h1 style="margin:0 0 6px;font-family:${SANS};font-size:32px;font-weight:800;letter-spacing:-0.8px;line-height:1.1;color:${C.ink};">${b.headline}</h1>
-          <p style="margin:0 0 22px;font-family:${SERIF};font-style:italic;font-size:15px;color:${C.inkSoft};">${b.tagline}</p>
+        <tr><td style="background-color:${C.surface};border:1px solid ${C.border};border-top:2px solid ${C.brass};border-radius:3px;padding:36px 36px 32px;">
+          <h1 style="margin:0 0 6px;font-family:${SERIF};font-size:34px;font-weight:500;letter-spacing:-0.4px;line-height:1.08;color:${C.ink};">${b.headline}</h1>
+          <p style="margin:0 0 22px;font-family:${SERIF};font-style:italic;font-size:16px;color:${C.brassText};">${b.tagline}</p>
           ${paragraphs}
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
-            <tr><td style="background-color:${C.iris};border-radius:999px;">
-              <a href="${b.cta.url}" style="display:inline-block;padding:13px 30px;font-family:${SANS};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${b.cta.label}</a>
+            <tr><td style="background-color:${C.brass};border-radius:3px;">
+              <a href="${b.cta.url}" style="display:inline-block;padding:13px 30px;font-family:${SANS};font-size:15px;font-weight:700;color:${C.brassInk};text-decoration:none;">${b.cta.label}</a>
             </td></tr>
           </table>
           <p style="margin:14px 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.inkSoft};">${b.footnote}</p>
-          <p style="margin:16px 0 0;font-family:${SANS};font-size:11px;line-height:1.5;color:${C.inkSoft};word-break:break-all;">Button not working? Paste this link into your browser:<br><a href="${b.cta.url}" style="color:${C.iris};">${b.cta.url}</a></p>
+          <p style="margin:16px 0 0;font-family:${SANS};font-size:11px;line-height:1.5;color:${C.inkSoft};word-break:break-all;">Button not working? Paste this link into your browser:<br><a href="${b.cta.url}" style="color:${C.brassText};">${b.cta.url}</a></p>
         </td></tr>
 
         <tr><td align="center" style="padding:22px 0 0;">

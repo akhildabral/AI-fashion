@@ -278,7 +278,9 @@ export async function suggestOutfits(
         'the items in the wardrobe catalog, referenced by their exact ids. Combine a ' +
         'sensible set (e.g. top + bottom + footwear, or a dress + footwear, plus fitting ' +
         'outerwear/accessories when appropriate). Use each id at most once per outfit and ' +
-        'ONLY ids that appear in the catalog. Explain each choice for the given context.',
+        'ONLY ids that appear in the catalog. For each outfit write ONE "rationale" sentence, ' +
+        'at most 22 words, in a confident stylist\'s voice: the one reason this works for the ' +
+        'context (weather, occasion, or a colour/texture pairing). Never list the items back; never mention ids.',
       prompt: `Context: ${context}\n\nWardrobe catalog:\n${catalog}`,
     });
     parsed = object;
