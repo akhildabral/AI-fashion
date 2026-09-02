@@ -543,7 +543,7 @@ export function MirrorPage() {
         <div className="mt-10 lg:mt-0">
           {/* the rail: pieces on you, each a switch */}
           <section>
-            <div className="flex items-baseline justify-between gap-3">
+            <div className="flex h-8 items-center justify-between gap-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">On you</p>
               {rail.length > 0 && (
                 <button type="button" onClick={() => setRail([])} className="btn-quiet !h-8 !text-xs">
@@ -595,20 +595,24 @@ export function MirrorPage() {
                   </div>
                 ))}
                 {closet && (
-                  <button type="button" onClick={() => setSwapFor({ id: '', imageUrl: '', category: '', subtype: null })} className="press text-left" title="Add a piece">
-                    <div className="arch-bezel aspect-[5/6] opacity-50 transition hover:opacity-90">
-                      <div className="arch-niche flex h-full w-full items-center justify-center">
-                        <span className="text-2xl text-ink/40">+</span>
+                  <div>
+                    <button type="button" onClick={() => setSwapFor({ id: '', imageUrl: '', category: '', subtype: null })} className="press block w-full text-left" title="Add a piece">
+                      <div className="arch-bezel aspect-[5/6] opacity-40 transition-opacity hover:opacity-80">
+                        <div className="arch-niche flex h-full w-full items-center justify-center">
+                          <span className="relative z-[1] font-display text-3xl text-ink/45">+</span>
+                        </div>
                       </div>
-                    </div>
-                    <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/40">Add</span>
-                  </button>
+                      <span className="mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/40">Add a piece</span>
+                    </button>
+                    {/* the same row the others give to Swap, so the tiles sit level */}
+                    <span aria-hidden className="block h-7" />
+                  </div>
                 )}
               </div>
             )}
 
             {/* the meter and the button */}
-            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="action-row mt-6">
               <button type="button" disabled={chosen.length === 0 || rendering || busy === 'render' || out} onClick={() => void fire(false)} className="btn-primary">
                 {busy === 'render' ? 'Starting…' : rendering ? 'Rendering…' : `See it on me${left != null && !out ? ' · 1 render' : ''}`}
               </button>
@@ -633,8 +637,9 @@ export function MirrorPage() {
 
           {/* your reflections: up to three, one dressed */}
           {photoChecked && (photos.length > 0 || photoUrl) && (
-            <section className="mt-6 flex flex-wrap items-center gap-3">
-              <p className="mr-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your reflections</p>
+            <section className="mt-8 border-t border-ink/10 pt-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your reflections</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
               {photos.map((p) => (
                 <div key={p.id} className="group relative">
                   <button type="button" onClick={() => void pickPhoto(p.id)} aria-pressed={p.active} title={p.active ? 'The one the Mirror dresses' : 'Dress this one'} className={`press block w-12 overflow-hidden rounded-[3px] border transition-colors ${p.active ? 'border-brass ring-2 ring-brass/30' : 'border-ink/15 opacity-70 hover:opacity-100'}`}>
@@ -652,7 +657,8 @@ export function MirrorPage() {
                   +
                 </button>
               )}
-              <span className="text-xs text-ink/45">{photos.length < photoMax ? 'Another for winter, a haircut, a different length.' : 'Three at most.'}</span>
+              </div>
+              <p className="mt-2 text-xs text-ink/45">{photos.length < photoMax ? 'Another for winter, a haircut, a different length. The brass one is the one the Mirror dresses.' : 'Three at most. The brass one is the one the Mirror dresses.'}</p>
             </section>
           )}
 
@@ -660,8 +666,8 @@ export function MirrorPage() {
           {ready && current && !compareMode && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Then</p>
-              {current.items && current.items.length > 0 && <p className="mt-1 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
-              <div className="action-row mt-3">
+              {current.items && current.items.length > 0 && <p className="mt-2 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
+              <div className="action-row mt-4">
                 {decided.wear ? (
                   <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass">Logged for today</span>
                 ) : (
@@ -773,7 +779,8 @@ export function MirrorPage() {
           {/* ---------------- Renders ---------------- */}
           {photoUrl && (tryOns?.length ?? 0) > 0 && (
             <section className="mt-10 border-t border-ink/10 pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Renders</p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-1">
                   <button type="button" onClick={() => setActiveBook(null)} aria-pressed={activeBook === null} className="filter press">
                     All<span className="count">{tryOns?.length ?? 0}</span>
