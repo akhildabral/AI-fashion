@@ -40,20 +40,26 @@ const CLEAN_PROMPT =
   KEEP_PROPORTIONS +
   ' Preserve its true colors, pattern, texture, logos, and stitching.';
 
-// The studio tidy-up: this exact piece, cleaned and completed — never redrawn.
-// It is given the piece already cut out on white, so there is nothing to
-// re-imagine but the edges and whatever the crop hid.
-function tidyPrompt(category?: string | null): string {
+// The studio shot, as it always was — upright, straight, front-facing,
+// filling the frame at true proportions — but anchored on the piece itself:
+// it is given the cut-out, and told it must remain that very item.
+function studioPrompt(category?: string | null): string {
   const what = category === 'footwear' ? 'pair of shoes' : category === 'accessory' ? 'accessory' : 'garment';
+  const pose =
+    category === 'footwear'
+      ? 'Present the pair neatly on the ground, from a clean catalogue angle (side profile or three-quarter view, whichever the photo is closest to), toes to one side.'
+      : category === 'accessory'
+        ? 'Present it from the front at its natural angle, complete and uncropped.'
+        : KEEP_PROPORTIONS;
   return (
-    `This is a photo of a real ${what}, already cut out on white. Keep it EXACTLY ` +
-    'as it is: the same item, the same angle and pose, the same colours, fabric, ' +
-    'texture, wear, stitching, folds and proportions. Do not restyle, straighten, ' +
-    're-cut, flatten, re-colour or replace any part of it. Only: remove any remaining ' +
-    'background, shadow or object that is not the item; complete any small part the ' +
-    'photo cut off; smooth the cut edges; and present it cleanly, evenly lit, on a ' +
-    'plain seamless white studio background. It must be recognisable as the very same ' +
-    'item from the same photo.'
+    `This is a photo of a real ${what}, cut out on white. Re-photograph THIS EXACT ${what} ` +
+    'as a clean e-commerce product shot on a plain seamless white studio background. ' +
+    'It must remain the very same item: the same design, cut, colour, wash, fabric, ' +
+    'texture, pattern, stitching, hardware, logos and signs of wear. Do not substitute, ' +
+    'redesign, recolour or idealise it. ' +
+    pose +
+    ' Straighten and smooth it as a stylist would on a table; complete any small part the ' +
+    'photo cut off; light it evenly; remove any remaining background or shadow.'
   );
 }
 
@@ -146,7 +152,7 @@ export async function studioRender(
     // With a cut-out in hand the studio only tidies it; without one (a piece
     // to be isolated from several, or a photo that would not matte) it must
     // extract the garment from the photo.
-    const prompt = target ? targetedPrompt(target) : local ? tidyPrompt(category) : CLEAN_PROMPT;
+    const prompt = target ? targetedPrompt(target) : local ? studioPrompt(category) : CLEAN_PROMPT;
     const input = local ? { data: await onWhite(local.png), mime: 'image/jpeg' } : { data: image, mime };
     const cleaned = await editImage(prompt, [input]);
     if (!cleaned) return null;
