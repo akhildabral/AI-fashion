@@ -1,3 +1,4 @@
+import { temp } from '../lib/units'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay } from '../lib/brief'
@@ -195,7 +196,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
           <p className="mt-5 text-[15px] leading-relaxed text-ink/55">
             {look.weather && (
               <span className="font-semibold text-brass">
-                {Math.round(look.weather.temperatureC)}° · {look.weather.description}
+                {temp(look.weather.temperatureC)} · {look.weather.description}
                 {'  ·  '}
               </span>
             )}
@@ -224,7 +225,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">{longDay(date)}</p>
           {look.weather ? (
             <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
-              {Math.round(look.weather.temperatureC)}° <span className="font-sans text-xs font-semibold normal-case text-ink/55">{look.weather.description}</span>
+              {temp(look.weather.temperatureC)} <span className="font-sans text-xs font-semibold normal-case text-ink/55">{look.weather.description}</span>
             </p>
           ) : (
             <p className="mt-1 text-sm text-ink/55">Add your city in the fitting for the forecast.</p>

@@ -27,6 +27,7 @@ const profileSchema = z.object({
   occasions: z.array(z.string().max(30)).max(8).optional(),
   fittingStep: z.number().int().min(0).max(20).optional(),
   fittingDone: z.boolean().optional(),
+  units: z.enum(['metric', 'imperial']).nullish(),
 });
 
 export async function getMyProfile(req: Request, res: Response) {

@@ -13,6 +13,7 @@ export interface ProfileInput {
   avoidColors?: string[];
   intents?: string[];
   occasions?: string[];
+  units?: string | null;
   fittingStep?: number;
   fittingDone?: boolean;
   currency?: string | null;
@@ -39,6 +40,7 @@ export function upsertProfile(userId: string, input: ProfileInput) {
     avoidColors?: string[];
     intents?: string[];
     occasions?: string[];
+    units?: string | null;
     fittingStep?: number;
     fittingCompletedAt?: Date | null;
   } = {};
@@ -54,6 +56,7 @@ export function upsertProfile(userId: string, input: ProfileInput) {
   if (input.avoidColors !== undefined) data.avoidColors = input.avoidColors;
   if (input.intents !== undefined) data.intents = input.intents;
   if (input.occasions !== undefined) data.occasions = input.occasions;
+  if (input.units !== undefined) data.units = input.units;
   // Progress only moves forward; a Back tap never loses ground.
   if (input.fittingStep !== undefined) data.fittingStep = input.fittingStep;
   if (input.fittingDone) data.fittingCompletedAt = new Date();

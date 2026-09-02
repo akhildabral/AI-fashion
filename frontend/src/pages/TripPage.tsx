@@ -7,6 +7,7 @@ import { deleteTrip, getTrip, swapTripItem, updateTrip, type TripPage as TripPag
 import { getWardrobe } from '../lib/wardrobe'
 import type { WardrobeItem } from '../lib/types'
 import { resolveImageUrl } from '../lib/api'
+import { tempRange } from '../lib/units'
 
 // A trip is a page. Open it on packing day; look back on it after.
 
@@ -257,7 +258,7 @@ export function TripPage() {
               <div key={d.date} className="plaque min-w-[7.5rem] shrink-0 p-3 pl-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(d.date)}</p>
                 <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">
-                  {d.minC}–{d.maxC}°
+                  {tempRange(d.minC, d.maxC)}
                 </p>
                 <p className="mt-0.5 text-xs capitalize text-ink/55">
                   {d.description}

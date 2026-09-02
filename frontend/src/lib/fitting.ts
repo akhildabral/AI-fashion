@@ -16,13 +16,24 @@ export type FittingPatch = Partial<
     | "avoidColors"
     | "city"
     | "styleFor"
+    | "currency"
   >
 > & {
   intents?: string[];
   occasions?: string[];
   fittingStep?: number;
   fittingDone?: boolean;
+  units?: "metric" | "imperial" | null;
 };
+
+/** The way out: the account and every file, after typing the email to confirm. */
+export function deleteAccount(confirm: string) {
+  return apiFetch<void>("/auth/me", { method: "DELETE", body: { confirm } });
+}
+
+export function updateName(firstName: string, lastName: string | null) {
+  return apiFetch<{ user: import("./types").User }>("/auth/me", { method: "PATCH", body: { firstName, lastName } });
+}
 
 export function saveFitting(patch: FittingPatch) {
   return apiFetch<{ profile: StyleProfile }>("/profile", {

@@ -13,6 +13,7 @@ import { ShareButton } from '../components/ShareButton'
 import { clearLookPhoto, setLookPhoto, shareLook, unshareLook } from '../lib/circle'
 import { Arch, GarmentTile, Modal, PageShell, Stat, Toast, useFlash } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
+import { temp } from '../lib/units'
 
 // The record: what was actually worn, day by day, with the holes showing.
 // It is the dataset every brief learns from, so it reads like a ledger you
@@ -326,7 +327,7 @@ function DayCard({ log, onChange, onRemove, onNote }: { log: WearLogEntry; onCha
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(log.wornOn)}</p>
         <p className="text-xs text-ink/45">
           {occasionLabel(log.eventType)}
-          {log.weather ? ` · ${Math.round(log.weather.temperatureC)}° ${log.weather.description}` : ''}
+          {log.weather ? ` · ${temp(log.weather.temperatureC)} ${log.weather.description}` : ''}
           {shared ? ' · on the circle' : ''}
         </p>
       </div>

@@ -1,3 +1,4 @@
+import { temp } from '../lib/units'
 import { money } from '../lib/money'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -484,7 +485,7 @@ export function TodayPage() {
             <p className="mt-4 max-w-2xl animate-rise-2 text-[15px] leading-relaxed text-ink/55">
               {brief.weather && (
                 <span className="font-semibold text-brass">
-                  {Math.round(brief.weather.temperatureC)}° · {brief.weather.description}
+                  {temp(brief.weather.temperatureC)} · {brief.weather.description}
                   {'  ·  '}
                 </span>
               )}
@@ -593,7 +594,7 @@ export function TodayPage() {
               {/* One sentence, with the question as part of it — never a button orphaned on its own line. */}
               <p className="text-sm text-ink/60">
                 Composed for <b className="font-semibold text-ink">{brief.occasion ? brief.occasion.toLowerCase() : `a ${EVENT_WORD[brief.eventType] ?? brief.eventType} day`}</b>
-                {brief.weather ? `, ${Math.round(brief.weather.temperatureC)}° and ${brief.weather.description}` : ''}, from what’s clean in your closet.{' '}
+                {brief.weather ? `, ${temp(brief.weather.temperatureC)} and ${brief.weather.description}` : ''}, from what’s clean in your closet.{' '}
                 <button type="button" onClick={() => setDayOpen((v) => !v)} className="press font-semibold text-brass underline-offset-4 hover:underline">
                   {dayOpen ? 'Keep it' : 'Not that kind of day?'}
                 </button>

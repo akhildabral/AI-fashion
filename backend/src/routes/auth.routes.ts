@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, me, register, resend, updateMe, verify } from '../controllers/auth.controller';
+import { deleteMe, login, me, register, resend, updateMe, verify } from '../controllers/auth.controller';
 import {
   acceptInvite,
   authConfig,
@@ -32,6 +32,7 @@ authRouter.get('/verify-email', authLimiter, verify);
 authRouter.post('/resend-verification', authLimiter, resend);
 authRouter.get('/me', requireAuth, me);
 authRouter.patch('/me', requireAuth, updateMe);
+authRouter.delete('/me', requireAuth, deleteMe);
 authRouter.get('/config', authConfig);
 authRouter.post('/google', authLimiter, googleAuth);
 authRouter.post('/waitlist', authLimiter, joinWaitlist);

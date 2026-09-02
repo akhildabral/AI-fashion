@@ -7,6 +7,7 @@ import { createTrip, getTrips, type Trip } from '../lib/brief'
 import type { PackingResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { resolveImageUrl } from '../lib/api'
+import { tempRange } from '../lib/units'
 
 // Trips: a destination and dates become a capsule packed from the closet.
 // Save it and the trip becomes a page: the plan, a checklist that
@@ -220,7 +221,7 @@ export function PackingPage() {
                   <div key={d.date} className="plaque min-w-[7.5rem] shrink-0 p-3 pl-4">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(d.date)}</p>
                     <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">
-                      {d.minC}–{d.maxC}°
+                      {tempRange(d.minC, d.maxC)}
                     </p>
                     <p className="mt-0.5 text-xs capitalize text-ink/55">
                       {d.description}

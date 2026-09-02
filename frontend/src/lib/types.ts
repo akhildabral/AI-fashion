@@ -7,6 +7,12 @@ export interface User {
   name?: string
   firstName?: string | null
   lastName?: string | null
+  emailVerified?: boolean
+  plan?: string
+  planStatus?: string
+  hasPassword?: boolean
+  hasGoogle?: boolean
+  createdAt?: string
 }
 
 /** Register no longer returns a token (waitlist) — except for bootstrap admins. */
@@ -50,6 +56,8 @@ export interface StyleProfile {
   occasions?: string[]
   fittingStep?: number
   fittingCompletedAt?: string | null
+  /** metric | imperial */
+  units?: string | null
 }
 
 // ---- Taste quiz (cold-start personalization) ----

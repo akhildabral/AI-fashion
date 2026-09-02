@@ -343,6 +343,8 @@ model StyleProfile {
   // resume from Today instead of resetting.
   intents            String[]  @default([])
   occasions          String[]  @default([])
+  // metric | imperial — how heights and temperatures read to them.
+  units              String?
   fittingStep        Int       @default(0)
   fittingCompletedAt DateTime?
   createdAt   DateTime @default(now())

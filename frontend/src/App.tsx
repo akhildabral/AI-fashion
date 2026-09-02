@@ -4,6 +4,7 @@ import { ProfileProvider } from './context/ProfileProvider'
 import { useProfile } from './context/useProfile'
 import { useEffect } from 'react'
 import { setCurrentCurrency } from './lib/money'
+import { setCurrentUnits } from './lib/units'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
@@ -34,12 +35,13 @@ import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
-/** Every figure prints in the member's currency once the profile is known. */
+/** Every figure prints in the member's currency and units once the profile is known. */
 function CurrencySync() {
   const { profile } = useProfile()
   useEffect(() => {
     setCurrentCurrency(profile?.currency ?? null)
-  }, [profile?.currency])
+    setCurrentUnits(profile?.units ?? null)
+  }, [profile?.currency, profile?.units])
   return null
 }
 
