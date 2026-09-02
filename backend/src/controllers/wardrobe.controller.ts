@@ -27,6 +27,7 @@ import {
 } from '../services/validator.service';
 import { extractPalette } from '../lib/color';
 import { EVENT_TYPES, ITEM_STATES, type EventType } from '../lib/attributes';
+import { wearSignalBonus } from '../lib/wear-signal';
 import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 
@@ -611,16 +612,6 @@ export interface ValidatedOutfit extends SuggestedOutfit {
 // nothing passes — then the least-bad ones are returned with their violations
 // attached so the client can say why they're a stretch), the rest are ranked
 // by validator score plus a revealed-preference bonus for well-worn pieces.
-/**
- * What a corrected day says about a piece: left on the chair when it was
- * laid out counts against it, reached for when it wasn't counts for it.
- * Capped so one habit never drowns the validator's own judgement.
- */
-export function wearSignalBonus(sig: { passedOver: number; chosenInstead: number } | undefined): number {
-  if (!sig) return 0;
-  return Math.min(sig.chosenInstead, 4) * 2 - Math.min(sig.passedOver, 4) * 1.5;
-}
-
 export function validateAndRank(
   outfits: SuggestedOutfit[],
   opts: {

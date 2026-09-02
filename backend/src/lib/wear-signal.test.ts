@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { wearSignalBonus } from './wardrobe.controller';
+import { wearSignalBonus } from './wear-signal';
 
 describe('wearSignalBonus', () => {
   it('is nothing without a corrected day', () => {
