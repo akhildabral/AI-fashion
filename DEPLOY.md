@@ -280,7 +280,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=you@gmail.com
 SMTP_PASS=<16-char app password, spaces removed>
-SMTP_FROM=AI Fashion <you@gmail.com>
+SMTP_FROM=ZAUQ <you@gmail.com>
 ```
 
    Port 587 = STARTTLS; the mailer switches to implicit TLS automatically

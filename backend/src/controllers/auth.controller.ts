@@ -29,7 +29,7 @@ export async function register(req: Request, res: Response) {
   // the original path so a fresh deployment can always mint its first admin.
   const { env } = await import('../config/env');
   if (!env.ADMIN_EMAILS.includes(email.trim().toLowerCase())) {
-    throw new HttpError(403, 'AI Fashion is invite-only — join the waitlist instead');
+    throw new HttpError(403, 'ZAUQ is invite-only — join the waitlist instead');
   }
   const result = await registerUser(email, password, publicOrigin(req));
   res.status(201).json(result);

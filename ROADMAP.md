@@ -1,4 +1,4 @@
-# AI Fashion — Product Roadmap
+# ZAUQ — Product Roadmap
 
 > An AI stylist that knows *you*: personalized outfit recommendations, rendered on your own body, built from your real wardrobe, and shoppable.
 

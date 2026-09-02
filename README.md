@@ -1,4 +1,4 @@
-# AI Fashion
+# ZAUQ
 
 A personal AI stylist: personalized outfit recommendations, rendered as images,
 built on a persistent style profile. See [ROADMAP.md](ROADMAP.md) for the plan.

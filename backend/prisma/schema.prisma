@@ -1,4 +1,4 @@
-// Prisma schema for AI Fashion
+// Prisma schema for ZAUQ
 // Phase 0 foundation: users, style profiles, and generated looks.
 
 generator client {

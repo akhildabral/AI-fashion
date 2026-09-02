@@ -1,4 +1,4 @@
-# AI Fashion backend — Express + Prisma + local matting (onnxruntime).
+# ZAUQ backend — Express + Prisma + local matting (onnxruntime).
 # Migrations run automatically on boot (prisma migrate deploy).
 
 FROM node:22-slim AS build

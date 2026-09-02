@@ -1,4 +1,4 @@
-# AI Fashion web — builds the Vite frontend and serves it with Caddy,
+# ZAUQ web — builds the Vite frontend and serves it with Caddy,
 # which also terminates TLS and proxies /api and /vote to the backend.
 # Build context: repo root.
 

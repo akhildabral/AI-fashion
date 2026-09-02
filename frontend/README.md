@@ -1,6 +1,6 @@
-# AI Fashion — Frontend
+# ZAUQ — Frontend
 
-A minimal SPA for the AI Fashion personal stylist: sign in, describe an occasion,
+A minimal SPA for the ZAUQ personal stylist: sign in, describe an occasion,
 and get a generated look (image, outfit pieces, and rationale).
 
 Built with **Vite + React + TypeScript**, **Tailwind CSS**, and **react-router-dom**.

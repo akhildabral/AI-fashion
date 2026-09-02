@@ -1,8 +1,8 @@
-# AI Fashion — Mobile
+# ZAUQ — Mobile
 
-A cross-platform (iOS + Android) app for the **AI Fashion** personal AI stylist,
+A cross-platform (iOS + Android) app for the **ZAUQ** personal AI stylist,
 built with **Expo (managed workflow) + TypeScript**. It talks to the existing
-AI Fashion backend — it does not modify or replace it.
+ZAUQ backend — it does not modify or replace it.
 
 ## Features
 
@@ -28,7 +28,7 @@ AI Fashion backend — it does not modify or replace it.
 ## Prerequisites
 
 - Node 20.19.4+ (or 22.13+ / 24.3+), npm.
-- The **AI Fashion backend** running on your Mac (port **3000**, base path `/api`):
+- The **ZAUQ backend** running on your Mac (port **3000**, base path `/api`):
 
   ```bash
   cd ../backend

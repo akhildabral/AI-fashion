@@ -114,7 +114,7 @@ export function BillingPage() {
       new window.Razorpay({
         key: session.keyId,
         subscription_id: session.subscriptionId,
-        name: 'AI Fashion',
+        name: 'ZAUQ',
         description: `${plan === 'plus' ? 'Plus' : 'Pro'} subscription`,
         prefill: { email: session.email },
         theme: { color: '#D9481F' },

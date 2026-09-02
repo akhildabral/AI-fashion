@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "AI Fashion backend — personal AI stylist API",
+  "description": "ZAUQ backend — personal AI stylist API",
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {

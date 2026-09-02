@@ -7,7 +7,7 @@ import { startScheduler } from './lib/scheduler';
 const app = createApp();
 
 const server = app.listen(env.PORT, () => {
-  console.log(`🧥 AI Fashion API listening on http://localhost:${env.PORT}`);
+  console.log(`🧥 ZAUQ API listening on http://localhost:${env.PORT}`);
 });
 const stopScheduler = startScheduler();
 

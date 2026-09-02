@@ -38,7 +38,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().default('AI Fashion <no-reply@localhost>'),
+  SMTP_FROM: z.string().default('ZAUQ <no-reply@localhost>'),
   // Comma-separated allowed browser origins. Empty = allow all (dev).
   CORS_ORIGINS: z
     .string()

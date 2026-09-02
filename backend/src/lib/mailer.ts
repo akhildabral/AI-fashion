@@ -64,7 +64,7 @@ export function renderEmail(b: EmailBody): string {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
 
         <tr><td align="center" style="padding:0 0 28px;">
-          <span style="font-family:${SERIF};font-size:20px;font-weight:700;letter-spacing:-0.2px;color:${C.ink};">AI&nbsp;Fashion</span><span style="font-family:${SERIF};font-size:20px;font-weight:700;color:${C.brass};">*</span>
+          <span style="font-family:${SERIF};font-size:20px;font-weight:700;letter-spacing:-0.2px;color:${C.ink};">ZAUQ</span><span style="font-family:${SERIF};font-size:20px;font-weight:700;color:${C.brass};">*</span>
         </td></tr>
 
         <tr><td style="background-color:${C.surface};border:1px solid ${C.border};border-top:2px solid ${C.brass};border-radius:3px;padding:36px 36px 32px;">
@@ -100,9 +100,9 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
   await transport.sendMail({
     from: env.SMTP_FROM,
     to,
-    subject: 'Verify your email — AI Fashion',
+    subject: 'Verify your email — ZAUQ',
     text:
-      `Welcome to AI Fashion!\n\n` +
+      `Welcome to ZAUQ!\n\n` +
       `Confirm your email by opening this link:\n${verifyUrl}\n\n` +
       `The link is valid for 24 hours. After verification your account joins ` +
       `the waitlist — we'll let you know when access is approved.\n\n` +
@@ -111,7 +111,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
       headline: 'Almost there.',
       tagline: 'one click between you and your stylist',
       paragraphs: [
-        `Confirm this email address to finish setting up your <strong>AI&nbsp;Fashion</strong> account.`,
+        `Confirm this email address to finish setting up your <strong>ZAUQ</strong> account.`,
       ],
       cta: { label: 'Confirm my email', url: verifyUrl },
       footnote:
@@ -130,15 +130,15 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   await transport.sendMail({
     from: env.SMTP_FROM,
     to,
-    subject: 'A way back in — AI Fashion',
+    subject: 'A way back in — ZAUQ',
     text:
-      `You asked for a way back into AI Fashion.\n\n` +
+      `You asked for a way back into ZAUQ.\n\n` +
       `Choose a new password here:\n${resetUrl}\n\n` +
       `The link lasts an hour. If you didn't ask for it, ignore this email — nothing changes.`,
     html: renderEmail({
       headline: 'A way back in.',
       tagline: 'choose a new password',
-      paragraphs: [`You asked for a way back into <strong>AI&nbsp;Fashion</strong>. The link below lasts an hour.`, `If you didn't ask for it, ignore this email — nothing changes.`],
+      paragraphs: [`You asked for a way back into <strong>ZAUQ</strong>. The link below lasts an hour.`, `If you didn't ask for it, ignore this email — nothing changes.`],
       cta: { label: 'Choose a new password', url: resetUrl },
       footnote: 'The link lasts an hour. If you didn’t ask for it, nothing changes.',
     }),
@@ -153,7 +153,7 @@ export async function sendInviteEmail(to: string, inviteUrl: string): Promise<bo
   await transport.sendMail({
     from: env.SMTP_FROM,
     to,
-    subject: "You're in — your AI Fashion invite",
+    subject: "You're in — your ZAUQ invite",
     text:
       `You're off the waitlist!\n\n` +
       `Your personal stylist is ready. Set your password and step in:\n${inviteUrl}\n\n` +

@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 
-const APP_NAME = 'AI Fashion'
+const APP_NAME = 'ZAUQ'
 
 /**
- * Sets the document title for the current page ("Closet · AI Fashion"),
+ * Sets the document title for the current page ("Closet · ZAUQ"),
  * restoring the bare app name on unmount so stale titles never linger.
  */
 export function usePageTitle(title?: string) {

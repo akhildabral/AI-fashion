@@ -22,7 +22,7 @@ export async function shareCard(t: ShareTarget): Promise<ShareOutcome> {
   let file: File | null = null
   try {
     const blob = await apiFetchBlob(`/share/${t.kind}/${t.id}.png`)
-    file = new File([blob], `ai-fashion-${t.kind}.png`, { type: 'image/png' })
+    file = new File([blob], `zauq-${t.kind}.png`, { type: 'image/png' })
   } catch {
     file = null
   }

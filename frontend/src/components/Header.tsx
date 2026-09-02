@@ -75,7 +75,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-[1400px] items-stretch justify-between gap-6 px-4 sm:px-6">
         <Link to="/" className="group flex items-baseline gap-2 self-center">
           <span className="font-display text-xl font-extrabold tracking-tight text-ink">
-            AI&nbsp;Fashion
+            ZAUQ
             <span className="text-iris transition-colors group-hover:text-iris-deep">*</span>
           </span>
           <span className="hidden font-display text-xs italic text-ink/40 lg:inline">your daily stylist</span>

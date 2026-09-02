@@ -24,7 +24,7 @@ export const DEFAULT_REMINDERS: Record<ReminderSlot, ReminderPrefs> = {
 const CONTENT: Record<ReminderSlot, { title: string; body: string }> = {
   morning: {
     title: 'Your look for today ☀️',
-    body: 'Open AI Fashion to see what to wear — weather checked, closet ready.',
+    body: 'Open ZAUQ to see what to wear — weather checked, closet ready.',
   },
   evening: {
     title: 'What did you wear today?',
