@@ -91,7 +91,7 @@ export async function renderLookCard(items: CardItem[], opts: { title: string; l
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
     ${brandLine(80, 82, 34, NIGHT.ink)}
-    <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'MY STYLIST').toUpperCase())}</text>
+    <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? opts.who : 'MY STYLIST').toUpperCase())}</text>
     <text x="80" y="960" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="64" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="80" y="1020" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="34" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
     <rect x="80" y="1250" width="920" height="2" fill="${NIGHT.brassLo}"/>
