@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth'
 import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
+import { InviteSheet } from '../components/InviteSheet'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
 import { AskCircleModal, ShareLookModal } from '../components/ComposeModals'
 import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
@@ -61,6 +62,7 @@ export function CirclePage() {
   const [people, setPeople] = useState<{ open: boolean; tab: PeopleTab }>({ open: false, tab: 'following' })
   const [sharing, setSharing] = useState(false)
   const [asking, setAsking] = useState(false)
+  const [inviting, setInviting] = useState(false)
   const [railDismissed, setRailDismissed] = useState(() => {
     try {
       return localStorage.getItem(RAIL_DISMISS_KEY) === '1'
@@ -318,7 +320,7 @@ export function CirclePage() {
               </>
             )}
             {error && <p className="alert-error">{error}</p>}
-            {feedEmpty && <EmptyFeed lens={lens} circleSize={circleSize} onFind={() => openPeople('find')} onShare={() => setSharing(true)} />}
+            {feedEmpty && <EmptyFeed lens={lens} circleSize={circleSize} onFind={() => openPeople('find')} onShare={() => setSharing(true)} onInvite={() => setInviting(true)} />}
 
             {posts?.slice(0, 2).map(renderPost)}
             {showRail && (
@@ -350,13 +352,18 @@ export function CirclePage() {
                   <Stat v={me.following} l="Following" />
                   <Stat v={me.picks} l="Styled for you" />
                 </div>
-                <div className="mt-4 flex gap-2">
-                  <button type="button" onClick={() => openPeople('following')} className="btn-ghost flex-1 btn-sm">
-                    Your people
+                <div className="mt-4 flex flex-col gap-2">
+                  <button type="button" onClick={() => setInviting(true)} className="btn-primary w-full btn-sm">
+                    Invite a friend
                   </button>
-                  <Link to={`/u/${me.handle}`} className="btn-ghost flex-1 btn-sm">
-                    Your profile
-                  </Link>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => openPeople('following')} className="btn-ghost flex-1 btn-sm">
+                      Your people
+                    </button>
+                    <Link to={`/u/${me.handle}`} className="btn-ghost flex-1 btn-sm">
+                      Your profile
+                    </Link>
+                  </div>
                 </div>
               </>
             ) : (
@@ -400,6 +407,7 @@ export function CirclePage() {
         </aside>
       </div>
 
+      <InviteSheet open={inviting} onClose={() => setInviting(false)} onNote={flash} />
       <PeopleDrawer
         open={people.open}
         initialTab={people.tab}
@@ -487,18 +495,20 @@ function EmptyFeed({
   circleSize,
   onFind,
   onShare,
+  onInvite,
 }: {
   lens: Lens
   circleSize: number | null
   onFind: () => void
   onShare: () => void
+  onInvite: () => void
 }) {
   const copy: Record<Lens, { title: string; body: string }> = {
     foryou: {
       title: 'The salon is quiet',
       body:
         circleSize === 0
-          ? 'Follow someone whose taste you trust — their looks, verdicts and picks for you gather here.'
+          ? 'Bring in someone whose taste you trust — their looks, verdicts and picks for you gather here.'
           : 'Your circle hasn’t shared anything lately. Share yours to start the conversation.',
     },
     following: {
@@ -514,9 +524,14 @@ function EmptyFeed({
       <p className="font-display text-2xl font-medium text-ink">{c.title}</p>
       <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">{c.body}</p>
       {lens !== 'explore' && lens !== 'saved' && circleSize === 0 && (
-        <button type="button" onClick={onFind} className="btn-primary mt-5">
-          Find your people
-        </button>
+        <div className="action-row mt-5 justify-center">
+          <button type="button" onClick={onInvite} className="btn-primary">
+            Invite a friend
+          </button>
+          <button type="button" onClick={onFind} className="btn-quiet">
+            Find people already here
+          </button>
+        </div>
       )}
       {lens !== 'explore' && lens !== 'saved' && circleSize !== 0 && (
         <button type="button" onClick={onShare} className="btn-primary mt-5">

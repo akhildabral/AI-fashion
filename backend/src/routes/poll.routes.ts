@@ -9,6 +9,7 @@ import {
 import { requireAuth } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 import { absoluteImage } from './look.routes';
+import { joinLinkFor } from '../controllers/invite.controller';
 
 export const pollRouter = Router();
 
@@ -27,14 +28,16 @@ export const votePageRouter = Router();
 votePageRouter.get('/vote/:id', async (req, res) => {
   const id = String(req.params.id).replace(/[^a-zA-Z0-9-]/g, '');
   // Open Graph for the unfurl in a group chat: the question and option A.
-  const poll = await prisma.poll.findUnique({ where: { id }, select: { question: true, options: true } }).catch(() => null);
+  const poll = await prisma.poll.findUnique({ where: { id }, select: { question: true, options: true, userId: true } }).catch(() => null);
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
   const base = `${proto}://${req.get('host')}`;
   const first = ((poll?.options as { imageUrl?: string }[] | null) ?? [])[0]?.imageUrl;
+  const door = poll ? await joinLinkFor(poll.userId, base) : null;
   res.type('html').send(
     votePage(id, {
       title: poll ? poll.question : 'Which one?',
       image: first ? absoluteImage(base, first) : undefined,
+      door: door ? { url: door.url, label: `Join with ${door.handle ? '@' + door.handle : 'their'}’s invite` } : { url: `${base}/landing`, label: 'Join the waitlist' },
     }),
   );
 });
@@ -43,7 +46,7 @@ function escapeAttr(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 }
 
-function votePage(pollId: string, og: { title: string; image?: string }): string {
+function votePage(pollId: string, og: { title: string; image?: string; door: { url: string; label: string } }): string {
   // Self-contained, in the Atelier language — dark brass-on-black, twin arches,
   // the vote is a tap on the look. Many people's first contact with the
   // product, so it's given real care and needs no account.
@@ -85,7 +88,7 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; color: var(--bone); }
   .state .big em { font-style: italic; color: var(--brass); }
   .state small { display: block; margin-top: 10px; color: var(--soft); font-size: 14px; }
-  .state a { display: inline-block; margin-top: 22px; color: var(--brass); font-weight: 600; font-size: 13px; letter-spacing: .04em; text-decoration: none; border: 1px solid rgba(200,164,94,.35); border-radius: 3px; padding: 10px 18px; }
+  .state a { display: inline-block; margin-top: 22px; color: #1a1509; background: var(--brass); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-decoration: none; border-radius: 3px; padding: 12px 20px; }
   .brand { margin-top: auto; padding-top: 40px; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--faint); }
 </style>
 </head>
@@ -98,7 +101,7 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
   <div class="brand">A personal stylist</div>
 <script>
   var pollId = ${JSON.stringify(pollId)};
-  var APP_ORIGIN = location.origin;
+  var DOOR = ${JSON.stringify(og.door)};
   function voterKey() {
     try {
       var k = localStorage.getItem('voter-key');
@@ -113,7 +116,7 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
     document.getElementById('q').style.display = 'none';
     document.getElementById('state').innerHTML =
       '<div class="big">' + big + '</div>' + (small ? '<small>' + small + '</small>' : '') +
-      (cta ? '<a href="' + APP_ORIGIN + '">Settle your own tomorrow</a>' : '');
+      (cta ? '<a href="' + DOOR.url + '">' + DOOR.label + '</a>' : '');
   }
   fetch('/api/polls/' + pollId + '/public').then(function (r) {
     if (!r.ok) throw new Error('not found');

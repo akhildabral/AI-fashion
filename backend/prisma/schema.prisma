@@ -23,6 +23,12 @@ model User {
   inviteTokenExpires DateTime?
   // Public username for the community layer (lowercase, unique). Null until chosen.
   handle       String?       @unique
+  // The door: every member holds a few invites. inviteCode is their standing
+  // link (/join/:code), invitesLeft counts down, invitedById records who let
+  // them in. Admins are never limited.
+  inviteCode   String?       @unique
+  invitesLeft  Int           @default(5)
+  invitedById  String?
   // Access control: the app is waitlist-gated. New accounts are pending
   // until email-verified AND approved by an admin.
   //   status: pending | approved | suspended
@@ -66,6 +72,56 @@ model User {
   savedLooks        SavedLook[]
   pushSubscriptions PushSubscription[]
   photos       UserPhoto[]
+  invitedBy    User?         @relation("invitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitees     User[]        @relation("invitedBy")
+  blocks       Block[]       @relation("blocker")
+  blockedBy    Block[]       @relation("blocked")
+  mutes        Mute[]        @relation("muter")
+  mutedBy      Mute[]        @relation("muted")
+  reports      Report[]
+}
+
+// Safety. A block is invisible both ways: neither sees the other anywhere,
+// and every follow between them is removed. A mute is one way and quiet:
+// their posts leave your table until `until` (null = for good).
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model Mute {
+  id        String    @id @default(uuid())
+  muterId   String
+  muter     User      @relation("muter", fields: [muterId], references: [id], onDelete: Cascade)
+  mutedId   String
+  muted     User      @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
+  until     DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([muterId, mutedId])
+}
+
+// Something a member flagged for the house to look at.
+//   targetType: user | look | verdict | pick | comment
+model Report {
+  id         String    @id @default(uuid())
+  reporterId String
+  reporter   User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String
+  targetId   String
+  reason     String
+  detail     String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([resolvedAt, createdAt])
 }
 
 // A browser that asked to be woken for the morning ritual. One row per

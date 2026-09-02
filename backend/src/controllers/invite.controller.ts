@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
+import { notify } from '../lib/notify';
 
 // Invite-only onboarding: nobody self-creates an account. Joining the
 // waitlist logs an email; an admin approval mints an invite link; the link
@@ -124,7 +125,155 @@ interface GoogleTokenInfo {
   family_name?: string;
 }
 
-const googleSchema = z.object({ credential: z.string().min(20) });
+// ---- The door: members invite their friends ------------------------------
+//
+// Every member holds a standing invite link (/join/:code) good for a few
+// friends. Opening it skips the waitlist: the friend lands approved,
+// following the inviter both ways, with the inviter recorded. Admins are
+// never limited.
+
+const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'; // no 0/o/1/i/l
+
+function newCode(): string {
+  const bytes = randomBytes(8);
+  let s = '';
+  for (const b of bytes) s += CODE_ALPHABET[b % CODE_ALPHABET.length];
+  return s;
+}
+
+/** Every member gets one code, made the first time it's asked for. */
+export async function ensureInviteCode(userId: string): Promise<string> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { inviteCode: true } });
+  if (u?.inviteCode) return u.inviteCode;
+  for (let i = 0; i < 5; i++) {
+    try {
+      const updated = await prisma.user.update({ where: { id: userId }, data: { inviteCode: newCode() }, select: { inviteCode: true } });
+      return updated.inviteCode as string;
+    } catch {
+      // collision — try again
+    }
+  }
+  throw new HttpError(500, 'Could not make an invite link');
+}
+
+type Inviter = { id: string; handle: string | null; firstName: string | null; role: string; status: string; invitesLeft: number };
+
+function invitesOpen(u: Pick<Inviter, 'role' | 'status' | 'invitesLeft'>): boolean {
+  return u.status === 'approved' && (u.role === 'admin' || u.invitesLeft > 0);
+}
+
+async function inviterByCode(code: string): Promise<Inviter> {
+  const u = await prisma.user.findUnique({
+    where: { inviteCode: code.toLowerCase() },
+    select: { id: true, handle: true, firstName: true, role: true, status: true, invitesLeft: true },
+  });
+  if (!u) throw new HttpError(404, 'This invite link isn’t one of ours');
+  return u;
+}
+
+/** The inviter's door, for a public page's call to action. Null when they can't invite. */
+export async function joinLinkFor(userId: string, origin: string): Promise<{ url: string; handle: string | null } | null> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { handle: true, role: true, status: true, invitesLeft: true } });
+  if (!u || !invitesOpen(u)) return null;
+  const code = await ensureInviteCode(userId);
+  return { url: `${origin}/join/${code}`, handle: u.handle };
+}
+
+// GET /invites/mine (auth)
+export async function myInvite(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const code = await ensureInviteCode(req.user.id);
+  const [me, invitees] = await Promise.all([
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, invitesLeft: true, handle: true } }),
+    prisma.user.findMany({
+      where: { invitedById: req.user.id },
+      select: { handle: true, firstName: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+  const origin = publicOrigin(req);
+  res.json({
+    code,
+    url: `${origin}/join/${code}`,
+    profileUrl: me?.handle ? `${origin}/u/${me.handle}` : null,
+    left: me?.role === 'admin' ? null : (me?.invitesLeft ?? 0),
+    used: invitees.map((i) => ({ handle: i.handle, firstName: i.firstName, joinedAt: i.createdAt })),
+  });
+}
+
+// GET /auth/join/:code (public) — who's inviting, and whether the door is open.
+export async function joinInfo(req: Request, res: Response) {
+  const inviter = await inviterByCode(String(req.params.code));
+  res.json({
+    inviter: { handle: inviter.handle, firstName: inviter.firstName },
+    open: invitesOpen(inviter),
+  });
+}
+
+/**
+ * Let `userId` in on `inviter`'s invite: spend one (atomically), approve,
+ * record who, follow both ways, tell the inviter. Throws 410 when the
+ * inviter's invites are used up.
+ */
+async function redeemInvite(inviter: Inviter, userId: string): Promise<void> {
+  if (inviter.status !== 'approved') throw new HttpError(410, 'This invite isn’t open right now');
+  if (inviter.role !== 'admin') {
+    const spent = await prisma.user.updateMany({ where: { id: inviter.id, invitesLeft: { gt: 0 } }, data: { invitesLeft: { decrement: 1 } } });
+    if (spent.count === 0) throw new HttpError(410, `@${inviter.handle ?? 'your friend'} has used all their invites — ask them to get more`);
+  }
+  await prisma.user.update({ where: { id: userId }, data: { status: 'approved', invitedById: inviter.id } });
+  await prisma.follow.createMany({
+    data: [
+      { followerId: userId, followingId: inviter.id },
+      { followerId: inviter.id, followingId: userId },
+    ],
+    skipDuplicates: true,
+  });
+  void notify(inviter.id, 'invite_joined', userId);
+}
+
+const joinSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  firstName: z.string().min(1).max(60),
+  lastName: z.string().max(60).nullish(),
+});
+
+// POST /auth/join/:code (public) — come in on a friend's invite.
+export async function joinWithCode(req: Request, res: Response) {
+  const inviter = await inviterByCode(String(req.params.code));
+  if (!invitesOpen(inviter)) throw new HttpError(410, 'This invite has been used up');
+  const data = joinSchema.parse(req.body);
+  const email = data.email.trim().toLowerCase();
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing?.status === 'approved') throw new HttpError(409, 'You’re already a member — sign in instead');
+  if (existing?.status === 'suspended') throw new HttpError(403, 'This account is suspended');
+
+  const passwordHash = await bcrypt.hash(data.password, 12);
+  // Someone on the waitlist who gets a friend's link comes in on it.
+  const user = existing
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data: { passwordHash, firstName: data.firstName.trim(), lastName: data.lastName?.trim() || null, emailVerified: true, inviteToken: null, inviteTokenExpires: null },
+      })
+    : await prisma.user.create({
+        data: { email, passwordHash, firstName: data.firstName.trim(), lastName: data.lastName?.trim() || null, emailVerified: true, status: 'pending' },
+      });
+  await redeemInvite(inviter, user.id);
+
+  res.status(201).json({
+    token: signToken(user.id),
+    user: { id: user.id, email: user.email, role: user.role, status: 'approved', firstName: user.firstName },
+    inviter: { handle: inviter.handle },
+  });
+}
+
+const googleSchema = z.object({
+  credential: z.string().min(20),
+  // Present when Google sign-in happens on a /join/:code page.
+  joinCode: z.string().min(4).max(40).optional(),
+});
 
 /**
  * Google SSO. Verifies the ID token against Google's tokeninfo endpoint.
@@ -132,7 +281,7 @@ const googleSchema = z.object({ credential: z.string().min(20) });
  */
 export async function googleAuth(req: Request, res: Response) {
   if (!env.GOOGLE_CLIENT_ID) throw new HttpError(503, 'Google sign-in is not configured');
-  const { credential } = googleSchema.parse(req.body);
+  const { credential, joinCode } = googleSchema.parse(req.body);
 
   const resp = await fetch(
     `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
@@ -182,6 +331,15 @@ export async function googleAuth(req: Request, res: Response) {
   }
 
   if (user.status === 'suspended') throw new HttpError(403, 'This account is suspended');
+
+  // Arrived through a friend's door: that lets them in.
+  if (user.status !== 'approved' && joinCode) {
+    const inviter = await inviterByCode(joinCode);
+    if (!invitesOpen(inviter)) throw new HttpError(410, 'This invite has been used up');
+    await redeemInvite(inviter, user.id);
+    user = { ...user, status: 'approved' };
+  }
+
   if (user.status !== 'approved') {
     return res.status(403).json({
       error: "You're on the waitlist — we'll email you when your spot opens.",

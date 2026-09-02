@@ -21,6 +21,29 @@ interface AdminUser {
   items: number
   wears: number
   aiCalls7d: number
+  invitesLeft: number
+  invited: number
+  invitedBy: string | null
+}
+
+interface AdminReport {
+  id: string
+  targetType: string
+  targetId: string
+  target: string
+  reason: string
+  detail: string | null
+  reporter: string
+  createdAt: string
+  resolvedAt: string | null
+}
+
+const REASON_LABEL: Record<string, string> = {
+  spam: 'Spam or ads',
+  impersonation: 'Impersonation',
+  harassment: 'Harassment',
+  not_their_clothes: 'Not their clothes',
+  other: 'Other',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -41,7 +64,8 @@ function displayName(u: AdminUser): string {
 export function AdminPage() {
   usePageTitle('Admin')
   const { user: me } = useAuth()
-  const [tab, setTab] = useState<'waitlist' | 'members'>('waitlist')
+  const [tab, setTab] = useState<'waitlist' | 'members' | 'reports'>('waitlist')
+  const [reports, setReports] = useState<AdminReport[] | null>(null)
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -64,6 +88,30 @@ export function AdminPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const loadReports = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ reports: AdminReport[] }>('/admin/reports')
+      setReports(res.reports)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load reports')
+    }
+  }, [])
+  useEffect(() => {
+    void loadReports()
+  }, [loadReports])
+
+  async function resolveReport(id: string) {
+    setBusyId(id)
+    try {
+      await apiFetch(`/admin/reports/${id}/resolve`, { method: 'POST' })
+      await loadReports()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resolve that')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   async function runAction(id: string, path: string, body?: unknown) {
     setBusyId(id)
@@ -199,6 +247,7 @@ export function AdminPage() {
           [
             ['waitlist', `Waitlist · ${waiting.length}`],
             ['members', `Members · ${members.length}`],
+            ['reports', `Reports · ${reports?.filter((r) => !r.resolvedAt).length ?? 0}`],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -366,6 +415,22 @@ export function AdminPage() {
                   <td className="px-4 py-3 text-ink/70">
                     {u.items} items · {u.wears} wears
                     <div className="text-xs text-ink/45">{u.aiCalls7d} AI calls / 7d</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-ink/45">
+                      <span>
+                        {u.role === 'admin' ? 'Invites: unlimited' : `Invites: ${u.invitesLeft} left`} · brought in {u.invited}
+                        {u.invitedBy ? ` · came in via ${u.invitedBy}` : ''}
+                      </span>
+                      {u.role !== 'admin' && (
+                        <button
+                          type="button"
+                          disabled={busyId === u.id}
+                          onClick={() => void runAction(u.id, `/admin/users/${u.id}/invites`, { invitesLeft: u.invitesLeft + 5 })}
+                          className="font-semibold text-brass hover:underline"
+                        >
+                          +5
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
@@ -405,6 +470,58 @@ export function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'reports' && (
+        <div className="mt-6">
+          {!reports && (
+            <div className="flex justify-center py-10 text-ink/50">
+              <Spinner className="h-6 w-6" />
+            </div>
+          )}
+          {reports && reports.length === 0 && (
+            <p className="rounded-[3px] border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">Nothing reported. Good.</p>
+          )}
+          {reports && reports.length > 0 && (
+            <div className="card overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
+                    <th className="px-4 py-3 font-medium">About</th>
+                    <th className="px-4 py-3 font-medium">Reason</th>
+                    <th className="px-4 py-3 font-medium">From</th>
+                    <th className="px-4 py-3 font-medium">When</th>
+                    <th className="px-4 py-3 font-medium" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports.map((r) => (
+                    <tr key={r.id} className={`border-b border-ink/5 last:border-b-0 ${r.resolvedAt ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-ink">
+                          {r.targetType === 'user' ? `@${r.target}` : `${r.targetType} ${r.target.slice(0, 8)}…`}
+                        </div>
+                        {r.detail && <div className="mt-0.5 max-w-md text-xs text-ink/55">{r.detail}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-ink/70">{REASON_LABEL[r.reason] ?? r.reason}</td>
+                      <td className="px-4 py-3 text-ink/70">{r.reporter}</td>
+                      <td className="px-4 py-3 text-ink/70">{new Date(r.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-right">
+                        {r.resolvedAt ? (
+                          <span className="text-xs text-ink/45">Resolved</span>
+                        ) : (
+                          <button type="button" disabled={busyId === r.id} onClick={() => void resolveReport(r.id)} className="btn-ghost btn-sm">
+                            Resolve
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

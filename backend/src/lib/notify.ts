@@ -11,7 +11,8 @@ export type NotificationType =
   | 'mentioned'
   | 'verdict_settled'
   | 'laundry_due'
-  | 'wishlist_nudge';
+  | 'wishlist_nudge'
+  | 'invite_joined';
 
 // @handles in a comment body — lowercase, deduped, in order of appearance.
 export function mentionedHandles(body: string): string[] {
@@ -37,6 +38,14 @@ export async function notify(
 ): Promise<boolean> {
   if (actorId && actorId === userId) return false;
   try {
+    // Nothing crosses a block, in either direction.
+    if (actorId) {
+      const blocked = await prisma.block.findFirst({
+        where: { OR: [{ blockerId: userId, blockedId: actorId }, { blockerId: actorId, blockedId: userId }] },
+        select: { id: true },
+      });
+      if (blocked) return false;
+    }
     if (opts.dedupeKey) {
       const since = new Date(Date.now() - 86_400_000);
       const existing = await prisma.notification.findFirst({

@@ -6,7 +6,9 @@ import {
   authConfig,
   googleAuth,
   inviteInfo,
+  joinInfo,
   joinWaitlist,
+  joinWithCode,
 } from '../controllers/invite.controller';
 import { requireAuth } from '../middleware/auth';
 
@@ -33,3 +35,6 @@ authRouter.post('/google', authLimiter, googleAuth);
 authRouter.post('/waitlist', authLimiter, joinWaitlist);
 authRouter.get('/invite', authLimiter, inviteInfo);
 authRouter.post('/invite/accept', authLimiter, acceptInvite);
+// A friend's door: public, rate-limited like every other credential route.
+authRouter.get('/join/:code', authLimiter, joinInfo);
+authRouter.post('/join/:code', authLimiter, joinWithCode);

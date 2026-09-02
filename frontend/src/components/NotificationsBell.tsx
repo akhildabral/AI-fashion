@@ -22,6 +22,8 @@ function line(n: Notification): { text: string; to: string } {
   switch (n.type) {
     case 'new_follower':
       return { text: `${who} started following your closet.`, to: profile }
+    case 'invite_joined':
+      return { text: `${who} came in on your invite — you follow each other now.`, to: profile }
     case 'pick_received':
       return { text: `${who} styled a look for you.`, to: '/circle' }
     case 'pick_worn':

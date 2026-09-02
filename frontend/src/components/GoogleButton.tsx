@@ -38,7 +38,16 @@ function loadGsi(): Promise<void> {
  * configured client id. SSO never bypasses invite-only — unknown accounts
  * land on the waitlist and see that message here.
  */
-export function GoogleButton({ onMessage }: { onMessage: (msg: string) => void }) {
+export function GoogleButton({
+  onMessage,
+  joinCode,
+  redirectTo = '/',
+}: {
+  onMessage: (msg: string) => void
+  /** Present on a /join/:code page: signing in with Google comes in on that invite. */
+  joinCode?: string
+  redirectTo?: string
+}) {
   const holder = useRef<HTMLDivElement>(null)
   const [clientId, setClientId] = useState<string | null>(null)
   const { adoptSession } = useAuth()
@@ -61,12 +70,12 @@ export function GoogleButton({ onMessage }: { onMessage: (msg: string) => void }
           callback: (resp: { credential: string }) => {
             apiFetch<{ token: string; user: User }>('/auth/google', {
               method: 'POST',
-              body: { credential: resp.credential },
+              body: { credential: resp.credential, ...(joinCode ? { joinCode } : {}) },
               auth: false,
             })
               .then((r) => {
                 adoptSession(r.token, r.user)
-                navigate('/', { replace: true })
+                navigate(redirectTo, { replace: true })
               })
               .catch((err) => {
                 onMessage(err instanceof Error ? err.message : 'Google sign-in failed.')
@@ -84,7 +93,7 @@ export function GoogleButton({ onMessage }: { onMessage: (msg: string) => void }
     return () => {
       cancelled = true
     }
-  }, [clientId, adoptSession, navigate, onMessage])
+  }, [clientId, adoptSession, navigate, onMessage, joinCode, redirectTo])
 
   if (!clientId) return null
   return (

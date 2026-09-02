@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import sharp from 'sharp';
 import { composeLook, dressingOrder } from '../lib/flatlay';
 import { readStored } from '../lib/storage';
+import { joinLinkFor } from '../controllers/invite.controller';
 
 // Image height ÷ width, so the board can size each piece by its real shape.
 async function aspectOf(imageUrl: string): Promise<number | undefined> {
@@ -53,7 +54,10 @@ lookPageRouter.get('/look/:id', async (req, res) => {
   const who = log.user.handle ? `@${esc(log.user.handle)}` : 'Someone';
   const title = `${who} wore this${log.eventType ? ` — ${esc(log.eventType)}` : ''}`;
   const strip = dressingOrder(ordered);
-  const measured = await Promise.all(ordered.map(async (it) => ({ ...it, aspect: await aspectOf(it.imageUrl) })));
+  const [measured, door] = await Promise.all([
+    Promise.all(ordered.map(async (it) => ({ ...it, aspect: await aspectOf(it.imageUrl) }))),
+    joinLinkFor(log.userId, base),
+  ]);
 
   // The hero: their photo when there is one, otherwise the flat-lay; the
   // recipe strip (pieces in dressing order) sits beside either.
@@ -83,7 +87,11 @@ lookPageRouter.get('/look/:id', async (req, res) => {
   <div class="state">
     <div class="big">Could you wear it <em>from your closet?</em></div>
     <small>A personal stylist that knows what you own, and your friends' looks.</small>
-    <a href="${base}">Recreate it from yours</a>
+    ${
+      door
+        ? `<a href="${esc(door.url)}">Join with ${who}’s invite</a><small class="fine">Their link lets you in — no waitlist.</small>`
+        : `<a href="${base}/landing">Join the waitlist</a>`
+    }
   </div>`,
     }),
   );
@@ -131,6 +139,7 @@ ${o.ogImage ? `<meta property="og:image" content="${esc(o.ogImage)}" />\n<meta n
   .state { margin-top: 44px; text-align: center; }
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; max-width: 22ch; text-wrap: balance; line-height: 1.15; }
   .state small { display: block; margin-top: 10px; color: var(--soft); font-size: 14px; }
+  .state small.fine { margin-top: 12px; font-size: 12px; color: var(--faint); }
   .state a { display: inline-block; margin-top: 22px; color: #1a1509; background: var(--brass); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-decoration: none; border-radius: 3px; padding: 12px 20px; }
   .brand { margin-top: auto; padding-top: 40px; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--faint); }
 </style>

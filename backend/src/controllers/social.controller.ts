@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
 import { graphFor, serializeLooks, standingFor } from '../services/circle.service';
+import { blockedEitherWay, hiddenIds } from '../lib/hidden';
 
 // The community layer: handles, an asymmetric follow graph (mutual follows
 // are "friends"), visitable profiles that expose ONLY public items, and the
@@ -59,8 +60,9 @@ export async function searchUsers(req: Request, res: Response) {
     res.json({ users: [] });
     return;
   }
+  const hidden = await hiddenIds(req.user.id);
   const users = await prisma.user.findMany({
-    where: { handle: { contains: q }, id: { not: req.user.id } },
+    where: { handle: { contains: q }, id: { not: req.user.id, notIn: [...hidden] } },
     select: { handle: true },
     take: 10,
   });
@@ -88,6 +90,31 @@ async function userByHandle(handle: string) {
 export async function getProfileByHandle(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const target = await userByHandle(String(req.params.handle));
+
+  // Someone who blocked you isn't here. Someone you blocked is, but only
+  // as a door back out.
+  const [theyBlockedMe, iBlocked, myMute] = await Promise.all([
+    prisma.block.findFirst({ where: { blockerId: target.id, blockedId: req.user.id }, select: { id: true } }),
+    prisma.block.findFirst({ where: { blockerId: req.user.id, blockedId: target.id }, select: { id: true } }),
+    prisma.mute.findFirst({ where: { muterId: req.user.id, mutedId: target.id, OR: [{ until: null }, { until: { gt: new Date() } }] }, select: { until: true } }),
+  ]);
+  if (theyBlockedMe) throw new HttpError(404, 'No one goes by that handle');
+  if (iBlocked) {
+    res.json({
+      user: { handle: target.handle },
+      counts: { followers: 0, following: 0, publicItems: 0 },
+      isFollowing: false,
+      followsYou: false,
+      isFriend: false,
+      isMe: false,
+      blockedByMe: true,
+      mutedUntil: null,
+      publicItems: [],
+      standing: { picksWorn: 0, recreated: 0, looksShared: 0, wouldWear: 0 },
+      looks: [],
+    });
+    return;
+  }
 
   const [followers, following, publicItems, iFollow, followsMe] = await Promise.all([
     prisma.follow.count({ where: { followingId: target.id } }),
@@ -131,6 +158,9 @@ export async function getProfileByHandle(req: Request, res: Response) {
     followsYou: !!followsMe,
     isFriend: !!iFollow && !!followsMe,
     isMe: target.id === req.user.id,
+    blockedByMe: false,
+    // null = not muted; 'forever' or an ISO date otherwise
+    mutedUntil: myMute ? (myMute.until ? myMute.until.toISOString() : 'forever') : null,
     publicItems,
     standing,
     looks,
@@ -141,6 +171,7 @@ export async function followUser(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const target = await userByHandle(String(req.params.handle));
   if (target.id === req.user.id) throw new HttpError(400, "You can't follow yourself");
+  if (await blockedEitherWay(req.user.id, target.id)) throw new HttpError(403, 'That isn’t possible right now');
 
   try {
     await prisma.follow.create({ data: { followerId: req.user.id, followingId: target.id } });
@@ -201,6 +232,7 @@ export async function createPick(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const target = await userByHandle(String(req.params.handle));
   if (target.id === req.user.id) throw new HttpError(400, 'Pick outfits for your friends, not yourself');
+  if (await blockedEitherWay(req.user.id, target.id)) throw new HttpError(403, 'That isn’t possible right now');
   if (!(await isMutual(req.user.id, target.id))) {
     throw new HttpError(403, 'You can only pick outfits for friends (you follow each other)');
   }
@@ -353,6 +385,7 @@ function cosine(a: Map<string, number>, b: Map<string, number>): number {
 export async function styleTwins(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
 
+  const hidden = await hiddenIds(req.user.id);
   const [me, myItems, myFollowing, candidates] = await Promise.all([
     prisma.styleProfile.findUnique({ where: { userId: req.user.id } }),
     prisma.wardrobeItem.findMany({
@@ -361,7 +394,7 @@ export async function styleTwins(req: Request, res: Response) {
     }),
     prisma.follow.findMany({ where: { followerId: req.user.id }, select: { followingId: true } }),
     prisma.user.findMany({
-      where: { handle: { not: null }, id: { not: req.user.id } },
+      where: { handle: { not: null }, id: { not: req.user.id, notIn: [...hidden] } },
       select: {
         id: true,
         handle: true,

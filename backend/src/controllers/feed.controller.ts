@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { hiddenIds } from '../lib/hidden';
 
 // Circle ring 1: the feed is action cards aggregated from what already
 // exists — picks received, poll results, new followers, friends to style.
@@ -15,8 +16,9 @@ export async function getFeed(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const userId = req.user.id;
   const twoWeeksAgo = new Date(Date.now() - 14 * 86_400_000);
+  const hidden = await hiddenIds(userId);
 
-  const [picks, polls, followers, following] = await Promise.all([
+  const [picksRaw, polls, followersRaw, followingRaw] = await Promise.all([
     prisma.friendPick.findMany({
       where: { forUserId: userId, createdAt: { gte: twoWeeksAgo } },
       orderBy: { createdAt: 'desc' },
@@ -42,6 +44,9 @@ export async function getFeed(req: Request, res: Response) {
     }),
   ]);
 
+  const picks = picksRaw.filter((p) => !hidden.has(p.byUserId));
+  const followers = followersRaw.filter((f) => !hidden.has(f.followerId));
+  const following = followingRaw.filter((f) => !hidden.has(f.following.id));
   const cards: FeedCard[] = [];
 
   // Friends' shared outfits-of-the-day — the zero-effort content loop.
@@ -132,8 +137,9 @@ export async function getFeed(req: Request, res: Response) {
 // curated pool; featuring pins the best on top.)
 export async function getExplore(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const hidden = await hiddenIds(req.user.id);
   const logs = await prisma.wearLog.findMany({
-    where: { sharedAt: { not: null }, userId: { not: req.user.id } },
+    where: { sharedAt: { not: null }, userId: { not: req.user.id, notIn: [...hidden] } },
     orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
     take: 30,
     include: { user: { select: { handle: true } } },

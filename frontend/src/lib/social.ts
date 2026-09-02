@@ -32,6 +32,9 @@ export interface PublicProfile {
   followsYou: boolean
   isFriend: boolean
   isMe: boolean
+  blockedByMe: boolean
+  /** null = not muted, 'forever', or an ISO date */
+  mutedUntil: string | null
   publicItems: PublicItem[]
   standing: { picksWorn: number; recreated: number; looksShared: number; wouldWear: number }
   looks: import('./circle').LookPost[]
@@ -87,6 +90,46 @@ export function getPicks(): Promise<{ picks: FriendPick[] }> {
 
 export function dismissPick(id: string): Promise<void> {
   return apiFetch(`/picks/${id}`, { method: 'DELETE' })
+}
+
+// ---- Safety: the ways out of an unwanted presence --------------------------
+
+export function blockUser(handle: string): Promise<{ blocked: boolean }> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/block`, { method: 'POST' })
+}
+export function unblockUser(handle: string): Promise<{ blocked: boolean }> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/block`, { method: 'DELETE' })
+}
+export function muteUser(handle: string, days?: number): Promise<{ muted: boolean; until: string | null }> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/mute`, { method: 'POST', body: days ? { days } : {} })
+}
+export function unmuteUser(handle: string): Promise<{ muted: boolean }> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/mute`, { method: 'DELETE' })
+}
+export function removeFollower(handle: string): Promise<void> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/follower`, { method: 'DELETE' })
+}
+
+export type ReportTarget = 'user' | 'look' | 'verdict' | 'pick' | 'comment'
+export type ReportReason = 'spam' | 'impersonation' | 'harassment' | 'not_their_clothes' | 'other'
+export const REPORT_REASONS: { key: ReportReason; label: string }[] = [
+  { key: 'spam', label: 'Spam or ads' },
+  { key: 'impersonation', label: 'Pretending to be someone' },
+  { key: 'harassment', label: 'Unkind or harassing' },
+  { key: 'not_their_clothes', label: 'Not their clothes' },
+  { key: 'other', label: 'Something else' },
+]
+
+export function report(body: { targetType: ReportTarget; targetId: string; reason: ReportReason; detail?: string }): Promise<{ ok: boolean }> {
+  return apiFetch('/reports', { method: 'POST', body })
+}
+
+export interface Hidden {
+  blocked: { handle: string | null; since: string }[]
+  muted: { handle: string | null; until: string | null }[]
+}
+export function getHidden(): Promise<Hidden> {
+  return apiFetch('/social/hidden')
 }
 
 export interface OverlapMatch {

@@ -26,7 +26,9 @@ export async function listUsers(req: Request, res: Response) {
       plan: true,
       planStatus: true,
       createdAt: true,
-      _count: { select: { wardrobe: true, wearLogs: true } },
+      invitesLeft: true,
+      invitedBy: { select: { handle: true, email: true } },
+      _count: { select: { wardrobe: true, wearLogs: true, invitees: true } },
     },
   });
 
@@ -56,6 +58,9 @@ export async function listUsers(req: Request, res: Response) {
       items: u._count.wardrobe,
       wears: u._count.wearLogs,
       aiCalls7d: usageByUser.get(u.id) ?? 0,
+      invitesLeft: u.invitesLeft,
+      invited: u._count.invitees,
+      invitedBy: u.invitedBy ? (u.invitedBy.handle ? `@${u.invitedBy.handle}` : u.invitedBy.email) : null,
     })),
   });
 }

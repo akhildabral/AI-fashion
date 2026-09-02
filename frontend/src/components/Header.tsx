@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { PullCord } from './PullCord'
+import { isDark, toggleTheme } from '../lib/theme'
 import { NotificationsBell } from './NotificationsBell'
 
 // The header: the wordmark, the four rooms as text on the header's own
@@ -122,6 +123,14 @@ export function Header() {
                     </Link>
                   )}
                   <div className="my-1 border-t border-ink/10" />
+                  <button type="button" role="menuitem" onClick={() => {
+                      toggleTheme()
+                      setMenuOpen(false)
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink sm:hidden"
+                  >
+                    {isDark() ? 'Lights on' : 'Lights off'}
+                  </button>
                   <button type="button" role="menuitem" onClick={handleLogout} className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink">
                     Log out
                   </button>

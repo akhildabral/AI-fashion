@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { mentionedHandles, notify } from '../lib/notify';
 import { saveImageBuffer } from '../lib/storage';
+import { dropHidden, hiddenIds } from '../lib/hidden';
 import { extForMime } from '../middleware/upload';
 import {
   REACTION_KINDS,
@@ -36,10 +37,10 @@ export async function circleFeed(req: Request, res: Response) {
   const monthAgo = new Date(now - 30 * 86_400_000);
   const weekAgo = new Date(now - 7 * 86_400_000);
 
-  const { followingIds, friendIds } = await graphFor(me);
-  const circle = [...followingIds];
+  const [{ followingIds, friendIds }, hidden] = await Promise.all([graphFor(me), hiddenIds(me)]);
+  const circle = [...followingIds].filter((id) => !hidden.has(id));
 
-  const [logs, polls, picks] = await Promise.all([
+  const [logs, polls, picksRaw] = await Promise.all([
     circle.length === 0
       ? Promise.resolve([])
       : prisma.wearLog.findMany({
@@ -71,6 +72,7 @@ export async function circleFeed(req: Request, res: Response) {
     }),
   ]);
 
+  const picks = dropHidden(picksRaw, hidden, (p) => p.byUserId);
   const posts: CirclePost[] = [];
   posts.push(...(await serializeLooks(logs, me, friendIds)));
 
@@ -133,8 +135,8 @@ export async function circleToday(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const me = req.user.id;
   const since = new Date(Date.now() - 24 * 3_600_000);
-  const { followingIds, friendIds } = await graphFor(me);
-  const ids = [me, ...followingIds];
+  const [{ followingIds, friendIds }, hidden] = await Promise.all([graphFor(me), hiddenIds(me)]);
+  const ids = [me, ...[...followingIds].filter((id) => !hidden.has(id))];
   const logs = await prisma.wearLog.findMany({
     where: { userId: { in: ids }, sharedAt: { gte: since, not: null } },
     orderBy: { sharedAt: 'desc' },
@@ -151,9 +153,9 @@ export async function circleToday(req: Request, res: Response) {
 export async function circleExplore(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const me = req.user.id;
-  const { friendIds } = await graphFor(me);
+  const [{ friendIds }, hidden] = await Promise.all([graphFor(me), hiddenIds(me)]);
   const logs = await prisma.wearLog.findMany({
-    where: { sharedAt: { not: null }, userId: { not: me } },
+    where: { sharedAt: { not: null }, userId: { not: me, notIn: [...hidden] } },
     orderBy: [{ featuredAt: { sort: 'desc', nulls: 'last' } }, { sharedAt: 'desc' }],
     take: 40,
     include: { user: { select: { handle: true } } },
@@ -288,7 +290,8 @@ export async function listComments(req: Request, res: Response) {
     take: 100,
     include: { user: { select: { handle: true } } },
   });
-  res.json({ comments: rows.map((c) => serializeComment(c, req.user!.id)) });
+  const hidden = await hiddenIds(req.user.id);
+  res.json({ comments: dropHidden(rows, hidden, (c) => c.userId).map((c) => serializeComment(c, req.user!.id)) });
 }
 
 // POST /comments — a note on a look or verdict; @handles are notified.

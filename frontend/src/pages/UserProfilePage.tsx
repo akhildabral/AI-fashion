@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
@@ -7,7 +7,23 @@ import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
-import { followUser, getOverlap, getProfileByHandle, sendPick, unfollowUser, type OverlapResult, type PublicProfile } from '../lib/social'
+import {
+  REPORT_REASONS,
+  blockUser,
+  followUser,
+  getOverlap,
+  getProfileByHandle,
+  muteUser,
+  removeFollower,
+  report,
+  sendPick,
+  unblockUser,
+  unfollowUser,
+  unmuteUser,
+  type OverlapResult,
+  type PublicProfile,
+  type ReportReason,
+} from '../lib/social'
 import { reactToLook, saveLook, unreactToLook, unsaveLook, type LookPost, type PostItem, type ReactionKind } from '../lib/circle'
 
 const MAX_PICK_ITEMS = 8
@@ -37,6 +53,58 @@ export function UserProfilePage() {
 
   const [recreate, setRecreate] = useState<{ result: RecreateResponse | null } | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Safety: the ways out.
+  const [reporting, setReporting] = useState(false)
+  const [reason, setReason] = useState<ReportReason | null>(null)
+  const [detail, setDetail] = useState('')
+  const [sendingReport, setSendingReport] = useState(false)
+
+  function reload() {
+    return getProfileByHandle(handle).then(setProfile).catch(() => undefined)
+  }
+  async function safety(action: 'mute' | 'unmute' | 'remove' | 'block' | 'unblock') {
+    if (!profile || busy) return
+    setBusy(true)
+    try {
+      if (action === 'mute') {
+        await muteUser(handle, 30)
+        flash(`Muted @${handle} for 30 days. Their posts leave your table; they won’t know.`)
+      } else if (action === 'unmute') {
+        await unmuteUser(handle)
+        flash(`@${handle} is back on your table.`)
+      } else if (action === 'remove') {
+        await removeFollower(handle)
+        flash(`@${handle} no longer follows you.`)
+      } else if (action === 'block') {
+        await blockUser(handle)
+        flash(`Blocked @${handle}. Neither of you sees the other now.`)
+      } else {
+        await unblockUser(handle)
+        flash(`Unblocked @${handle}.`)
+      }
+      await reload()
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'That didn’t go through.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function sendReport() {
+    if (!reason || sendingReport) return
+    setSendingReport(true)
+    try {
+      await report({ targetType: 'user', targetId: handle, reason, detail: detail.trim() || undefined })
+      setReporting(false)
+      setReason(null)
+      setDetail('')
+      flash('Thank you. The house will take a look.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not send that.')
+    } finally {
+      setSendingReport(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -195,13 +263,43 @@ export function UserProfilePage() {
                     {picking ? 'Cancel' : 'Style them'}
                   </button>
                 )}
-                <button type="button" onClick={() => void toggleFollow()} disabled={busy} className={profile.isFollowing ? 'btn-ghost' : 'btn-primary'}>
-                  {profile.isFollowing ? 'Following' : 'Follow'}
-                </button>
+                {!profile.blockedByMe && (
+                  <button type="button" onClick={() => void toggleFollow()} disabled={busy} className={profile.isFollowing ? 'btn-ghost' : 'btn-primary'}>
+                    {profile.isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                )}
+                <MoreMenu
+                  items={
+                    profile.blockedByMe
+                      ? [{ label: `Unblock @${handle}`, onSelect: () => void safety('unblock') }]
+                      : [
+                          profile.mutedUntil
+                            ? { label: 'Unmute', onSelect: () => void safety('unmute') }
+                            : { label: 'Mute for 30 days', onSelect: () => void safety('mute') },
+                          ...(profile.followsYou ? [{ label: 'Remove as a follower', onSelect: () => void safety('remove') }] : []),
+                          { label: 'Report', onSelect: () => setReporting(true) },
+                          { label: `Block @${handle}`, danger: true, onSelect: () => void safety('block') },
+                        ]
+                  }
+                />
               </div>
             )}
           </header>
 
+          {profile.blockedByMe && (
+            <div className="mt-8 rounded-[3px] border border-dashed border-ink/20 px-6 py-14 text-center">
+              <p className="font-display text-2xl font-medium text-ink">You’ve blocked @{handle}</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">They can’t see you, you won’t see them, and any follows between you are gone. Undo it from the menu above.</p>
+            </div>
+          )}
+          {profile.mutedUntil && !profile.blockedByMe && (
+            <p className="mt-4 text-xs text-ink/50">
+              Muted{profile.mutedUntil === 'forever' ? '' : ` until ${new Date(profile.mutedUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`} — their posts stay off your table.
+            </p>
+          )}
+
+          {!profile.blockedByMe && (
+          <>
           {/* ---- standing: earned, verified, never bought ---- */}
           <section aria-label="Standing" className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Standing n={profile.standing.picksWorn} title="A good eye" sub="picks that got worn" />
@@ -310,8 +408,30 @@ export function UserProfilePage() {
               )}
             </>
           )}
+          </>
+          )}
         </>
       )}
+
+      <Modal open={reporting} onClose={() => setReporting(false)} title={`Report @${handle}`}>
+        <p className="text-sm text-ink/60">Tell the house what’s wrong. They won’t know it came from you.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {REPORT_REASONS.map((r) => (
+            <button key={r.key} type="button" onClick={() => setReason(r.key)} aria-pressed={reason === r.key} className="chip">
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <textarea value={detail} onChange={(e) => setDetail(e.target.value)} maxLength={500} rows={3} className="field mt-4 !h-auto" placeholder="Anything else that helps (optional)" />
+        <div className="action-row mt-5">
+          <button type="button" disabled={!reason || sendingReport} onClick={() => void sendReport()} className="btn-primary">
+            {sendingReport ? 'Sending…' : 'Send report'}
+          </button>
+          <button type="button" onClick={() => setReporting(false)} className="btn-quiet">
+            Cancel
+          </button>
+        </div>
+      </Modal>
 
       <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={`In your closet, @${handle}'s look`}>
         {recreate && recreate.result === null && (
@@ -361,6 +481,50 @@ function Standing({ n, title, sub }: { n: number; title: string; sub: string }) 
       <p className="font-display text-3xl font-medium leading-none text-ink [font-variant-numeric:tabular-nums]">{n}</p>
       <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{title}</p>
       <p className="text-[11px] text-ink/50">{sub}</p>
+    </div>
+  )
+}
+
+/** The "···" beside a person: the quiet actions, one list, closes on any choice or outside tap. */
+function MoreMenu({ items }: { items: { label: string; danger?: boolean; onSelect: () => void }[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-ghost !px-3 tracking-[0.2em]">
+        ···
+      </button>
+      {open && (
+        <div role="menu" className="card absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden py-1">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                it.onSelect()
+              }}
+              className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-ink/5 ${it.danger ? 'text-red-600 dark:text-red-400' : 'text-ink/80'}`}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

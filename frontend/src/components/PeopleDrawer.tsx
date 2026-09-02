@@ -4,10 +4,14 @@ import { Modal } from './ui'
 import { Spinner } from './Spinner'
 import {
   followUser,
+  getHidden,
   getNetwork,
   getStyleTwins,
   searchUsers,
+  unblockUser,
   unfollowUser,
+  unmuteUser,
+  type Hidden,
   type NetworkEntry,
   type StyleTwin,
 } from '../lib/social'
@@ -15,7 +19,7 @@ import {
 // The people in your circle — a searchable drawer with tabs, never a wall
 // of chips. Rows, not badges, so it scales to hundreds.
 
-export type PeopleTab = 'following' | 'followers' | 'find' | 'suggested'
+export type PeopleTab = 'following' | 'followers' | 'find' | 'suggested' | 'hidden'
 
 export function Initials({ handle, className = '' }: { handle: string | null; className?: string }) {
   return (
@@ -86,6 +90,7 @@ export function PeopleDrawer({
   const [tab, setTab] = useState<PeopleTab>(initialTab)
   const [network, setNetwork] = useState<{ following: NetworkEntry[]; followers: NetworkEntry[] } | null>(null)
   const [twins, setTwins] = useState<StyleTwin[] | null>(null)
+  const [hidden, setHidden] = useState<Hidden | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ handle: string }[]>([])
   const [searching, setSearching] = useState(false)
@@ -98,6 +103,7 @@ export function PeopleDrawer({
     if (!open) return
     void getNetwork().then(setNetwork).catch(() => setNetwork({ following: [], followers: [] }))
     void getStyleTwins().then(({ twins: t }) => setTwins(t ?? [])).catch(() => setTwins([]))
+    void getHidden().then(setHidden).catch(() => setHidden({ blocked: [], muted: [] }))
   }, [open])
 
   useEffect(() => {
@@ -135,7 +141,15 @@ export function PeopleDrawer({
     { key: 'followers', label: 'Followers', count: network?.followers.length },
     { key: 'suggested', label: 'Kindred taste', count: twins?.length },
     { key: 'find', label: 'Find' },
+    ...((hidden?.blocked.length ?? 0) + (hidden?.muted.length ?? 0) > 0 ? [{ key: 'hidden' as const, label: 'Hidden', count: hidden!.blocked.length + hidden!.muted.length }] : []),
   ]
+
+  async function unhide(kind: 'mute' | 'block', handle: string) {
+    if (kind === 'mute') await unmuteUser(handle)
+    else await unblockUser(handle)
+    setHidden((h) => (h ? { blocked: kind === 'block' ? h.blocked.filter((b) => b.handle !== handle) : h.blocked, muted: kind === 'mute' ? h.muted.filter((m) => m.handle !== handle) : h.muted } : h))
+    onChanged?.()
+  }
 
   return (
     <Modal open={open} onClose={onClose} title="Your people">
@@ -214,6 +228,38 @@ export function PeopleDrawer({
                 onNavigate={onClose}
               />
             ))}
+        </div>
+      )}
+
+      {tab === 'hidden' && hidden && (
+        <div className="mt-2">
+          <p className="pb-2 text-xs text-ink/50">People you’ve muted or blocked. They don’t know; you can undo it here.</p>
+          {hidden.muted.map((m) => (
+            <div key={`m-${m.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
+              <Initials handle={m.handle} className="h-9 w-9 opacity-60" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink">@{m.handle}</span>
+                <span className="block truncate text-xs text-ink/50">
+                  Muted{m.until ? ` until ${new Date(m.until).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}
+                </span>
+              </span>
+              <button type="button" onClick={() => void unhide('mute', m.handle ?? '')} className="btn-ghost btn-sm shrink-0">
+                Unmute
+              </button>
+            </div>
+          ))}
+          {hidden.blocked.map((b) => (
+            <div key={`b-${b.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
+              <Initials handle={b.handle} className="h-9 w-9 opacity-60" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink">@{b.handle}</span>
+                <span className="block truncate text-xs text-ink/50">Blocked — invisible both ways</span>
+              </span>
+              <button type="button" onClick={() => void unhide('block', b.handle ?? '')} className="btn-ghost btn-sm shrink-0">
+                Unblock
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

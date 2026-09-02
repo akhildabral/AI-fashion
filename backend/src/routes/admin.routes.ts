@@ -11,6 +11,7 @@ import {
   suspendUser,
   rematteCutouts,
 } from '../controllers/admin.controller';
+import { listReports, resolveReport, setInvites } from '../controllers/safety.controller';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 
 export const adminRouter = Router();
@@ -27,4 +28,7 @@ adminRouter.post('/admin/users/:id/reset-password', resetPassword);
 adminRouter.post('/admin/users/:id/plan', setPlan);
 adminRouter.post('/admin/users/:id/invite', approveAndInvite);
 adminRouter.post('/admin/invite', inviteByEmail);
+adminRouter.post('/admin/users/:id/invites', setInvites);
+adminRouter.get('/admin/reports', listReports);
+adminRouter.post('/admin/reports/:id/resolve', resolveReport);
 adminRouter.post('/admin/maintenance/rematte', rematteCutouts);
