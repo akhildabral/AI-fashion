@@ -32,14 +32,14 @@ export async function subscribePush(req: Request, res: Response) {
   res.status(201).json({ id: sub.id, hour: sub.hour, timezone: sub.timezone });
 }
 
-const settingsSchema = z.object({ hour: z.number().int().min(4).max(12) });
+const settingsSchema = z.object({ hour: z.number().int().min(4).max(12).optional(), eveningPush: z.boolean().optional() });
 
 /** Change the hour for every device this person has. */
 export async function updatePushSettings(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { hour } = settingsSchema.parse(req.body);
-  await prisma.pushSubscription.updateMany({ where: { userId: req.user.id }, data: { hour } });
-  res.json({ hour });
+  const { hour, eveningPush } = settingsSchema.parse(req.body);
+  await prisma.pushSubscription.updateMany({ where: { userId: req.user.id }, data: { ...(hour !== undefined ? { hour } : {}), ...(eveningPush !== undefined ? { eveningPush } : {}) } });
+  res.json({ hour, eveningPush });
 }
 
 const unsubscribeSchema = z.object({ endpoint: z.string().url().max(2000) });
@@ -53,8 +53,8 @@ export async function unsubscribePush(req: Request, res: Response) {
 
 export async function pushStatus(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const subs = await prisma.pushSubscription.findMany({ where: { userId: req.user.id }, select: { endpoint: true, hour: true, timezone: true } });
-  res.json({ enabled: pushEnabled, devices: subs.length, hour: subs[0]?.hour ?? 7, timezone: subs[0]?.timezone ?? null, endpoints: subs.map((s) => s.endpoint) });
+  const subs = await prisma.pushSubscription.findMany({ where: { userId: req.user.id }, select: { endpoint: true, hour: true, timezone: true, eveningPush: true } });
+  res.json({ enabled: pushEnabled, devices: subs.length, hour: subs[0]?.hour ?? 7, timezone: subs[0]?.timezone ?? null, eveningPush: subs.some((s) => s.eveningPush), endpoints: subs.map((s) => s.endpoint) });
 }
 
 /** POST /push/test — send this device a test nudge right now. */

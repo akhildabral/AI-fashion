@@ -26,10 +26,38 @@ export interface Brief {
   items: BriefItem[]
 }
 
+export interface EveningLook {
+  title: string
+  rationale: string
+  itemIds: string[]
+  items: BriefItem[]
+  wornLogId?: string | null
+}
+
 export interface BriefResponse {
-  mode: 'brief' | 'starter'
+  mode: 'brief' | 'starter' | 'rest' | 'unplanned'
   brief?: Brief
   worn?: boolean
+  evening?: EveningLook | null
+  canUndo?: boolean
+  weatherNote?: string | null
+  plannedAt?: string | null
+}
+
+export interface WeekDay {
+  date: string
+  past: boolean
+  today: boolean
+  rest: boolean
+  eventType: string | null
+  occasion: string | null
+  planned: boolean
+  worn: boolean
+  wearLogId: string | null
+  shared: boolean
+  photoUrl: string | null
+  itemIds: string[]
+  items: BriefItem[]
 }
 
 export interface RitualStats {
@@ -53,17 +81,49 @@ export function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export function getBrief(opts: { occasion?: string; refresh?: boolean } = {}) {
-  const params = new URLSearchParams({ date: todayKey() })
+export function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+export function shiftKey(key: string, days: number): string {
+  const [y, m, d] = key.split('-').map(Number)
+  return dateKey(new Date(y, m - 1, d + days))
+}
+
+export function getBrief(opts: { occasion?: string; refresh?: boolean; eventType?: string; date?: string; peek?: boolean } = {}) {
+  const params = new URLSearchParams({ date: opts.date ?? todayKey() })
+  if (opts.peek) params.set('peek', '1')
   if (opts.occasion) params.set('occasion', opts.occasion)
+  if (opts.eventType) params.set('eventType', opts.eventType)
   if (opts.refresh) params.set('refresh', '1')
   return apiFetch<BriefResponse>(`/brief?${params.toString()}`)
 }
 
-export function wearBrief(itemIds?: string[]) {
+/** GET /brief/week — seven days from `from`: what you wore, what's planned. */
+export function getWeek(from: string) {
+  return apiFetch<{ days: WeekDay[] }>(`/brief/week?from=${from}&today=${todayKey()}`)
+}
+
+/** POST /brief/plan — name a day: an event type, an occasion, or a home day. */
+export function planDay(body: { date: string; eventType?: string; occasion?: string; rest?: boolean }) {
+  return apiFetch<BriefResponse>('/brief/plan', { method: 'POST', body })
+}
+
+export function undoBrief(date = todayKey()) {
+  return apiFetch<BriefResponse>('/brief/undo', { method: 'POST', body: { date } })
+}
+
+export function composeEvening(occasion?: string, date = todayKey()) {
+  return apiFetch<BriefResponse>('/brief/evening', { method: 'POST', body: { date, ...(occasion ? { occasion } : {}) } })
+}
+
+export function weatherCheck(date = todayKey()) {
+  return apiFetch<{ note: string | null }>('/brief/weather', { method: 'POST', body: { date } })
+}
+
+export function wearBrief(itemIds?: string[], act: 'morning' | 'evening' = 'morning') {
   return apiFetch<{ log: { id: string }; alreadyLogged: boolean }>('/brief/wear', {
     method: 'POST',
-    body: { date: todayKey(), ...(itemIds ? { itemIds } : {}) },
+    body: { date: todayKey(), act, ...(itemIds ? { itemIds } : {}) },
   })
 }
 

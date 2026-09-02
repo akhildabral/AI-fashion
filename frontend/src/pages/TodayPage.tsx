@@ -16,7 +16,12 @@ import {
   getRitualStats,
   swapBriefItem,
   wearBrief,
+  todayKey,
+  shiftKey,
+  undoBrief,
+  weatherCheck,
   type Brief,
+  type BriefResponse,
   type BriefItem,
   type FeedCard,
   type RitualStats,
@@ -28,8 +33,10 @@ import { GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui
 import { Spinner } from '../components/Spinner'
 import { shareCard, outcomeLine } from '../lib/share'
 import { ClosetNotes } from '../components/ClosetNotes'
+import { WeekStrip } from '../components/WeekStrip'
+import { DayView } from '../components/DayView'
+import { EveningAct } from '../components/EveningAct'
 
-const OCCASIONS = ['Date night', 'Brunch', 'Wedding guest', 'Travel', 'Big meeting']
 
 // Spoken-language complaints → the real learning-loop signals. Tapping one
 // trains the stylist; the backend returns { adjusted } so we can tell the
@@ -68,7 +75,12 @@ export function TodayPage() {
   const { toast, flash } = useFlash()
 
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState<'brief' | 'starter' | null>(null)
+  const [mode, setMode] = useState<'brief' | 'starter' | 'rest' | 'unplanned' | null>(null)
+  const [data, setData] = useState<BriefResponse | null>(null)
+  const [selected, setSelected] = useState(todayKey())
+  const [weekKey, setWeekKey] = useState(0)
+  const hour = new Date().getHours()
+  const isToday = selected === todayKey()
   const [brief, setBrief] = useState<Brief | null>(null)
   const [worn, setWorn] = useState(false)
   const [isRefinement, setIsRefinement] = useState(false)
@@ -90,16 +102,23 @@ export function TodayPage() {
     return raw.charAt(0).toUpperCase() + raw.slice(1)
   })()
 
-  const load = useCallback(async (opts: { occasion?: string; refresh?: boolean } = {}) => {
+  const apply = useCallback((res: BriefResponse) => {
+    setData(res)
+    setMode(res.mode)
+    setBrief(res.brief ?? null)
+    setWorn(Boolean(res.worn))
+    // Refinements are the day's brief now; nothing is ephemeral.
+    setIsRefinement(false)
+    setWeekKey((k) => k + 1)
+  }, [])
+
+  const load = useCallback(async (opts: { occasion?: string; refresh?: boolean; eventType?: string } = {}) => {
     setError(null)
-    setBusy(opts.occasion ? 'occasion' : opts.refresh ? 'another' : null)
-    if (!opts.occasion && !opts.refresh) setLoading(true)
+    setBusy(opts.occasion || opts.eventType ? 'occasion' : opts.refresh ? 'another' : null)
+    if (!opts.occasion && !opts.refresh && !opts.eventType) setLoading(true)
     try {
       const res = await getBrief(opts)
-      setMode(res.mode)
-      setBrief(res.brief ?? null)
-      setWorn(Boolean(res.worn))
-      setIsRefinement(Boolean(opts.occasion))
+      apply(res)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load your brief.')
       setMode((prev) => prev ?? 'starter')
@@ -107,10 +126,27 @@ export function TodayPage() {
       setLoading(false)
       setBusy(null)
     }
-  }, [])
+  }, [apply])
+
+  async function goBack() {
+    setBusy('undo')
+    try {
+      apply(await undoBrief())
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Nothing to go back to.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   useEffect(() => {
     void load()
+    // The midday check: did the forecast move since the brief was composed?
+    if (new Date().getHours() >= 12) {
+      weatherCheck()
+        .then(({ note }) => setData((d) => (d ? { ...d, weatherNote: note } : d)))
+        .catch(() => undefined)
+    }
     getRitualStats().then(setStats).catch(() => undefined)
     getFeed()
       .then((r) => setCards(r.cards.slice(0, 3)))
@@ -267,8 +303,34 @@ export function TodayPage() {
 
       {!loading && profile && <ClosetNotes />}
 
+      {/* The week: what you wore, what's planned, where you are */}
+      {!loading && profile && <WeekStrip selected={selected} onSelect={setSelected} refreshKey={weekKey} />}
+
+      {/* Another day on the strip: the recap, or the plan */}
+      {!loading && !isToday && (
+        <div className="mt-8">
+          <DayView date={selected} onChanged={() => setWeekKey((k) => k + 1)} onNote={flash} />
+          <button type="button" onClick={() => setSelected(todayKey())} className="press mt-6 text-sm text-ink/45 hover:text-ink/70">
+            ← Back to today
+          </button>
+        </div>
+      )}
+
+      {/* A home day */}
+      {!loading && isToday && mode === 'rest' && (
+        <div className="mt-8 animate-rise">
+          <h1 className="font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
+            A home <em className="text-brass">day.</em>
+          </h1>
+          <p className="mt-4 max-w-md font-display text-lg italic text-ink/55">No look, no push. The streak stays honest. Change your mind and the stylist is a tap away.</p>
+          <button type="button" onClick={() => void load({ refresh: true })} className="btn-ghost mt-5">
+            Dress me after all
+          </button>
+        </div>
+      )}
+
       {/* ---------------- STARTER: empty closet ---------------- */}
-      {!loading && mode === 'starter' && (
+      {!loading && isToday && mode === 'starter' && (
         <div className="mt-4">
           <h1 className="animate-rise-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
             Let&rsquo;s fill <em className="text-brass">your closet.</em>
@@ -332,7 +394,7 @@ export function TodayPage() {
       )}
 
       {/* ---------------- THE BRIEF ---------------- */}
-      {!loading && mode === 'brief' && brief && (
+      {!loading && isToday && mode === 'brief' && brief && (
         <>
           {error && (
             <p className="mt-4 alert-error" role="alert">
@@ -348,9 +410,9 @@ export function TodayPage() {
                 <>
                   Looking good <em className="text-brass">today.</em>
                 </>
-              ) : isRefinement ? (
+              ) : brief.occasion ? (
                 <>
-                  For <em className="text-brass">{brief.occasion?.toLowerCase()}.</em>
+                  For <em className="text-brass">{brief.occasion.toLowerCase()}.</em>
                 </>
               ) : (
                 <>
@@ -368,6 +430,12 @@ export function TodayPage() {
               )}
               <span className="font-display italic text-ink/70">{brief.rationale}</span>
             </p>
+            {data?.weatherNote && (
+              <p className="mt-2 inline-flex animate-rise items-center gap-2 rounded-[3px] border border-brass/30 bg-iris-soft px-3 py-1.5 text-xs font-semibold text-brass">
+                Weather moved · <span className="font-normal text-ink/70">{data.weatherNote}</span>
+              </p>
+            )}
+            {data?.plannedAt && !worn && <p className="mt-2 text-xs text-ink/45">Laid out last night.</p>}
 
             {brief.trip && (
               <div className="mt-4 inline-flex animate-rise-2 items-center gap-2 rounded-[3px] border border-brass/30 bg-iris-soft px-3.5 py-2 text-xs font-semibold text-brass">
@@ -451,12 +519,39 @@ export function TodayPage() {
                   'Another'
                 )}
               </button>
-            ) : isRefinement ? (
-              <button type="button" onClick={() => void load()} className="btn-ghost">
-                Back to today&rsquo;s brief
-              </button>
             ) : null}
+            {data?.canUndo && !worn && (
+              <button type="button" disabled={busy === 'undo'} onClick={() => void goBack()} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+                {busy === 'undo' ? '…' : 'Back to the first'}
+              </button>
+            )}
           </div>
+
+          {/* The kind of day: the stylist's guess, changeable in a tap */}
+          {!worn && (
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The day</span>
+              {(
+                [
+                  ['work', 'Work'],
+                  ['casual', 'Weekend'],
+                  ['evening', 'Evening'],
+                  ['occasion', 'Occasion'],
+                  ['athletic', 'Training'],
+                ] as const
+              ).map(([k, l]) => (
+                <button key={k} type="button" disabled={busy !== null} onClick={() => void load({ eventType: k })} className={`chip !px-3 !py-1.5 !text-xs ${brief.eventType === k && !brief.occasion ? 'chip-on' : ''}`}>
+                  {l}
+                </button>
+              ))}
+              <form onSubmit={handleOccasionSubmit} className="flex gap-1.5">
+                <input value={occasionText} onChange={(e) => setOccasionText(e.target.value)} className="field !w-44 !py-1.5 !text-xs" placeholder="or name it: a wedding…" />
+                <button type="submit" disabled={busy !== null || !occasionText.trim()} className="btn-ghost !px-3 !py-1.5 !text-xs disabled:opacity-50">
+                  Go
+                </button>
+              </form>
+            </div>
+          )}
 
           {sharePrompt === 'offer' && (
             <ShareSheet
@@ -468,6 +563,16 @@ export function TodayPage() {
               onError={(msg) => flash(msg)}
               onMirror={(wearLogId) => navigate(`/mirror?items=${brief.itemIds.join(',')}&share=${wearLogId}`)}
             />
+          )}
+
+          {/* Act two: tonight */}
+          {data && <EveningAct data={data} compact={hour < 18} onUpdated={apply} onNote={flash} />}
+
+          {/* Act three: tomorrow, laid out tonight */}
+          {hour >= 20 && (
+            <div className="mt-10 border-t border-ink/10 pt-6">
+              <DayView date={shiftKey(todayKey(), 1)} laidOut onChanged={() => setWeekKey((k) => k + 1)} onNote={flash} />
+            </div>
           )}
           </div>
 
@@ -506,42 +611,6 @@ export function TodayPage() {
             </div>
           )}
 
-          {/* Occasion refinement — beside the confident answer */}
-          <div className={`max-w-xl ${stats && stats.monthlyPayback > 0 ? 'mt-8' : ''}`}>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45">
-              Dressing for something else?
-            </p>
-            <form
-              onSubmit={handleOccasionSubmit}
-              className="flex items-center gap-2 rounded-[3px] border border-ink/15 bg-surface p-1.5 pl-4 focus-within:border-brass/60 focus-within:ring-2 focus-within:ring-brass/20"
-            >
-              <input
-                value={occasionText}
-                onChange={(e) => setOccasionText(e.target.value)}
-                aria-label="Describe an occasion"
-                className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
-                placeholder="Dinner in the city, smart-casual…"
-              />
-              <button type="submit" disabled={busy === 'occasion'} className="btn-primary !px-4 !py-2">
-                {busy === 'occasion' ? <Spinner className="h-4 w-4" /> : 'Style it'}
-              </button>
-            </form>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {OCCASIONS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => {
-                    setOccasionText(chip)
-                    void load({ occasion: chip })
-                  }}
-                  className="chip"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          </div>
           </aside>
           </div>
 
@@ -562,7 +631,7 @@ export function TodayPage() {
                 </Link>
               )}
               {cards.map((card, i) => (
-                <Link key={i} to="/circle" className="card card-hover press animate-rise p-4">
+                <Link key={i} to={card.type === 'new_follower' && card.handle ? `/u/${String(card.handle)}` : card.type === 'ootd' && card.handle ? `/u/${String(card.handle)}` : '/circle'} className="card card-hover press animate-rise p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
                     {card.type === 'ootd' && 'Circle OOTD'}
                     {card.type === 'pick_received' && 'A friend styled you'}

@@ -79,6 +79,9 @@ model PushSubscription {
   auth      String
   timezone  String   @default("UTC")
   hour      Int      @default(7)
+  // "Laid out for tomorrow" at eight in the evening, if wanted.
+  eveningPush Boolean @default(false)
+  lastEveningOn String?
   lastSentOn String?
   createdAt DateTime @default(now())
 
@@ -413,6 +416,12 @@ model DailyBrief {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      String   // YYYY-MM-DD in the user's day, client-supplied
   payload   Json
+  // The day's occasion (resolved or chosen), rest days, and when it was laid
+  // out (tonight, for tomorrow). The whole brief still lives in payload.
+  eventType        String?
+  rest             Boolean   @default(false)
+  plannedAt        DateTime?
+  weatherCheckedAt DateTime?
   wornLogId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())

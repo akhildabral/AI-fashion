@@ -1,10 +1,15 @@
 import { Router } from 'express';
 import {
   briefAlternatives,
+  composeEvening,
   getBrief,
+  planDay,
   shareBriefWear,
   swapBriefItem,
+  undoBrief,
   wearBrief,
+  weatherCheck,
+  weekBrief,
 } from '../controllers/brief.controller';
 import { closetGaps, ritualStats } from '../controllers/ritual.controller';
 import { getFeed } from '../controllers/feed.controller';
@@ -26,6 +31,11 @@ briefRouter.post('/brief/wear', requireAuth, wearBrief);
 briefRouter.post('/brief/share', requireAuth, shareBriefWear);
 briefRouter.post('/brief/swap', requireAuth, swapBriefItem);
 briefRouter.get('/brief/alternatives', requireAuth, briefAlternatives);
+briefRouter.get('/brief/week', requireAuth, weekBrief);
+briefRouter.post('/brief/plan', requireAuth, planDay);
+briefRouter.post('/brief/undo', requireAuth, undoBrief);
+briefRouter.post('/brief/evening', requireAuth, composeEvening);
+briefRouter.post('/brief/weather', requireAuth, weatherCheck);
 briefRouter.get('/stats/ritual', requireAuth, ritualStats);
 briefRouter.get('/stats/gaps', requireAuth, closetGaps);
 briefRouter.get('/feed', requireAuth, getFeed);

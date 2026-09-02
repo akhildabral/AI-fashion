@@ -8,6 +8,7 @@ export interface PushStatus {
   devices: number
   hour: number
   timezone: string | null
+  eveningPush?: boolean
   endpoints: string[]
 }
 
@@ -19,6 +20,10 @@ export function getPushStatus() {
 }
 export function updatePushHour(hour: number) {
   return apiFetch<{ hour: number }>('/push/settings', { method: 'PATCH', body: { hour } })
+}
+/** "Laid out for tomorrow" at eight in the evening, on or off. */
+export function updateEveningPush(eveningPush: boolean) {
+  return apiFetch<{ eveningPush: boolean }>('/push/settings', { method: 'PATCH', body: { eveningPush } })
 }
 export function sendTestPush(endpoint: string) {
   return apiFetch<{ sent: boolean }>('/push/test', { method: 'POST', body: { endpoint } })

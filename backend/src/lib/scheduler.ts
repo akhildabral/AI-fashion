@@ -61,8 +61,14 @@ export async function sendMorningBriefs(now = new Date()): Promise<number> {
     let payload: { title: string; body: string };
     try {
       const brief = await ensureDailyBrief(userId, date);
+      if (brief?.rest) {
+        // A home day: no look, no push. Mark the devices so we don't retry all morning.
+        for (const d of devices) await prisma.pushSubscription.update({ where: { id: d.id }, data: { lastSentOn: date } }).catch(() => undefined);
+        continue;
+      }
+      const laidOut = brief?.plannedAt ? 'Laid out last night: ' : '';
       payload = brief
-        ? { title: brief.payload.title || 'Your look is ready.', body: brief.payload.rationale || 'Composed from what you own. Tap to see it.' }
+        ? { title: `${laidOut}${brief.payload.title || 'your look is ready.'}`, body: brief.payload.rationale || 'Composed from what you own. Tap to see it.' }
         : { title: 'Good morning.', body: 'Add a few pieces to your closet and your stylist will dress you tomorrow.' };
     } catch {
       payload = { title: 'Your look is ready.', body: 'Open the app to see today’s outfit.' };
@@ -76,12 +82,51 @@ export async function sendMorningBriefs(now = new Date()): Promise<number> {
   return sent;
 }
 
+/**
+ * Tomorrow, laid out tonight: at eight in the evening (local), compose the
+ * next day for everyone with a device, and tell the ones who asked.
+ */
+export async function layOutTomorrow(now = new Date()): Promise<number> {
+  if (!pushEnabled) return 0;
+  const subs = await prisma.pushSubscription.findMany({ take: 500 });
+  const due = subs.filter((s) => {
+    const { date, hour } = localNow(s.timezone, now);
+    return hour === 20 && s.lastEveningOn !== date;
+  });
+  let sent = 0;
+  const byUser = new Map<string, typeof due>();
+  for (const s of due) byUser.set(s.userId, [...(byUser.get(s.userId) ?? []), s]);
+  for (const [userId, devices] of byUser) {
+    const { date } = localNow(devices[0].timezone, now);
+    const tomorrow = new Date(`${date}T12:00:00Z`);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const tKey = tomorrow.toISOString().slice(0, 10);
+    let brief: Awaited<ReturnType<typeof ensureDailyBrief>> = null;
+    try {
+      brief = await ensureDailyBrief(userId, tKey, { plannedAt: now });
+    } catch {
+      brief = null;
+    }
+    for (const d of devices) {
+      if (d.eveningPush && brief && !brief.rest) {
+        const ok = await sendPush(d, { title: `Laid out for tomorrow: ${brief.payload.title}`, body: brief.payload.rationale || 'Change the day with a tap; the morning push will confirm.', url: '/', tag: `layout-${tKey}` });
+        if (ok) sent++;
+      }
+      await prisma.pushSubscription.update({ where: { id: d.id }, data: { lastEveningOn: date } }).catch(() => undefined);
+    }
+  }
+  return sent;
+}
+
 export function startScheduler(): () => void {
   const settle = () => {
     settleVerdicts().catch((err) => console.error('settleVerdicts failed:', err instanceof Error ? err.message : err));
   };
   const ritual = () => {
     sendMorningBriefs().catch((err) => console.error('sendMorningBriefs failed:', err instanceof Error ? err.message : err));
+  };
+  const layout = () => {
+    layOutTomorrow().catch((err) => console.error('layOutTomorrow failed:', err instanceof Error ? err.message : err));
   };
   const wish = () => {
     sendWishlistNudges().catch((err) => console.error('sendWishlistNudges failed:', err instanceof Error ? err.message : err));
@@ -91,10 +136,13 @@ export function startScheduler(): () => void {
   wish();
   const a = setInterval(settle, SETTLE_EVERY_MS);
   const b = setInterval(ritual, RITUAL_EVERY_MS);
+  const d = setInterval(layout, RITUAL_EVERY_MS);
+  layout();
   const c = setInterval(wish, 10 * 60 * 1000);
   return () => {
     clearInterval(a);
     clearInterval(b);
     clearInterval(c);
+    clearInterval(d);
   };
 }
