@@ -206,6 +206,10 @@ export interface WardrobeItem {
   care?: string | null
   /** For the Mirror: the details an image model must reproduce. */
   renderNotes?: string | null
+  /** A twin: looks like this other piece you already have; resolved when null. */
+  twinOfId?: string | null
+  twinScore?: number | null
+  twinResolvedAt?: string | null
   /** Per-attribute confidence, 0–1; 1 means you set it. */
   attrConfidence?: Record<string, number> | null
   /** Hidden from suggestion pools ("don't suggest this"). */

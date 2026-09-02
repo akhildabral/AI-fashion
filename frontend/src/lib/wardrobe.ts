@@ -89,6 +89,11 @@ export function updateWardrobeItem(
 }
 
 /** DELETE /api/wardrobe/:id — remove a garment (204 No Content). */
+/** Your answer to a twin flag: the same piece (the newer row goes) or different. */
+export function resolveTwin(id: string, resolution: 'same' | 'different', keepPhoto = false): Promise<{ item: WardrobeItem | null; kept: WardrobeItem | null }> {
+  return apiFetch(`/wardrobe/${id}/twin`, { method: 'POST', body: { resolution, keepPhoto } })
+}
+
 /** One piece, with everything it knows about itself. */
 export function getWardrobeItem(id: string): Promise<WardrobeItemResponse> {
   return apiFetch<WardrobeItemResponse>(`/wardrobe/${id}`)

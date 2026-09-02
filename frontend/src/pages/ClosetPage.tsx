@@ -22,7 +22,7 @@ interface InsightItem {
   costPerWear: number | null
 }
 
-type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new'
+type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins'
 type Lens = 'gallery' | 'ledger'
 
 const COLLECTIONS: { id: Collection; label: string }[] = [
@@ -31,6 +31,7 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'never-worn', label: 'Never worn' },
   { id: 'orphans', label: 'Sitting idle' },
   { id: 'new', label: 'New this month' },
+  { id: 'twins', label: 'Possible twins' },
 ]
 
 const inr = (n: number) => money(n)
@@ -151,6 +152,7 @@ export function ClosetPage() {
   const categories = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])
 
   const monthAgo = Date.now() - 30 * 86_400_000
+  const twins = list.filter((it) => it.twinOfId).length
   const visible = list.filter((it) => {
     if (category && it.category !== category) return false
     const ins = insights.get(it.id)
@@ -158,6 +160,7 @@ export function ClosetPage() {
     if (collection === 'never-worn' && (ins?.wearCount ?? 0) > 0) return false
     if (collection === 'orphans' && !ins?.orphan) return false
     if (collection === 'new' && new Date(it.createdAt ?? 0).getTime() < monthAgo) return false
+    if (collection === 'twins' && !it.twinOfId) return false
     if (search) {
       const hay = `${it.subtype ?? ''} ${it.category} ${it.primaryColor ?? ''} ${it.description ?? ''}`.toLowerCase()
       if (!hay.includes(search.toLowerCase())) return false
@@ -388,18 +391,28 @@ export function ClosetPage() {
             {sorted.length === 0 ? (
               <p className="mt-12 text-center text-sm text-ink/45">Nothing matches that filter.</p>
             ) : (
+              <>
+              {twins > 0 && collection !== 'twins' && (
+                <button type="button" onClick={() => setCollection('twins')} className="plaque press mt-6 flex w-full items-center justify-between gap-3 p-3 pl-4 text-left text-sm">
+                  <span className="text-ink/70">
+                    <b className="font-semibold text-ink">{twins} {twins === 1 ? 'piece looks' : 'pieces look'} like {twins === 1 ? 'one' : 'ones'} you already have.</b> Decide on each: the same piece, or different.
+                  </span>
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Review →</span>
+                </button>
+              )}
               <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {sorted.map((item) => (
                   <GarmentTile
                     key={item.id}
                     imageUrl={item.imageUrl}
                     label={item.subtype ?? item.category}
-                    sublabel={cpwLabel(item)}
+                    sublabel={item.twinOfId ? 'A twin? · decide' : cpwLabel(item)}
                     processing={item.status === 'processing'}
                     onClick={() => navigate(`/closet/piece/${item.id}`)}
                   />
                 ))}
               </div>
+              </>
             )}
           </>
         )}

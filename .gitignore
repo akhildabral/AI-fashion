@@ -57,3 +57,6 @@ deploy/backend.env
 
 # The committed public origin for share cards (no secrets in it).
 !frontend/.env.production
+
+# staged dev tokens for browser sign-in, never committed
+frontend/public/_*.json

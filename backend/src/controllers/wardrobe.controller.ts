@@ -17,6 +17,7 @@ import {
   type SuggestedOutfit,
 } from '../services/wardrobe.service';
 import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGarment } from '../services/cleanup.service';
+import { fingerprintOf, matchPiece, SURE_AT } from '../services/closet-match.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
 import { planPacking } from '../services/packing.service';
 import {
@@ -143,6 +144,12 @@ async function catalogItem(
       fields.cutFor = profile?.styleFor === 'female' ? 'womens' : profile?.styleFor === 'male' ? 'mens' : 'unisex';
       conf.cutFor = 0.4;
     }
+    // The fingerprint of the cut-out: the same photo again is the surest twin.
+    try {
+      update.fingerprint = await fingerprintOf(local?.png ?? display?.png ?? image);
+    } catch {
+      /* a fingerprint is a nicety */
+    }
     update = {
       ...update,
       ...(fields as Prisma.WardrobeItemUncheckedUpdateInput),
@@ -158,6 +165,7 @@ async function catalogItem(
   }
 
   await prisma.wardrobeItem.update({ where: { id: itemId }, data: update });
+  if (update.status === 'ready') await flagTwin(itemId).catch((err) => console.error('twin check failed:', err instanceof Error ? err.message : err));
   // Clean up a superseded cutout — but never the pristine original.
   if (
     newImageUrl &&
@@ -166,6 +174,67 @@ async function catalogItem(
   ) {
     await deleteFile(previous.imageUrl);
   }
+}
+
+/**
+ * Is this piece one the closet already has? Scores it against every owned,
+ * ready piece of its category and flags a sure match. Never acts alone.
+ */
+export async function flagTwin(itemId: string): Promise<void> {
+  const item = await prisma.wardrobeItem.findUnique({ where: { id: itemId } });
+  if (!item || !item.owned || item.twinResolvedAt) return;
+  const closet = await prisma.wardrobeItem.findMany({
+    where: { userId: item.userId, owned: true, status: 'ready', category: item.category, id: { not: item.id }, state: { not: 'retired' } },
+  });
+  const exclude = new Set([...item.twinDismissed, ...closet.filter((c) => c.twinDismissed.includes(item.id) || c.twinOfId === item.id).map((c) => c.id)]);
+  const [best] = matchPiece(item, closet, { exclude, limit: 1 });
+  if (best && best.score >= SURE_AT) {
+    await prisma.wardrobeItem.update({ where: { id: item.id }, data: { twinOfId: best.candidate.id, twinScore: best.score } });
+  } else if (item.twinOfId) {
+    await prisma.wardrobeItem.update({ where: { id: item.id }, data: { twinOfId: null, twinScore: null } });
+  }
+}
+
+const twinSchema = z.object({
+  resolution: z.enum(['same', 'different']),
+  // Same piece, but this newer photo is the better one: it moves to the kept piece.
+  keepPhoto: z.boolean().optional(),
+});
+
+/** The person's answer to a twin flag. */
+export async function resolveTwin(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { resolution, keepPhoto } = twinSchema.parse(req.body);
+  const item = await prisma.wardrobeItem.findFirst({ where: { id, userId: req.user.id } });
+  if (!item) throw new HttpError(404, 'Item not found');
+  if (!item.twinOfId) throw new HttpError(400, 'This piece is not flagged as a twin');
+  const kept = await prisma.wardrobeItem.findFirst({ where: { id: item.twinOfId, userId: req.user.id } });
+
+  if (resolution === 'different') {
+    await prisma.wardrobeItem.update({ where: { id }, data: { twinOfId: null, twinScore: null, twinResolvedAt: new Date(), twinDismissed: { push: item.twinOfId } } });
+    if (kept) await prisma.wardrobeItem.update({ where: { id: kept.id }, data: { twinDismissed: { push: id } } });
+    const updated = await prisma.wardrobeItem.findUnique({ where: { id } });
+    return res.json({ item: updated, kept: null });
+  }
+
+  // The same piece: the newer row goes; its photo may move to the kept piece.
+  if (kept && keepPhoto) {
+    const old = { imageUrl: kept.imageUrl, originalUrl: kept.originalUrl };
+    await prisma.wardrobeItem.update({
+      where: { id: kept.id },
+      data: { imageUrl: item.imageUrl, originalUrl: item.originalUrl, colorPalette: item.colorPalette ?? undefined, fingerprint: item.fingerprint, cropped: item.cropped },
+    });
+    await prisma.wardrobeItem.delete({ where: { id } });
+    await deleteFile(old.imageUrl).catch(() => undefined);
+    if (old.originalUrl && old.originalUrl !== old.imageUrl) await deleteFile(old.originalUrl).catch(() => undefined);
+  } else {
+    await prisma.wardrobeItem.delete({ where: { id } });
+    await deleteFile(item.imageUrl).catch(() => undefined);
+    if (item.originalUrl && item.originalUrl !== item.imageUrl) await deleteFile(item.originalUrl).catch(() => undefined);
+  }
+  const keptNow = kept ? await prisma.wardrobeItem.findUnique({ where: { id: kept.id } }) : null;
+  res.json({ item: null, kept: keptNow });
 }
 
 export async function addItem(req: Request, res: Response) {
@@ -392,6 +461,7 @@ export async function updateItem(req: Request, res: Response) {
     },
   });
 
+  if (data.owned === true) await flagTwin(id).catch(() => undefined);
   const item = await prisma.wardrobeItem.findUnique({ where: { id } });
   res.json({ item });
 }

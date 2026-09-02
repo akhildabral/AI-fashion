@@ -247,6 +247,15 @@ model WardrobeItem {
   // True when originalUrl is this piece's own crop out of a group photo —
   // its source from then on; a re-read starts from it as a single garment.
   cropped        Boolean   @default(false)
+  // A twin: this piece looks like one already in the closet. Flagged on
+  // arrival, never acted on alone; resolved by the person as same or
+  // different. twinDismissed remembers pairs judged different.
+  twinOfId       String?
+  twinScore      Float?
+  twinResolvedAt DateTime?
+  twinDismissed  String[]  @default([])
+  // A 64-bit difference hash of the cut-out, hex: the same photo again.
+  fingerprint    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt @default(now())
 

@@ -2,7 +2,7 @@ import { money } from '../lib/money'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { deleteWardrobeItem, getWardrobeItem, recatalogWardrobeItem, updateWardrobeItem } from '../lib/wardrobe'
+import { deleteWardrobeItem, getWardrobeItem, recatalogWardrobeItem, resolveTwin, updateWardrobeItem } from '../lib/wardrobe'
 import { logWear } from '../lib/wearlog'
 import { getStory, type StoryResponse } from '../lib/outfits'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
@@ -103,6 +103,65 @@ function sourceOf(item: WardrobeItem, fact: Fact, value: unknown): 'read' | 'gue
 const SOURCE_WORD = { read: 'read from the photo', guess: 'a guess, tap to confirm', you: 'you set it', none: '' }
 function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** A twin flag: this piece and the one it looks like, side by side, and your answer. */
+function TwinBanner({ item, onResolved, onNote }: { item: WardrobeItem; onResolved: (kept: WardrobeItem | null) => void; onNote: (msg: string) => void }) {
+  const [other, setOther] = useState<WardrobeItem | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  useEffect(() => {
+    if (!item.twinOfId) return
+    getWardrobeItem(item.twinOfId)
+      .then((r) => setOther(r.item))
+      .catch(() => setOther(null))
+  }, [item.twinOfId])
+  async function answer(resolution: 'same' | 'different', keepPhoto = false) {
+    setBusy(resolution + (keepPhoto ? '-photo' : ''))
+    try {
+      const r = await resolveTwin(item.id, resolution, keepPhoto)
+      onNote(resolution === 'same' ? 'One piece, then. The count is right again.' : 'Two pieces. Noted, and not asked again.')
+      onResolved(resolution === 'same' ? r.kept : null)
+    } catch (err) {
+      onNote(err instanceof Error ? err.message : 'Could not save that.')
+      setBusy(null)
+    }
+  }
+  const name = (i: WardrobeItem) => title(i.subtype ?? i.category)
+  return (
+    <section className="mt-6 rounded-[3px] border border-brass/50 p-4 sm:p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">A twin?</p>
+      <p className="mt-1 text-sm text-ink/70">
+        This looks like a piece you already have{other ? `: the ${name(other).toLowerCase()}` : ''}.{item.twinScore != null ? (item.twinScore >= 13 ? ' The same type and colours, and the photo matches too.' : ' The same type and colours.') : ''} Nothing happens until you say.
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="w-16 shrink-0">
+          <Arch aspect="aspect-[4/5]">
+            <img src={resolveImageUrl(item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+          </Arch>
+          <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/45">New</p>
+        </div>
+        {other && (
+          <Link to={`/closet/piece/${other.id}`} className="w-16 shrink-0">
+            <Arch aspect="aspect-[4/5]">
+              <img src={resolveImageUrl(other.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+            </Arch>
+            <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/45">Yours</p>
+          </Link>
+        )}
+        <div className="flex min-w-0 flex-wrap gap-2">
+          <button type="button" disabled={busy !== null} onClick={() => void answer('same')} className="btn-primary btn-sm">
+            {busy === 'same' ? '…' : 'Same piece'}
+          </button>
+          <button type="button" disabled={busy !== null} onClick={() => void answer('same', true)} className="btn-ghost btn-sm">
+            {busy === 'same-photo' ? '…' : 'Same, keep this photo'}
+          </button>
+          <button type="button" disabled={busy !== null} onClick={() => void answer('different')} className="btn-quiet !h-9 !text-xs">
+            {busy === 'different' ? '…' : 'Different'}
+          </button>
+        </div>
+      </div>
+    </section>
+  )
 }
 
 /** One fact row, and its editor when open. */
@@ -424,6 +483,8 @@ export function PiecePage() {
               </button>
             </div>
           )}
+
+          {item.twinOfId && <TwinBanner item={item} onResolved={(kept) => (kept ? navigate(`/closet/piece/${kept.id}`, { replace: true }) : void load())} onNote={flash} />}
 
           <section className="plaque mt-6 grid grid-cols-3 gap-3 p-4 pl-5 sm:gap-4">
             <div className="min-w-0">

@@ -8,6 +8,7 @@ import {
   mixAndMatch,
   packForTrip,
   recatalogItem,
+  resolveTwin,
   setVisibility,
   resaleDraft,
   updateItem,
@@ -35,6 +36,7 @@ wardrobeRouter.post('/:id/feedback', requireAuth, itemFeedback);
 wardrobeRouter.post('/:id/resale-draft', requireAuth, resaleDraft);
 wardrobeRouter.post('/tryon', requireAuth, quota('tryon'), createOutfitTryOn);
 wardrobeRouter.post('/:id/recatalog', requireAuth, quota('catalog'), recatalogItem);
+wardrobeRouter.post('/:id/twin', requireAuth, resolveTwin);
 wardrobeRouter.get('/:id', requireAuth, getItem);
 wardrobeRouter.get('/:id/pairs', requireAuth, itemPairs);
 wardrobeRouter.get('/:id/story', requireAuth, itemStory);
