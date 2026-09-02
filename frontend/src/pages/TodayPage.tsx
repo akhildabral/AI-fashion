@@ -7,8 +7,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { useProfile } from '../context/useProfile'
 import { apiFetch } from '../lib/api'
-import { sendItemFeedback } from '../lib/wardrobe'
-import type { FeedbackSignal } from '../lib/types'
+import { getWardrobe, sendItemFeedback } from '../lib/wardrobe'
+import type { FeedbackSignal, WardrobeItem } from '../lib/types'
+import { resolveImageUrl } from '../lib/api'
 import {
   getTrips,
   shareBrief,
@@ -83,6 +84,29 @@ function tripIsOn(t: Trip): boolean {
   return t.startDate <= today && t.endDate >= today
 }
 
+/** The first brief's four niches, filled from what the closet already holds. */
+const STARTER_SLOTS: { key: string; label: string; take: (i: WardrobeItem) => boolean }[] = [
+  { key: 'top', label: 'A top', take: (i) => i.category === 'top' || i.category === 'dress' },
+  { key: 'bottom', label: 'A bottom', take: (i) => i.category === 'bottom' || i.category === 'dress' },
+  { key: 'shoes', label: 'Shoes', take: (i) => i.category === 'footwear' },
+  { key: 'more', label: 'One more thing', take: () => true },
+]
+function starterSlots(closet: WardrobeItem[]): { key: string; label: string; item: WardrobeItem | null }[] {
+  const used = new Set<string>()
+  return STARTER_SLOTS.map((slot) => {
+    const item = closet.find((i) => !used.has(i.id) && slot.take(i)) ?? null
+    if (item) used.add(item.id)
+    return { key: slot.key, label: slot.label, item }
+  })
+}
+function starterLine(closet: WardrobeItem[]): string {
+  const missing = starterSlots(closet).filter((s) => !s.item).map((s) => s.label.toLowerCase())
+  if (missing.length === 0) return 'The niches are full. Tonight at eight, tomorrow\u2019s outfit hangs here.'
+  if (missing.length === 4) return 'Your first brief hangs here once these four are in the closet.'
+  const list = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`
+  return `Add ${list}, and tomorrow\u2019s outfit hangs here.`
+}
+
 export function TodayPage() {
   usePageTitle('Today')
   const { user } = useAuth()
@@ -111,6 +135,13 @@ export function TodayPage() {
   const [occasionText, setOccasionText] = useState('')
   const [dayOpen, setDayOpen] = useState(false)
   const [starterLooks, setStarterLooks] = useState<Look[] | null>(null)
+  const [closet, setCloset] = useState<WardrobeItem[]>([])
+  useEffect(() => {
+    if (mode !== 'starter') return
+    getWardrobe()
+      .then((r) => setCloset(r.items.filter((i) => i.status === 'ready' && i.owned !== false)))
+      .catch(() => setCloset([]))
+  }, [mode])
   const [sharePrompt, setSharePrompt] = useState<'hidden' | 'offer' | 'shared'>('hidden')
   const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null)
 
@@ -419,52 +450,34 @@ export function TodayPage() {
             </button>
           </div>
 
-          {/* An example brief hangs in the niches until there is a closet to compose from */}
-          <div className="mt-12 grid animate-rise-3 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center lg:gap-12">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What a brief looks like</p>
-              <div className="mt-3 grid max-w-2xl grid-cols-4 gap-3 sm:gap-4">
-                {[
-                  ['blazer', 'A layer'],
-                  ['tank', 'A top'],
-                  ['trousers', 'A bottom'],
-                  ['pumps', 'Shoes'],
-                ].map(([file, slot]) => (
-                  <div key={file} className="min-w-0">
-                    <div className="arch-bezel aspect-[4/5]">
+          {/* The four niches of the first brief: the pieces you own hang in theirs; the empty ones ask for what is missing */}
+          <div className="mt-12 animate-rise-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {starterSlots(closet).map((slot) =>
+                slot.item ? (
+                  <div key={slot.key} className="min-w-0">
+                    <div className="arch-bezel aspect-[3/4]">
                       <div className="arch-niche flex h-full w-full items-center justify-center">
-                        <img src={`/landing/${file}.webp`} alt={slot} className="relative z-[1] h-full w-full object-contain p-[12%]" />
+                        <img src={resolveImageUrl(slot.item.imageUrl)} alt={slot.item.subtype ?? slot.item.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
                       </div>
                     </div>
-                    <p className="mt-2 truncate text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{slot}</p>
+                    <p className="mt-2 truncate text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/55">{slot.label} · yours</p>
                   </div>
-                ))}
-              </div>
-              <p className="mt-3 max-w-2xl font-display text-sm italic text-ink/45">An example, not yours yet. Once the closet has a few pieces, tomorrow’s outfit hangs here every night.</p>
+                ) : (
+                  <Link key={slot.key} to="/closet" className="press group min-w-0">
+                    {/* an empty niche: the arch drawn in a dashed brass line, waiting */}
+                    <div className="aspect-[3/4] w-full">
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 border border-dashed border-brass/45 bg-surface transition-colors group-hover:border-brass" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px' }}>
+                        <span className="font-display text-4xl leading-none text-brass">+</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{slot.label}</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 truncate text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">Add {slot.label.toLowerCase()}</p>
+                  </Link>
+                ),
+              )}
             </div>
-            <aside className="plaque p-5 pl-6">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What to add first</p>
-              <ul className="mt-3 space-y-2 text-sm text-ink/70">
-                <li className="flex gap-3">
-                  <span className="w-4 shrink-0 font-display text-brass">1</span>
-                  <span>
-                    <b className="font-semibold text-ink">Four pieces</b> make the first brief: a top, a bottom, shoes, and one more thing.
-                  </span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="w-4 shrink-0 font-display text-brass">2</span>
-                  <span>
-                    <b className="font-semibold text-ink">One photo each</b>, on any background. The closet reads colour, cut and warmth itself.
-                  </span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="w-4 shrink-0 font-display text-brass">3</span>
-                  <span>
-                    <b className="font-semibold text-ink">Tonight at eight</b> the stylist lays out tomorrow. Say “Wearing it” in the morning and the record begins.
-                  </span>
-                </li>
-              </ul>
-            </aside>
+            <p className="mt-4 text-center font-display text-sm italic text-ink/45">{starterLine(closet)}</p>
           </div>
 
           {error && (
