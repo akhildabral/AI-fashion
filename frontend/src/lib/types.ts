@@ -192,6 +192,20 @@ export interface WardrobeItem {
   nudgeAt?: string | null
   brand?: string | null
   size?: string | null
+  /** Tags, second edition. cutFor: womens | mens | unisex. */
+  cutFor?: string | null
+  secondaryColor?: string | null
+  fit?: string | null
+  length?: string | null
+  texture?: string | null
+  weight?: string | null
+  occasions?: string[]
+  /** Per-type details: neckline, sleeve, rise, leg, heel, toe, closure, materialNote. */
+  details?: Record<string, string> | null
+  note?: string | null
+  care?: string | null
+  /** Per-attribute confidence, 0–1; 1 means you set it. */
+  attrConfidence?: Record<string, number> | null
   /** Hidden from suggestion pools ("don't suggest this"). */
   suppressed: boolean
   /** What the item cost — powers cost-per-wear. */
@@ -227,6 +241,16 @@ export interface WardrobeItemEdit {
   material?: string
   description?: string
   suppressed?: boolean
+  cutFor?: 'womens' | 'mens' | 'unisex' | null
+  secondaryColor?: string | null
+  fit?: string | null
+  length?: string | null
+  texture?: string | null
+  weight?: string | null
+  occasions?: string[]
+  details?: Record<string, string> | null
+  note?: string | null
+  care?: string | null
   state?: 'clean' | 'in-wash' | 'packed' | 'lent-out' | 'retired'
   brand?: string | null
   size?: string | null

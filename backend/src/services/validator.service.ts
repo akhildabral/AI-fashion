@@ -13,6 +13,19 @@ export interface ValidatorItem {
   warmthValue: number | null;
   formalityScore: number | null;
   state: string;
+  /** womens | mens | unisex | null (unknown). */
+  cutFor?: string | null;
+}
+
+/** The line the stylist never crosses: her pieces and his never share an outfit. */
+export function crossesCutFor(items: { cutFor?: string | null }[]): boolean {
+  let her = false;
+  let him = false;
+  for (const i of items) {
+    if (i.cutFor === 'womens') her = true;
+    else if (i.cutFor === 'mens') him = true;
+  }
+  return her && him;
 }
 
 export interface ValidatorWeather {
@@ -79,6 +92,11 @@ export function validateOutfit(
   const violations: Violation[] = [];
   const warnings: Violation[] = [];
   const roles = items.map(roleOf);
+
+  // --- Cut for ------------------------------------------------------------
+  if (crossesCutFor(items)) {
+    violations.push({ rule: 'cut-for', message: 'Mixes pieces cut for her with pieces cut for him' });
+  }
 
   // --- Availability -------------------------------------------------------
   const unavailable = items.filter((i) => i.state !== 'clean');

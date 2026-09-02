@@ -93,7 +93,7 @@ async function catalogItem(
 
   const previous = await prisma.wardrobeItem.findUnique({
     where: { id: itemId },
-    select: { imageUrl: true, originalUrl: true },
+    select: { imageUrl: true, originalUrl: true, userId: true, attrConfidence: true },
   });
   // The item may have been deleted while processing.
   if (!previous) {
@@ -103,12 +103,25 @@ async function catalogItem(
 
   try {
     const tags = await tagGarment(imageForTagging, mimeForTagging);
-    const { attrConfidence, ...tagFields } = tags;
+    const { attrConfidence, details, ...tagFields } = tags;
+    // A fact you set stays yours: a re-read never overwrites full-confidence fields.
+    const prior = (previous.attrConfidence as Record<string, number> | null) ?? {};
+    const fields: Record<string, unknown> = { ...tagFields };
+    for (const k of Object.keys(fields)) if ((prior[k] ?? 0) >= 1) delete fields[k];
+    const conf: Record<string, number> = { ...attrConfidence };
+    for (const k of Object.keys(prior)) if (prior[k] >= 1) conf[k] = 1;
+    // Who it's cut for: when the photo can't settle it, assume your side of the closet, as a guess.
+    if (!fields.cutFor && (prior.cutFor ?? 0) < 1) {
+      const profile = await prisma.styleProfile.findUnique({ where: { userId: previous.userId }, select: { styleFor: true } });
+      fields.cutFor = profile?.styleFor === 'female' ? 'womens' : profile?.styleFor === 'male' ? 'mens' : 'unisex';
+      conf.cutFor = 0.4;
+    }
     update = {
       ...update,
-      ...tagFields,
+      ...(fields as Prisma.WardrobeItemUncheckedUpdateInput),
+      ...((prior.details ?? 0) >= 1 ? {} : { details: (details ?? Prisma.JsonNull) as Prisma.InputJsonValue | typeof Prisma.JsonNull }),
       ...deriveReasoningAttributes(tags),
-      attrConfidence,
+      attrConfidence: conf,
       status: 'ready',
     };
   } catch (err) {
@@ -262,6 +275,17 @@ const updateSchema = z.object({
   formalityScore: z.number().int().min(1).max(5).nullish(),
   brand: z.string().max(60).nullish(),
   size: z.string().max(30).nullish(),
+  // Tags, second edition.
+  cutFor: z.enum(['womens', 'mens', 'unisex']).nullish(),
+  secondaryColor: z.string().max(40).nullish(),
+  fit: z.enum(['slim', 'regular', 'relaxed', 'oversized']).nullish(),
+  length: z.enum(['cropped', 'regular', 'long']).nullish(),
+  texture: z.enum(['smooth', 'woven', 'knit', 'ribbed', 'fuzzy', 'glossy', 'other']).nullish(),
+  weight: z.enum(['light', 'mid', 'heavy']).nullish(),
+  occasions: z.array(z.enum(EVENT_TYPES)).max(5).optional(),
+  details: z.record(z.string().max(40)).nullish(),
+  note: z.string().max(400).nullish(),
+  care: z.string().max(60).nullish(),
   // Wishlist: where you saw it, for how much, and when to be nudged. "Bought
   // it" is owned: true.
   owned: z.boolean().optional(),
@@ -319,9 +343,16 @@ export async function updateItem(req: Request, res: Response) {
     side.nudgeAt = null;
   }
 
+  const { details, ...plain } = data;
   await prisma.wardrobeItem.update({
     where: { id },
-    data: { ...data, ...rederive, ...side, attrConfidence },
+    data: {
+      ...plain,
+      ...(details !== undefined ? { details: (details ?? Prisma.JsonNull) as Prisma.InputJsonValue | typeof Prisma.JsonNull } : {}),
+      ...rederive,
+      ...side,
+      attrConfidence,
+    },
   });
 
   const item = await prisma.wardrobeItem.findUnique({ where: { id } });
@@ -368,9 +399,12 @@ export async function setVisibility(req: Request, res: Response) {
 export type StyleableItem = Awaited<ReturnType<typeof loadStyleableWardrobe>>[number];
 
 export async function loadStyleableWardrobe(userId: string) {
+  const profile = await prisma.styleProfile.findUnique({ where: { userId }, select: { styleFor: true } });
+  // Your side of the closet: never the other side's pieces; unknown and unisex pass.
+  const notForYou = profile?.styleFor === 'female' ? 'mens' : profile?.styleFor === 'male' ? 'womens' : null;
   const [items, logs, polls, tryOns] = await Promise.all([
     prisma.wardrobeItem.findMany({
-      where: { userId, owned: true, status: { not: 'processing' }, state: 'clean', suppressed: false },
+      where: { userId, owned: true, status: { not: 'processing' }, state: 'clean', suppressed: false, ...(notForYou ? { NOT: { cutFor: notForYou } } : {}) },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.wearLog.findMany({

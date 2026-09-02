@@ -11,7 +11,12 @@ import type { EventType } from '../lib/attributes';
 type Piece = Pick<
   WardrobeItem,
   'id' | 'category' | 'subtype' | 'primaryColor' | 'pattern' | 'formalityScore' | 'warmthValue' | 'layerRole' | 'colorPalette' | 'state' | 'imageUrl'
->;
+> & { cutFor?: string | null };
+
+/** Her pieces and his never pair; anyone's pair with both. */
+function acrossTheLine(a: Piece, b: Piece): boolean {
+  return (a.cutFor === 'womens' && b.cutFor === 'mens') || (a.cutFor === 'mens' && b.cutFor === 'womens');
+}
 
 const NEUTRALS = /black|white|grey|gray|navy|beige|cream|ivory|tan|camel|charcoal|khaki|denim|off-white|stone|sand|ecru/i;
 const LOUD = /floral|animal|leopard|zebra|paisley|plaid|tartan|check|graphic|print|logo/i;
@@ -39,6 +44,7 @@ export function pairScore(a: Piece, b: Piece): number {
   const sa = slot(a);
   const sb = slot(b);
   if (sa === sb) return 0;
+  if (acrossTheLine(a, b)) return 0;
   // A dress doesn't take a top or a bottom.
   if ((sa === 'dress' && (sb === 'top' || sb === 'bottom' || sb === 'mid')) || (sb === 'dress' && (sa === 'top' || sa === 'bottom' || sa === 'mid'))) return 0;
 
@@ -170,7 +176,7 @@ export function outfitsAround(piece: Piece, closet: Piece[], opts: { eventType?:
 
 /** The owned piece most like this one (same slot), to catch a duplicate. */
 export function closestOwned(piece: Piece, closet: Piece[]): { id: string; likeness: number } | null {
-  const same = closet.filter((c) => c.id !== piece.id && slot(c) === slot(piece));
+  const same = closet.filter((c) => c.id !== piece.id && slot(c) === slot(piece) && !acrossTheLine(c, piece));
   let best: { id: string; likeness: number } | null = null;
   for (const c of same) {
     let l = 0;

@@ -178,7 +178,7 @@ export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.0
     boxes.push(b)
     return b
   }
-  const GAP = 0.06
+  const GAP = 0.045
 
   const iOuter = first('outerwear')
   const iTop = first('top')
@@ -205,7 +205,7 @@ export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.0
     }
     if (iShoes >= 0) {
       const ref = bottom ?? lead
-      if (ref) put(iShoes, ref.x + ref.w + GAP, ref.y + ref.h - size[iShoes].h - 0.03, -12, 6)
+      if (ref) put(iShoes, ref.x + ref.w - 0.03, ref.y + ref.h - size[iShoes].h * 0.85, -12, 6)
     }
   } else {
     if (iBottom >= 0) bottom = put(iBottom, 0, 0, -2, 3)
@@ -224,11 +224,11 @@ export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.0
   let colY = 0.02
   const iGlasses = first('glasses')
   if (iGlasses >= 0 && !used.has(iGlasses)) {
-    const g = put(iGlasses, colX + 0.02, colY, 10, 6)
+    const g = put(iGlasses, colX - 0.02, colY, 10, 6)
     if (g) colY = g.y + g.h + GAP
   }
   if (iBag >= 0 && !used.has(iBag)) {
-    const b = put(iBag, colX, Math.max(colY, 0.14), 5, 4)
+    const b = put(iBag, colX - 0.035, Math.max(colY, 0.34), 5, 4)
     if (b) colY = b.y + b.h + GAP
   }
   const iHat = first('hat')

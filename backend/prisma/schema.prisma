@@ -228,6 +228,19 @@ model WardrobeItem {
   brand          String?
   size           String?
   productId      String?
+  // Tags, second edition. cutFor: womens | mens | unisex — the line the
+  // stylist never crosses. The rest describe proportion and make.
+  cutFor         String?
+  secondaryColor String?
+  fit            String?
+  length         String?
+  texture        String?
+  weight         String?
+  occasions      String[]  @default([])
+  // Per-type details: { neckline, sleeve, rise, leg, heel, toe, closure, materialNote }.
+  details        Json?
+  note           String?
+  care           String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt @default(now())
 

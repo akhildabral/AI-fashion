@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
 import { textModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
+import { EVENT_TYPES } from '../lib/attributes';
 import {
   formalityScoreFor,
   layerRoleFor,
@@ -10,14 +11,29 @@ import {
   warmthFor,
 } from '../lib/attributes';
 
+export const CUT_FOR = ['womens', 'mens', 'unisex'] as const;
+export const MATERIALS = ['cotton', 'linen', 'wool', 'silk', 'denim', 'leather', 'synthetic', 'blend', 'other'] as const;
+export const FITS = ['slim', 'regular', 'relaxed', 'oversized'] as const;
+export const LENGTHS = ['cropped', 'regular', 'long'] as const;
+export const TEXTURES = ['smooth', 'woven', 'knit', 'ribbed', 'fuzzy', 'glossy', 'other'] as const;
+export const WEIGHTS = ['light', 'mid', 'heavy'] as const;
+
 export interface GarmentTags {
   category: string;
   subtype: string | null;
   primaryColor: string | null;
+  secondaryColor: string | null;
   pattern: string | null;
   formality: string | null;
   season: string[];
+  occasions: string[];
   material: string | null;
+  cutFor: string | null;
+  fit: string | null;
+  length: string | null;
+  texture: string | null;
+  weight: string | null;
+  details: Record<string, string> | null;
   description: string | null;
   attrConfidence: Record<string, number>;
 }
@@ -33,10 +49,31 @@ const tagSchema = z.object({
   category: z.enum(['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'dress', 'other']),
   subtype: z.string(),
   primaryColor: z.string(),
+  // The second colour, or an empty string when the piece is one colour.
+  secondaryColor: z.string(),
   pattern: z.enum(['solid', 'striped', 'plaid', 'checked', 'floral', 'graphic', 'other']),
   formality: z.enum(['casual', 'smart-casual', 'business', 'formal', 'athletic']),
   season: z.array(z.enum(['spring', 'summer', 'fall', 'winter'])),
-  material: z.string(),
+  occasions: z.array(z.enum(EVENT_TYPES)),
+  material: z.enum(MATERIALS),
+  // The material in the model's own words when the list is too coarse (e.g. "cashmere").
+  materialNote: z.string(),
+  // Who the piece is cut for, judged by cut and styling, never by colour.
+  cutFor: z.enum(CUT_FOR),
+  fit: z.enum(FITS),
+  length: z.enum(LENGTHS),
+  texture: z.enum(TEXTURES),
+  weight: z.enum(WEIGHTS),
+  // Per-type details; leave what doesn't apply empty.
+  details: z.object({
+    neckline: z.string(),
+    sleeve: z.string(),
+    rise: z.string(),
+    leg: z.string(),
+    heel: z.string(),
+    toe: z.string(),
+    closure: z.string(),
+  }),
   description: z.string(),
   // Per-attribute confidence, 0–1. Honesty is rewarded: low-confidence
   // values are discarded rather than stored.
@@ -44,9 +81,15 @@ const tagSchema = z.object({
     category: confidenceSchema,
     subtype: confidenceSchema,
     primaryColor: confidenceSchema,
+    secondaryColor: confidenceSchema,
     pattern: confidenceSchema,
     formality: confidenceSchema,
     material: confidenceSchema,
+    cutFor: confidenceSchema,
+    fit: confidenceSchema,
+    length: confidenceSchema,
+    texture: confidenceSchema,
+    weight: confidenceSchema,
   }),
 });
 
@@ -62,7 +105,14 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
         'You are a fashion cataloguer. Identify the single garment or accessory ' +
         'in the image and describe it with precise, structured tags. For each ' +
         'attribute report an honest confidence between 0 and 1 — a low confidence ' +
-        'on an uncertain attribute is the correct answer, not a failure.',
+        'on an uncertain attribute is the correct answer, not a failure. ' +
+        'cutFor is who the piece is cut for — womens, mens, or unisex — judged from ' +
+        'the cut, silhouette, closure side and styling, never from colour; report low ' +
+        'confidence when the cut is genuinely ambiguous. secondaryColor is the second ' +
+        'colour of a two-tone or patterned piece, empty when there is none. ' +
+        'Fill only the details that apply to this kind of piece (neckline and sleeve ' +
+        'for tops and dresses; rise and leg for bottoms; heel and toe for shoes; ' +
+        'closure for anything that fastens) and leave the rest empty.',
       messages: [
         {
           role: 'user',
@@ -83,14 +133,25 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
   const keep = (field: keyof typeof conf, value: string): string | null =>
     (conf[field] ?? 1) >= ABSTAIN_BELOW && value.trim() ? value.trim() : null;
 
+  const details: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw.details ?? {})) if (v && v.trim()) details[k] = v.trim();
+  if (raw.materialNote?.trim() && raw.materialNote.trim().toLowerCase() !== raw.material) details.materialNote = raw.materialNote.trim();
   return {
     category: raw.category,
     subtype: keep('subtype', raw.subtype),
     primaryColor: normalizeColorName(keep('primaryColor', raw.primaryColor)),
+    secondaryColor: normalizeColorName(keep('secondaryColor', raw.secondaryColor)),
     pattern: keep('pattern', raw.pattern),
     formality: keep('formality', raw.formality),
     season: raw.season ?? [],
+    occasions: raw.occasions ?? [],
     material: keep('material', raw.material),
+    cutFor: keep('cutFor', raw.cutFor),
+    fit: keep('fit', raw.fit),
+    length: keep('length', raw.length),
+    texture: keep('texture', raw.texture),
+    weight: keep('weight', raw.weight),
+    details: Object.keys(details).length ? details : null,
     description: raw.description?.trim() || null,
     attrConfidence: conf,
   };
