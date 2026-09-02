@@ -13,8 +13,13 @@ import { HttpError } from '../middleware/error';
 
 export type TryOnMode = 'references' | 'text';
 
+// Text is the default: one edit of the person's photo with the pieces
+// described from their tags reliably keeps the person and dresses them in
+// the right clothes. With garment pictures attached the model has been seen
+// to ignore them — a short-sleeve polo rendered long, black trousers white.
+// References stay available behind TRYON_MODE=references for comparison.
 export function defaultTryOnMode(): TryOnMode {
-  return process.env.TRYON_MODE === 'text' ? 'text' : 'references';
+  return process.env.TRYON_MODE === 'references' ? 'references' : 'text';
 }
 
 interface OutfitItems {
