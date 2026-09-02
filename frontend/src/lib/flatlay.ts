@@ -188,11 +188,19 @@ export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.0
 
   let lead: Box | null = null
   let bottom: Box | null = null
+  const under = (ref: Box, index: number, dx = 0) => ({ x: ref.x + ref.w * 0.5 - size[index].w * 0.5 + dx, y: ref.y + ref.h - size[index].h * 0.3 })
 
+  // Pieces sit where they are worn: the upper garment leads, trousers hang
+  // from its hem, shoes stand under the hem, the bag hangs at the hand,
+  // jewellery at the collar, glasses and a hat above at the face.
   if (iDress >= 0) {
     lead = put(iDress, 0, 0, -3, 5)
-    const beside = iOuter >= 0 && lead ? put(iOuter, lead.w + GAP, 0.1, 5, 4) : null
-    if (iShoes >= 0 && lead) put(iShoes, (beside ? beside.x : lead.w + GAP) + 0.04, lead.h - size[iShoes].h - 0.04, -12, 6)
+    if (iOuter >= 0 && lead) put(iOuter, lead.w + GAP * 0.6, 0.06, 5, 4)
+    if (iShoes >= 0 && lead) {
+      const u = under(lead, iShoes, 0.04)
+      put(iShoes, u.x, u.y, -12, 6)
+    }
+    if (iBag >= 0 && lead) put(iBag, lead.x + lead.w + GAP * 0.4, lead.h * 0.52, 5, 4)
   } else if (iOuter >= 0 || iTop >= 0) {
     const iLead = iOuter >= 0 ? iOuter : iTop
     lead = put(iLead, 0, 0, -4, 5)
@@ -204,45 +212,49 @@ export function composeLook(items: LayoutItem[], frameRatio = 1.25, margin = 0.0
     }
     if (iShoes >= 0) {
       const ref = bottom ?? lead
-      if (ref) put(iShoes, ref.x + ref.w - 0.03, ref.y + ref.h - size[iShoes].h * 0.85, -12, 6)
+      if (ref) {
+        const u = under(ref, iShoes, 0.05)
+        put(iShoes, u.x, u.y, -12, 6)
+      }
+    }
+    if (iBag >= 0 && lead) {
+      // At the hand: beside the hip, just below the upper garments.
+      const hip = bottom ?? lead
+      put(iBag, hip.x + hip.w + GAP * 0.3, (bottom ? bottom.y : lead.h * 0.6) + 0.02, 5, 4)
     }
   } else {
     if (iBottom >= 0) bottom = put(iBottom, 0, 0, -2, 3)
-    // A bag beside the hip, then the shoes beside the hem, never on the bag.
-    const bag = iBag >= 0 && bottom ? put(iBag, bottom.w + GAP, 0.05, 5, 4) : null
+    if (iBag >= 0 && bottom) put(iBag, bottom.w + GAP * 0.3, 0.05, 5, 4)
     if (iShoes >= 0 && bottom) {
-      const y = Math.max(bottom.h - size[iShoes].h - 0.02, bag ? bag.y + bag.h + GAP : 0)
-      put(iShoes, bottom.w + GAP, y, -12, 6)
+      const u = under(bottom, iShoes, 0.02)
+      put(iShoes, u.x, u.y, -12, 6)
     }
     if (iShoes >= 0 && !bottom) put(iShoes, 0, 0, -12, 6)
   }
 
-  // The right column: glasses above, bag below, beside the upper garments.
-  const upperRight = boxes.filter((b) => b.y < 0.5).map((b) => b.x + b.w)
-  const colX = (upperRight.length ? Math.max(...upperRight) : 0) + GAP
-  let colY = 0.02
+  // At the face: glasses above the collar, a hat above them.
+  const face = lead ?? bottom
+  let faceY = -0.03
   const iGlasses = first('glasses')
-  if (iGlasses >= 0 && !used.has(iGlasses)) {
-    const g = put(iGlasses, colX - 0.02, colY, 10, 6)
-    if (g) colY = g.y + g.h + GAP
-  }
-  if (iBag >= 0 && !used.has(iBag)) {
-    const b = put(iBag, colX - 0.035, Math.max(colY, 0.34), 5, 4)
-    if (b) colY = b.y + b.h + GAP
+  if (iGlasses >= 0 && !used.has(iGlasses) && face) {
+    const g = put(iGlasses, face.x + face.w * 0.5 - size[iGlasses].w * 0.5, faceY - size[iGlasses].h, 8, 6)
+    if (g) faceY = g.y - GAP * 0.5
   }
   const iHat = first('hat')
-  if (iHat >= 0 && !used.has(iHat) && lead) put(iHat, lead.w * 0.55, -size[iHat].h * 0.7, -8, 6)
+  if (iHat >= 0 && !used.has(iHat) && face) put(iHat, face.x + face.w * 0.5 - size[iHat].w * 0.5, faceY - size[iHat].h, -8, 6)
 
-  // Small things sit at the left edge, beside the trousers.
-  const leftRef = bottom ?? lead
-  let leftY = leftRef ? leftRef.y + 0.12 : 0
-  const leftX = leftRef ? leftRef.x - GAP : 0
+  // At the collar: jewellery by the right shoulder. Other small things beside the hip.
+  let collarY = 0.0
+  let hipY = bottom ? bottom.y + 0.08 : 0.5
   items.forEach((_, index) => {
-    if (used.has(index)) return
+    if (used.has(index) || !lead) return
     const r = roles[index]
-    if (r === 'jewel' || r === 'small') {
-      const b = put(index, leftX - size[index].w, leftY, -6, 6)
-      if (b) leftY = b.y + b.h + GAP
+    if (r === 'jewel') {
+      const b = put(index, lead.x + lead.w * 0.78, collarY, -6, 6)
+      if (b) collarY = b.y + b.h + GAP * 0.5
+    } else if (r === 'small') {
+      const b = put(index, (bottom ?? lead).x - size[index].w - GAP * 0.3, hipY, -6, 6)
+      if (b) hipY = b.y + b.h + GAP * 0.5
     }
   })
   // Whatever is left (a second top, a second pair of shoes) lines up under the cluster.

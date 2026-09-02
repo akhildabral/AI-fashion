@@ -261,7 +261,7 @@ export function CirclePage() {
     try {
       await apiFetch('/outfits', {
         method: 'POST',
-        body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from ${recreate?.handle}’s outfit of the day` },
+        body: { itemIds: ids, provenance: 'copied', rationale: `Recreated from ${posts?.find((p) => p.handle === recreate?.handle)?.name ?? 'a friend'}’s outfit of the day` },
       })
       flash('Saved to your outfits.')
       setRecreate(null)
