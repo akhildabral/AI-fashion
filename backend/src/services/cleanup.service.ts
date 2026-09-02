@@ -20,6 +20,10 @@ import { removeBackground } from './matting.service';
 // Every failure degrades one step: generative → local → original.
 
 const MAX_PLAUSIBLE_COVERAGE = 0.7;
+// A matte the model was this unsure about (relative to what it kept) is a
+// hazy one — a garment on a crumpled sheet, low contrast, a shadow read as
+// cloth. When a studio re-render is available it is worth the call.
+const MAX_CRISP_SOFTNESS = 0.22;
 
 // Proportion is the thing generative edits most often break — a full-length
 // trouser comes back folded and wide. This clause is repeated in both prompts.
@@ -70,9 +74,14 @@ function resolveMode(): 'generative' | 'local' | 'off' {
   return imagesEnabled() ? 'generative' : 'local';
 }
 
-async function localCutout(image: Buffer): Promise<CleanedGarment | null> {
+async function localCutout(image: Buffer, opts: { crispOnly?: boolean } = {}): Promise<CleanedGarment | null> {
   const matted = await removeBackground(image);
   if (!matted || matted.coverage > MAX_PLAUSIBLE_COVERAGE) return null;
+  if (opts.crispOnly && matted.softness > MAX_CRISP_SOFTNESS) {
+    console.info(`Local matte too hazy (softness ${matted.softness.toFixed(2)}) — trying the studio re-render`);
+    return null;
+  }
+  console.info(`Local matte kept (softness ${matted.softness.toFixed(2)}, coverage ${matted.coverage.toFixed(2)})`);
   return {
     png: matted.png,
     rgba: { data: matted.rgba, width: matted.width, height: matted.height },
@@ -95,8 +104,9 @@ export async function cleanGarmentImage(
   // case we fall through to generative extraction. A target is only set when a
   // specific item must be pulled from a multi-garment or on-body shot, where
   // generative isolation is required (and may reshape — see KEEP_PROPORTIONS).
+  // A hazy matte is only good enough when nothing better is on offer.
   if (!target) {
-    const local = await localCutout(image);
+    const local = await localCutout(image, { crispOnly: mode === 'generative' });
     if (local) return local;
   }
 

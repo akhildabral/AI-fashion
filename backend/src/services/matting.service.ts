@@ -101,7 +101,7 @@ function getSession() {
 // Sharpen the alpha with a smoothstep ramp: confident background/foreground
 // snaps to 0/255 and only a narrow band keeps soft edges — this is what kills
 // the semi-transparent "ghosting" a weak mask produces.
-function sharpenAlpha(a: number, lo = 70, hi = 160): number {
+function sharpenAlpha(a: number, lo = 96, hi = 168): number {
   if (a <= lo) return 0;
   if (a >= hi) return 255;
   const t = (a - lo) / (hi - lo);
@@ -152,6 +152,24 @@ function fillEnclosedHoles(alpha: Buffer, width: number, height: number): void {
 // and it keeps per-item storage in the hundreds of KB instead of tens of MB.
 const MAX_OUTPUT_SIDE = 1024;
 
+// Eat one pixel of fringe all round: the last ring of a mask is where the
+// background's colour bleeds into the garment (a grey halo on a sheet).
+function erodeOnce(alpha: Buffer, width: number, height: number): void {
+  const src = Buffer.from(alpha);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (src[i] === 0) continue;
+      const up = y > 0 ? src[i - width] : 0;
+      const down = y < height - 1 ? src[i + width] : 0;
+      const left = x > 0 ? src[i - 1] : 0;
+      const right = x < width - 1 ? src[i + 1] : 0;
+      const m = Math.min(up, down, left, right);
+      if (m < alpha[i]) alpha[i] = Math.round((alpha[i] + m) / 2);
+    }
+  }
+}
+
 export interface MattingResult {
   // PNG with transparent background, cropped to the garment on a square canvas.
   png: Buffer;
@@ -163,6 +181,8 @@ export interface MattingResult {
   // background rarely fills most of the frame, so a high value usually means
   // the model segmented the whole scene — callers use this to escalate.
   coverage: number;
+  /** How much of the mask the model was unsure about, relative to what it kept: 0 = crisp, 0.3+ = hazy. */
+  softness: number;
 }
 
 export async function removeBackground(image: Buffer): Promise<MattingResult | null> {
@@ -238,9 +258,11 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
     const keptShare = kept / total;
     if (keptShare < 0.03 || keptShare > 0.95) return null;
     if (uncertain / total > 0.25) return null;
+    const softness = kept > 0 ? uncertain / kept : 1;
 
     const alpha = Buffer.alloc(total);
     for (let i = 0; i < total; i++) alpha[i] = sharpenAlpha(alphaRaw[i]);
+    erodeOnce(alpha, width, height);
     fillEnclosedHoles(alpha, width, height);
 
     // Two steps: sharp applies operations in a fixed internal order, so
@@ -288,7 +310,7 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
       .png()
       .toBuffer();
 
-    return { png, rgba, width, height, coverage: keptShare };
+    return { png, rgba, width, height, coverage: keptShare, softness };
   } catch (err) {
     console.error('Matting failed:', err instanceof Error ? err.message : err);
     return null;
