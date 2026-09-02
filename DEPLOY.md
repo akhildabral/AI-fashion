@@ -284,8 +284,8 @@ SMTP_FROM=ZAUQ <no-reply@myzauq.com>
 ```
 
    Port 587 = STARTTLS; the mailer switches to implicit TLS automatically
-   if you use 465. Gmail rewrites the From *address* to the authenticated
-   account — the display name sticks, the address must be yours.
+   if you use 465. Resend accepts any From address on the verified domain
+   (no-reply@, hello@); an address on another domain is rejected.
 3. Push per §7 (prefix `SMTP_`). End-to-end test from the prod container:
 
 ```bash
