@@ -31,6 +31,8 @@ export interface LookPost {
   featured: boolean
   items: PostItem[]
   reactions: ReactionSummary
+  comments: number
+  saved: boolean
 }
 
 export interface VerdictPost {
@@ -46,6 +48,7 @@ export interface VerdictPost {
   counts: Record<string, number> | null
   totalVotes: number
   myVote: string | null
+  comments: number
 }
 
 export interface PickPost {
@@ -58,7 +61,7 @@ export interface PickPost {
 }
 
 export type CirclePost = LookPost | VerdictPost | PickPost
-export type Lens = 'foryou' | 'following' | 'explore'
+export type Lens = 'foryou' | 'following' | 'explore' | 'saved'
 
 export function getCircleFeed(lens: 'foryou' | 'following', offset = 0) {
   return apiFetch<{ posts: CirclePost[]; nextOffset: number | null; circleSize: number }>(
@@ -95,7 +98,7 @@ export function voteOnVerdict(pollId: string, optionId: string, userId: string) 
 
 export interface Notification {
   id: string
-  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated'
+  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned'
   actorHandle: string | null
   payload: Record<string, unknown>
   read: boolean
@@ -132,4 +135,56 @@ export function timeLeft(iso: string): string {
   const mins = Math.ceil(ms / 60_000)
   if (mins < 60) return `${mins}m left`
   return `${Math.ceil(mins / 60)}h left`
+}
+
+/* ---------- comments ---------- */
+
+export interface Comment {
+  id: string
+  body: string
+  at: string
+  handle: string | null
+  isMine: boolean
+}
+export type CommentTarget = 'look' | 'verdict'
+
+export function getComments(target: CommentTarget, id: string) {
+  return apiFetch<{ comments: Comment[] }>(`/comments?target=${target}&id=${id}`)
+}
+export function addComment(target: CommentTarget, id: string, body: string) {
+  return apiFetch<{ comment: Comment }>('/comments', { method: 'POST', body: { target, id, body } })
+}
+export function deleteComment(id: string) {
+  return apiFetch<void>(`/comments/${id}`, { method: 'DELETE' })
+}
+
+/* ---------- saved looks (your board) ---------- */
+
+export function saveLook(wearLogId: string) {
+  return apiFetch<{ saved: boolean }>(`/looks/${wearLogId}/save`, { method: 'POST' })
+}
+export function unsaveLook(wearLogId: string) {
+  return apiFetch<{ saved: boolean }>(`/looks/${wearLogId}/save`, { method: 'DELETE' })
+}
+export function getCircleSaved() {
+  return apiFetch<{ posts: LookPost[] }>('/circle/saved')
+}
+
+/* ---------- sharing your own looks ---------- */
+
+export interface MyLook {
+  id: string
+  wornOn: string
+  eventType: string | null
+  shared: boolean
+  items: PostItem[]
+}
+export function getMyRecentLooks() {
+  return apiFetch<{ looks: MyLook[] }>('/circle/mine')
+}
+export function shareLook(wearLogId: string) {
+  return apiFetch<{ shared: boolean }>(`/looks/${wearLogId}/share`, { method: 'POST' })
+}
+export function unshareLook(wearLogId: string) {
+  return apiFetch<{ shared: boolean }>(`/looks/${wearLogId}/share`, { method: 'DELETE' })
 }

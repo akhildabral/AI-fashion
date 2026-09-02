@@ -33,6 +33,12 @@ function line(n: Notification): { text: string; to: string } {
     }
     case 'look_recreated':
       return { text: `${who} recreated your look from their own closet.`, to: profile }
+    case 'commented': {
+      const preview = String(n.payload.preview ?? '')
+      return { text: `${who} left a note on your ${n.payload.target === 'verdict' ? 'verdict' : 'look'}${preview ? `: “${preview}”` : '.'}`, to: '/circle' }
+    }
+    case 'mentioned':
+      return { text: `${who} mentioned you in a note.`, to: '/circle' }
     default:
       return { text: `${who} did something.`, to: '/circle' }
   }

@@ -33,6 +33,8 @@ export interface PublicProfile {
   isFriend: boolean
   isMe: boolean
   publicItems: PublicItem[]
+  standing: { picksWorn: number; recreated: number; looksShared: number; wouldWear: number }
+  looks: import('./circle').LookPost[]
 }
 
 export interface FriendPick {

@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
-import { notify } from '../lib/notify';
+import { mentionedHandles, notify } from '../lib/notify';
 import {
   REACTION_KINDS,
+  commentCounts,
   graphFor,
   itemsById,
   score,
@@ -71,6 +72,7 @@ export async function circleFeed(req: Request, res: Response) {
   posts.push(...(await serializeLooks(logs, me, friendIds)));
 
   const myKey = voterKeyFor(me);
+  const verdictComments = await commentCounts('verdict', polls.map((p) => p.id));
   for (const poll of polls) {
     const isMine = poll.userId === me;
     const settled = poll.expiresAt.getTime() < now;
@@ -90,6 +92,7 @@ export async function circleFeed(req: Request, res: Response) {
       counts: isMine || settled || myVote ? counts : null,
       totalVotes: poll.votes.length,
       myVote,
+      comments: verdictComments.get(poll.id) ?? 0,
     };
     posts.push(post);
   }
@@ -243,4 +246,155 @@ export async function markNotificationsRead(req: Request, res: Response) {
     data: { readAt: new Date() },
   });
   res.json({ ok: true });
+}
+
+// ---- Comments --------------------------------------------------------------
+
+const targetSchema = z.object({
+  target: z.enum(['look', 'verdict']),
+  id: z.string().uuid(),
+});
+const commentSchema = targetSchema.extend({ body: z.string().trim().min(1).max(500) });
+
+async function assertTarget(targetType: 'look' | 'verdict', targetId: string): Promise<{ ownerId: string }> {
+  if (targetType === 'look') {
+    const log = await prisma.wearLog.findUnique({ where: { id: targetId }, select: { userId: true, sharedAt: true } });
+    if (!log || !log.sharedAt) throw new HttpError(404, 'Shared look not found');
+    return { ownerId: log.userId };
+  }
+  const poll = await prisma.poll.findUnique({ where: { id: targetId }, select: { userId: true } });
+  if (!poll) throw new HttpError(404, 'Verdict not found');
+  return { ownerId: poll.userId };
+}
+
+function serializeComment(c: { id: string; body: string; createdAt: Date; userId: string; user: { handle: string | null } }, me: string) {
+  return { id: c.id, body: c.body, at: c.createdAt.toISOString(), handle: c.user.handle, isMine: c.userId === me };
+}
+
+// GET /comments?target=look|verdict&id=… — oldest first, like a thread.
+export async function listComments(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { target, id } = targetSchema.parse(req.query);
+  const rows = await prisma.comment.findMany({
+    where: { targetType: target, targetId: id },
+    orderBy: { createdAt: 'asc' },
+    take: 100,
+    include: { user: { select: { handle: true } } },
+  });
+  res.json({ comments: rows.map((c) => serializeComment(c, req.user!.id)) });
+}
+
+// POST /comments — a note on a look or verdict; @handles are notified.
+export async function addComment(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { target, id, body } = commentSchema.parse(req.body);
+  const { ownerId } = await assertTarget(target, id);
+  const comment = await prisma.comment.create({
+    data: { userId: req.user.id, targetType: target, targetId: id, body },
+    include: { user: { select: { handle: true } } },
+  });
+
+  const payload = { target, targetId: id, commentId: comment.id, preview: body.slice(0, 80) };
+  void notify(ownerId, 'commented', req.user.id, payload);
+  const handles = mentionedHandles(body);
+  if (handles.length > 0) {
+    const mentioned = await prisma.user.findMany({ where: { handle: { in: handles } }, select: { id: true } });
+    for (const u of mentioned) {
+      if (u.id !== ownerId) void notify(u.id, 'mentioned', req.user.id, payload);
+    }
+  }
+  res.status(201).json({ comment: serializeComment(comment, req.user.id) });
+}
+
+// DELETE /comments/:id — your own note, or one on your own post.
+export async function deleteComment(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const c = await prisma.comment.findUnique({ where: { id } });
+  if (!c) throw new HttpError(404, 'Comment not found');
+  let allowed = c.userId === req.user.id;
+  if (!allowed) {
+    const { ownerId } = await assertTarget(c.targetType as 'look' | 'verdict', c.targetId).catch(() => ({ ownerId: '' }));
+    allowed = ownerId === req.user.id;
+  }
+  if (!allowed) throw new HttpError(403, 'Not your comment');
+  await prisma.comment.delete({ where: { id } });
+  res.status(204).send();
+}
+
+// ---- Saved looks (your inspiration board) ---------------------------------
+
+export async function saveLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const wearLogId = String(req.params.id);
+  const log = await prisma.wearLog.findUnique({ where: { id: wearLogId }, select: { sharedAt: true } });
+  if (!log || !log.sharedAt) throw new HttpError(404, 'Shared look not found');
+  await prisma.savedLook.upsert({
+    where: { userId_wearLogId: { userId: req.user.id, wearLogId } },
+    create: { userId: req.user.id, wearLogId },
+    update: {},
+  });
+  res.json({ saved: true });
+}
+
+export async function unsaveLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  await prisma.savedLook.deleteMany({ where: { userId: req.user.id, wearLogId: String(req.params.id) } });
+  res.json({ saved: false });
+}
+
+// GET /circle/saved — the board, newest saves first.
+export async function circleSaved(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const me = req.user.id;
+  const saves = await prisma.savedLook.findMany({
+    where: { userId: me },
+    orderBy: { createdAt: 'desc' },
+    take: 60,
+    include: { wearLog: { include: { user: { select: { handle: true } } } } },
+  });
+  const { friendIds } = await graphFor(me);
+  const logs = saves.map((s) => s.wearLog).filter((l) => l.sharedAt);
+  res.json({ posts: await serializeLooks(logs, me, friendIds) });
+}
+
+// ---- Sharing your own looks ----------------------------------------------
+
+// GET /circle/mine — your recent wears, with whether each is shared: the
+// picker behind "Share a look".
+export async function myRecentLooks(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const since = new Date(Date.now() - 14 * 86_400_000);
+  const logs = await prisma.wearLog.findMany({
+    where: { userId: req.user.id, wornOn: { gte: since } },
+    orderBy: { wornOn: 'desc' },
+    take: 20,
+  });
+  const byId = await itemsById(logs.flatMap((l) => l.itemIds));
+  res.json({
+    looks: logs.map((l) => ({
+      id: l.id,
+      wornOn: l.wornOn.toISOString(),
+      eventType: l.eventType,
+      shared: Boolean(l.sharedAt),
+      items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),
+    })),
+  });
+}
+
+// POST /looks/:id/share · DELETE — put a wear on (or take it off) the circle.
+export async function shareLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { sharedAt: new Date() } });
+  if (r.count === 0) throw new HttpError(404, 'Wear not found');
+  res.json({ shared: true });
+}
+
+export async function unshareLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { sharedAt: null, featuredAt: null } });
+  if (r.count === 0) throw new HttpError(404, 'Wear not found');
+  res.json({ shared: false });
 }

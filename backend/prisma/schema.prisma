@@ -62,6 +62,36 @@ model User {
   lookReactions     LookReaction[]
   notifications     Notification[] @relation("notificationsFor")
   notificationsSent Notification[] @relation("notificationsBy")
+  comments          Comment[]
+  savedLooks        SavedLook[]
+}
+
+// A short styling note on a shared look or a verdict. Plain text; @handles
+// in the body mention people (they're notified).
+//   targetType: look (wearLogId) | verdict (pollId)
+model Comment {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType String
+  targetId   String
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
+  @@index([userId])
+}
+
+// Your inspiration board: shared looks you've kept.
+model SavedLook {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wearLogId String
+  wearLog   WearLog  @relation(fields: [wearLogId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, wearLogId])
 }
 
 // A garment the user owns, photographed and auto-tagged by a vision model.
@@ -151,6 +181,7 @@ model WearLog {
   // Explore: set by an admin to pin this shared outfit to the curated feed.
   featuredAt DateTime?
   reactions LookReaction[]
+  savedBy   SavedLook[]
 }
 
 // A taste-relevant reaction on a shared look ("would wear", "bold", "love").

@@ -6,7 +6,19 @@ export type NotificationType =
   | 'pick_received'
   | 'pick_worn'
   | 'look_reacted'
-  | 'look_recreated';
+  | 'look_recreated'
+  | 'commented'
+  | 'mentioned';
+
+// @handles in a comment body — lowercase, deduped, in order of appearance.
+export function mentionedHandles(body: string): string[] {
+  const out: string[] = [];
+  for (const m of body.matchAll(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})\b/gi)) {
+    const h = m[2].toLowerCase();
+    if (!out.includes(h)) out.push(h);
+  }
+  return out;
+}
 
 // Record something that happened to a person. Fire-and-forget: a failed
 // notification must never fail the action that caused it. Never notifies

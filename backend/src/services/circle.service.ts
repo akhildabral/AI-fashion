@@ -26,6 +26,8 @@ export interface LookPost {
   featured: boolean;
   items: PostItem[];
   reactions: { counts: Record<string, number>; total: number; sample: string[]; mine: ReactionKind | null };
+  comments: number;
+  saved: boolean;
 }
 
 export interface VerdictPost {
@@ -42,6 +44,18 @@ export interface VerdictPost {
   counts: Record<string, number> | null;
   totalVotes: number;
   myVote: string | null;
+  comments: number;
+}
+
+/** Comment counts per target id, for one target type. */
+export async function commentCounts(targetType: 'look' | 'verdict', ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const rows = await prisma.comment.groupBy({
+    by: ['targetId'],
+    where: { targetType, targetId: { in: ids } },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.targetId, r._count._all]));
 }
 
 export interface PickPost {
@@ -99,14 +113,18 @@ export async function serializeLooks(
   friendIds: Set<string>,
 ): Promise<LookPost[]> {
   if (logs.length === 0) return [];
-  const [byId, reactions] = await Promise.all([
+  const ids = logs.map((l) => l.id);
+  const [byId, reactions, comments, saved] = await Promise.all([
     itemsById(logs.flatMap((l) => l.itemIds)),
     prisma.lookReaction.findMany({
-      where: { wearLogId: { in: logs.map((l) => l.id) } },
+      where: { wearLogId: { in: ids } },
       select: { wearLogId: true, userId: true, kind: true, user: { select: { handle: true } } },
       orderBy: { createdAt: 'desc' },
     }),
+    commentCounts('look', ids),
+    prisma.savedLook.findMany({ where: { userId: viewerId, wearLogId: { in: ids } }, select: { wearLogId: true } }),
   ]);
+  const savedSet = new Set(saved.map((s) => s.wearLogId));
   const byLog = new Map<string, typeof reactions>();
   for (const r of reactions) {
     const list = byLog.get(r.wearLogId) ?? [];
@@ -137,8 +155,21 @@ export async function serializeLooks(
           .map((r) => r.user.handle as string),
         mine: (REACTION_KINDS as readonly string[]).includes(mine ?? '') ? (mine as ReactionKind) : null,
       },
+      comments: comments.get(l.id) ?? 0,
+      saved: savedSet.has(l.id),
     };
   });
+}
+
+// Earned standing — verified by what actually happened, never purchasable.
+export async function standingFor(userId: string) {
+  const [picksWorn, recreated, looksShared, wouldWear] = await Promise.all([
+    prisma.notification.count({ where: { userId, type: 'pick_worn' } }),
+    prisma.notification.count({ where: { userId, type: 'look_recreated' } }),
+    prisma.wearLog.count({ where: { userId, sharedAt: { not: null } } }),
+    prisma.lookReaction.count({ where: { wearLog: { userId }, kind: 'would_wear' } }),
+  ]);
+  return { picksWorn, recreated, looksShared, wouldWear };
 }
 
 // Ranking for "For you": recency decays over a couple of days; things that

@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
+import { graphFor, serializeLooks, standingFor } from '../services/circle.service';
 
 // The community layer: handles, an asymmetric follow graph (mutual follows
 // are "friends"), visitable profiles that expose ONLY public items, and the
@@ -109,6 +110,20 @@ export async function getProfileByHandle(req: Request, res: Response) {
     prisma.follow.findFirst({ where: { followerId: target.id, followingId: req.user.id } }),
   ]);
 
+  // Their shared looks and earned standing — the profile is a gallery of
+  // what they wore, not just a wardrobe listing.
+  const [standing, sharedLogs, { friendIds }] = await Promise.all([
+    standingFor(target.id),
+    prisma.wearLog.findMany({
+      where: { userId: target.id, sharedAt: { not: null } },
+      orderBy: { sharedAt: 'desc' },
+      take: 24,
+      include: { user: { select: { handle: true } } },
+    }),
+    graphFor(req.user.id),
+  ]);
+  const looks = await serializeLooks(sharedLogs, req.user.id, friendIds);
+
   res.json({
     user: { handle: target.handle },
     counts: { followers, following, publicItems: publicItems.length },
@@ -117,6 +132,8 @@ export async function getProfileByHandle(req: Request, res: Response) {
     isFriend: !!iFollow && !!followsMe,
     isMe: target.id === req.user.id,
     publicItems,
+    standing,
+    looks,
   });
 }
 
