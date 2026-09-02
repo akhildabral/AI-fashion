@@ -139,7 +139,7 @@ export function PeopleDrawer({
 
   return (
     <Modal open={open} onClose={onClose} title="Your people">
-      <div role="tablist" aria-label="People" className="-mt-1 flex flex-wrap gap-1 border-b border-ink/10 pb-3">
+      <div role="tablist" aria-label="People" className="tabs -mt-1">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -147,12 +147,10 @@ export function PeopleDrawer({
             type="button"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-[2px] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass/40 ${
-              tab === t.key ? 'bg-brass text-[rgb(26_21_9)]' : 'text-ink/55 hover:text-ink'
-            }`}
+            className="tab press"
           >
             {t.label}
-            {typeof t.count === 'number' ? <span className="ml-1 opacity-70">{t.count}</span> : null}
+            {typeof t.count === 'number' ? <span className="count">{t.count}</span> : null}
           </button>
         ))}
       </div>

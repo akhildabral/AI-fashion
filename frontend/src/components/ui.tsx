@@ -276,3 +276,27 @@ export function Toast({ msg }: { msg: string | null }) {
     </div>
   )
 }
+
+/** Tabs: text on a hairline, brass rule under the active one. Views of the same thing. */
+export function Tabs<T extends string>({ items, value, onChange, label, className = '' }: { items: { key: T; label: ReactNode; count?: number }[]; value: T; onChange: (key: T) => void; label: string; className?: string }) {
+  return (
+    <div role="tablist" aria-label={label} className={`tabs ${className}`}>
+      {items.map((it) => (
+        <button key={it.key} type="button" role="tab" aria-selected={value === it.key} onClick={() => onChange(it.key)} className="tab press">
+          {it.label}
+          {typeof it.count === 'number' && <span className="count">{it.count}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** A filter token: narrows a set; an ink wash when on. */
+export function Filter({ on, onClick, children, count }: { on: boolean; onClick: () => void; children: ReactNode; count?: number }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className="filter press">
+      {children}
+      {typeof count === 'number' && <span className="count">{count}</span>}
+    </button>
+  )
+}

@@ -182,14 +182,14 @@ export function StorePage() {
               <p className="absolute inset-x-0 bottom-6 text-center font-display text-sm italic text-[#ECE5D8]/70">the piece, in the frame</p>
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="action-row mt-6">
             <button type="button" onClick={() => camera.current?.click()} className="btn-primary">
               Open the camera
             </button>
             <button type="button" onClick={() => gallery.current?.click()} className="btn-ghost">
               Choose a photo
             </button>
-            <button type="button" onClick={() => navigate('/closet')} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+            <button type="button" onClick={() => navigate('/closet')} className="btn-quiet">
               Back to the closet
             </button>
           </div>
@@ -297,14 +297,14 @@ export function StorePage() {
             <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" className="field" placeholder="₹ price" />
           </div>
 
-          <div className="mt-5 flex animate-rise-3 flex-wrap gap-3">
+          <div className="action-row mt-5 animate-rise-3">
             <button type="button" disabled={busy} onClick={() => void keep()} className="btn-primary">
               Keep in mind
             </button>
             <button type="button" disabled={busy} onClick={() => void pass()} className="btn-ghost">
               Pass
             </button>
-            <button type="button" disabled={busy} onClick={() => void bought()} className="press ml-auto px-2 text-sm text-ink/55 hover:text-ink">
+            <button type="button" disabled={busy} onClick={() => void bought()} className="btn-quiet ml-auto">
               I’m buying it
             </button>
           </div>
@@ -326,7 +326,7 @@ export function StorePage() {
             The {label} is in your wishlist with its verdict{price ? `, ${inr(Number(price))}` : ''}
             {store.trim() ? `, seen at ${store.trim()}` : ''}. The stylist reads it too: if the brief is ever one piece short, it says which.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="action-row mt-6">
             <button type="button" onClick={reset} className="btn-primary">
               Point at another
             </button>
@@ -345,14 +345,14 @@ export function StorePage() {
             In the <em className="text-brass">closet.</em>
           </h1>
           <p className="mt-3 max-w-md font-display text-lg italic text-ink/60">The {label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="action-row mt-6">
             <button type="button" onClick={() => navigate(`/closet/compose?pin=${piece.id}`)} className="btn-primary">
               Wear it first with…
             </button>
             <button type="button" onClick={() => navigate('/closet')} className="btn-ghost">
               Back to the closet
             </button>
-            <button type="button" onClick={reset} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+            <button type="button" onClick={reset} className="btn-quiet">
               Point at another
             </button>
           </div>

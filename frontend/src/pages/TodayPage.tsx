@@ -520,7 +520,7 @@ export function TodayPage() {
           </div>
 
           {/* Primary actions */}
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="action-row mt-7">
             {!worn ? (
               <button
                 type="button"
@@ -554,7 +554,7 @@ export function TodayPage() {
                 type="button"
                 onClick={() => void load({ refresh: true })}
                 disabled={busy === 'another'}
-                className="btn-ghost"
+                className="btn-quiet"
               >
                 {busy === 'another' ? (
                   <>
@@ -566,7 +566,7 @@ export function TodayPage() {
               </button>
             ) : null}
             {data?.canUndo && !worn && (
-              <button type="button" disabled={busy === 'undo'} onClick={() => void goBack()} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+              <button type="button" disabled={busy === 'undo'} onClick={() => void goBack()} className="btn-quiet">
                 {busy === 'undo' ? '…' : 'Back to the first'}
               </button>
             )}
@@ -574,8 +574,8 @@ export function TodayPage() {
 
           {/* The kind of day: the stylist's guess, changeable in a tap */}
           {!worn && (
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The day</span>
+            <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2">
+              <span className="mr-2 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The day</span>
               {(
                 [
                   ['work', 'Work'],
@@ -585,13 +585,13 @@ export function TodayPage() {
                   ['athletic', 'Training'],
                 ] as const
               ).map(([k, l]) => (
-                <button key={k} type="button" disabled={busy !== null} onClick={() => void load({ eventType: k })} className={`chip !px-3 !py-1.5 !text-xs ${brief.eventType === k && !brief.occasion ? 'chip-on' : ''}`}>
+                <button key={k} type="button" disabled={busy !== null} onClick={() => void load({ eventType: k })} className={`chip ${brief.eventType === k && !brief.occasion ? 'chip-on' : ''}`}>
                   {l}
                 </button>
               ))}
-              <form onSubmit={handleOccasionSubmit} className="flex gap-1.5">
-                <input value={occasionText} onChange={(e) => setOccasionText(e.target.value)} className="field !w-44 !py-1.5 !text-xs" placeholder="or name it: a wedding…" />
-                <button type="submit" disabled={busy !== null || !occasionText.trim()} className="btn-ghost !px-3 !py-1.5 !text-xs disabled:opacity-50">
+              <form onSubmit={handleOccasionSubmit} className="flex gap-2">
+                <input value={occasionText} onChange={(e) => setOccasionText(e.target.value)} className="field field-sm !w-48" placeholder="or name it: a wedding…" />
+                <button type="submit" disabled={busy !== null || !occasionText.trim()} className="btn-ghost btn-sm">
                   Go
                 </button>
               </form>
@@ -813,14 +813,14 @@ function ShareSheet({
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Share today’s look?</p>
       <p className="mt-1 text-sm text-ink/70">Your circle sees the pieces. Add yourself to it if you like.</p>
       <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={(e) => void onFile(e)} className="hidden" />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="button" disabled={busy !== null} onClick={() => void sharePieces()} className="btn-primary !px-4 !py-2 !text-xs">
+      <div className="action-row mt-3">
+        <button type="button" disabled={busy !== null} onClick={() => void sharePieces()} className="btn-primary btn-sm">
           {busy === 'pieces' ? 'Sharing…' : 'Share the pieces'}
         </button>
-        <button type="button" disabled={busy !== null} onClick={() => fileRef.current?.click()} className="btn-ghost !px-4 !py-2 !text-xs">
+        <button type="button" disabled={busy !== null} onClick={() => fileRef.current?.click()} className="btn-ghost btn-sm">
           {busy === 'photo' ? 'Uploading…' : 'With a photo of me'}
         </button>
-        <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-ghost !px-4 !py-2 !text-xs">
+        <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-quiet !h-9 !text-xs">
           {busy === 'mirror' ? 'Opening the Mirror…' : 'Render it on me first'}
         </button>
         <button
@@ -840,11 +840,11 @@ function ShareSheet({
               setBusy(null)
             }
           }}
-          className="btn-ghost !px-4 !py-2 !text-xs"
+          className="btn-quiet !h-9 !text-xs"
         >
           {busy === 'elsewhere' ? 'Preparing…' : 'Share elsewhere'}
         </button>
-        <button type="button" onClick={onDismiss} className="press ml-auto text-xs text-ink/45 hover:text-ink/70">
+        <button type="button" onClick={onDismiss} className="btn-quiet ml-auto !h-9 !text-xs !text-ink/40">
           Not now
         </button>
       </div>

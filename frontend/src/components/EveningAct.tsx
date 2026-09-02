@@ -46,8 +46,8 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
         <p className="text-sm text-ink/55">
           <span className="font-semibold uppercase tracking-[0.14em] text-ink/45">Act two</span> · Something on tonight?
         </p>
-        <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field !w-56 !py-1.5 !text-xs" placeholder="dinner, a show, drinks…" />
-        <button type="button" disabled={busy !== null} onClick={() => void compose()} className="btn-ghost !px-4 !py-1.5 !text-xs">
+        <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm !w-56" placeholder="dinner, a show, drinks…" />
+        <button type="button" disabled={busy !== null} onClick={() => void compose()} className="btn-ghost btn-sm">
           {busy === 'compose' ? 'Composing…' : 'Plan tonight'}
         </button>
       </div>
@@ -70,8 +70,8 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
               void compose()
             }}
           >
-            <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field !py-2 !text-sm" placeholder="dinner at eight, a show, drinks" />
-            <button type="submit" disabled={busy !== null} className="btn-primary !px-4 !py-2 !text-xs">
+            <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm" placeholder="dinner at eight, a show, drinks" />
+            <button type="submit" disabled={busy !== null} className="btn-primary btn-sm">
               {busy === 'compose' ? <Spinner className="h-4 w-4" /> : 'Compose'}
             </button>
           </form>
@@ -95,22 +95,22 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
             {'  ·  '}
             <span className="font-display italic text-ink/70">{ev.rationale}</span>
           </p>
-          <div className="mt-5 max-w-2xl">
+          <div className="mt-5 max-w-3xl">
             <LookBoard items={ev.items} />
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="action-row mt-5">
             {!ev.wornLogId ? (
               <button type="button" disabled={busy !== null} onClick={() => void wear()} className="btn-primary">
                 {busy === 'wear' ? 'Logging…' : 'Wearing it'}
               </button>
             ) : (
-              <span className="inline-flex items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-2.5 text-sm font-semibold text-brass">Logged for tonight</span>
+              <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass">Logged for tonight</span>
             )}
             <button type="button" onClick={() => navigate(`/mirror?items=${ev.itemIds.join(',')}`)} className="btn-ghost">
               See it on you
             </button>
             {!ev.wornLogId && (
-              <button type="button" disabled={busy !== null} onClick={() => void compose()} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+              <button type="button" disabled={busy !== null} onClick={() => void compose()} className="btn-quiet">
                 Another
               </button>
             )}

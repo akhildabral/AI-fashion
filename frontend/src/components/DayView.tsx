@@ -4,6 +4,7 @@ import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay 
 import { LookBoard } from './LookBoard'
 import { ShareButton } from './ShareButton'
 import { Spinner } from './Spinner'
+import { resolveImageUrl } from '../lib/api'
 import { EVENT_LABEL } from '../lib/outfits'
 
 // A day that isn't today. Past: what you wore, the recap, share it. Future:
@@ -68,7 +69,8 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
   // ---- past: the recap ----
   if (past) {
     return (
-      <div className="animate-rise">
+      <div className="animate-rise lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
+      <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{eyebrow}</p>
         {day === null && (
           <div className="mt-6 text-ink/45">
@@ -89,20 +91,46 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
               You wore <em className="text-brass">this.</em>
             </h1>
             {day.eventType && <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">{EVENT_LABEL[day.eventType] ?? day.eventType}</p>}
-            <div className="mt-6 max-w-2xl">
+            <div className="mt-6 max-w-3xl">
               <LookBoard items={day.items} />
             </div>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="action-row mt-5">
               {day.wearLogId && <ShareButton target={{ kind: 'look', id: day.wearLogId, title: 'What I wore', text: `What I wore on ${longDay(date)}.`, url: day.shared ? `${window.location.origin}/look/${day.wearLogId}` : undefined }} onDone={(l) => l && onNote?.(l)} className="btn-primary !text-sm" label="Share it" />}
               <button type="button" onClick={() => navigate(`/mirror?items=${day.itemIds.join(',')}`)} className="btn-ghost">
                 See it on you
               </button>
-              <button type="button" onClick={() => navigate(`/closet/compose?from=`)} className="press px-2 text-sm text-ink/45 hover:text-ink/70">
+              <button type="button" onClick={() => navigate('/closet/compose')} className="btn-quiet">
                 Compose from it
               </button>
             </div>
           </>
         )}
+      </div>
+      {/* The rail: that day's facts */}
+      {day && day.worn && (
+        <aside className="mt-8 lg:mt-0 lg:self-start">
+          <div className="plaque p-5 pl-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">That day</p>
+            <ul className="mt-3 divide-y divide-ink/10">
+              {day.items.map((it) => (
+                <li key={it.id} className="flex items-center gap-3 py-2">
+                  <div className="arch-bezel w-10 flex-none aspect-[5/6]">
+                    <div className="arch-niche flex h-full w-full items-center justify-center">
+                      <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                    </div>
+                  </div>
+                  <span className="text-sm capitalize text-ink/80">{it.subtype ?? it.category}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-ink/50">
+              {day.eventType ? `${EVENT_LABEL[day.eventType] ?? day.eventType} · ` : ''}
+              {day.shared ? 'shared to your circle' : 'kept to yourself'}
+              {day.photoUrl ? ' · with a photo' : ''}
+            </p>
+          </div>
+        </aside>
+      )}
       </div>
     )
   }
@@ -113,7 +141,8 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
   const look = b?.mode === 'brief' ? b.brief : null
   const current = rest ? 'rest' : look?.eventType ?? null
   return (
-    <div className="animate-rise">
+    <div className="animate-rise lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
+    <div className="min-w-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{eyebrow}</p>
       <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
         {laidOut && look ? (
@@ -147,8 +176,8 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
           if (occasion.trim()) void plan({ occasion: occasion.trim() })
         }}
       >
-        <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field !py-2 !text-sm" placeholder="Or name it: a wedding, a first day, a long flight" />
-        <button type="submit" disabled={busy !== null || !occasion.trim()} className="btn-ghost !px-4 !py-2 !text-xs disabled:opacity-50">
+        <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm" placeholder="Or name it: a wedding, a first day, a long flight" />
+        <button type="submit" disabled={busy !== null || !occasion.trim()} className="btn-ghost btn-sm">
           Plan
         </button>
       </form>
@@ -173,20 +202,48 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
             <span className="font-display italic text-ink/70">{look.rationale}</span>
           </p>
           {look.occasion && <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">{look.occasion}</p>}
-          <div className="mt-5 max-w-2xl">
+          <div className="mt-5 max-w-3xl">
             <LookBoard items={look.items} />
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" disabled={busy !== null} onClick={() => void plan({ eventType: look.eventType, occasion: look.occasion ?? undefined })} className="btn-ghost">
-              Another
-            </button>
+          <div className="action-row mt-5">
             <button type="button" onClick={() => navigate(`/mirror?items=${look.itemIds.join(',')}`)} className="btn-ghost">
               See it on you
+            </button>
+            <button type="button" disabled={busy !== null} onClick={() => void plan({ eventType: look.eventType, occasion: look.occasion ?? undefined })} className="btn-quiet">
+              Another
             </button>
           </div>
           {laidOut && <p className="mt-3 text-xs text-ink/45">The morning push will say it was laid out tonight.</p>}
         </>
       )}
+    </div>
+    {/* The rail: the forecast and the pieces */}
+    {look && (
+      <aside className="mt-8 lg:mt-0 lg:self-start">
+        <div className="plaque p-5 pl-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">{longDay(date)}</p>
+          {look.weather ? (
+            <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
+              {Math.round(look.weather.temperatureC)}° <span className="font-sans text-xs font-semibold normal-case text-ink/55">{look.weather.description}</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-ink/55">Add your city in the fitting for the forecast.</p>
+          )}
+          <ul className="mt-3 divide-y divide-ink/10 border-t border-ink/10">
+            {look.items.map((it) => (
+              <li key={it.id} className="flex items-center gap-3 py-2">
+                <div className="arch-bezel w-10 flex-none aspect-[5/6]">
+                  <div className="arch-niche flex h-full w-full items-center justify-center">
+                    <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                  </div>
+                </div>
+                <span className="text-sm capitalize text-ink/80">{it.subtype ?? it.category}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+    )}
     </div>
   )
 }

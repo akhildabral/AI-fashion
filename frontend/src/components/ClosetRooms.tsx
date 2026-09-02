@@ -39,11 +39,8 @@ export function ClosetRooms({ current }: { current: Room }) {
   }, [current]);
 
   return (
-    <div className="mt-6 flex animate-rise-1 flex-wrap items-center justify-between gap-3">
-      <nav
-        aria-label="Closet rooms"
-        className="inline-flex rounded-[3px] border border-ink/15 bg-surface p-1"
-      >
+    <div className="mt-6 flex animate-rise-1 items-end justify-between gap-x-4 border-b border-ink/10">
+      <nav aria-label="Closet rooms" className="tabs min-w-0 !border-b-0">
         {ROOMS.map((r) => {
           const badge =
             r.key === "basket"
@@ -57,14 +54,12 @@ export function ClosetRooms({ current }: { current: Room }) {
               to={r.to}
               end
               aria-current={current === r.key ? "page" : undefined}
-              className={`press relative rounded-[2px] px-4 py-2 text-sm font-medium transition-colors ${current === r.key ? "bg-brass text-[rgb(26_21_9)]" : "text-ink/55 hover:text-ink"}`}
+              aria-selected={current === r.key}
+              role="tab"
+              className="tab press"
             >
               {r.label}
-              {badge > 0 && current !== r.key && (
-                <span className="ml-1.5 align-middle text-[10px] font-bold tabular-nums text-brass">
-                  {badge}
-                </span>
-              )}
+              {badge > 0 && current !== r.key && <span className="count tabular-nums !text-brass">{badge}</span>}
             </NavLink>
           );
         })}
@@ -72,7 +67,7 @@ export function ClosetRooms({ current }: { current: Room }) {
       <button
         type="button"
         onClick={() => navigate("/closet/store")}
-        className="btn-ghost !border-brass/50 !text-brass hover:!bg-iris-soft/40"
+        className="btn-ghost btn-sm mb-2 flex-none !border-brass/50 !text-brass hover:!bg-iris-soft/40"
       >
         <svg
           viewBox="0 0 24 24"

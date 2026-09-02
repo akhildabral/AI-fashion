@@ -86,12 +86,82 @@
   }
 
   /* ---- Buttons: sharp chrome (3px), brass leads, press on pointer-down ---- */
+  /* ---- The vocabulary ----
+     Action  = a button: primary (brass fill), ghost (outline, at most one per row), quiet (text).
+     Tab     = switches between views of the same thing: text on a hairline, brass rule under the active one.
+     Filter  = narrows a set: a quiet token, ink wash when on; never brass, so brass keeps meaning "act" / "here".
+     Choice  = picks a value (a day type, a size): a bordered chip, brass fill when chosen.
+     All of them sit on the same height scale (44 / 36 / 32) so rows align without effort. */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-[3px] bg-iris px-6 py-3 text-sm font-semibold text-[rgb(26_21_9)] transition-[background-color,transform] duration-150 hover:bg-iris-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] bg-iris px-6 text-sm font-semibold text-[rgb(26_21_9)] transition-[background-color,transform] duration-150 hover:bg-iris-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-[3px] border border-ink/20 px-5 py-2.5 text-sm font-medium text-ink/70 transition-[background-color,border-color,transform,color] duration-150 hover:border-iris hover:text-ink active:scale-[0.97];
+    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] border border-ink/20 px-5 text-sm font-medium text-ink/70 transition-[background-color,border-color,transform,color] duration-150 hover:border-iris hover:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* A text action: sits in a row with buttons at the same height, reads as a link. */
+  .btn-quiet {
+    @apply inline-flex h-11 items-center whitespace-nowrap px-1 text-sm font-medium text-ink/55 underline-offset-4 transition-colors duration-150 hover:text-ink hover:underline disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Smaller actions inside cards and rails. */
+  .btn-sm {
+    @apply !h-9 !px-4 !text-xs;
+  }
+
+  /* One row of actions: primary first, quiet after, the destructive one pushed right. */
+  .action-row {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-2;
+  }
+  .action-row > .btn-primary,
+  .action-row > .btn-ghost {
+    @apply mr-0;
+  }
+
+  /* Tabs: text on a hairline. */
+  .tabs {
+    @apply flex items-end gap-x-5 overflow-x-auto border-b border-ink/10 sm:gap-x-6;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    @apply relative -mb-px flex-none whitespace-nowrap pb-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50 transition-colors duration-150 hover:text-ink sm:text-[12px];
+  }
+  .tab::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: transparent;
+    transition: background-color 0.15s;
+  }
+  .tab[aria-selected='true'] {
+    @apply text-ink;
+  }
+  .tab[aria-selected='true']::after {
+    background: var(--c-brass);
+  }
+  .tab .count {
+    @apply ml-1.5 font-medium normal-case tracking-normal text-ink/40;
+  }
+
+  /* Filters: quiet tokens; an ink wash when on. */
+  .filter {
+    @apply inline-flex h-8 items-center whitespace-nowrap rounded-[2px] px-2.5 text-[13px] font-medium text-ink/55 transition-colors duration-150 hover:text-ink;
+  }
+  .filter[aria-pressed='true'] {
+    @apply bg-ink/[0.08] text-ink;
+  }
+  .filter .count {
+    @apply ml-1 text-ink/40;
+  }
+  .filter-sep {
+    @apply mx-1 h-4 w-px bg-ink/15;
   }
 
   .btn-dark {
@@ -99,7 +169,10 @@
   }
 
   .field {
-    @apply w-full rounded-[3px] border border-ink/15 bg-surface px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-iris/70 focus:ring-2 focus:ring-iris/20;
+    @apply h-11 w-full rounded-[3px] border border-ink/15 bg-surface px-4 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-iris/70 focus:ring-2 focus:ring-iris/20;
+  }
+  .field-sm {
+    @apply !h-9 !px-3 !text-[13px];
   }
 
   .label {
@@ -111,7 +184,7 @@
   }
 
   .chip {
-    @apply inline-flex items-center rounded-[3px] border border-ink/15 bg-transparent px-4 py-2 text-sm font-medium text-ink/65 transition-[background-color,border-color,transform,color] duration-150 hover:border-iris hover:text-ink active:scale-[0.97];
+    @apply inline-flex h-9 items-center whitespace-nowrap rounded-[3px] border border-ink/15 bg-transparent px-3.5 text-[13px] font-medium text-ink/65 transition-[background-color,border-color,transform,color] duration-150 hover:border-iris hover:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .chip-on {

@@ -217,12 +217,12 @@ export function OutfitsRoom() {
                       {s.validation.warnings[0].message}
                     </p>
                   )}
-                  <div className="mt-3 flex gap-2">
+                  <div className="action-row mt-3">
                     <button
                       type="button"
                       disabled={busy === `keep:${key}`}
                       onClick={() => void keep(s)}
-                      className="btn-primary !px-4 !py-2 !text-xs"
+                      className="btn-primary btn-sm"
                     >
                       Keep
                     </button>
@@ -235,7 +235,7 @@ export function OutfitsRoom() {
                           eventType: occasion ?? undefined,
                         })
                       }
-                      className="btn-ghost !px-4 !py-2 !text-xs"
+                      className="btn-quiet !h-9 !text-xs"
                     >
                       Wearing it today
                     </button>
@@ -285,25 +285,25 @@ export function OutfitsRoom() {
                   )}
                   <p className="mt-1 text-xs text-ink/50">{names(o.items)}</p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="action-row mt-3">
                   <button
                     type="button"
                     disabled={busy === `wear:${o.id}`}
                     onClick={() => void wear(o)}
-                    className="btn-primary !px-4 !py-2 !text-xs"
+                    className="btn-primary btn-sm"
                   >
                     Wearing it today
                   </button>
                   <Link
                     to={`/mirror?items=${o.itemIds.join(",")}`}
-                    className="btn-ghost !px-4 !py-2 !text-xs"
+                    className="btn-quiet !h-9 !text-xs"
                   >
                     See it on me
                   </Link>
-                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} />
+                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="btn-quiet !h-9 !text-xs" />
                   <Link
                     to={`/closet/compose?from=${o.id}`}
-                    className="btn-ghost !px-4 !py-2 !text-xs"
+                    className="btn-quiet !h-9 !text-xs"
                   >
                     Adjust
                   </Link>
@@ -311,7 +311,7 @@ export function OutfitsRoom() {
                     type="button"
                     disabled={busy === `rm:${o.id}`}
                     onClick={() => void remove(o)}
-                    className="press ml-auto text-xs text-ink/40 hover:text-ink/70"
+                    className="btn-quiet !h-9 !text-xs !text-ink/40"
                   >
                     Let go
                   </button>

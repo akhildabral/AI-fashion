@@ -241,7 +241,7 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
     <Modal open={open} onClose={onClose} title="Ask the circle">
       <p className="text-sm text-ink/60">Pick two or three, ask which. Your circle votes; you see the verdict.</p>
 
-      <div role="tablist" aria-label="Choose from" className="mt-4 inline-flex rounded-[3px] border border-ink/15 bg-surface p-1">
+      <div role="tablist" aria-label="Choose from" className="tabs mt-4">
         {(['renders', 'closet'] as Source[]).map((s) => (
           <button
             key={s}
@@ -252,9 +252,7 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
               setSource(s)
               setChosen([])
             }}
-            className={`rounded-[2px] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors ${
-              source === s ? 'bg-brass text-[rgb(26_21_9)]' : 'text-ink/55 hover:text-ink'
-            }`}
+            className="tab press"
           >
             {s === 'renders' ? 'Mirror renders' : 'Closet pieces'}
           </button>

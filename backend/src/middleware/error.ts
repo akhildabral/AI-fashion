@@ -33,7 +33,11 @@ export function errorHandler(
     return res.status(err.status).json({ error: err.message });
   }
 
+  // Internals stay in the log; the person gets a sentence they can act on.
   console.error('Unhandled error:', err);
-  const message = err instanceof Error ? err.message : 'Internal server error';
+  const raw = err instanceof Error ? err.message : '';
+  const message = /too many (clients|database connections)|ECONNREFUSED|timeout/i.test(raw)
+    ? 'The stylist is out for a moment. Try again in a few seconds.'
+    : 'Something went wrong on our side. Try again in a moment.';
   return res.status(500).json({ error: message });
 }

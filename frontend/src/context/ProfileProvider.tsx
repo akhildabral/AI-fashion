@@ -13,6 +13,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user, initializing } = useAuth()
   const [profile, setProfileState] = useState<StyleProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
 
   const refresh = useCallback(async () => {
@@ -50,12 +51,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           setProfileState(p)
           setLoadFailed(false)
+          setLoadedFor(user.id)
         }
       })
       .catch(() => {
         // A network blip is not "no profile" — flag it so the gate can offer
         // a retry instead of restarting onboarding.
-        if (!cancelled) setLoadFailed(true)
+        if (!cancelled) {
+          setLoadFailed(true)
+          setLoadedFor(user.id)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -70,9 +75,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfileState(p)
   }, [])
 
+  // Settled only once this user's profile has actually been read (or failed).
+  const settled = !initializing && (!user || loadedFor === user.id)
   const value: ProfileContextValue = {
     profile,
-    loading,
+    loading: loading || !settled,
     loadFailed,
     setProfile,
     refresh,

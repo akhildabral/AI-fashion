@@ -120,14 +120,14 @@ export function WishlistRoom() {
                     {it.seenPrice != null ? ` · ${inr(it.seenPrice)}` : ''}
                   </p>
                   {it.nudgeAt && <p className="mt-1 text-[11px] text-ink/45">Nudge on {new Date(it.nudgeAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" disabled={busy === it.id} onClick={() => void bought(it)} className="btn-primary !px-3 !py-1.5 !text-xs">
+                  <div className="action-row mt-3 !gap-x-3">
+                    <button type="button" disabled={busy === it.id} onClick={() => void bought(it)} className="btn-primary btn-sm">
                       Bought it
                     </button>
-                    <Link to={`/closet/store?item=${it.id}`} className="btn-ghost !px-3 !py-1.5 !text-xs">
+                    <Link to={`/closet/store?item=${it.id}`} className="btn-quiet !h-9 !text-xs">
                       The verdict
                     </Link>
-                    <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="press ml-auto text-xs text-ink/40 hover:text-ink/70">
+                    <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="btn-quiet !h-9 !text-xs !text-ink/40">
                       Let go
                     </button>
                   </div>

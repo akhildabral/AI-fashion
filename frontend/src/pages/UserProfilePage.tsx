@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { Arch, Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
@@ -229,22 +229,16 @@ export function UserProfilePage() {
           )}
 
           {/* ---- lens ---- */}
-          <div role="tablist" aria-label="Profile view" className="mt-8 inline-flex rounded-[3px] border border-ink/15 bg-surface p-1">
-            {(['looks', 'wardrobe'] as Lens[]).map((l) => (
-              <button
-                key={l}
-                role="tab"
-                type="button"
-                aria-selected={lens === l}
-                onClick={() => setLens(l)}
-                className={`rounded-[2px] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-[background-color,color] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass/40 ${
-                  lens === l ? 'bg-brass text-[rgb(26_21_9)]' : 'text-ink/55 hover:text-ink'
-                }`}
-              >
-                {l === 'looks' ? `Looks · ${profile.looks.length}` : `Wardrobe · ${profile.publicItems.length}`}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            className="mt-8"
+            label="Profile view"
+            value={lens}
+            onChange={(l) => setLens(l)}
+            items={[
+              { key: 'looks', label: 'Looks', count: profile.looks.length },
+              { key: 'wardrobe', label: 'Wardrobe', count: profile.publicItems.length },
+            ]}
+          />
 
           {/* ---- looks ---- */}
           {lens === 'looks' && (

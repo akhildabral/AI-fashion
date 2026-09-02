@@ -6,7 +6,7 @@ import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
 import { WardrobeCard } from '../components/WardrobeCard'
-import { GarmentTile, PageShell, Modal } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Tabs, Filter } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { GoesWith } from '../components/GoesWith'
 import { PieceStory } from '../components/PieceStory'
@@ -314,26 +314,16 @@ export function ClosetPage() {
 
         {/* ---------------- Gallery / Ledger lens ---------------- */}
         {!loading && !error && list.length > 0 && (
-          <div
-            role="tablist"
-            aria-label="Closet view"
-            className="mt-6 inline-flex animate-rise-1 rounded-[3px] border border-ink/15 bg-surface p-1"
-          >
-            {(['gallery', 'ledger'] as Lens[]).map((l) => (
-              <button
-                key={l}
-                role="tab"
-                aria-selected={lens === l}
-                type="button"
-                onClick={() => setLens(l)}
-                className={`rounded-[2px] px-5 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-[background-color,color] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass/40 ${
-                  lens === l ? 'bg-brass text-[rgb(26_21_9)]' : 'text-ink/55 hover:text-ink'
-                }`}
-              >
-                {l === 'gallery' ? 'Gallery' : 'Ledger'}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            className="mt-6 animate-rise-1"
+            label="Closet view"
+            value={lens}
+            onChange={(l) => setLens(l)}
+            items={[
+              { key: 'gallery', label: 'Gallery' },
+              { key: 'ledger', label: 'Ledger' },
+            ]}
+          />
         )}
 
         {/* ---------------- Loading / error / empty ---------------- */}
@@ -383,34 +373,20 @@ export function ClosetPage() {
             )}
 
             {/* Filters */}
-            <div className="mt-6 flex animate-rise-2 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCategory(null)}
-                className={`chip ${category === null ? 'chip-on' : ''}`}
-              >
-                All · {list.length}
-              </button>
+            <div className="mt-5 flex animate-rise-2 flex-wrap items-center gap-x-1 gap-y-1.5">
+              <Filter on={category === null} onClick={() => setCategory(null)} count={list.length}>
+                All
+              </Filter>
               {categories.map(([cat, count]) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategory((prev) => (prev === cat ? null : cat))}
-                  className={`chip capitalize ${category === cat ? 'chip-on' : ''}`}
-                >
-                  {cat} · {count}
-                </button>
+                <Filter key={cat} on={category === cat} onClick={() => setCategory((prev) => (prev === cat ? null : cat))} count={count}>
+                  <span className="capitalize">{cat}</span>
+                </Filter>
               ))}
-              <span className="mx-1 hidden h-5 w-px bg-ink/12 sm:block" />
+              <span className="filter-sep hidden sm:block" />
               {COLLECTIONS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCollection(c.id)}
-                  className={`chip !text-xs ${collection === c.id ? '!border-brass !text-brass' : ''}`}
-                >
+                <Filter key={c.id} on={collection === c.id} onClick={() => setCollection(c.id)}>
                   {c.label}
-                </button>
+                </Filter>
               ))}
             </div>
 
@@ -519,10 +495,10 @@ export function ClosetPage() {
                       </button>
                       {/* A shelf is not a decision: style it, or let it go. */}
                       <div className="mt-2 grid grid-cols-2 gap-1.5">
-                        <button type="button" onClick={() => navigate(`/closet/compose?pin=${item.id}`)} className="press rounded-[3px] border border-brass/50 py-1.5 text-[11px] font-semibold text-brass transition-colors hover:bg-iris-soft/40">
+                        <button type="button" onClick={() => navigate(`/closet/compose?pin=${item.id}`)} className="btn-ghost btn-sm !border-brass/50 !text-brass">
                           Style it
                         </button>
-                        <button type="button" onClick={() => setLettingGo(item)} className="press rounded-[3px] border border-ink/15 py-1.5 text-[11px] font-semibold text-ink/60 transition-colors hover:border-ink/40 hover:text-ink">
+                        <button type="button" onClick={() => setLettingGo(item)} className="btn-ghost btn-sm">
                           Let it go
                         </button>
                       </div>

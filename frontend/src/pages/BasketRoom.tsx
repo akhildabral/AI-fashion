@@ -181,7 +181,7 @@ export function BasketRoom() {
                       type="button"
                       disabled={busy === it.id}
                       onClick={() => void back(it)}
-                      className="press mt-2 w-full rounded-[3px] border border-ink/15 py-2 text-xs font-semibold text-ink/70 transition-colors hover:border-brass hover:text-ink disabled:opacity-50"
+                      className="btn-ghost btn-sm mt-2 w-full"
                     >
                       {busy === it.id
                         ? "…"

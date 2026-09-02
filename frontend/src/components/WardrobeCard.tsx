@@ -188,7 +188,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
               >
                 {item.visibility === 'public' ? 'Public' : 'Private'}
               </button>
-              <ShareButton target={{ kind: 'piece', id: item.id, title: `${item.subtype ?? item.category} from my closet` }} className="rounded-[3px] border border-ink/15 px-3 py-1 text-xs text-ink/60 transition hover:border-brass hover:text-ink inline-flex items-center" />
+              <ShareButton target={{ kind: 'piece', id: item.id, title: `${item.subtype ?? item.category} from my closet` }} className="btn-quiet !h-9 !text-xs" />
               <button
                 type="button"
                 onClick={handleDelete}

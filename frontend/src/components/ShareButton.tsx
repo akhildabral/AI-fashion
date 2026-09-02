@@ -4,7 +4,7 @@ import { outcomeLine, shareCard, type ShareTarget } from '../lib/share'
 // The share verb, everywhere: one button that renders the card and opens
 // the OS sheet. Quiet by default; the toast comes from the page.
 
-export function ShareButton({ target, onDone, className = 'btn-ghost !px-4 !py-2 !text-xs', label = 'Share' }: { target: ShareTarget; onDone?: (line: string | null) => void; className?: string; label?: string }) {
+export function ShareButton({ target, onDone, className = 'btn-quiet', label = 'Share' }: { target: ShareTarget; onDone?: (line: string | null) => void; className?: string; label?: string }) {
   const [busy, setBusy] = useState(false)
   return (
     <button

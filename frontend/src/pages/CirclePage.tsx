@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import { Arch, Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
@@ -301,22 +301,7 @@ export function CirclePage() {
           </div>
 
           {/* ---- lens ---- */}
-          <div role="tablist" aria-label="Feed" className="mt-6 inline-flex animate-rise-1 rounded-[3px] border border-ink/15 bg-surface p-1">
-            {LENSES.map((l) => (
-              <button
-                key={l.key}
-                role="tab"
-                type="button"
-                aria-selected={lens === l.key}
-                onClick={() => setLens(l.key)}
-                className={`rounded-[2px] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-[background-color,color] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass/40 sm:px-4 ${
-                  lens === l.key ? 'bg-brass text-[rgb(26_21_9)]' : 'text-ink/55 hover:text-ink'
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+          <Tabs className="mt-6 animate-rise-1" label="Feed" value={lens} onChange={(k) => setLens(k)} items={LENSES.map((l) => ({ key: l.key, label: l.label }))} />
 
           {/* ---- feed ---- */}
           <div className="mt-5 flex flex-col gap-4">

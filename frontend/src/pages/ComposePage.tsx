@@ -246,7 +246,7 @@ export function ComposePage() {
               ))}
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="action-row mt-5">
             <button
               type="button"
               disabled={
@@ -271,7 +271,7 @@ export function ComposePage() {
               <button
                 type="button"
                 onClick={() => navigate(`/mirror?items=${chosen.join(",")}`)}
-                className="btn-ghost"
+                className="btn-quiet"
               >
                 See it on me
               </button>
@@ -279,7 +279,7 @@ export function ComposePage() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="press px-2 text-sm text-ink/45 hover:text-ink/70"
+              className="btn-quiet !text-ink/40"
             >
               Back
             </button>
@@ -303,10 +303,10 @@ export function ComposePage() {
                   role="tab"
                   aria-selected={slot === s.key}
                   onClick={() => setSlot(s.key)}
-                  className={`chip ${slot === s.key ? "chip-on" : ""}`}
+                  className="tab press"
                 >
-                  {s.label}{" "}
-                  <span className="ml-1 text-[10px] opacity-70">{n}</span>
+                  {s.label}
+                  <span className="count">{n}</span>
                 </button>
               );
             })}
