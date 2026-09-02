@@ -1,0 +1,202 @@
+{
+  "positioning": "ZAUQ is an AI personal stylist for the clothes you ALREADY own. It lays out a daily outfit from your wardrobe, renders any look on your own photo, and keeps a wear journal so nothing sits unworn. The enemy is not other apps — it is the full-closet-nothing-to-wear morning, and the guilt of clothes worn once. Every ad sells the same feeling: you already own your next favourite outfit, and getting dressed can feel like having a stylist.",
+  "ads": {
+    "nothing-to-wear": {
+      "angle": "Decision fatigue",
+      "audience": "Women 25-40, busy professionals",
+      "primary": "A full closet and still nothing to wear? ZAUQ styles what you already own — a fresh outfit laid out for you every morning. No shopping. Just your clothes, finally working.",
+      "headline": "Your closet, finally styled",
+      "cta": "Sign Up"
+    },
+    "already-in-your-closet": {
+      "angle": "You already own it",
+      "audience": "Value-conscious, anti-overconsumption",
+      "primary": "Your next favourite outfit isn't in a store — it's already hanging in your closet. ZAUQ finds it, styles it, and shows it on you. Join the early list.",
+      "headline": "It's already in your closet",
+      "cta": "Sign Up"
+    },
+    "the-math": {
+      "angle": "The numbers / value",
+      "audience": "Data-minded, capsule-wardrobe crowd",
+      "primary": "43 pieces can make over 1,200 outfits. Most people wear the same 10. ZAUQ does the math on the wardrobe you already have — and dresses you from it, daily.",
+      "headline": "More outfits than you think",
+      "cta": "Learn More"
+    },
+    "see-it-on-you": {
+      "angle": "Virtual try-on / the Mirror",
+      "audience": "Try-before-you-buy, tech-curious",
+      "primary": "See any outfit on YOU before you wear it. ZAUQ's Mirror renders looks from your own closet onto your photo — so you walk out sure, every time.",
+      "headline": "Try it on before you wear it",
+      "cta": "Learn More"
+    },
+    "taste": {
+      "angle": "Brand / the word",
+      "audience": "Aspirational, design-led",
+      "primary": "ZAUQ (ذوق) — noun. Taste. Discernment. The pleasure of a thing done well. Your personal stylist, for the clothes you already own.",
+      "headline": "ZAUQ — noun. Taste.",
+      "cta": "Learn More"
+    },
+    "coffee-outfit-done": {
+      "angle": "The morning ritual",
+      "audience": "Busy mornings, working parents",
+      "primary": "Coffee. Outfit. Done. ZAUQ lays out your look while you sleep, from your own wardrobe — so mornings are one less thing to decide.",
+      "headline": "Mornings, decided",
+      "cta": "Sign Up"
+    },
+    "same-shirt-thrice": {
+      "angle": "Twins / knows your closet",
+      "audience": "Frequent shoppers, closet-overwhelmed",
+      "primary": "You've probably bought the same white shirt three times. ZAUQ knows your closet better than you do — spots the doubles, and styles what you actually own.",
+      "headline": "It knows your closet",
+      "cta": "Learn More"
+    },
+    "already-waiting": {
+      "angle": "Every morning, an outfit",
+      "audience": "Core — the hero line",
+      "primary": "Every morning, an outfit — already waiting. ZAUQ is a personal stylist for the clothes you own: daily looks, virtual try-on, and a wardrobe that finally earns its keep.",
+      "headline": "An outfit, already waiting",
+      "cta": "Sign Up"
+    },
+    "stylist-in-pocket": {
+      "angle": "Personal stylist accessible",
+      "audience": "Aspirational, first-time stylist users",
+      "primary": "A personal stylist used to cost a fortune. Now it's in your pocket — and it works with the clothes you already own. Meet ZAUQ.",
+      "headline": "A stylist in your pocket",
+      "cta": "Learn More"
+    },
+    "blazer-twice": {
+      "angle": "Cost per wear / guilt",
+      "audience": "Owns nice pieces, wears few",
+      "primary": "That blazer you wore twice? Let's fix that. ZAUQ turns a tired wardrobe into hundreds of outfits — so the pieces you love actually get worn.",
+      "headline": "Wear what you paid for",
+      "cta": "Learn More"
+    },
+    "like-a-stylist": {
+      "angle": "Confidence / aspiration",
+      "audience": "Broad, confidence-led",
+      "primary": "Get dressed like you have a personal stylist — because now you do. ZAUQ styles your own closet into a look a day. Join the waitlist.",
+      "headline": "Get dressed like you have a stylist",
+      "cta": "Sign Up"
+    },
+    "restyled-daily": {
+      "angle": "Product summary",
+      "audience": "Feature-led, considered",
+      "primary": "The clothes you already own, restyled every day. Daily outfits, virtual try-on, and a wear journal — one quiet app that makes your wardrobe work.",
+      "headline": "Your clothes, restyled daily",
+      "cta": "Learn More"
+    },
+    "pure-brand": {
+      "angle": "Brand awareness",
+      "audience": "Retargeting / brand",
+      "primary": "ZAUQ (ذوق) — taste, styled daily. Your personal AI stylist for the clothes you own.",
+      "headline": "Taste, styled daily",
+      "cta": "Learn More"
+    },
+    "dressing-ritual": {
+      "angle": "Joy of dressing",
+      "audience": "Lifestyle, self-care",
+      "primary": "Make getting dressed the best part of your day. ZAUQ lays out the look from your own closet — you just wear it. Beautifully.",
+      "headline": "The best part of your day",
+      "cta": "Sign Up"
+    },
+    "wear-what-you-own": {
+      "angle": "Anti-fast-fashion",
+      "audience": "Sustainability-minded",
+      "primary": "Wear what you own — beautifully. Style, without the endless shopping. ZAUQ restyles your existing wardrobe into a fresh look every day.",
+      "headline": "Wear what you own",
+      "cta": "Learn More"
+    },
+    "pack-a-week": {
+      "angle": "Trips / packing",
+      "audience": "Travellers",
+      "primary": "Pack for a week in ten minutes. ZAUQ builds a capsule from your own closet for any trip — mix-and-match sorted before you zip the bag.",
+      "headline": "Pack a week in minutes",
+      "cta": "Learn More"
+    },
+    "works-for-him": {
+      "angle": "Menswear",
+      "audience": "Men 25-45",
+      "primary": "Get dressed like you mean it. ZAUQ styles your own wardrobe into a sharp look a day — no shopping, no guesswork. Yes, it works for him too.",
+      "headline": "Sharp, every day",
+      "cta": "Learn More"
+    },
+    "delete-shopping-apps": {
+      "angle": "Scroll-stopper / declutter",
+      "audience": "Overconsumption fatigue",
+      "primary": "Delete three shopping apps. Keep one that makes you love what you already own. ZAUQ — your stylist for the clothes in your closet.",
+      "headline": "Keep the one that styles you",
+      "cta": "Learn More"
+    },
+    "one-coat-fifty-ways": {
+      "angle": "Versatility",
+      "audience": "Minimalists",
+      "primary": "One coat, fifty ways to wear it. ZAUQ finds every outfit hiding in the pieces you already own — and shows them on you.",
+      "headline": "Fifty ways to wear it",
+      "cta": "Learn More"
+    },
+    "tonight-laid-out": {
+      "angle": "Plan ahead / calm",
+      "audience": "Organised, planners",
+      "primary": "Tomorrow's outfit, laid out tonight — from your own closet, by ZAUQ. Wake up to a look that's ready, and a morning that's yours.",
+      "headline": "Laid out tonight",
+      "cta": "Sign Up"
+    },
+    "which-shoes": {
+      "angle": "Accessorising / shoes",
+      "audience": "Detail-led",
+      "primary": "Which shoes? ZAUQ already knows. It finishes every outfit from your own closet — down to the last pair.",
+      "headline": "ZAUQ already knows",
+      "cta": "Learn More"
+    },
+    "finishing-touch": {
+      "angle": "Accessories",
+      "audience": "Considered dressers",
+      "primary": "The finishing touch, chosen for you. ZAUQ styles the whole look — clothes and the jewellery to go with them — from what you own.",
+      "headline": "The finishing touch",
+      "cta": "Learn More"
+    },
+    "closet-lookbook": {
+      "angle": "Aspiration / product",
+      "audience": "Fashion-forward",
+      "primary": "Your closet, as a lookbook. ZAUQ turns the clothes you own into a look a day — beautifully shot, ready to wear.",
+      "headline": "Your closet, as a lookbook",
+      "cta": "Learn More"
+    }
+  },
+  "concepts": [
+    {
+      "t": "The Dictionary Reel",
+      "d": "6s Reel. Black screen, gold serif types out 'ZAUQ · ذوق · noun — taste.' Cut to three fast outfit reveals on a phone (the Mirror rendering looks on a real photo). End card: 'Your personal stylist. myzauq.com'. Sound: a single elegant piano note + a soft chime per outfit."
+    },
+    {
+      "t": "POV: 8am, nothing to wear",
+      "d": "9:16 native/UGC. Phone-shot POV of someone staring into a packed closet, sighing. Text overlay: 'POV: it's 8am and you have nothing to wear (again).' Swipe — the ZAUQ app lays out a full look from those exact clothes. 'I never say it anymore.' Feels organic, not an ad."
+    },
+    {
+      "t": "The Closet Math carousel",
+      "d": "5-frame carousel. F1: '43 pieces.' F2: '= 1,200 possible outfits.' F3: 'You wear about 10.' F4: A styled look (image). F5: 'ZAUQ wears the rest for you. → myzauq.com'. Screenshot-simple, stops the scroll with a number."
+    },
+    {
+      "t": "Before / After the morning",
+      "d": "Split 4:5. Left: chaotic closet, muted. Right: one perfect outfit spotlit on a hanger. Caption: 'Same closet. Two minutes apart.' The ZAUQ arch mark bridges the two halves."
+    },
+    {
+      "t": "The receipt",
+      "d": "Static 1:1 that looks like a shopping receipt on dark paper: 'ITEMS OWNED 47 / WORN THIS MONTH 9 / UNWORN 38 / — / ZAUQ: styles all 47.' The 'ugly ad' that reads as information, not marketing. Great for cold audiences."
+    },
+    {
+      "t": "The Mirror demo Reel",
+      "d": "8s screen-recording. A user taps two closet pieces → the Mirror renders the outfit on their photo → they smile and tap 'Wearing it today.' Text: 'See it on you before you wear it.' Proof-of-product; strongest for warm/retargeting."
+    },
+    {
+      "t": "Testimonial-style",
+      "d": "4:5 quote card in the brand: a real-sounding line — '‘I stopped buying clothes I already own.’' — set in Bodoni over an atelier background, small ZAUQ mark. Rotate 3-4 quotes for social proof once you have users."
+    },
+    {
+      "t": "The two-word scroll-stopper",
+      "d": "1:1, pure type on the atelier texture: 'Stop shopping.' (beat) 'Start wearing.' Minimal, bold, brand-forward. Pair with the softest, most beautiful background. Brand awareness + curiosity."
+    }
+  ],
+  "formats": "Feed 4:5 (1080x1350) gets the most screen and is the default for cold traffic. Square 1:1 (1080x1080) for feed variety and the receipt/type ads. Story/Reel 9:16 (1080x1920) for Stories placements and as static Reel covers. Every headline here fits Meta's fields; the on-image copy and the Ads-Manager copy reinforce, never repeat verbatim.",
+  "howto": "In Meta Ads Manager: upload the image, paste Primary Text and Headline from the card, set the CTA button, and point the URL at myzauq.com. Start with 3-4 angles per audience, one image each, and let the decision-fatigue and 'already in your closet' angles lead — they test best for a styling product. Kill losers after ~2-3 days, scale the winner's angle with fresh images from the same background library."
+}

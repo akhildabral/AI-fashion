@@ -1,0 +1,6 @@
+
+# ad-kit image outputs (big binaries; regenerate with the scripts)
+marketing/ads/raw/
+marketing/ads/final/
+marketing/ads/*.zip
+marketing/ads/adkit.html
