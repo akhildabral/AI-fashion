@@ -405,7 +405,7 @@ export function AdminPage() {
                       }
                       className="rounded-[3px] border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
                     >
-                      {['free', 'plus', 'pro', 'founder'].map((p) => (
+                      {['free', 'plus', 'pro', 'premium', 'founder'].map((p) => (
                         <option key={p} value={p}>
                           {p}
                         </option>

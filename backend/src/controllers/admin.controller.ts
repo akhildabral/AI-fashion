@@ -154,7 +154,7 @@ export async function markVerified(req: Request, res: Response) {
   res.json({ user: updated });
 }
 
-const setPlanSchema = z.object({ plan: z.enum(['free', 'plus', 'pro', 'founder']) });
+const setPlanSchema = z.object({ plan: z.enum(['free', 'plus', 'pro', 'premium', 'founder']) });
 
 // Manual plan override for support cases (comps, refunds, founder grants).
 // Doesn't touch the gateway — cancel there separately if a paid sub exists.

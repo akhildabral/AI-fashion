@@ -8,11 +8,12 @@ import { HttpError } from '../middleware/error';
 // provider-agnostic AI layer). The webhook — never the redirect — is the
 // source of truth for plan changes.
 
-export type PaidPlan = 'plus' | 'pro';
+export type PaidPlan = 'plus' | 'pro' | 'premium';
 
 const PLAN_IDS: Record<PaidPlan, () => string | undefined> = {
   plus: () => env.RAZORPAY_PLAN_PLUS,
   pro: () => env.RAZORPAY_PLAN_PRO,
+  premium: () => env.RAZORPAY_PLAN_PREMIUM,
 };
 
 export function billingConfigured(): boolean {
@@ -102,9 +103,10 @@ interface WebhookSubscriptionPayload {
 }
 
 function planFromNotesOrId(notes: Record<string, string> | undefined, planId?: string): PaidPlan | null {
-  if (notes?.plan === 'plus' || notes?.plan === 'pro') return notes.plan;
+  if (notes?.plan === 'plus' || notes?.plan === 'pro' || notes?.plan === 'premium') return notes.plan;
   if (planId && planId === env.RAZORPAY_PLAN_PLUS) return 'plus';
   if (planId && planId === env.RAZORPAY_PLAN_PRO) return 'pro';
+  if (planId && planId === env.RAZORPAY_PLAN_PREMIUM) return 'premium';
   return null;
 }
 

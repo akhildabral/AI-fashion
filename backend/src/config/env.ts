@@ -17,6 +17,7 @@ const envSchema = z.object({
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   RAZORPAY_PLAN_PLUS: z.string().optional(),
   RAZORPAY_PLAN_PRO: z.string().optional(),
+  RAZORPAY_PLAN_PREMIUM: z.string().optional(),
   // Emails that are auto-verified, auto-approved, and given the admin role
   // on register/login — bootstraps the first superuser. Comma-separated.
   ADMIN_EMAILS: z

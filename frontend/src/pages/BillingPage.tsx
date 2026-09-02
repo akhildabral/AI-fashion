@@ -40,6 +40,12 @@ const PLANS = [
     price: '₹499/mo',
     perks: ['500 wardrobe items', '100 looks / month', '100 try-ons / month', 'Priority processing'],
   },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: '₹999/mo',
+    perks: ['2,000 wardrobe items', '300 looks / month', '300 try-ons / month', 'Priority processing'],
+  },
 ] as const
 
 declare global {
@@ -101,7 +107,7 @@ export function BillingPage() {
     void load()
   }, [load])
 
-  async function upgrade(plan: 'plus' | 'pro') {
+  async function upgrade(plan: 'plus' | 'pro' | 'premium') {
     setBusy(plan)
     setError(null)
     try {
@@ -115,7 +121,7 @@ export function BillingPage() {
         key: session.keyId,
         subscription_id: session.subscriptionId,
         name: 'ZAUQ',
-        description: `${plan === 'plus' ? 'Plus' : 'Pro'} subscription`,
+        description: `${PLANS.find((p) => p.id === plan)?.name ?? plan} subscription`,
         prefill: { email: session.email },
         theme: { color: '#D9481F' },
         handler: () => {
@@ -155,7 +161,7 @@ export function BillingPage() {
     )
   }
 
-  const onPaid = summary && (summary.plan === 'plus' || summary.plan === 'pro')
+  const onPaid = summary && (summary.plan === 'plus' || summary.plan === 'pro' || summary.plan === 'premium')
   const periodEnd = summary?.currentPeriodEnd
     ? new Date(summary.currentPeriodEnd).toLocaleDateString()
     : null
@@ -226,7 +232,7 @@ export function BillingPage() {
             </div>
           </div>
 
-          {user?.role !== 'admin' && summary.plan !== 'pro' && summary.plan !== 'founder' && (
+          {user?.role !== 'admin' && summary.plan !== 'premium' && summary.plan !== 'founder' && (
             <>
               <h2 className="mt-10 font-display text-2xl font-bold text-ink">Upgrade</h2>
               {!summary.billingConfigured && (
@@ -235,7 +241,8 @@ export function BillingPage() {
                 </p>
               )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {PLANS.filter((p) => p.id !== summary.plan).map((p) => (
+                {/* Only the tiers above the one you are on. */}
+                {PLANS.filter((p) => PLANS.findIndex((x) => x.id === p.id) > PLANS.findIndex((x) => x.id === summary.plan)).map((p) => (
                   <div
                     key={p.id}
                     className="flex flex-col rounded-[3px] border border-ink/10 bg-surface p-6"

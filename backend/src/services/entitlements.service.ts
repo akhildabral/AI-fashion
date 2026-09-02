@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 
-export type Plan = 'free' | 'plus' | 'pro' | 'founder';
+export type Plan = 'free' | 'plus' | 'pro' | 'premium' | 'founder';
 export type MeteredKind = 'tryon' | 'looks' | 'catalog';
 
 export interface PlanLimits {
@@ -24,6 +24,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: { items: 15, looks: 10, tryons: 5, catalog: 20, lifetime: true, label: 'Free' },
   plus: { items: 100, looks: 30, tryons: 30, catalog: 120, lifetime: false, label: 'Plus' },
   pro: { items: 500, looks: 100, tryons: 100, catalog: 600, lifetime: false, label: 'Pro' },
+  // The top tier: a closet without a practical ceiling and three times Pro's renders.
+  premium: { items: 2000, looks: 300, tryons: 300, catalog: 2400, lifetime: false, label: 'Premium' },
   // Waitlist cohort grandfathered before billing existed: Pro-level, free.
   founder: { items: 500, looks: 100, tryons: 100, catalog: 600, lifetime: false, label: 'Founder' },
 };

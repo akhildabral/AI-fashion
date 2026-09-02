@@ -30,7 +30,7 @@ export async function summary(req: Request, res: Response) {
   });
 }
 
-const checkoutSchema = z.object({ plan: z.enum(['plus', 'pro']) });
+const checkoutSchema = z.object({ plan: z.enum(['plus', 'pro', 'premium']) });
 
 export async function checkout(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
