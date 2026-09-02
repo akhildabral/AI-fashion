@@ -14,6 +14,30 @@ import type {
 } from './types'
 
 /** GET /api/wardrobe — the user's owned garments, newest first. */
+export interface BasketResponse {
+  items: WardrobeItem[]
+  counts: { inWash: number; packed: number; lentOut: number }
+  worthALoad: boolean
+  loadWorth: number
+  oneMoreWear: { id: string; category: string; subtype: string | null; wearsSinceWash: number; imageUrl: string }[]
+  lastWashedAt: string | null
+}
+
+/** GET /api/wardrobe/basket — what's out of rotation and why. */
+export function getBasket(): Promise<BasketResponse> {
+  return apiFetch<BasketResponse>('/wardrobe/basket')
+}
+
+/** POST /api/wardrobe/basket/clean — back from the wash (everything, or some). */
+export function basketClean(itemIds?: string[]): Promise<{ ok: true; count: number }> {
+  return apiFetch<{ ok: true; count: number }>('/wardrobe/basket/clean', { method: 'POST', body: itemIds ? { itemIds } : {} })
+}
+
+/** GET /api/wardrobe?owned=false — pieces you don't own yet. */
+export function getWishlist(): Promise<WardrobeListResponse> {
+  return apiFetch<WardrobeListResponse>('/wardrobe?owned=false')
+}
+
 export function getWardrobe(): Promise<WardrobeListResponse> {
   return apiFetch<WardrobeListResponse>('/wardrobe')
 }

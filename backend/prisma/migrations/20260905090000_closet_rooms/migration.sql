@@ -1,0 +1,11 @@
+ALTER TABLE "WardrobeItem" ADD COLUMN "wearsSinceWash" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "WardrobeItem" ADD COLUMN "washedAt" TIMESTAMP(3);
+ALTER TABLE "WardrobeItem" ADD COLUMN "owned" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "WardrobeItem" ADD COLUMN "seenAt" TIMESTAMP(3);
+ALTER TABLE "WardrobeItem" ADD COLUMN "seenPrice" INTEGER;
+ALTER TABLE "WardrobeItem" ADD COLUMN "store" TEXT;
+ALTER TABLE "WardrobeItem" ADD COLUMN "nudgeAt" TIMESTAMP(3);
+ALTER TABLE "WardrobeItem" ADD COLUMN "verdict" JSONB;
+ALTER TABLE "WardrobeItem" ADD COLUMN "brand" TEXT;
+ALTER TABLE "WardrobeItem" ADD COLUMN "size" TEXT;
+CREATE INDEX "WardrobeItem_userId_owned_idx" ON "WardrobeItem"("userId", "owned");

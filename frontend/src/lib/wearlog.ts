@@ -11,8 +11,10 @@ import type {
  * weather into the log; everything besides the items is optional.
  */
 export function logWear(params: {
-  itemIds: string[]
-  eventType?: EventType
+  itemIds?: string[]
+  /** A saved outfit — its wear count moves with the log. */
+  outfitId?: string
+  eventType?: EventType | string
   location?: string
   rating?: number
   /** Wearing a look a friend picked — credits the stylist. */

@@ -50,6 +50,14 @@ function line(n: Notification): { text: string; to: string } {
         to: '/circle',
       }
     }
+    case 'laundry_due': {
+      const n2 = Number(n.payload.count ?? 0)
+      return { text: `${n2} pieces in the wash — worth a load. The stylist is working around them.`, to: '/closet/basket' }
+    }
+    case 'wishlist_nudge': {
+      const what = String(n.payload.label ?? 'that piece')
+      return { text: `Still thinking about the ${what}? It’s waiting in your wishlist.`, to: '/closet/wishlist' }
+    }
     default:
       return { text: `${who} did something.`, to: '/circle' }
   }

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { applyWear } from '../lib/wear-rules';
 import { HttpError } from '../middleware/error';
 import { suggestOutfits } from '../services/wardrobe.service';
 import { getWeather, type Weather } from '../services/weather.service';
@@ -223,9 +224,15 @@ export async function wearBrief(req: Request, res: Response) {
         : {}),
     },
   });
+  await applyWear(req.user.id, log.itemIds);
   if (brief) {
     await prisma.dailyBrief.update({ where: { id: brief.id }, data: { wornLogId: log.id } });
   }
+  // The look you wore is an outfit now: it lives in the Outfits room, once.
+  const key = [...ids].sort();
+  const existing = await prisma.outfit.findFirst({ where: { userId, itemIds: { equals: key } }, select: { id: true } });
+  if (existing) await prisma.outfit.update({ where: { id: existing.id }, data: { wearCount: { increment: 1 } } });
+  else await prisma.outfit.create({ data: { userId, itemIds: key, rationale: payload?.rationale ?? null, eventType: payload?.eventType ?? 'work', provenance: 'ai', wearCount: 1 } });
   res.status(201).json({ log, alreadyLogged: false });
 }
 

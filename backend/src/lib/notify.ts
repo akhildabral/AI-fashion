@@ -9,7 +9,9 @@ export type NotificationType =
   | 'look_recreated'
   | 'commented'
   | 'mentioned'
-  | 'verdict_settled';
+  | 'verdict_settled'
+  | 'laundry_due'
+  | 'wishlist_nudge';
 
 // @handles in a comment body — lowercase, deduped, in order of appearance.
 export function mentionedHandles(body: string): string[] {

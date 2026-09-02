@@ -154,6 +154,15 @@ export interface WardrobeItem {
   description: string | null
   /** Availability: clean | in-wash | packed | lent-out | retired. */
   state: string
+  wearsSinceWash?: number
+  washedAt?: string | null
+  owned?: boolean
+  seenAt?: string | null
+  seenPrice?: number | null
+  store?: string | null
+  nudgeAt?: string | null
+  brand?: string | null
+  size?: string | null
   /** Hidden from suggestion pools ("don't suggest this"). */
   suppressed: boolean
   /** What the item cost — powers cost-per-wear. */
@@ -189,6 +198,13 @@ export interface WardrobeItemEdit {
   material?: string
   description?: string
   suppressed?: boolean
+  state?: 'clean' | 'in-wash' | 'packed' | 'lent-out' | 'retired'
+  brand?: string | null
+  size?: string | null
+  owned?: boolean
+  store?: string | null
+  seenPrice?: number | null
+  nudgeAt?: string | null
 }
 
 /** An outfit assembled from the user's owned wardrobe items. */

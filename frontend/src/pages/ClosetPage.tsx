@@ -6,6 +6,8 @@ import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } f
 import type { WardrobeItem } from '../lib/types'
 import { WardrobeCard } from '../components/WardrobeCard'
 import { GarmentTile, PageShell, Modal } from '../components/ui'
+import { ClosetRooms } from '../components/ClosetRooms'
+import { GoesWith } from '../components/GoesWith'
 import { PriceDrawer } from '../components/PriceDrawer'
 import { Spinner } from '../components/Spinner'
 
@@ -182,6 +184,9 @@ export function ClosetPage() {
       )[0]?.id ?? null
 
   function cpwLabel(it: WardrobeItem): string | undefined {
+    if (it.state === 'in-wash') return 'in the wash'
+    if (it.state === 'packed') return 'packed'
+    if (it.state === 'lent-out') return 'lent out'
     const ins = insights.get(it.id)
     if (ins?.costPerWear != null) return `${inr(ins.costPerWear)} / wear · ${ins.wearCount}×`
     if (ins && ins.wearCount > 0) return `worn ${ins.wearCount}×`
@@ -287,6 +292,8 @@ export function ClosetPage() {
             </button>
           </div>
         </div>
+
+        <ClosetRooms current="pieces" />
 
         {uploadError && (
           <p className="mt-4 alert-error" role="alert">
@@ -560,6 +567,7 @@ export function ClosetPage() {
               onDeleted={handleDeleted}
             />
           )}
+          {selected && selected.status === 'ready' && <GoesWith itemId={selected.id} />}
         </Modal>
       </div>
       <PriceDrawer

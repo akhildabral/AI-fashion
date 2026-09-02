@@ -151,6 +151,19 @@ model WardrobeItem {
   // What the item cost — powers cost-per-wear. Currency-agnostic number.
   price          Float?
   // Hook for canonical product-catalog resolution — populated in a later phase.
+  // The basket: wears since the last wash, flipped to in-wash by garment rule.
+  wearsSinceWash Int       @default(0)
+  washedAt       DateTime?
+  // A wishlist piece is a piece the closet knows you don't own yet.
+  owned          Boolean   @default(true)
+  seenAt         DateTime?
+  seenPrice      Int?
+  store          String?
+  nudgeAt        DateTime?
+  // Cached in-store verdict: { outfits, pairs, closest, unlock, computedAt }.
+  verdict        Json?
+  brand          String?
+  size           String?
   productId      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt @default(now())

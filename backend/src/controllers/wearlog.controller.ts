@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { applyWear } from '../lib/wear-rules';
 import { getWeather } from '../services/weather.service';
 import { EVENT_TYPES } from '../lib/attributes';
 import { HttpError } from '../middleware/error';
@@ -114,6 +115,7 @@ export async function logWear(req: Request, res: Response) {
       ...(weather ? { weather } : {}),
     },
   });
+  await applyWear(req.user.id, log.itemIds);
   if (data.pickId) {
     const pick = await prisma.friendPick.findFirst({
       where: { id: data.pickId, forUserId: req.user.id },

@@ -101,7 +101,7 @@ export function voteOnVerdict(pollId: string, optionId: string, userId: string) 
 
 export interface Notification {
   id: string
-  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled'
+  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge'
   actorHandle: string | null
   payload: Record<string, unknown>
   read: boolean

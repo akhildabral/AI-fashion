@@ -229,8 +229,10 @@ export async function recatalogItem(req: Request, res: Response) {
 
 export async function listItems(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
+  // Owned pieces by default; ?owned=false is the wishlist; ?owned=all is both.
+  const owned = req.query.owned === 'false' ? { owned: false } : req.query.owned === 'all' ? {} : { owned: true };
   const items = await prisma.wardrobeItem.findMany({
-    where: { userId: req.user.id },
+    where: { userId: req.user.id, ...owned },
     orderBy: { createdAt: 'desc' },
   });
   res.json({ items });
@@ -252,6 +254,14 @@ const updateSchema = z.object({
   layerRole: z.enum(['base', 'mid', 'outer', 'bottom', 'footwear', 'accessory', 'one-piece']).nullish(),
   warmthValue: z.number().int().min(0).max(10).nullish(),
   formalityScore: z.number().int().min(1).max(5).nullish(),
+  brand: z.string().max(60).nullish(),
+  size: z.string().max(30).nullish(),
+  // Wishlist: where you saw it, for how much, and when to be nudged. "Bought
+  // it" is owned: true.
+  owned: z.boolean().optional(),
+  store: z.string().max(120).nullish(),
+  seenPrice: z.number().int().min(0).max(10_000_000).nullish(),
+  nudgeAt: z.coerce.date().nullish(),
 });
 
 export async function updateItem(req: Request, res: Response) {
@@ -293,9 +303,19 @@ export async function updateItem(req: Request, res: Response) {
     rederive.formalityScore = derived.formalityScore;
   }
 
+  // Back from the wash resets the count; buying a wishlist piece carries its
+  // seen price into the ledger.
+  const side: Prisma.WardrobeItemUncheckedUpdateInput = {};
+  if (data.state === 'clean') Object.assign(side, { wearsSinceWash: 0, washedAt: new Date() });
+  if (data.owned === true) {
+    const w = await prisma.wardrobeItem.findUnique({ where: { id }, select: { owned: true, seenPrice: true, price: true } });
+    if (w && !w.owned && w.price == null && w.seenPrice != null) side.price = w.seenPrice;
+    side.nudgeAt = null;
+  }
+
   await prisma.wardrobeItem.update({
     where: { id },
-    data: { ...data, ...rederive, attrConfidence },
+    data: { ...data, ...rederive, ...side, attrConfidence },
   });
 
   const item = await prisma.wardrobeItem.findUnique({ where: { id } });
@@ -344,7 +364,7 @@ export type StyleableItem = Awaited<ReturnType<typeof loadStyleableWardrobe>>[nu
 export async function loadStyleableWardrobe(userId: string) {
   const [items, logs, polls, tryOns] = await Promise.all([
     prisma.wardrobeItem.findMany({
-      where: { userId, status: { not: 'processing' }, state: 'clean', suppressed: false },
+      where: { userId, owned: true, status: { not: 'processing' }, state: 'clean', suppressed: false },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.wearLog.findMany({
@@ -451,14 +471,21 @@ export function validateAndRank(
 const outfitSchema = z.object({
   occasion: z.string().min(2).max(300),
   eventType: z.enum(EVENT_TYPES).default('work'),
+  // A piece every outfit must be built around ("Goes with", the store verdict).
+  pin: z.string().uuid().optional(),
+  count: z.number().int().min(1).max(4).optional(),
 });
 
 export async function mixAndMatch(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { occasion, eventType } = outfitSchema.parse(req.body);
+  const { occasion, eventType, pin, count } = outfitSchema.parse(req.body);
   const items = await loadStyleableWardrobe(req.user.id);
   const recentWear = await loadRecentWear(req.user.id);
-  const suggested = await suggestOutfits(items, `Occasion: ${occasion} (${eventType} setting)`);
+  const pinned = pin ? items.find((i) => i.id === pin) : undefined;
+  if (pin && !pinned) throw new HttpError(400, 'That piece is not available to style right now');
+  const context = `Occasion: ${occasion} (${eventType} setting)` + (pinned ? `. EVERY outfit MUST include the item with id=${pinned.id} (${pinned.subtype ?? pinned.category}).` : '');
+  const proposed = await suggestOutfits(items, context, count ?? 2);
+  const suggested = pinned ? proposed.filter((o) => o.items.some((i) => i.id === pinned.id)) : proposed;
   const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
   const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
   const outfits = validateAndRank(suggested, { eventType, recentWear, wearCounts, pollWins });
