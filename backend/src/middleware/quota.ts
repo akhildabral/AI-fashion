@@ -38,7 +38,8 @@ export function quota(kind: MeteredKind) {
         }
       }
 
-      await prisma.usageEvent.create({ data: { userId: user.id, kind } });
+      const event = await prisma.usageEvent.create({ data: { userId: user.id, kind } });
+      req.usageEventId = event.id;
       next();
     } catch (err) {
       next(err);

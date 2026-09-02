@@ -119,10 +119,10 @@ export function whatToWearToday(
  * POST /api/wardrobe/tryon — render the user's photo wearing a set of wardrobe
  * items (slow, ~30-40s). 400s if the user has no photo uploaded yet.
  */
-export function tryOnWardrobeOutfit(itemIds: string[]): Promise<TryOnResponse> {
-  return apiFetch<TryOnResponse>('/wardrobe/tryon', {
+export function tryOnWardrobeOutfit(itemIds: string[], fresh = false): Promise<TryOnResponse & { cached?: boolean }> {
+  return apiFetch<TryOnResponse & { cached?: boolean }>('/wardrobe/tryon', {
     method: 'POST',
-    body: { itemIds },
+    body: { itemIds, fresh },
   })
 }
 

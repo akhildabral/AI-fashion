@@ -2,6 +2,21 @@ import { editImage, imagesEnabled, type SourceImage } from '../lib/imagegen';
 import { keyFromStored, mimeForKey, readStored, saveImageBuffer } from '../lib/storage';
 import { HttpError } from '../middleware/error';
 
+// The Mirror's renderer. Two modes behind one seam:
+//   references — the person plus every garment cut-out, each introduced by
+//                name, with a prompt that pins colour, pattern and cut to the
+//                pictures. The render is the person's own clothes.
+//   text       — the person alone, garments described from catalog tags.
+//                The earlier path; kept as a fallback and for comparison.
+// A dedicated try-on model (FASHN, IDM-VTON, …) would slot in behind the
+// same runEdit() without touching callers.
+
+export type TryOnMode = 'references' | 'text';
+
+export function defaultTryOnMode(): TryOnMode {
+  return process.env.TRYON_MODE === 'text' ? 'text' : 'references';
+}
+
 interface OutfitItems {
   top?: string;
   bottom?: string;
@@ -22,23 +37,26 @@ function describeOutfit(outfit: unknown): string {
   return parts.join('; ');
 }
 
-async function sourceFromStored(stored: string, missingMessage: string): Promise<SourceImage> {
+async function sourceFromStored(stored: string, missingMessage: string, label?: string): Promise<SourceImage> {
   let data: Buffer;
   try {
     data = await readStored(stored);
   } catch {
     throw new HttpError(400, missingMessage);
   }
-  return { data, mime: mimeForKey(keyFromStored(stored)) };
+  return { data, mime: mimeForKey(keyFromStored(stored)), label };
 }
 
 function requireImages(): void {
   if (!imagesEnabled()) {
-    throw new HttpError(
-      503,
-      'Image generation is not configured — set IMAGE_PROVIDER (and IMAGE_API_KEY if needed)',
-    );
+    throw new HttpError(503, 'Image generation is not configured — set IMAGE_PROVIDER (and IMAGE_API_KEY if needed)');
   }
+}
+
+export interface RenderResult {
+  url: string;
+  prompt: string;
+  mode: TryOnMode | 'look';
 }
 
 async function runEdit(prompt: string, sources: SourceImage[]): Promise<string> {
@@ -53,22 +71,20 @@ async function runEdit(prompt: string, sources: SourceImage[]): Promise<string> 
   }
 }
 
-// Render the given outfit onto the user's photo via image editing. All
-// provider specifics live behind editImage(), so a dedicated try-on API
-// (FASHN, Replicate IDM-VTON, etc.) can slot in without touching callers.
+const KEEP =
+  'Keep everything else identical: the same face, identity, hair, skin tone, body, pose, ' +
+  'background, lighting, and framing. Preserve the photograph’s full resolution, sharpness ' +
+  'and detail. Never replace the person with a different person or model. Photorealistic.';
+
+// Render a generated look (no wardrobe pieces) onto the user's photo.
 export async function generateTryOn(photoFilename: string, outfit: unknown): Promise<string> {
   requireImages();
-  const person = await sourceFromStored(
-    photoFilename,
-    'Your uploaded photo could not be found; please re-upload it',
-  );
-
+  const person = await sourceFromStored(photoFilename, 'Your uploaded photo could not be found; please re-upload it');
   const prompt =
     'Edit this photograph so the same person is wearing the following outfit, ' +
     'while keeping their face, identity, body shape, skin tone, hair, and pose ' +
     'unchanged — never replace them with a different person or model. ' +
     `Outfit — ${describeOutfit(outfit)}. Produce a realistic, full-body fashion photograph.`;
-
   return runEdit(prompt, [person]);
 }
 
@@ -78,46 +94,59 @@ export interface TryOnItem {
   subtype: string | null;
   primaryColor?: string | null;
   material?: string | null;
+  pattern?: string | null;
   description?: string | null;
 }
 
 function describeItem(it: TryOnItem): string {
   if (it.description?.trim()) return it.description.trim();
-  return [it.primaryColor, it.material, it.subtype?.trim() || it.category]
-    .filter(Boolean)
-    .join(' ');
+  return [it.primaryColor, it.pattern, it.material, it.subtype?.trim() || it.category].filter(Boolean).join(' ');
 }
 
-// Render the user's photo wearing a set of their OWN wardrobe garments, using
-// the actual item photos as references (multi-image edit) for higher fidelity.
-export async function generateOutfitTryOn(
-  photoFilename: string,
-  items: TryOnItem[],
-): Promise<string> {
+function slotWord(it: TryOnItem): string {
+  const c = it.category.toLowerCase();
+  if (c === 'footwear') return 'shoes';
+  if (c === 'outerwear') return 'outer layer';
+  if (c === 'accessory' || c === 'other') return 'accessory';
+  if (c === 'dress') return 'dress';
+  return c;
+}
+
+/**
+ * Render the person wearing a set of their OWN pieces.
+ * references: the cut-outs travel with the request, each introduced by name.
+ */
+export async function generateOutfitTryOn(photoFilename: string, items: TryOnItem[], mode: TryOnMode = defaultTryOnMode()): Promise<RenderResult> {
   requireImages();
-  const person = await sourceFromStored(
-    photoFilename,
-    'Your uploaded photo could not be found; please re-upload it',
+  const person = await sourceFromStored(photoFilename, 'Your uploaded photo could not be found; please re-upload it', 'PERSON — the person to dress. This photograph is the canvas; edit it in place:');
+
+  if (mode === 'text') {
+    const outfitDescription = items.map((it) => describeItem(it)).join('; ');
+    const prompt =
+      'Edit this photograph so the very same person is dressed in a different outfit. Remove ALL the clothing ' +
+      'they are currently wearing — including any dress, top, bottoms, shoes, and bags — and dress them instead in ' +
+      `exactly these items, all together: ${outfitDescription}. Fit each piece naturally to their body at ` +
+      `true-to-life proportions. ${KEEP}`;
+    return { url: await runEdit(prompt, [person]), prompt, mode };
+  }
+
+  const garments = await Promise.all(
+    items.map((it, i) =>
+      sourceFromStored(
+        it.imageUrl,
+        'One of the pieces could not be found; try again from the closet',
+        `GARMENT ${i + 1} — the exact ${slotWord(it)} to put on them (${describeItem(it)}). Reproduce THIS piece: its colour, pattern, fabric, cut and details, as pictured:`,
+      ),
+    ),
   );
-
-  // Single-pass, text-described try-on — the same mechanism as look try-ons,
-  // which is the one mode that reliably keeps the person's identity and the
-  // photo's quality: exactly one edit of the original photo, with no other
-  // reference images attached (any extra image makes the model ignore the
-  // outfit, swap in a stock model, or degrade the photo). Garments are
-  // described from their rich catalog tags; pixel-exact garment transfer is
-  // a dedicated VTON model's job, behind this same seam, when wanted.
-  const outfitDescription = items.map((it) => describeItem(it)).join('; ');
+  const list = items.map((it, i) => `GARMENT ${i + 1}: ${describeItem(it)} (${slotWord(it)})`).join('; ');
   const prompt =
-    'Edit this photograph so the very same person is dressed in a different ' +
-    'outfit. Remove ALL the clothing they are currently wearing — including ' +
-    'any dress, top, bottoms, shoes, and bags — and dress them instead in ' +
-    `exactly these items, all together: ${outfitDescription}. Fit each piece ` +
-    'naturally to their body at true-to-life proportions. Keep everything ' +
-    'else identical: the same face, identity, hair, skin tone, body, pose, ' +
-    'background, lighting, and framing. Preserve the photograph’s full ' +
-    'resolution, sharpness, and detail. Never replace the person with a ' +
-    'different person or model. Photorealistic.';
-
-  return runEdit(prompt, [person]);
+    'Virtual try-on. The first image is the PERSON: edit that photograph in place. The other images are ' +
+    'GARMENTS from their own wardrobe, photographed flat. Remove ALL the clothing the person is wearing — every top, ' +
+    'bottom, shoe, bag, and any jacket or layer draped over the shoulders; keep nothing they had on — and dress ' +
+    `them in exactly these garments, together, as one outfit — ${list}. Each garment must match its picture ` +
+    'precisely: the same colour, the same stripes or print, the same fabric and cut; do not substitute a similar ' +
+    'garment and do not invent extra pieces. Fit each garment naturally to their body at true-to-life ' +
+    `proportions with realistic drape and shadow. ${KEEP} Output only the edited photograph of the person.`;
+  return { url: await runEdit(prompt, [person, ...garments]), prompt, mode };
 }

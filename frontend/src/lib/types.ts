@@ -108,8 +108,17 @@ export interface GenerateRequest {
 }
 
 /** The user's uploaded photo used to render try-on images. */
+export interface Reflection {
+  id: string
+  url: string
+  active: boolean
+  consentAt: string
+  createdAt: string
+}
 export interface PhotoResponse {
   photoUrl: string | null
+  photos?: Reflection[]
+  max?: number
 }
 
 /** Response from a successful photo upload. */
@@ -126,6 +135,15 @@ export interface TryOn {
   lookId: string | null
   imageUrl: string
   createdAt: string
+  /** A render is a job: queued → rendering → ready | failed. */
+  status?: 'queued' | 'rendering' | 'ready' | 'failed'
+  error?: string | null
+  itemIds?: string[]
+  items?: { id: string; imageUrl: string; category: string; subtype: string | null }[]
+  mode?: string | null
+  refunded?: boolean
+  retryOf?: string | null
+  reportedAt?: string | null
 }
 
 export interface TryOnResponse {

@@ -262,17 +262,40 @@ const planSchema = z.object({
   eventType: z.enum(EVENT_TYPES).optional(),
   occasion: z.string().max(160).optional(),
   rest: z.boolean().optional(),
+  // Lay out exactly these pieces (from the Mirror, from an outfit) — no composing.
+  itemIds: z.array(z.string().uuid()).min(1).max(12).optional(),
+  title: z.string().max(80).optional(),
 });
 
 // POST /brief/plan — name a day on the strip: an occasion, or a home day.
 export async function planDay(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { date, eventType, occasion, rest } = planSchema.parse(req.body);
+  const { date, eventType, occasion, rest, itemIds, title } = planSchema.parse(req.body);
   const userId = req.user.id;
   const today = dayKey(new Date());
   if (date < today) throw new HttpError(400, 'That day has passed');
   const existing = await readDay(userId, date);
   if (existing?.wornLogId) throw new HttpError(400, 'That day is already worn');
+
+  if (itemIds?.length) {
+    const owned = await prisma.wardrobeItem.count({ where: { id: { in: itemIds }, userId } });
+    if (owned !== itemIds.length) throw new HttpError(400, 'Some pieces are not in your closet');
+    const profile = await prisma.styleProfile.findUnique({ where: { userId } });
+    const weather = await weatherFor(profile?.city, date, today);
+    const prev = existing && !existing.rest ? (existing.payload as unknown as BriefPayload) : null;
+    const payload: BriefPayload = {
+      title: title ?? 'Laid out by you',
+      rationale: 'Your own choice, laid out ahead. The stylist will keep it as it is.',
+      itemIds,
+      eventType: resolveEventType(profile, date, eventType ?? null),
+      occasion: occasion ?? null,
+      weather,
+      trip: null,
+      ...(prev ? { alternates: [{ ...prev, alternates: undefined }, ...(prev.alternates ?? [])].slice(0, 5) } : {}),
+    };
+    const saved = await saveDay(userId, date, payload, { rest: false, plannedAt: new Date() });
+    return respondDay(res, userId, saved);
+  }
 
   if (rest) {
     const payload: BriefPayload = { title: 'Home day', rationale: 'A rest. No look, no push; the streak stays honest.', itemIds: [], eventType: 'casual', occasion: null, weather: null, trip: null };

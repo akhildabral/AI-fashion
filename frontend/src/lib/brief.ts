@@ -104,7 +104,7 @@ export function getWeek(from: string) {
 }
 
 /** POST /brief/plan — name a day: an event type, an occasion, or a home day. */
-export function planDay(body: { date: string; eventType?: string; occasion?: string; rest?: boolean }) {
+export function planDay(body: { date: string; eventType?: string; occasion?: string; rest?: boolean; itemIds?: string[]; title?: string }) {
   return apiFetch<BriefResponse>('/brief/plan', { method: 'POST', body })
 }
 

@@ -65,6 +65,7 @@ model User {
   comments          Comment[]
   savedLooks        SavedLook[]
   pushSubscriptions PushSubscription[]
+  photos       UserPhoto[]
 }
 
 // A browser that asked to be woken for the morning ritual. One row per
@@ -315,8 +316,24 @@ model TryOn {
   lookId    String?
   look      Look?    @relation(fields: [lookId], references: [id], onDelete: SetNull)
   imageUrl  String
+  // A render is a job: queued → rendering → ready | failed. The glass polls.
+  status    String   @default("ready")
+  error     String?
+  // How it was made, for the record and for the cache.
+  mode      String?
+  model     String?
+  prompt    String?
+  key       String?
+  // The usage event this render spent; refunded when it fails or is reported.
+  // The reflection this render was made from; deleting it deletes this.
+  photoPath String?
+  usageEventId String?
+  refunded  Boolean  @default(false)
+  retryOf   String?
+  reportedAt DateTime?
   createdAt DateTime @default(now())
 
+  @@index([userId, key])
   @@index([userId])
 }
 
@@ -452,6 +469,20 @@ model Lookbook {
   name      String
   tryOnIds  String[]
   createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Your reflections: up to three photos for the Mirror, each with consent
+// recorded. User.photoPath points at the active one.
+model UserPhoto {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path           String
+  consentAt      DateTime
+  consentVersion String   @default("v1")
+  createdAt      DateTime @default(now())
 
   @@index([userId])
 }
