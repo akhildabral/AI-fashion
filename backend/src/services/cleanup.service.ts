@@ -40,27 +40,33 @@ const CLEAN_PROMPT =
   KEEP_PROPORTIONS +
   ' Preserve its true colors, pattern, texture, logos, and stitching.';
 
-// Shoes and bags are not flat things: a catalogue shows them from the side.
-function promptFor(category?: string | null): string {
-  if (category === 'footwear') {
-    return (
-      'Isolate the footwear in this photo and show it as an e-commerce product ' +
-      'shot on a plain seamless white studio background: the pair together, seen ' +
-      'from the side in profile, toes pointing to the left, resting on the ground, ' +
-      'laces tidy. Remove all other objects, people, feet, furniture and background ' +
-      'clutter. Preserve the true colours, materials, logos and wear.'
-    );
-  }
-  if (category === 'accessory') {
-    return (
-      'Isolate the single accessory in this photo and show it as an e-commerce ' +
-      'product shot on a plain seamless white studio background, seen from the ' +
-      'front at its natural angle, complete and uncropped. Remove all other ' +
-      'objects, people, hands, furniture and background clutter. Preserve its true ' +
-      'colours, materials, hardware and logos.'
-    );
-  }
-  return CLEAN_PROMPT;
+// The studio tidy-up: this exact piece, cleaned and completed — never redrawn.
+// It is given the piece already cut out on white, so there is nothing to
+// re-imagine but the edges and whatever the crop hid.
+function tidyPrompt(category?: string | null): string {
+  const what = category === 'footwear' ? 'pair of shoes' : category === 'accessory' ? 'accessory' : 'garment';
+  return (
+    `This is a photo of a real ${what}, already cut out on white. Keep it EXACTLY ` +
+    'as it is: the same item, the same angle and pose, the same colours, fabric, ' +
+    'texture, wear, stitching, folds and proportions. Do not restyle, straighten, ' +
+    're-cut, flatten, re-colour or replace any part of it. Only: remove any remaining ' +
+    'background, shadow or object that is not the item; complete any small part the ' +
+    'photo cut off; smooth the cut edges; and present it cleanly, evenly lit, on a ' +
+    'plain seamless white studio background. It must be recognisable as the very same ' +
+    'item from the same photo.'
+  );
+}
+
+/** The cut-out laid on white: what the studio is given, so it has nothing to re-imagine. */
+async function onWhite(png: Buffer): Promise<Buffer> {
+  const m = await sharp(png).metadata();
+  const w = m.width ?? 1024;
+  const h = m.height ?? 1024;
+  const pad = Math.round(Math.max(w, h) * 0.08);
+  return sharp({ create: { width: w + pad * 2, height: h + pad * 2, channels: 3, background: '#ffffff' } })
+    .composite([{ input: png, left: pad, top: pad }])
+    .jpeg({ quality: 92 })
+    .toBuffer();
 }
 
 // Extraction prompt for photos containing several garments (or a person
@@ -137,8 +143,12 @@ export async function studioRender(
   if (resolveMode() !== 'generative') return null;
   const { target, category, local } = opts;
   try {
-    const prompt = target ? targetedPrompt(target) : promptFor(category);
-    const cleaned = await editImage(prompt, [{ data: image, mime }]);
+    // With a cut-out in hand the studio only tidies it; without one (a piece
+    // to be isolated from several, or a photo that would not matte) it must
+    // extract the garment from the photo.
+    const prompt = target ? targetedPrompt(target) : local ? tidyPrompt(category) : CLEAN_PROMPT;
+    const input = local ? { data: await onWhite(local.png), mime: 'image/jpeg' } : { data: image, mime };
+    const cleaned = await editImage(prompt, [input]);
     if (!cleaned) return null;
     const studio = await sharp(cleaned)
       .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
