@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
+import { DoorShell, SignInLink } from '../components/DoorShell'
 
 /** Landing page for the emailed verification link. */
 export function VerifyEmailPage() {
@@ -19,9 +20,7 @@ export function VerifyEmailPage() {
       return
     }
     let cancelled = false
-    apiFetch<{ message: string }>(`/auth/verify-email?token=${encodeURIComponent(token)}`, {
-      auth: false,
-    })
+    apiFetch<{ message: string }>(`/auth/verify-email?token=${encodeURIComponent(token)}`, { auth: false })
       .then((res) => {
         if (cancelled) return
         setState('ok')
@@ -37,30 +36,21 @@ export function VerifyEmailPage() {
     }
   }, [token])
 
-  return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-12 text-center">
-      {state === 'working' ? (
-        <div className="flex flex-col items-center gap-3 text-ink/60">
-          <Spinner className="h-6 w-6" />
-          <p className="text-sm">Verifying your email…</p>
+  if (state === 'working') {
+    return (
+      <DoorShell eyebrow="One moment" title={<>Checking <em className="text-brass">the link.</em></>}>
+        <div className="flex items-center gap-3 text-sm text-ink/60">
+          <Spinner className="h-5 w-5" /> Verifying your email…
         </div>
-      ) : (
-        <>
-          <p className="text-5xl" aria-hidden="true">
-            {state === 'ok' ? 'Verified' : 'Not verified'}
-          </p>
-          <h1 className="mt-4 font-display text-3xl font-semibold text-ink">
-            {state === 'ok' ? 'Email verified' : 'Something went wrong'}
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-ink/65">{message}</p>
-          <Link
-            to="/login"
-            className="mt-6 text-sm font-medium text-brass underline-offset-4 hover:underline"
-          >
-            Go to sign in
-          </Link>
-        </>
-      )}
-    </div>
+      </DoorShell>
+    )
+  }
+  return (
+    <DoorShell
+      eyebrow={state === 'ok' ? 'Verified' : 'Not verified'}
+      title={state === 'ok' ? <>Your email is <em className="text-brass">confirmed.</em></> : <>That link <em className="text-brass">didn’t work.</em></>}
+      lead={message}
+      foot={<SignInLink label={state === 'ok' ? 'Sign in →' : 'Back to sign in'} />}
+    />
   )
 }

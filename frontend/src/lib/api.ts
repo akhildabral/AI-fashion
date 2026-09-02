@@ -20,6 +20,29 @@ export function clearToken(): void {
  */
 export const AUTH_EXPIRED_EVENT = 'auth:expired'
 
+/** Set when a session dies mid-use, read once by the sign-in redirect. */
+export function markSessionExpired() {
+  try {
+    sessionStorage.setItem('auth-expired', '1')
+  } catch {
+    /* ignore */
+  }
+}
+export function sessionExpiredPending(): boolean {
+  try {
+    return sessionStorage.getItem('auth-expired') === '1'
+  } catch {
+    return false
+  }
+}
+export function clearSessionExpired() {
+  try {
+    sessionStorage.removeItem('auth-expired')
+  } catch {
+    /* ignore */
+  }
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -82,6 +105,7 @@ export async function apiFetch<T>(
   if (!res.ok) {
     if (res.status === 401 && authed) {
       clearToken()
+      markSessionExpired()
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
     const message =
@@ -136,6 +160,7 @@ export async function apiUpload<T>(
   if (!res.ok) {
     if (res.status === 401 && authed) {
       clearToken()
+      markSessionExpired()
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
     const message =

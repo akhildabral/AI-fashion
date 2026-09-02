@@ -9,6 +9,8 @@ import { LoginPage } from './pages/LoginPage'
 import { LandingPage } from './pages/LandingPage'
 import { InvitePage } from './pages/InvitePage'
 import { JoinPage } from './pages/JoinPage'
+import { ForgotPage } from './pages/ForgotPage'
+import { ResetPage } from './pages/ResetPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { TodayPage } from './pages/TodayPage'
 import { ClosetPage } from './pages/ClosetPage'
@@ -63,6 +65,8 @@ export default function App() {
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/invite" element={<InvitePage />} />
                 <Route path="/join/:code" element={<JoinPage />} />
+                <Route path="/forgot" element={<ForgotPage />} />
+                <Route path="/reset" element={<ResetPage />} />
                 <Route path="/register" element={<Navigate to="/landing" replace />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
 

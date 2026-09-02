@@ -122,6 +122,29 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
   });
 }
 
+export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+  if (!transport) {
+    console.log(`[mailer] SMTP not configured — password reset link for ${to}: ${resetUrl}`);
+    return;
+  }
+  await transport.sendMail({
+    from: env.SMTP_FROM,
+    to,
+    subject: 'A way back in — AI Fashion',
+    text:
+      `You asked for a way back into AI Fashion.\n\n` +
+      `Choose a new password here:\n${resetUrl}\n\n` +
+      `The link lasts an hour. If you didn't ask for it, ignore this email — nothing changes.`,
+    html: renderEmail({
+      headline: 'A way back in.',
+      tagline: 'choose a new password',
+      paragraphs: [`You asked for a way back into <strong>AI&nbsp;Fashion</strong>. The link below lasts an hour.`, `If you didn't ask for it, ignore this email — nothing changes.`],
+      cta: { label: 'Choose a new password', url: resetUrl },
+      footnote: 'The link lasts an hour. If you didn’t ask for it, nothing changes.',
+    }),
+  });
+}
+
 export async function sendInviteEmail(to: string, inviteUrl: string): Promise<boolean> {
   if (!transport) {
     console.log(`[mailer] SMTP not configured — invite link for ${to}: ${inviteUrl}`);

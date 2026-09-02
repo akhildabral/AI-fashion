@@ -21,6 +21,9 @@ model User {
   // Invite-only onboarding: token emailed/copied by an admin.
   inviteToken        String?   @unique
   inviteTokenExpires DateTime?
+  // Forgotten password: a one-hour link by email.
+  resetToken         String?   @unique
+  resetTokenExpires  DateTime?
   // Public username for the community layer (lowercase, unique). Null until chosen.
   handle       String?       @unique
   // The door: every member holds a few invites. inviteCode is their standing

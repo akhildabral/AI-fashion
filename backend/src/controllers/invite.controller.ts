@@ -8,6 +8,7 @@ import { prisma } from '../lib/prisma';
 import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
+import { sendPasswordResetEmail } from '../lib/mailer';
 
 // Invite-only onboarding: nobody self-creates an account. Joining the
 // waitlist logs an email; an admin approval mints an invite link; the link
@@ -123,6 +124,53 @@ interface GoogleTokenInfo {
   sub?: string;
   given_name?: string;
   family_name?: string;
+}
+
+// ---- Forgotten password: a one-hour link, then straight back in -------------
+
+const RESET_TTL_MS = 60 * 60 * 1000;
+
+const forgotSchema = z.object({ email: z.string().email() });
+
+// POST /auth/forgot — always the same answer, whether or not the email is ours.
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = forgotSchema.parse(req.body);
+  const normalized = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email: normalized } });
+  if (user && user.status !== 'suspended' && (user.passwordHash || user.status === 'approved')) {
+    const resetToken = randomBytes(32).toString('hex');
+    await prisma.user.update({ where: { id: user.id }, data: { resetToken, resetTokenExpires: new Date(Date.now() + RESET_TTL_MS) } });
+    await sendPasswordResetEmail(normalized, `${publicOrigin(req)}/reset?token=${resetToken}`).catch((err) => console.error('reset mail failed:', err));
+  }
+  res.json({ message: 'If that address is one of ours, a link is on its way. It lasts an hour.' });
+}
+
+const resetSchema = z.object({
+  token: z.string().min(16).max(128),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+// POST /auth/reset — set the new password and sign in.
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = resetSchema.parse(req.body);
+  const user = await prisma.user.findUnique({ where: { resetToken: token } });
+  if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+    throw new HttpError(400, 'This link has expired — ask for a fresh one');
+  }
+  if (user.status === 'suspended') throw new HttpError(403, 'This account is suspended');
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await bcrypt.hash(password, 12), resetToken: null, resetTokenExpires: null, emailVerified: true },
+  });
+  if (updated.status !== 'approved') {
+    // Password changed, but the door is still closed for them.
+    res.json({ token: null, user: null, message: 'Your password is set. Your spot opens with your invite.' });
+    return;
+  }
+  res.json({
+    token: signToken(updated.id),
+    user: { id: updated.id, email: updated.email, role: updated.role, status: updated.status, firstName: updated.firstName },
+  });
 }
 
 // ---- The door: members invite their friends ------------------------------

@@ -4,6 +4,8 @@ import { login, me, register, resend, updateMe, verify } from '../controllers/au
 import {
   acceptInvite,
   authConfig,
+  forgotPassword,
+  resetPassword,
   googleAuth,
   inviteInfo,
   joinInfo,
@@ -36,5 +38,7 @@ authRouter.post('/waitlist', authLimiter, joinWaitlist);
 authRouter.get('/invite', authLimiter, inviteInfo);
 authRouter.post('/invite/accept', authLimiter, acceptInvite);
 // A friend's door: public, rate-limited like every other credential route.
+authRouter.post('/forgot', authLimiter, forgotPassword);
+authRouter.post('/reset', authLimiter, resetPassword);
 authRouter.get('/join/:code', authLimiter, joinInfo);
 authRouter.post('/join/:code', authLimiter, joinWithCode);

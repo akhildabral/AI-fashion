@@ -1,10 +1,12 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
+import { sessionExpiredPending } from '../lib/api'
 import type { ReactNode } from 'react'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from './Spinner'
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, initializing } = useAuth()
+  const location = useLocation()
 
   if (initializing) {
     return (
@@ -15,6 +17,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
+    if (sessionExpiredPending()) {
+      const from = encodeURIComponent(location.pathname + location.search)
+      return <Navigate to={`/login?reason=expired&from=${from}`} replace />
+    }
     return <Navigate to="/landing" replace />
   }
 

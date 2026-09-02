@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import type { User } from '../lib/types'
+import { isDark } from '../lib/theme'
 
 declare global {
   interface Window {
@@ -83,10 +84,11 @@ export function GoogleButton({
           },
         })
         window.google.accounts.id.renderButton(holder.current, {
-          theme: 'outline',
+          theme: isDark() ? 'filled_black' : 'outline',
           size: 'large',
-          shape: 'pill',
-          width: 320,
+          shape: 'rectangular',
+          text: 'continue_with',
+          width: Math.min(400, Math.max(200, holder.current.offsetWidth || 360)),
         })
       })
       .catch(() => onMessage('Could not load Google sign-in.'))
@@ -96,10 +98,5 @@ export function GoogleButton({
   }, [clientId, adoptSession, navigate, onMessage, joinCode, redirectTo])
 
   if (!clientId) return null
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div ref={holder} />
-      <p className="text-xs text-ink/40">or use your email below</p>
-    </div>
-  )
+  return <div ref={holder} className="flex w-full justify-center [&>div]:w-full" />
 }
