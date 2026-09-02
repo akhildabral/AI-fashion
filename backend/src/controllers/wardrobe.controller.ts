@@ -16,7 +16,7 @@ import {
   type DetectedGarment,
   type SuggestedOutfit,
 } from '../services/wardrobe.service';
-import { cleanGarmentImage, generativeCleanupAvailable } from '../services/cleanup.service';
+import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGarment } from '../services/cleanup.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
 import { planPacking } from '../services/packing.service';
 import {
@@ -77,19 +77,18 @@ async function catalogItem(
   let newImageUrl: string | null = null;
   let update: Prisma.WardrobeItemUncheckedUpdateInput = {};
 
-  if (env.MATTING_ENABLED) {
-    const cleaned = await cleanGarmentImage(image, mime, target);
-    if (cleaned) {
-      const stored = await saveImageBuffer(cleaned.png, 'png');
-      newImageUrl = stored.url;
-      update.imageUrl = stored.url;
-      if (cleaned.rgba) {
-        const palette = extractPalette(cleaned.rgba.data, cleaned.rgba.width, cleaned.rgba.height);
+  // 1. The photo's own cut-out: the ground truth for shape and colour, and
+  //    the cleanest thing to read tags from.
+  let local: CleanedGarment | null = null;
+  if (env.MATTING_ENABLED && !target) {
+    local = await matteGarment(image);
+    if (local) {
+      imageForTagging = local.png;
+      mimeForTagging = 'image/png';
+      if (local.rgba) {
+        const palette = extractPalette(local.rgba.data, local.rgba.width, local.rgba.height);
         if (palette.length > 0) update.colorPalette = palette as unknown as Prisma.InputJsonValue;
       }
-      // Tag from the cutout — no background clutter to confuse the model.
-      imageForTagging = cleaned.png;
-      mimeForTagging = 'image/png';
     }
   }
 
@@ -105,6 +104,23 @@ async function catalogItem(
 
   try {
     const tags = await tagGarment(imageForTagging, mimeForTagging);
+    // 2. The studio re-render, now that the piece's kind is known (shoes and
+    //    bags are shot from the side), checked against the photo's shape.
+    let display = local;
+    if (env.MATTING_ENABLED) {
+      const studio = await studioRender(image, mime, { target, category: tags.category, local });
+      if (studio) display = studio;
+      if (!display && target) display = await matteGarment(image);
+    }
+    if (display) {
+      const stored = await saveImageBuffer(display.png, 'png');
+      newImageUrl = stored.url;
+      update.imageUrl = stored.url;
+      if (!update.colorPalette && display.rgba) {
+        const palette = extractPalette(display.rgba.data, display.rgba.width, display.rgba.height);
+        if (palette.length > 0) update.colorPalette = palette as unknown as Prisma.InputJsonValue;
+      }
+    }
     const { attrConfidence, details, ...tagFields } = tags;
     // A fact you set stays yours: a re-read never overwrites full-confidence fields.
     const prior = (previous.attrConfidence as Record<string, number> | null) ?? {};

@@ -20,10 +20,7 @@ import { removeBackground } from './matting.service';
 // Every failure degrades one step: generative → local → original.
 
 const MAX_PLAUSIBLE_COVERAGE = 0.7;
-// A matte the model was this unsure about (relative to what it kept) is a
-// hazy one — a garment on a crumpled sheet, low contrast, a shadow read as
-// cloth. When a studio re-render is available it is worth the call.
-const MAX_CRISP_SOFTNESS = 0.22;
+
 
 // Proportion is the thing generative edits most often break — a full-length
 // trouser comes back folded and wide. This clause is repeated in both prompts.
@@ -42,6 +39,29 @@ const CLEAN_PROMPT =
   'background clutter. ' +
   KEEP_PROPORTIONS +
   ' Preserve its true colors, pattern, texture, logos, and stitching.';
+
+// Shoes and bags are not flat things: a catalogue shows them from the side.
+function promptFor(category?: string | null): string {
+  if (category === 'footwear') {
+    return (
+      'Isolate the footwear in this photo and show it as an e-commerce product ' +
+      'shot on a plain seamless white studio background: the pair together, seen ' +
+      'from the side in profile, toes pointing to the left, resting on the ground, ' +
+      'laces tidy. Remove all other objects, people, feet, furniture and background ' +
+      'clutter. Preserve the true colours, materials, logos and wear.'
+    );
+  }
+  if (category === 'accessory') {
+    return (
+      'Isolate the single accessory in this photo and show it as an e-commerce ' +
+      'product shot on a plain seamless white studio background, seen from the ' +
+      'front at its natural angle, complete and uncropped. Remove all other ' +
+      'objects, people, hands, furniture and background clutter. Preserve its true ' +
+      'colours, materials, hardware and logos.'
+    );
+  }
+  return CLEAN_PROMPT;
+}
 
 // Extraction prompt for photos containing several garments (or a person
 // wearing them): pulls out ONE named item, unworn, as a product shot.
@@ -74,14 +94,10 @@ function resolveMode(): 'generative' | 'local' | 'off' {
   return imagesEnabled() ? 'generative' : 'local';
 }
 
-async function localCutout(image: Buffer, opts: { crispOnly?: boolean } = {}): Promise<CleanedGarment | null> {
+async function localCutout(image: Buffer): Promise<CleanedGarment | null> {
   const matted = await removeBackground(image);
   if (!matted || matted.coverage > MAX_PLAUSIBLE_COVERAGE) return null;
-  if (opts.crispOnly && matted.softness > MAX_CRISP_SOFTNESS) {
-    console.info(`Local matte too hazy (softness ${matted.softness.toFixed(2)}) — trying the studio re-render`);
-    return null;
-  }
-  console.info(`Local matte kept (softness ${matted.softness.toFixed(2)}, coverage ${matted.coverage.toFixed(2)})`);
+  console.info(`Local matte (softness ${matted.softness.toFixed(2)}, coverage ${matted.coverage.toFixed(2)})`);
   return {
     png: matted.png,
     rgba: { data: matted.rgba, width: matted.width, height: matted.height },
@@ -89,6 +105,74 @@ async function localCutout(image: Buffer, opts: { crispOnly?: boolean } = {}): P
   };
 }
 
+// The garment's shape, from its tight-cropped cut-out: height ÷ width.
+async function shapeOf(png: Buffer): Promise<number | null> {
+  const m = await sharp(png).metadata();
+  return m.width && m.height ? m.height / m.width : null;
+}
+// The render's shape against the photo's cut-out (height ÷ width, as a
+// ratio). A garment photographed at an angle or bunched comes back taller
+// when set straight, which is right; a render that comes back squatter has
+// folded or cropped it, and one far taller has stretched it.
+const MIN_SHAPE_RATIO = 0.78;
+const MAX_SHAPE_RATIO = 1.7;
+
+/** The photo's own cut-out: pixel-preserving, free, the ground truth for shape and colour. */
+export async function matteGarment(image: Buffer): Promise<CleanedGarment | null> {
+  if (resolveMode() === 'off') return null;
+  return localCutout(image);
+}
+
+/**
+ * The studio re-render: the garment as a catalogue shot on white, matted to
+ * a cut-out. Checked against the photo's cut-out so a trouser never comes
+ * back folded or a dress cropped; the photo's pixels still give the palette.
+ * Returns null when the studio is unavailable, fails, or reshapes the piece.
+ */
+export async function studioRender(
+  image: Buffer,
+  mime: string,
+  opts: { target?: string; category?: string | null; local?: CleanedGarment | null } = {},
+): Promise<CleanedGarment | null> {
+  if (resolveMode() !== 'generative') return null;
+  const { target, category, local } = opts;
+  try {
+    const prompt = target ? targetedPrompt(target) : promptFor(category);
+    const cleaned = await editImage(prompt, [{ data: image, mime }]);
+    if (!cleaned) return null;
+    const studio = await sharp(cleaned)
+      .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    // Matte the studio shot to a transparent cut-out — a single garment on
+    // seamless white is the easiest matting case.
+    const matted = await removeBackground(studio);
+    const png = matted && matted.coverage <= MAX_PLAUSIBLE_COVERAGE ? matted.png : studio;
+    if (local) {
+      const [want, got] = await Promise.all([shapeOf(local.png), shapeOf(png)]);
+      // Shoes and bags are photographed from any angle; their render is judged loosely.
+      const loose = category === 'footwear' || category === 'accessory' || category === 'other';
+      const lo = loose ? 0.5 : MIN_SHAPE_RATIO;
+      const hi = loose ? 2.2 : MAX_SHAPE_RATIO;
+      if (want && got && (got / want < lo || got / want > hi)) {
+        console.info(`Studio re-render reshaped the ${category ?? 'garment'} (${want.toFixed(2)} → ${got.toFixed(2)}) — keeping the photo's cut-out`);
+        return null;
+      }
+    }
+    console.info(`Studio re-render kept${category ? ` (${category})` : ''}`);
+    return {
+      png,
+      // True colours come from the photo, not the render.
+      rgba: local?.rgba ?? (matted && matted.coverage <= MAX_PLAUSIBLE_COVERAGE ? { data: matted.rgba, width: matted.width, height: matted.height } : undefined),
+      method: 'generative',
+    };
+  } catch (err) {
+    console.error('Generative cleanup failed — keeping the local cut-out:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** Both steps at once, for callers that don't tag in between. */
 export async function cleanGarmentImage(
   image: Buffer,
   mime: string,
@@ -96,51 +180,9 @@ export async function cleanGarmentImage(
 ): Promise<CleanedGarment | null> {
   const mode = resolveMode();
   if (mode === 'off') return null;
-
-  // No target = a single-garment upload (the typical case: a photo of one
-  // item, flat or on a hanger). Matte it locally first — pixel-preserving, so
-  // it keeps the garment's TRUE proportions, and free. The plausibility gates
-  // in localCutout reject a matte that grabbed a whole scene/person, in which
-  // case we fall through to generative extraction. A target is only set when a
-  // specific item must be pulled from a multi-garment or on-body shot, where
-  // generative isolation is required (and may reshape — see KEEP_PROPORTIONS).
-  // A hazy matte is only good enough when nothing better is on offer.
-  if (!target) {
-    const local = await localCutout(image, { crispOnly: mode === 'generative' });
-    if (local) return local;
-  }
-
-  if (mode === 'generative') {
-    try {
-      const prompt = target ? targetedPrompt(target) : CLEAN_PROMPT;
-      const cleaned = await editImage(prompt, [{ data: image, mime }]);
-      if (cleaned) {
-        const studio = await sharp(cleaned)
-          .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
-          .png()
-          .toBuffer();
-        // Matte the clean studio shot to a transparent cutout — a single
-        // garment on seamless white is the easiest matting case. Reached only
-        // when the original was too cluttered to matte directly, or one item
-        // had to be isolated from a multi-garment photo.
-        const matted = await removeBackground(studio);
-        if (matted && matted.coverage <= MAX_PLAUSIBLE_COVERAGE) {
-          return {
-            png: matted.png,
-            rgba: { data: matted.rgba, width: matted.width, height: matted.height },
-            method: 'generative',
-          };
-        }
-        return { png: studio, method: 'generative' };
-      }
-    } catch (err) {
-      console.error(
-        'Generative cleanup failed — trying local matting:',
-        err instanceof Error ? err.message : err,
-      );
-    }
-  }
-
-  // local mode, or the generative path came up empty.
-  return localCutout(image);
+  const local = target ? null : await localCutout(image);
+  const studio = await studioRender(image, mime, { target, local });
+  if (studio) return studio;
+  // The studio came up empty: the photo's own cut-out, if there is one.
+  return local ?? (target ? localCutout(image) : null);
 }
