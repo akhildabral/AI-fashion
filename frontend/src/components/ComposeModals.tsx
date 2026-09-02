@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Arch, Modal } from './ui'
 import { Spinner } from './Spinner'
 import { resolveImageUrl } from '../lib/api'
-import { getMyRecentLooks, shareLook, unshareLook, type MyLook } from '../lib/circle'
+import { clearLookPhoto, getMyRecentLooks, setLookPhoto, setLookPhotoFromRender, shareLook, unshareLook, type MyLook } from '../lib/circle'
 import { getTryOns } from '../lib/tryon'
 import { getWardrobe } from '../lib/wardrobe'
 import { createPoll } from '../lib/polls'
@@ -25,29 +25,77 @@ function dayLabel(iso: string): string {
 
 export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onClose: () => void; onShared: () => void }) {
   const [looks, setLooks] = useState<MyLook[] | null>(null)
+  const [renders, setRenders] = useState<TryOn[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [pickingRender, setPickingRender] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const fileFor = useRef<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
     setLooks(null)
+    setError(null)
+    setPickingRender(null)
     void getMyRecentLooks().then((r) => setLooks(r.looks)).catch(() => setLooks([]))
+    void getTryOns().then((r) => setRenders(r.tryOns)).catch(() => setRenders([]))
   }, [open])
 
-  async function toggle(look: MyLook) {
-    setBusy(look.id)
+  const patch = (id: string, fn: (l: MyLook) => MyLook) => setLooks((ls) => (ls ? ls.map((l) => (l.id === id ? fn(l) : l)) : ls))
+
+  async function run(id: string, work: () => Promise<void>) {
+    setBusy(id)
+    setError(null)
     try {
-      if (look.shared) await unshareLook(look.id)
-      else await shareLook(look.id)
-      setLooks((ls) => (ls ? ls.map((l) => (l.id === look.id ? { ...l, shared: !l.shared } : l)) : ls))
-      onShared()
+      await work()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'That did not go through.')
     } finally {
       setBusy(null)
     }
   }
 
+  const toggleShare = (look: MyLook) =>
+    run(look.id, async () => {
+      if (look.shared) await unshareLook(look.id)
+      else await shareLook(look.id)
+      patch(look.id, (l) => ({ ...l, shared: !l.shared }))
+      onShared()
+    })
+
+  function pickFile(id: string) {
+    fileFor.current = id
+    fileRef.current?.click()
+  }
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const id = fileFor.current
+    e.target.value = ''
+    if (!file || !id) return
+    void run(id, async () => {
+      const { photoUrl } = await setLookPhoto(id, file)
+      patch(id, (l) => ({ ...l, photoUrl }))
+      onShared()
+    })
+  }
+  const useRender = (id: string, tryOnId: string) =>
+    run(id, async () => {
+      const { photoUrl } = await setLookPhotoFromRender(id, tryOnId)
+      patch(id, (l) => ({ ...l, photoUrl }))
+      setPickingRender(null)
+      onShared()
+    })
+  const removePhoto = (id: string) =>
+    run(id, async () => {
+      await clearLookPhoto(id)
+      patch(id, (l) => ({ ...l, photoUrl: null }))
+      onShared()
+    })
+
   return (
     <Modal open={open} onClose={onClose} title="Share a look">
-      <p className="text-sm text-ink/60">Your recent wears. Put one on the circle — friends can react, recreate it, and save it.</p>
+      <p className="text-sm text-ink/60">Your recent wears. Put one on the circle as the pieces, or add a photo of you in it.</p>
+      <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {looks === null && (
         <div className="py-10 text-center text-ink/40">
           <Spinner className="h-5 w-5" />
@@ -64,34 +112,67 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
       {looks && looks.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
           {looks.map((l) => (
-            <li key={l.id} className="flex items-center gap-3 border-t border-ink/10 pt-3 first:border-t-0 first:pt-0">
-              <div className="flex gap-1.5">
-                {l.items.slice(0, 3).map((it) => (
-                  <Arch key={it.id} aspect="aspect-[4/5]" className="w-11">
-                    <img src={resolveImageUrl(it.imageUrl)} alt={it.subtype ?? it.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+            <li key={l.id} className="border-t border-ink/10 pt-3 first:border-t-0 first:pt-0">
+              <div className="flex items-center gap-3">
+                {l.photoUrl ? (
+                  <Arch aspect="aspect-[3/4]" className="w-11 shrink-0">
+                    <img src={resolveImageUrl(l.photoUrl)} alt="You in the look" className="relative z-[1] h-full w-full object-cover" />
                   </Arch>
-                ))}
+                ) : (
+                  <div className="flex gap-1.5">
+                    {l.items.slice(0, 3).map((it) => (
+                      <Arch key={it.id} aspect="aspect-[4/5]" className="w-11">
+                        <img src={resolveImageUrl(it.imageUrl)} alt={it.subtype ?? it.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                      </Arch>
+                    ))}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink">{dayLabel(l.wornOn)}</p>
+                  <p className="text-xs text-ink/50">
+                    {l.items.length} piece{l.items.length === 1 ? '' : 's'}
+                    {l.eventType ? ` · ${l.eventType}` : ''}
+                    {l.shared ? ' · on the circle' : ''}
+                    {l.photoUrl ? ' · with photo' : ''}
+                  </p>
+                </div>
+                <button type="button" disabled={busy === l.id} onClick={() => void toggleShare(l)} className={l.shared ? 'btn-ghost !px-3 !py-2 !text-xs' : 'btn-primary !px-3 !py-2 !text-xs'}>
+                  {busy === l.id ? '…' : l.shared ? 'Take down' : 'Share'}
+                </button>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink">{dayLabel(l.wornOn)}</p>
-                <p className="text-xs text-ink/50">
-                  {l.items.length} piece{l.items.length === 1 ? '' : 's'}
-                  {l.eventType ? ` · ${l.eventType}` : ''}
-                  {l.shared ? ' · on the circle' : ''}
-                </p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-[11px] font-semibold text-brass">
+                {l.photoUrl ? (
+                  <>
+                    <button type="button" onClick={() => pickFile(l.id)} className="press hover:underline">Change photo</button>
+                    <button type="button" onClick={() => void removePhoto(l.id)} className="press text-ink/45 hover:underline">Remove photo</button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => pickFile(l.id)} className="press hover:underline">Add a photo</button>
+                    {renders && renders.length > 0 && (
+                      <button type="button" onClick={() => setPickingRender(pickingRender === l.id ? null : l.id)} className="press hover:underline">
+                        {pickingRender === l.id ? 'Cancel' : 'Use a Mirror render'}
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
-              <button
-                type="button"
-                disabled={busy === l.id}
-                onClick={() => void toggle(l)}
-                className={l.shared ? 'btn-ghost !px-3 !py-2 !text-xs' : 'btn-primary !px-3 !py-2 !text-xs'}
-              >
-                {busy === l.id ? '…' : l.shared ? 'Take down' : 'Share'}
-              </button>
+              {pickingRender === l.id && renders && (
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                  {renders.slice(0, 12).map((r) => (
+                    <button key={r.id} type="button" onClick={() => void useRender(l.id, r.id)} className="press w-14 shrink-0" aria-label="Use this render">
+                      <Arch aspect="aspect-[3/4]" className="w-14">
+                        <img src={resolveImageUrl(r.imageUrl)} alt="" className="relative z-[1] h-full w-full object-cover" />
+                      </Arch>
+                    </button>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {error && <p className="mt-3 alert-error">{error}</p>}
     </Modal>
   )
 }

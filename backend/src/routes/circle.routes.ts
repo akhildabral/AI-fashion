@@ -4,6 +4,9 @@ import {
   circleExplore,
   circleFeed,
   circleSaved,
+  clearLookPhoto,
+  setLookPhoto,
+  setLookPhotoFromRender,
   circleToday,
   deleteComment,
   listComments,
@@ -19,6 +22,7 @@ import {
   unshareLook,
 } from '../controllers/circle.controller';
 import { requireAuth } from '../middleware/auth';
+import { handlePhotoUpload } from '../middleware/upload';
 
 export const circleRouter = Router();
 
@@ -33,6 +37,9 @@ circleRouter.delete('/looks/:id/react', requireAuth, unreactToLook);
 circleRouter.post('/looks/:id/save', requireAuth, saveLook);
 circleRouter.delete('/looks/:id/save', requireAuth, unsaveLook);
 circleRouter.post('/looks/:id/share', requireAuth, shareLook);
+circleRouter.post('/looks/:id/photo', requireAuth, handlePhotoUpload, setLookPhoto);
+circleRouter.post('/looks/:id/photo-from-render', requireAuth, setLookPhotoFromRender);
+circleRouter.delete('/looks/:id/photo', requireAuth, clearLookPhoto);
 circleRouter.delete('/looks/:id/share', requireAuth, unshareLook);
 
 circleRouter.get('/comments', requireAuth, listComments);

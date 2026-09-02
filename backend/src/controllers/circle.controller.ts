@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { mentionedHandles, notify } from '../lib/notify';
+import { saveImageBuffer } from '../lib/storage';
+import { extForMime } from '../middleware/upload';
 import {
   REACTION_KINDS,
   affinityFor,
@@ -382,6 +384,7 @@ export async function myRecentLooks(req: Request, res: Response) {
       wornOn: l.wornOn.toISOString(),
       eventType: l.eventType,
       shared: Boolean(l.sharedAt),
+      photoUrl: l.photoUrl,
       items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),
     })),
   });
@@ -402,4 +405,42 @@ export async function unshareLook(req: Request, res: Response) {
   const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { sharedAt: null, featuredAt: null } });
   if (r.count === 0) throw new HttpError(404, 'Wear not found');
   res.json({ shared: false });
+}
+
+// ---- The OOTD photo ---------------------------------------------------------
+
+// POST /looks/:id/photo (multipart "photo") — a photo of you in the look.
+export async function setLookPhoto(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  if (!req.file) throw new HttpError(400, 'Attach a photo');
+  const id = String(req.params.id);
+  const log = await prisma.wearLog.findFirst({ where: { id, userId: req.user.id }, select: { id: true } });
+  if (!log) throw new HttpError(404, 'Wear not found');
+  const stored = await saveImageBuffer(req.file.buffer, extForMime(req.file.mimetype));
+  await prisma.wearLog.update({ where: { id }, data: { photoUrl: stored.url } });
+  res.json({ photoUrl: stored.url });
+}
+
+// POST /looks/:id/photo-from-render { tryOnId } — use a Mirror render as the photo.
+const fromRenderSchema = z.object({ tryOnId: z.string().uuid() });
+export async function setLookPhotoFromRender(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { tryOnId } = fromRenderSchema.parse(req.body);
+  const [log, render] = await Promise.all([
+    prisma.wearLog.findFirst({ where: { id, userId: req.user.id }, select: { id: true } }),
+    prisma.tryOn.findFirst({ where: { id: tryOnId, userId: req.user.id }, select: { imageUrl: true } }),
+  ]);
+  if (!log) throw new HttpError(404, 'Wear not found');
+  if (!render) throw new HttpError(404, 'Render not found');
+  await prisma.wearLog.update({ where: { id }, data: { photoUrl: render.imageUrl } });
+  res.json({ photoUrl: render.imageUrl });
+}
+
+export async function clearLookPhoto(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { photoUrl: null } });
+  if (r.count === 0) throw new HttpError(404, 'Wear not found');
+  res.json({ photoUrl: null });
 }

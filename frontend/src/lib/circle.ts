@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch, apiUpload } from './api'
 
 // The Circle: one ranked feed of posts from the people you follow, the
 // reactions on them, and the things that happened to you (behind the bell).
@@ -35,6 +35,7 @@ export interface LookPost {
   saved: boolean
   saves: number
   recreates: number
+  photoUrl: string | null
 }
 
 export interface VerdictPost {
@@ -179,6 +180,7 @@ export interface MyLook {
   wornOn: string
   eventType: string | null
   shared: boolean
+  photoUrl: string | null
   items: PostItem[]
 }
 export function getMyRecentLooks() {
@@ -189,4 +191,18 @@ export function shareLook(wearLogId: string) {
 }
 export function unshareLook(wearLogId: string) {
   return apiFetch<{ shared: boolean }>(`/looks/${wearLogId}/share`, { method: 'DELETE' })
+}
+
+/* ---------- the OOTD photo ---------- */
+
+export function setLookPhoto(wearLogId: string, file: File) {
+  const fd = new FormData()
+  fd.append('photo', file)
+  return apiUpload<{ photoUrl: string }>(`/looks/${wearLogId}/photo`, fd)
+}
+export function setLookPhotoFromRender(wearLogId: string, tryOnId: string) {
+  return apiFetch<{ photoUrl: string }>(`/looks/${wearLogId}/photo-from-render`, { method: 'POST', body: { tryOnId } })
+}
+export function clearLookPhoto(wearLogId: string) {
+  return apiFetch<{ photoUrl: null }>(`/looks/${wearLogId}/photo`, { method: 'DELETE' })
 }

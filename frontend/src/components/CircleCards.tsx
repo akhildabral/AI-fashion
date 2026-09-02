@@ -7,6 +7,7 @@ import { Initials } from './PeopleDrawer'
 import { dismissPick } from '../lib/social'
 import { logWear } from '../lib/wearlog'
 import { copyText } from '../lib/clipboard'
+import { composeLook, dressingOrder } from '../lib/flatlay'
 import {
   addComment,
   deleteComment,
@@ -68,25 +69,114 @@ export function GarmentThumb({ item, className = 'w-14' }: { item: PostItem; cla
   )
 }
 
-/** The look, spotlit: up to four garments side by side in one wide vitrine. */
-export function LookHero({ items }: { items: PostItem[] }) {
-  const shown = items.slice(0, 4)
-  if (shown.length === 0) return null
+/**
+ * The look, hung three ways. With a photo: the person in the arch, the
+ * pieces as a strip beneath. Without: the flat-lay, pieces placed by role
+ * the way they'd sit on a table. Expanded: the recipe, a labelled strip in
+ * dressing order beside the flat-lay.
+ */
+export function LookHero({
+  items,
+  photoUrl,
+  expanded = false,
+  onToggle,
+}: {
+  items: PostItem[]
+  photoUrl?: string | null
+  expanded?: boolean
+  onToggle?: () => void
+}) {
+  if (items.length === 0 && !photoUrl) return null
+  const strip = dressingOrder(items)
+
+  if (photoUrl) {
+    return (
+      <div className="mx-4 mt-3">
+        <button type="button" onClick={onToggle} className="press block w-full text-left" aria-label={expanded ? 'Show the photo' : 'Show the pieces'}>
+          <Arch aspect="aspect-[3/4]" className="w-full">
+            <img src={resolveImageUrl(photoUrl)} alt="Wearing the look" loading="lazy" className="relative z-[1] h-full w-full object-cover" />
+          </Arch>
+        </button>
+        {strip.length > 0 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none]">
+            {strip.map((it) => (
+              <div key={it.id} className="w-12 shrink-0 text-center">
+                <GarmentThumb item={it} className="w-12" />
+                {expanded && <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/50">{it.subtype ?? it.category}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const lay = (
+    <Arch aspect="aspect-[4/3]" className="w-full">
+      <FlatLay items={items} />
+    </Arch>
+  )
+
+  if (expanded) {
+    return (
+      <div className="mx-4 mt-3">
+        <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 sm:grid-cols-[76px_minmax(0,1fr)]">
+          <ol className="flex flex-col gap-1.5" aria-label="The pieces, in dressing order">
+            {strip.map((it, i) => (
+              <li key={it.id} className="text-center">
+                <GarmentThumb item={it} className="w-full" />
+                <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{it.subtype ?? it.category}</p>
+                {i < strip.length - 1 && <p className="leading-none text-brass-lo" aria-hidden>↓</p>}
+              </li>
+            ))}
+          </ol>
+          <button type="button" onClick={onToggle} className="press block self-start text-left" aria-label="Collapse the recipe">
+            {lay}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-4 mt-3">
-      <Arch aspect="aspect-[4/3]" className="w-full">
-        <div className="relative z-[1] flex h-full w-full items-center justify-center gap-[3%] px-[6%] py-[9%]">
-          {shown.map((it) => (
+      <button type="button" onClick={onToggle} className="press block w-full text-left" aria-label="Show the recipe">
+        {lay}
+      </button>
+      <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 px-0.5">
+        {strip.slice(0, 6).map((it) => (
+          <span key={it.id} className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/50">
+            {it.subtype ?? it.category}
+          </span>
+        ))}
+      </p>
+    </div>
+  )
+}
+
+/** Pieces placed by role inside a 4:3 vitrine, with warm contact shadows. */
+export function FlatLay({ items }: { items: PostItem[] }) {
+  const placed = composeLook(items)
+  return (
+    <div className="relative z-[1] h-full w-full">
+      {placed.map((p) => {
+        const it = items[p.index]
+        return (
+          <div
+            key={it.id}
+            className="absolute"
+            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.w}%`, height: `${p.h}%`, zIndex: p.z, transform: `rotate(${p.rot}deg)` }}
+          >
             <img
-              key={it.id}
               src={resolveImageUrl(it.imageUrl)}
               alt={it.subtype ?? it.category}
               loading="lazy"
-              className="h-full min-w-0 flex-1 object-contain"
+              className="h-full w-full object-contain object-top"
+              style={{ filter: 'drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14))' }}
             />
-          ))}
-        </div>
-      </Arch>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -332,6 +422,7 @@ export function LookCard({
   onCommentCount: (id: string, n: number) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const line = reactionLine(post)
   return (
     <article className={`card overflow-hidden ${post.featured ? '!border-brass/45' : ''}`}>
@@ -344,7 +435,7 @@ export function LookCard({
         }
         plate={post.featured ? <Plate>Featured</Plate> : undefined}
       />
-      <LookHero items={post.items} />
+      <LookHero items={post.items} photoUrl={post.photoUrl} expanded={expanded} onToggle={() => setExpanded((v) => !v)} />
       {line && <p className="px-4 pt-3 text-xs text-ink/50">{line}</p>}
       <div className="mt-3 flex flex-wrap items-center gap-0.5 border-t border-ink/10 px-3 py-2.5">
         {!post.isMine && (

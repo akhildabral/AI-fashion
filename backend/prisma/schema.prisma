@@ -182,6 +182,8 @@ model WearLog {
   featuredAt DateTime?
   // How many people have recreated this look from their own closet.
   recreatedCount Int @default(0)
+  // Optional OOTD photo (uploaded, or a Mirror render) shown as the hero.
+  photoUrl  String?
   reactions LookReaction[]
   savedBy   SavedLook[]
 }

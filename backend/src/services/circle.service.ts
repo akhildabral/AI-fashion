@@ -30,6 +30,7 @@ export interface LookPost {
   saved: boolean;
   saves: number;
   recreates: number;
+  photoUrl: string | null;
 }
 
 export interface VerdictPost {
@@ -106,6 +107,7 @@ type LogRow = {
   featuredAt: Date | null;
   eventType: string | null;
   recreatedCount: number;
+  photoUrl: string | null;
   user: { handle: string | null };
 };
 
@@ -164,6 +166,7 @@ export async function serializeLooks(
       saved: savedSet.has(l.id),
       saves: savesBy.get(l.id) ?? 0,
       recreates: l.recreatedCount,
+      photoUrl: l.photoUrl,
     };
   });
 }

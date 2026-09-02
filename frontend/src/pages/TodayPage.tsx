@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
+import { setLookPhoto } from '../lib/circle'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { useProfile } from '../context/useProfile'
@@ -443,34 +444,16 @@ export function TodayPage() {
           </div>
 
           {sharePrompt === 'offer' && (
-            <div className="mt-5 flex max-w-md animate-rise items-center justify-between gap-3 rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-3">
-              <p className="text-sm text-ink/80">Share today&rsquo;s outfit to your circle?</p>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  className="btn-primary !px-4 !py-2 !text-xs"
-                  onClick={() => {
-                    void shareBrief()
-                      .then(() => {
-                        setSharePrompt('shared')
-                        flash("Shared — your circle can see today's outfit.")
-                      })
-                      .catch(() => flash('Could not share right now.'))
-                  }}
-                >
-                  Share
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !px-3 !py-2 !text-xs"
-                  onClick={() => setSharePrompt('hidden')}
-                >
-                  Not now
-                </button>
-              </div>
-            </div>
+            <ShareSheet
+              onDone={(msg) => {
+                setSharePrompt('shared')
+                flash(msg)
+              }}
+              onDismiss={() => setSharePrompt('hidden')}
+              onError={(msg) => flash(msg)}
+              onMirror={(wearLogId) => navigate(`/mirror?items=${brief.itemIds.join(',')}&share=${wearLogId}`)}
+            />
           )}
-
           </div>
 
           {/* Right rail on desktop: the payoff and the dial, beside the look */}
@@ -666,5 +649,93 @@ export function TodayPage() {
         )}
       </Modal>
     </PageShell>
+  )
+}
+
+
+/**
+ * The moment after "Wearing it": one decision, three doors. Share the
+ * pieces (instant), add a photo of you in it, or have the Mirror render it
+ * on you first. Each path shares the same wear; only the hero differs.
+ */
+function ShareSheet({
+  onDone,
+  onDismiss,
+  onError,
+  onMirror,
+}: {
+  onDone: (msg: string) => void
+  onDismiss: () => void
+  onError: (msg: string) => void
+  onMirror: (wearLogId: string) => void
+}) {
+  const [busy, setBusy] = useState<'pieces' | 'photo' | 'mirror' | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function share(): Promise<string | undefined> {
+    const r = await shareBrief()
+    return r.wearLogId
+  }
+
+  async function sharePieces() {
+    setBusy('pieces')
+    try {
+      await share()
+      onDone("Shared — your circle can see today's look.")
+    } catch {
+      onError('Could not share right now.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy('photo')
+    try {
+      const id = await share()
+      if (id) await setLookPhoto(id, file)
+      onDone('Shared with your photo.')
+    } catch {
+      onError('Could not share the photo right now.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function viaMirror() {
+    setBusy('mirror')
+    try {
+      const id = await share()
+      if (!id) throw new Error('no wear')
+      onMirror(id)
+    } catch {
+      onError('Could not start the Mirror right now.')
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="mt-5 max-w-xl animate-rise rounded-[3px] border border-brass/30 bg-iris-soft p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Share today’s look?</p>
+      <p className="mt-1 text-sm text-ink/70">Your circle sees the pieces. Add yourself to it if you like.</p>
+      <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={(e) => void onFile(e)} className="hidden" />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button type="button" disabled={busy !== null} onClick={() => void sharePieces()} className="btn-primary !px-4 !py-2 !text-xs">
+          {busy === 'pieces' ? 'Sharing…' : 'Share the pieces'}
+        </button>
+        <button type="button" disabled={busy !== null} onClick={() => fileRef.current?.click()} className="btn-ghost !px-4 !py-2 !text-xs">
+          {busy === 'photo' ? 'Uploading…' : 'With a photo of me'}
+        </button>
+        <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-ghost !px-4 !py-2 !text-xs">
+          {busy === 'mirror' ? 'Opening the Mirror…' : 'Render it on me first'}
+        </button>
+        <button type="button" onClick={onDismiss} className="press ml-auto text-xs text-ink/45 hover:text-ink/70">
+          Not now
+        </button>
+      </div>
+    </div>
   )
 }

@@ -88,7 +88,7 @@ export function getFeed() {
 }
 
 export function shareBrief() {
-  return apiFetch<{ shared: boolean }>('/brief/share', {
+  return apiFetch<{ shared: boolean; wearLogId?: string }>('/brief/share', {
     method: 'POST',
     body: { date: todayKey() },
   })

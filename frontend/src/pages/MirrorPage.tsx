@@ -3,6 +3,7 @@ import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { deleteTryOn, getTryOns, getPhoto, uploadPhoto } from '../lib/tryon'
+import { setLookPhotoFromRender } from '../lib/circle'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { TryOn, TryOnResponse } from '../lib/types'
 import { Spinner } from '../components/Spinner'
@@ -35,7 +36,10 @@ export function MirrorPage() {
   const { toast, flash } = useFlash()
 
   const [tryOns, setTryOns] = useState<TryOn[] | null>(null)
-  const [stage, setStage] = useState<{ imageUrl: string; caption: string; fresh?: boolean } | null>(null)
+  const [stage, setStage] = useState<{ imageUrl: string; caption: string; fresh?: boolean; tryOnId?: string } | null>(null)
+  // Arrived from Today's "Render it on me first": the wear waiting for this render.
+  const [shareFor, setShareFor] = useState<string | null>(null)
+  const [attaching, setAttaching] = useState(false)
   const [rendering, setRendering] = useState(false)
   const [dressLine, setDressLine] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -94,7 +98,7 @@ export function MirrorPage() {
       tryOnWardrobeOutfit(ids)
         .then(({ tryOn }: TryOnResponse) => {
           setTryOns((prev) => [tryOn, ...(prev ?? [])])
-          setStage({ imageUrl: tryOn.imageUrl, caption: 'Fresh from the stylist', fresh: true })
+          setStage({ imageUrl: tryOn.imageUrl, caption: 'Fresh from the stylist', fresh: true, tryOnId: tryOn.id })
         })
         .catch((err: unknown) => {
           const msg = err instanceof Error ? err.message : 'The render failed — try again.'
@@ -117,6 +121,8 @@ export function MirrorPage() {
     if (!itemsParam || renderedFor.current === itemsParam || !photoChecked) return
     renderedFor.current = itemsParam
     const ids = itemsParam.split(',').filter(Boolean)
+    const share = params.get('share')
+    if (share) setShareFor(share)
     setParams({}, { replace: true })
     if (ids.length === 0) return
     if (!photoUrl) {
@@ -327,6 +333,31 @@ export function MirrorPage() {
 
           {stage && !rendering && photoUrl && (
             <p className="mt-3 text-center font-display text-sm italic text-ink/55">{stage.caption}</p>
+          )}
+          {shareFor && stage?.fresh && stage.tryOnId && !rendering && (
+            <div className="mt-4 flex animate-rise items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={attaching}
+                onClick={() => {
+                  setAttaching(true)
+                  void setLookPhotoFromRender(shareFor, stage.tryOnId!)
+                    .then(() => {
+                      setShareFor(null)
+                      flash('Shared to your circle, with you in it.')
+                      navigate('/circle')
+                    })
+                    .catch(() => flash('Could not attach the render.'))
+                    .finally(() => setAttaching(false))
+                }}
+                className="btn-primary !px-5 !py-2.5 !text-sm"
+              >
+                {attaching ? 'Sharing…' : 'Share this to your circle'}
+              </button>
+              <button type="button" onClick={() => setShareFor(null)} className="btn-ghost !px-4 !py-2.5 !text-sm">
+                Keep the pieces only
+              </button>
+            </div>
           )}
         </div>
       </div>

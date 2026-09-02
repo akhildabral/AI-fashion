@@ -306,5 +306,5 @@ export async function shareBriefWear(req: Request, res: Response) {
     where: { id: brief.wornLogId },
     data: { sharedAt: new Date() },
   });
-  res.json({ shared: true, sharedAt: log.sharedAt });
+  res.json({ shared: true, sharedAt: log.sharedAt, wearLogId: log.id });
 }

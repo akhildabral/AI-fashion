@@ -1,0 +1,1 @@
+ALTER TABLE "WearLog" ADD COLUMN "photoUrl" TEXT;

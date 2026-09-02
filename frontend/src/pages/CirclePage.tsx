@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { apiFetch } from '../lib/api'
+import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import { Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { Arch, Modal, PageShell, Toast, useFlash } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
@@ -257,8 +257,8 @@ export function CirclePage() {
           <section aria-label="Today in your circle" className="animate-rise-1">
             <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
               <button type="button" onClick={() => setSharing(true)} className="press w-16 shrink-0 text-center">
-                {mineToday && mineToday.items[0] ? (
-                  <GarmentThumb item={mineToday.items[0]} className="w-16" />
+                {mineToday && (mineToday.photoUrl || mineToday.items[0]) ? (
+                  <RailThumb look={mineToday} />
                 ) : (
                   <div className="arch-bezel aspect-[4/5] w-16 opacity-50">
                     <div className="arch-niche flex h-full w-full items-center justify-center">
@@ -271,9 +271,9 @@ export function CirclePage() {
                 <p className="mt-1.5 truncate text-[11px] text-ink/55">{mineToday ? 'Your look' : 'Share yours'}</p>
               </button>
               {othersToday.map((t) =>
-                t.items[0] ? (
+                t.photoUrl || t.items[0] ? (
                   <Link key={t.id} to={`/u/${t.handle}`} className="press w-16 shrink-0 text-center">
-                    <GarmentThumb item={t.items[0]} className="w-16" />
+                    <RailThumb look={t} />
                     <p className="mt-1.5 truncate text-[11px] text-ink/55">@{t.handle}</p>
                   </Link>
                 ) : null,
@@ -581,6 +581,18 @@ function SuggestedRail({
       </div>
     </section>
   )
+}
+
+/** A rail thumb: the person when there's a photo, else the lead piece. */
+function RailThumb({ look }: { look: LookPost }) {
+  if (look.photoUrl) {
+    return (
+      <Arch aspect="aspect-[4/5]" className="w-16">
+        <img src={resolveImageUrl(look.photoUrl)} alt="" className="relative z-[1] h-full w-full object-cover" />
+      </Arch>
+    )
+  }
+  return <GarmentThumb item={look.items[0]} className="w-16" />
 }
 
 function Stat({ v, l }: { v: number; l: string }) {

@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
 import { prisma } from '../lib/prisma';
+import { composeLook, dressingOrder } from '../lib/flatlay';
 
 // A shared look's public page — the card a link unfurls into when someone
 // posts it to a group chat. No account needed; the only ask is to come
@@ -39,25 +40,36 @@ lookPageRouter.get('/look/:id', async (req, res) => {
   const ordered = log.itemIds.map((i) => items.find((x) => x.id === i)).filter((x): x is (typeof items)[number] => Boolean(x));
   const who = log.user.handle ? `@${esc(log.user.handle)}` : 'Someone';
   const title = `${who} wore this${log.eventType ? ` — ${esc(log.eventType)}` : ''}`;
-  const arches = ordered
-    .slice(0, 4)
+  const strip = dressingOrder(ordered);
+
+  // The hero: their photo when there is one, otherwise the flat-lay; the
+  // recipe strip (pieces in dressing order) sits beside either.
+  const hero = log.photoUrl
+    ? `<div class="bezel tall"><div class="niche"><img class="photo" src="${esc(absoluteImage(base, log.photoUrl))}" alt="${who} wearing the look" /></div></div>`
+    : `<div class="bezel"><div class="niche lay">${composeLook(ordered)
+        .map((p) => {
+          const it = ordered[p.index];
+          return `<div class="piece" style="left:${p.left}%;top:${p.top}%;width:${p.w}%;height:${p.h}%;z-index:${p.z};transform:rotate(${p.rot}deg)"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div>`;
+        })
+        .join('')}</div></div>`;
+  const recipe = strip
     .map(
-      (it) =>
-        `<div class="bezel"><div class="niche"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="${esc(it.subtype ?? it.category)}" /></div><p class="lbl">${esc(it.subtype ?? it.category)}</p></div>`,
+      (it, i) =>
+        `<li><div class="mini"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="" /></div><p class="lbl">${esc(it.subtype ?? it.category)}</p>${i < strip.length - 1 ? '<p class="down">↓</p>' : ''}</li>`,
     )
     .join('');
   res.type('html').send(
     page({
       title,
       base,
-      ogImage: ordered[0] ? absoluteImage(base, ordered[0].imageUrl) : undefined,
+      ogImage: log.photoUrl ? absoluteImage(base, log.photoUrl) : ordered[0] ? absoluteImage(base, ordered[0].imageUrl) : undefined,
       body: `
   <h1>${who} <em>wore this.</em></h1>
   <p class="sub">${ordered.length} piece${ordered.length === 1 ? '' : 's'} · from a closet they already own</p>
-  <div class="row">${arches}</div>
+  <div class="look">${strip.length > 0 ? `<ol class="recipe">${recipe}</ol>` : ''}${hero}</div>
   <div class="state">
     <div class="big">Could you wear it <em>from your closet?</em></div>
-    <small>A personal stylist that knows what you own — and your friends' looks.</small>
+    <small>A personal stylist that knows what you own, and your friends' looks.</small>
     <a href="${base}">Recreate it from yours</a>
   </div>`,
     }),
@@ -90,11 +102,19 @@ ${o.ogImage ? `<meta property="og:image" content="${esc(o.ogImage)}" />\n<meta n
   h1 { font-family: 'Bodoni Moda', Georgia, serif; font-size: clamp(28px, 6vw, 40px); font-weight: 500; text-align: center; max-width: 20ch; text-wrap: balance; line-height: 1.08; margin-top: 30px; }
   h1 em, .big em { font-style: italic; color: var(--brass); }
   p.sub { margin-top: 10px; color: var(--soft); font-size: 13px; letter-spacing: .04em; text-align: center; }
-  .row { margin-top: 32px; display: flex; gap: 12px; width: 100%; max-width: 640px; justify-content: center; flex-wrap: wrap; }
-  .bezel { width: calc(25% - 9px); min-width: 120px; }
-  .niche { border-radius: 46% 46% 5px 5px / 28% 28% 5px 5px; padding: 2px; background: linear-gradient(160deg, var(--brass-hi), var(--brass-lo) 62%, var(--brass-lo)); }
-  .niche img { display: block; width: 100%; aspect-ratio: 5/6; object-fit: contain; padding: 7%; border-radius: 46% 46% 4px 4px / 28% 28% 4px 4px; background: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%); }
-  .lbl { margin-top: 8px; text-align: center; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); }
+  .look { margin-top: 32px; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px; width: 100%; max-width: 640px; align-items: start; }
+  .recipe { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .mini { padding: 2px; border-radius: 44% 44% 4px 4px / 26% 26% 4px 4px; background: linear-gradient(160deg, var(--brass-hi), var(--brass-lo)); }
+  .mini img { display: block; width: 100%; aspect-ratio: 4/5; object-fit: contain; padding: 10%; border-radius: 44% 44% 3px 3px / 26% 26% 3px 3px; background: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%); }
+  .lbl { margin-top: 4px; text-align: center; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); }
+  .down { text-align: center; color: var(--brass-lo); font-size: 11px; line-height: 1; margin-top: 2px; }
+  .bezel { padding: 3px; border-radius: 24% 24% 6px 6px / 9% 9% 6px 6px; background: linear-gradient(160deg, var(--brass-hi), var(--brass) 45%, var(--brass-lo) 84%); }
+  .niche { position: relative; overflow: hidden; border-radius: 24% 24% 5px 5px / 9% 9% 5px 5px; background: radial-gradient(80% 76% at 50% 30%, #fdfbf6, #efe7d7 96%); aspect-ratio: 4/3; box-shadow: inset 0 3px 12px rgba(40,25,8,.14), inset 0 -20px 30px -12px rgba(40,25,8,.08); }
+  .bezel.tall .niche { aspect-ratio: 3/4; }
+  .niche .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .piece { position: absolute; }
+  .piece img { width: 100%; height: 100%; object-fit: contain; object-position: top; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
+  @media (max-width: 480px) { .look { grid-template-columns: 1fr; } .recipe { flex-direction: row; flex-wrap: wrap; } .recipe li { width: 56px; } .down { display: none; } }
   .state { margin-top: 44px; text-align: center; }
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; max-width: 22ch; text-wrap: balance; line-height: 1.15; }
   .state small { display: block; margin-top: 10px; color: var(--soft); font-size: 14px; }
