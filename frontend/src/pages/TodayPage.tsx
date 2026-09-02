@@ -500,7 +500,7 @@ export function TodayPage() {
           </div>
 
           {/* The outfit — arched apertures, with a one-time light-catch sweep */}
-          <div key={brief.itemIds.join('-')} className="relative mt-8">
+          <div key={brief.itemIds.join('-')} className="relative mt-8 overflow-hidden">
             <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
               {brief.items.map((item) => (
                 <GarmentTile
@@ -578,15 +578,14 @@ export function TodayPage() {
           {/* The kind of day, in one line; the chips only when asked for */}
           {!worn && (
             <div className="mt-6 border-t border-ink/10 pt-5">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="text-sm text-ink/60">
-                  Composed for <b className="font-semibold text-ink">{brief.occasion ? brief.occasion.toLowerCase() : `a ${EVENT_WORD[brief.eventType] ?? brief.eventType} day`}</b>
-                  {brief.weather ? `, ${Math.round(brief.weather.temperatureC)}° and ${brief.weather.description}` : ''}, from what’s clean in your closet.
-                </p>
-                <button type="button" onClick={() => setDayOpen((v) => !v)} className="btn-quiet !h-8 !text-xs">
+              {/* One sentence, with the question as part of it — never a button orphaned on its own line. */}
+              <p className="text-sm text-ink/60">
+                Composed for <b className="font-semibold text-ink">{brief.occasion ? brief.occasion.toLowerCase() : `a ${EVENT_WORD[brief.eventType] ?? brief.eventType} day`}</b>
+                {brief.weather ? `, ${Math.round(brief.weather.temperatureC)}° and ${brief.weather.description}` : ''}, from what’s clean in your closet.{' '}
+                <button type="button" onClick={() => setDayOpen((v) => !v)} className="press font-semibold text-brass underline-offset-4 hover:underline">
                   {dayOpen ? 'Keep it' : 'Not that kind of day?'}
                 </button>
-              </div>
+              </p>
               {dayOpen && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {(

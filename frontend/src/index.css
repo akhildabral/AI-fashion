@@ -307,9 +307,12 @@
 }
 
 /* The signature: a brass sheen sweeping across an arch on reveal. */
+/* It must end invisible: with fill-mode both, the last frame stays on screen,
+   and a sheen parked at +130% is a stray glare beside the page. */
 @keyframes arch-sweep {
-  0% { transform: translateX(-130%); }
-  100% { transform: translateX(130%); }
+  0% { transform: translateX(-130%); opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(130%); opacity: 0; }
 }
 .animate-arch-sweep {
   animation: arch-sweep 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;

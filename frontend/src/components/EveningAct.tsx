@@ -40,23 +40,31 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
   }
 
   if (compact && !ev) {
-    // Before six: one line, one door.
+    // Before six: a label on its own row, then the field and the button
+    // sharing one, the field taking whatever width is left.
     return (
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-5">
-        <p className="text-sm text-ink/55">
-          <span className="font-semibold uppercase tracking-[0.14em] text-ink/45">Act two</span> · Something on tonight?
-        </p>
-        <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm !w-56" placeholder="dinner, a show, drinks…" />
-        <button type="button" disabled={busy !== null} onClick={() => void compose()} className="btn-ghost btn-sm">
-          {busy === 'compose' ? 'Composing…' : 'Plan tonight'}
-        </button>
+      <div className="mt-6 border-t border-ink/10 pt-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">This evening</p>
+        <p className="mt-1 text-sm text-ink/55">Going somewhere after? Say where, and the second look is laid out from what you’re already wearing.</p>
+        <form
+          className="mt-3 flex max-w-xl gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void compose()
+          }}
+        >
+          <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="dinner, a show, drinks…" />
+          <button type="submit" disabled={busy !== null} className="btn-ghost btn-sm shrink-0">
+            {busy === 'compose' ? 'Composing…' : 'Plan tonight'}
+          </button>
+        </form>
       </div>
     )
   }
 
   return (
     <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Act two · tonight</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">This evening</p>
       {!ev && (
         <>
           <h2 className="mt-1 font-display text-3xl font-medium leading-[1.0] text-ink sm:text-4xl">
@@ -64,14 +72,14 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
           </h2>
           <p className="mt-3 max-w-md font-display text-lg italic text-ink/55">The second look keeps what you’re wearing and changes the least.</p>
           <form
-            className="mt-4 flex max-w-md gap-2"
+            className="mt-4 flex max-w-xl gap-2"
             onSubmit={(e) => {
               e.preventDefault()
               void compose()
             }}
           >
-            <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm" placeholder="dinner at eight, a show, drinks" />
-            <button type="submit" disabled={busy !== null} className="btn-primary btn-sm">
+            <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="dinner at eight, a show, drinks" />
+            <button type="submit" disabled={busy !== null} className="btn-primary btn-sm shrink-0">
               {busy === 'compose' ? <Spinner className="h-4 w-4" /> : 'Compose'}
             </button>
           </form>

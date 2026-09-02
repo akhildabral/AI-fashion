@@ -611,13 +611,15 @@ export function MirrorPage() {
               </div>
             )}
 
-            {/* the meter and the button */}
+            {/* the button, then the meter as a hint line beneath it (never beside, never wrapping) */}
             <div className="action-row mt-6">
               <button type="button" disabled={chosen.length === 0 || rendering || busy === 'render' || out} onClick={() => void fire(false)} className="btn-primary">
                 {busy === 'render' ? 'Starting…' : rendering ? 'Rendering…' : `See it on me${left != null && !out ? ' · 1 render' : ''}`}
               </button>
+            </div>
+            <div>
               {meter && (
-                <p className="text-sm text-ink/55">
+                <p className="mt-2 text-xs text-ink/50">
                   {out ? (
                     <>
                       <b className="text-ink">No renders left</b> on the {usage?.label ?? 'free'} plan.{' '}
@@ -779,8 +781,23 @@ export function MirrorPage() {
           {/* ---------------- Renders ---------------- */}
           {photoUrl && (tryOns?.length ?? 0) > 0 && (
             <section className="mt-10 border-t border-ink/10 pt-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Renders</p>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              {/* label row: the section name left, its one action right; the filters get their own row */}
+              <div className="flex h-8 items-center justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Renders</p>
+                {(tryOns?.length ?? 0) >= 2 && !compareMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompareMode(true)
+                      setCompare([])
+                    }}
+                    className="btn-ghost btn-sm"
+                  >
+                    Which one?
+                  </button>
+                )}
+              </div>
+              <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-1">
                   <button type="button" onClick={() => setActiveBook(null)} aria-pressed={activeBook === null} className="filter press">
                     All<span className="count">{tryOns?.length ?? 0}</span>
@@ -801,18 +818,6 @@ export function MirrorPage() {
                     </span>
                   ))}
                 </div>
-                {(tryOns?.length ?? 0) >= 2 && !compareMode && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCompareMode(true)
-                      setCompare([])
-                    }}
-                    className="btn-ghost btn-sm"
-                  >
-                    Which one?
-                  </button>
-                )}
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
