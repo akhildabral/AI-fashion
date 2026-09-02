@@ -92,7 +92,7 @@ export function GarmentTile({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`press group block text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+      className={`press group block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <Arch aspect={aspect} bright={selected}>
         <img

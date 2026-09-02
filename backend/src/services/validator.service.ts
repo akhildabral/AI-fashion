@@ -23,6 +23,8 @@ export interface ValidatorWeather {
 export interface RecentWear {
   itemIds: string[];
   wornOn: Date;
+  /** "Again?" from the Journal: 5 = again, 1 = not this one. */
+  rating?: number | null;
 }
 
 export interface Violation {
@@ -167,6 +169,10 @@ export function validateOutfit(
       const days = (now.getTime() - wear.wornOn.getTime()) / 86_400_000;
       const worn = new Set(wear.itemIds);
       const sameSet = worn.size === ids.size && [...ids].every((id) => worn.has(id));
+      if (sameSet && wear.rating === 1) {
+        violations.push({ rule: 'disliked', message: 'You marked this outfit "not this one"' });
+        break;
+      }
       if (sameSet && days <= EXACT_REPEAT_DAYS) {
         violations.push({
           rule: 'repeat',

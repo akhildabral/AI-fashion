@@ -426,13 +426,23 @@ export async function loadStyleableWardrobe(userId: string) {
 
 export async function loadRecentWear(userId: string): Promise<RecentWear[]> {
   const since = new Date(Date.now() - 14 * 86_400_000);
-  const logs = await prisma.wearLog.findMany({
-    where: { userId, wornOn: { gte: since } },
-    select: { itemIds: true, wornOn: true },
-    orderBy: { wornOn: 'desc' },
-    take: 50,
-  });
-  return logs;
+  // The last fortnight for repeat avoidance, plus everything ever marked
+  // "not this one" so the brief never proposes it again.
+  const [recent, disliked] = await Promise.all([
+    prisma.wearLog.findMany({
+      where: { userId, wornOn: { gte: since } },
+      select: { itemIds: true, wornOn: true, rating: true },
+      orderBy: { wornOn: 'desc' },
+      take: 50,
+    }),
+    prisma.wearLog.findMany({
+      where: { userId, rating: 1, wornOn: { lt: since } },
+      select: { itemIds: true, wornOn: true, rating: true },
+      orderBy: { wornOn: 'desc' },
+      take: 100,
+    }),
+  ]);
+  return [...recent, ...disliked];
 }
 
 export interface ValidatedOutfit extends SuggestedOutfit {

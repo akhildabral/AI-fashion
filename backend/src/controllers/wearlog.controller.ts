@@ -129,13 +129,35 @@ export async function logWear(req: Request, res: Response) {
   res.status(201).json({ log });
 }
 
+const listWearQuery = z.object({
+  // YYYY-MM: every day of that month, plus which days were logged.
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+  item: z.string().uuid().optional(),
+  occasion: z.enum(EVENT_TYPES).optional(),
+});
+
 export async function listWear(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const q = listWearQuery.parse(req.query);
+  let range: { gte: Date; lt: Date } | undefined;
+  if (q.month) {
+    const [y, m] = q.month.split('-').map(Number);
+    range = { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) };
+  }
   const logs = await prisma.wearLog.findMany({
-    where: { userId: req.user.id },
+    where: {
+      userId: req.user.id,
+      ...(range ? { wornOn: range } : {}),
+      ...(q.item ? { itemIds: { has: q.item } } : {}),
+      ...(q.occasion ? { eventType: q.occasion } : {}),
+    },
     orderBy: { wornOn: 'desc' },
-    take: 100,
+    take: range ? 200 : 100,
   });
+  // The month strip needs every logged day, whatever the filters.
+  const days = range
+    ? (await prisma.wearLog.findMany({ where: { userId: req.user.id, wornOn: range }, select: { wornOn: true } })).map((l) => dayKey(l.wornOn))
+    : undefined;
 
   const allIds = [...new Set(logs.flatMap((l) => l.itemIds))];
   const items = await prisma.wardrobeItem.findMany({ where: { id: { in: allIds } } });
@@ -145,7 +167,25 @@ export async function listWear(req: Request, res: Response) {
       ...l,
       items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),
     })),
+    ...(days ? { days: [...new Set(days)] } : {}),
   });
+}
+
+function dayKey(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// "Again?" — 5 = again, 1 = not this one, null clears. The brief reads it.
+const rateWearSchema = z.object({ rating: z.union([z.literal(1), z.literal(5)]).nullable() });
+
+export async function rateWear(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { rating } = rateWearSchema.parse(req.body);
+  const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { rating } });
+  if (r.count === 0) throw new HttpError(404, 'Wear log entry not found');
+  res.json({ rating });
 }
 
 export async function deleteWear(req: Request, res: Response) {

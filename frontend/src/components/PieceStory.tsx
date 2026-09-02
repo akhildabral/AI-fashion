@@ -1,5 +1,6 @@
 import { money } from '../lib/money'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getStory, type StoryResponse } from '../lib/outfits'
 import { resolveImageUrl } from '../lib/api'
 
@@ -53,6 +54,11 @@ export function PieceStory({ itemId }: { itemId: string }) {
         </div>
       )}
       {s.days.length > 0 && <p className="mt-2 text-xs text-ink/45">Mostly {s.days.map((d) => (d === 'casual' ? 'weekends' : d === 'work' ? 'workdays' : d === 'evening' ? 'evenings' : d)).join(', ')}.</p>}
+      {s.wearCount > 0 && (
+        <Link to={`/journal?item=${itemId}`} className="mt-2 inline-block text-xs font-semibold text-brass hover:underline">
+          The days it was worn →
+        </Link>
+      )}
     </section>
   )
 }

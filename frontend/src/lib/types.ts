@@ -271,12 +271,19 @@ export interface WearLogEntry {
   wornOn: string
   eventType: EventType | null
   weather: WardrobeWeather | null
+  /** "Again?": 5 = again, 1 = not this one. */
   rating: number | null
+  /** The day's photo (uploaded, or a Mirror render). */
+  photoUrl: string | null
+  /** Set while the day is on the circle. */
+  sharedAt: string | null
   createdAt: string
 }
 
 export interface WearLogListResponse {
   logs: WearLogEntry[]
+  /** Present when a month was asked for: the logged days as YYYY-MM-DD. */
+  days?: string[]
 }
 
 export interface WearInsightItem {

@@ -5,6 +5,7 @@ import {
   listOutfits,
   listWear,
   logWear,
+  rateWear,
   wearInsights,
 } from '../controllers/wearlog.controller';
 import { deleteOutfit, validateComposed } from '../controllers/outfits.controller';
@@ -20,3 +21,4 @@ wearLogRouter.post('/wearlog', requireAuth, logWear);
 wearLogRouter.get('/wearlog', requireAuth, listWear);
 wearLogRouter.get('/wearlog/insights', requireAuth, wearInsights);
 wearLogRouter.delete('/wearlog/:id', requireAuth, deleteWear);
+wearLogRouter.patch('/wearlog/:id/rating', requireAuth, rateWear);

@@ -19,6 +19,8 @@ export function logWear(params: {
   rating?: number
   /** Wearing a look a friend picked — credits the stylist. */
   pickId?: string
+  /** Log a past day (ISO date-time). Defaults to now. */
+  wornOn?: string
 }): Promise<{ log: WearLogEntry }> {
   return apiFetch<{ log: WearLogEntry }>('/wearlog', {
     method: 'POST',
@@ -26,9 +28,22 @@ export function logWear(params: {
   })
 }
 
-/** GET /api/wearlog — wear history, newest first. */
-export function getWearLog(): Promise<WearLogListResponse> {
-  return apiFetch<WearLogListResponse>('/wearlog')
+/**
+ * GET /api/wearlog — wear history, newest first. With `month` (YYYY-MM) the
+ * response also lists which days of that month were logged.
+ */
+export function getWearLog(opts: { month?: string; item?: string; occasion?: EventType } = {}): Promise<WearLogListResponse> {
+  const q = new URLSearchParams()
+  if (opts.month) q.set('month', opts.month)
+  if (opts.item) q.set('item', opts.item)
+  if (opts.occasion) q.set('occasion', opts.occasion)
+  const s = q.toString()
+  return apiFetch<WearLogListResponse>(`/wearlog${s ? `?${s}` : ''}`)
+}
+
+/** "Again?" — 5 = again, 1 = not this one, null clears it. */
+export function rateWearLog(id: string, rating: 1 | 5 | null): Promise<{ rating: 1 | 5 | null }> {
+  return apiFetch(`/wearlog/${id}/rating`, { method: 'PATCH', body: { rating } })
 }
 
 /** DELETE /api/wearlog/:id — remove a mistaken entry (204 No Content). */
