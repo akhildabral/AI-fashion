@@ -240,7 +240,7 @@ export function BillingPage() {
                   Payments aren't switched on yet — plans will be purchasable soon.
                 </p>
               )}
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Only the tiers above the one you are on. */}
                 {PLANS.filter((p) => PLANS.findIndex((x) => x.id === p.id) > PLANS.findIndex((x) => x.id === summary.plan)).map((p) => (
                   <div
