@@ -17,6 +17,8 @@ const profileSchema = z.object({
   styleVibe: z.string().max(50).nullish(),
   city: z.string().max(120).nullish(),
   styleFor: z.enum(['female', 'male', 'unisex']).nullish(),
+  // ISO 4217; null = guess from where they are.
+  currency: z.string().regex(/^[A-Z]{3}$/).nullish(),
   budgetBand: z.string().max(50).nullish(),
   avoidColors: z.array(z.string().max(40)).max(30).optional(),
   // The fitting: what matters most, the days they dress for, and where they

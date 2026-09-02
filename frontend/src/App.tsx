@@ -1,6 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
 import { ProfileProvider } from './context/ProfileProvider'
+import { useProfile } from './context/useProfile'
+import { useEffect } from 'react'
+import { setCurrentCurrency } from './lib/money'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
@@ -30,6 +33,15 @@ import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
+/** Every figure prints in the member's currency once the profile is known. */
+function CurrencySync() {
+  const { profile } = useProfile()
+  useEffect(() => {
+    setCurrentCurrency(profile?.currency ?? null)
+  }, [profile?.currency])
+  return null
+}
+
 function guarded(element: JSX.Element, withProfile = true) {
   return (
     <ProtectedRoute>{withProfile ? <RequireProfile>{element}</RequireProfile> : element}</ProtectedRoute>
@@ -58,6 +70,7 @@ export default function App() {
                   'radial-gradient(760px 500px at 82% -8%, rgba(200,164,94,0.10), transparent 62%), radial-gradient(620px 440px at -8% 10%, rgba(124,45,42,0.08), transparent 60%)',
               }}
             />
+            <CurrencySync />
             <Header />
             <main>
               <Routes>

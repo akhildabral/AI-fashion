@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { setLookPhoto } from '../lib/circle'
@@ -177,7 +178,7 @@ export function TodayPage() {
         const brk = fresh.priceBreaks[0]
         flash(
           brk
-            ? `Logged. Your ${brk.label} just broke ₹${brk.threshold}/wear.`
+            ? `Logged. Your ${brk.label} just broke ${money(brk.threshold)}/wear.`
             : `Logged — ${fresh.streak} day${fresh.streak === 1 ? '' : 's'} styled in a row.`,
         )
       } else {
@@ -648,7 +649,7 @@ export function TodayPage() {
                 Your closet is working
               </p>
               <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
-                ₹{stats.monthlyPayback.toLocaleString('en-IN')}{' '}
+                {money(stats.monthlyPayback)}{' '}
                 <span className="font-sans text-xs font-semibold text-ink/55">this month</span>
               </p>
               <div className="mt-3 flex gap-6 border-t border-ink/10 pt-3">

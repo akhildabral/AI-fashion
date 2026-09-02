@@ -1,3 +1,4 @@
+import { CURRENCIES, guessCurrency, money } from '../lib/money'
 import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -32,6 +33,7 @@ interface FormState {
   skinTone: string
   styleVibe: string
   styleFor: string
+  currency: string
   budgetBand: string
   city: string
   avoidColors: string[]
@@ -46,6 +48,7 @@ const EMPTY_FORM: FormState = {
   skinTone: '',
   styleVibe: '',
   styleFor: '',
+  currency: '',
   budgetBand: '',
   city: '',
   avoidColors: [],
@@ -61,6 +64,7 @@ function toFormState(profile: StyleProfile): FormState {
     skinTone: profile.skinTone ?? '',
     styleVibe: profile.styleVibe ?? '',
     styleFor: profile.styleFor ?? '',
+    currency: profile.currency ?? '',
     budgetBand: profile.budgetBand ?? '',
     city: (profile as StyleProfile & { city?: string | null }).city ?? '',
     avoidColors: Array.isArray(profile.avoidColors) ? profile.avoidColors : [],
@@ -98,6 +102,18 @@ export function ProfilePage() {
   const { user } = useAuth()
   const { profile, loading: profileLoading, setProfile } = useProfile()
   const [ritual, setRitual] = useState<RitualStats | null>(null)
+  const [redoing, setRedoing] = useState(false)
+  async function redoFitting() {
+    setRedoing(true)
+    try {
+      const { profile: saved } = await apiFetch<{ profile: StyleProfile }>('/profile', { method: 'PUT', body: { fittingStep: 0, fittingDone: false } })
+      setProfile(saved)
+      navigate('/fitting?s=0')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not restart the fitting.')
+      setRedoing(false)
+    }
+  }
   useEffect(() => {
     getRitualStats().then(setRitual).catch(() => undefined)
   }, [])
@@ -165,6 +181,7 @@ export function ProfilePage() {
       skinTone: form.skinTone || undefined,
       styleVibe: form.styleVibe || undefined,
       styleFor: form.styleFor || undefined,
+      currency: form.currency || null,
       budgetBand: form.budgetBand || undefined,
       city: form.city.trim() || null,
       avoidColors,
@@ -265,6 +282,16 @@ export function ProfilePage() {
                     <option value="unisex">Unisex</option>
                   </select>
                 </Field>
+                <Field id="currency" label="Currency">
+                  <select id="currency" value={form.currency} onChange={(e) => update('currency', e.target.value)} className="field">
+                    <option value="">Guess from my location ({guessCurrency()})</option>
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} · {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
                 <Field id="budgetBand" label="Budget">
                   <Select id="budgetBand" value={form.budgetBand} onChange={(v) => update('budgetBand', v)} options={BUDGET_BANDS} />
                 </Field>
@@ -336,6 +363,18 @@ export function ProfilePage() {
         {!isOnboarding && (
           <aside className="mt-8 flex flex-col gap-5 lg:mt-0 lg:self-start">
             <RitualSettings onNotice={flash} />
+            <section className="card p-5">
+              <p className="font-display text-xl font-medium text-ink">The fitting</p>
+              <p className="mt-1 text-sm text-ink/55">Start the fitting again — who you dress for, your week, your pieces. Your closet and history stay.</p>
+              <button
+                type="button"
+                disabled={redoing}
+                onClick={() => void redoFitting()}
+                className="btn-ghost mt-4 btn-sm"
+              >
+                {redoing ? 'One moment…' : 'Redo the fitting'}
+              </button>
+            </section>
             {ritual && (
               <section className="plaque p-5 pl-6">
                 <div className="flex items-baseline justify-between gap-3">
@@ -345,7 +384,7 @@ export function ProfilePage() {
                   </Link>
                 </div>
                 <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
-                  ₹{ritual.monthlyPayback.toLocaleString('en-IN')} <span className="font-sans text-xs font-semibold text-ink/55">back this month</span>
+                  {money(ritual.monthlyPayback)} <span className="font-sans text-xs font-semibold text-ink/55">back this month</span>
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-4 border-t border-ink/10 pt-3">
                   <Stat value={ritual.streak} label="day streak" />

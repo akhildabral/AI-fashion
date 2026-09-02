@@ -52,7 +52,9 @@ shareRouter.get('/share/piece/:id.png', requireAuth, async (req: Request, res: R
   if (!it) throw new HttpError(404, 'Piece not found');
   const wears = await prisma.wearLog.count({ where: { userId: req.user.id, itemIds: { has: it.id } } });
   const title = [it.primaryColor, it.subtype ?? it.category].filter(Boolean).join(' ');
-  const line = wears > 0 ? `worn ${wears} time${wears === 1 ? '' : 's'}${it.price && wears ? ` · ₹${Math.round(it.price / wears).toLocaleString('en-IN')} a wear` : ''}` : 'new to the closet';
+  const cur = (await prisma.styleProfile.findUnique({ where: { userId: req.user.id }, select: { currency: true } }))?.currency ?? 'AED';
+  const fmt = new Intl.NumberFormat('en', { style: 'currency', currency: cur, currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 });
+  const line = wears > 0 ? `worn ${wears} time${wears === 1 ? '' : 's'}${it.price && wears ? ` · ${fmt.format(Math.round(it.price / wears))} a wear` : ''}` : 'new to the closet';
   png(res, await renderPieceCard(it, { title: title.charAt(0).toUpperCase() + title.slice(1), line, who: await who(req.user.id) }));
 });
 

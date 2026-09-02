@@ -15,6 +15,7 @@ export interface ProfileInput {
   occasions?: string[];
   fittingStep?: number;
   fittingDone?: boolean;
+  currency?: string | null;
 }
 
 export function getProfile(userId: string) {
@@ -34,6 +35,7 @@ export function upsertProfile(userId: string, input: ProfileInput) {
     budgetBand?: string | null;
     city?: string | null;
     styleFor?: string | null;
+    currency?: string | null;
     avoidColors?: string[];
     intents?: string[];
     occasions?: string[];
@@ -44,6 +46,7 @@ export function upsertProfile(userId: string, input: ProfileInput) {
   if (input.heightCm !== undefined) data.heightCm = input.heightCm;
   if (input.city !== undefined) data.city = input.city;
   if (input.styleFor !== undefined) data.styleFor = input.styleFor;
+  if (input.currency !== undefined) data.currency = input.currency;
   if (input.sizes !== undefined) data.sizes = input.sizes ?? Prisma.DbNull;
   if (input.skinTone !== undefined) data.skinTone = input.skinTone;
   if (input.styleVibe !== undefined) data.styleVibe = input.styleVibe;
@@ -54,6 +57,8 @@ export function upsertProfile(userId: string, input: ProfileInput) {
   // Progress only moves forward; a Back tap never loses ground.
   if (input.fittingStep !== undefined) data.fittingStep = input.fittingStep;
   if (input.fittingDone) data.fittingCompletedAt = new Date();
+  // Redoing the fitting: back to the first step, and no longer "done".
+  else if (input.fittingDone === false) data.fittingCompletedAt = null;
 
   return prisma.styleProfile.upsert({
     where: { userId },

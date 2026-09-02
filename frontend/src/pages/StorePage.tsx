@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -17,7 +18,7 @@ type Stage = 'viewfinder' | 'reading' | 'verdict' | 'kept' | 'bought' | 'failed'
 const READING_LINES = ['Cutting it out…', 'Reading the colour and cut…', 'Checking it against your closet…']
 
 function inr(n: number): string {
-  return `₹${Math.round(n).toLocaleString('en-IN')}`
+  return money(n)
 }
 
 function CountUp({ to }: { to: number }) {

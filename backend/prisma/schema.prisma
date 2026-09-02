@@ -335,11 +335,13 @@ model StyleProfile {
   city        String?
   // Who we style for: female | male | unisex.
   styleFor    String?
+  // ISO 4217 code the member keeps their books in (AED, INR, USD…).
+  currency    String?
   // From the fitting: what matters most (decided | own | friends) and the
   // days they dress for (event types). Progress lets an abandoned fitting
   // resume from Today instead of resetting.
-  intents            String[]
-  occasions          String[]
+  intents            String[]  @default([])
+  occasions          String[]  @default([])
   fittingStep        Int       @default(0)
   fittingCompletedAt DateTime?
   createdAt   DateTime @default(now())

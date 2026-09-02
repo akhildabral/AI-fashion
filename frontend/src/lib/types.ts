@@ -33,6 +33,8 @@ export interface ProfileSizes {
 export interface StyleProfile {
   city?: string | null
   styleFor?: string | null
+  /** ISO 4217 code the member keeps their books in. */
+  currency?: string | null
   bodyType: string
   heightCm: number
   sizes: ProfileSizes

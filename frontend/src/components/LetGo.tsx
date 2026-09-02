@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useState } from 'react'
 import { Modal } from './ui'
 import { updateWardrobeItem, getResaleDraft } from '../lib/wardrobe'
@@ -60,12 +61,12 @@ export function LetGoModal({ item, onClose, onChanged, onNote }: { item: Wardrob
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Listing draft</p>
           <p className="mt-1 font-display text-xl text-ink">{draft.title}</p>
-          {draft.price && <p className="mt-1 text-sm text-brass">Ask ₹{draft.price}</p>}
+          {draft.price && <p className="mt-1 text-sm text-brass">Ask {money(Number(draft.price) || 0)}</p>}
           <p className="mt-2 whitespace-pre-wrap text-sm text-ink/70">{draft.body}</p>
           <div className="mt-4 flex gap-2">
             <button
               type="button"
-              onClick={() => void copyText(`${draft.title}\n\n${draft.body}${draft.price ? `\n\n₹${draft.price}` : ''}`).then((ok) => onNote(ok ? 'Listing copied — paste it where you sell.' : 'Could not copy.'))}
+              onClick={() => void copyText(`${draft.title}\n\n${draft.body}${draft.price ? `\n\n${money(Number(draft.price) || 0)}` : ''}`).then((ok) => onNote(ok ? 'Listing copied — paste it where you sell.' : 'Could not copy.'))}
               className="btn-primary btn-sm"
             >
               Copy the listing

@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { copyText } from '../lib/clipboard'
@@ -192,7 +193,7 @@ export function JournalPage() {
           <p className="mt-1 text-sm text-ink/55">The pieces doing the most work, and what each wear has cost so far.</p>
           <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6">
             {mostWorn.map((item) => (
-              <GarmentTile key={item.itemId} imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel={`${item.wearCount}× worn${item.costPerWear != null ? ` · ₹${Math.round(item.costPerWear)}/wear` : ''}`} />
+              <GarmentTile key={item.itemId} imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel={`${item.wearCount}× worn${item.costPerWear != null ? ` · ${money(item.costPerWear)}/wear` : ''}`} />
             ))}
           </div>
         </section>

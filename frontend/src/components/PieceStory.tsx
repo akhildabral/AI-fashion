@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useEffect, useState } from 'react'
 import { getStory, type StoryResponse } from '../lib/outfits'
 import { resolveImageUrl } from '../lib/api'
@@ -35,7 +36,7 @@ export function PieceStory({ itemId }: { itemId: string }) {
       <p className="mt-1 font-display text-xl italic text-ink">
         {s.wearCount === 0
           ? 'Never worn yet.'
-          : `Worn ${s.wearCount}×, last ${ago(s.lastWorn)}${s.costPerWear != null ? ` · ₹${s.costPerWear.toLocaleString('en-IN')} a wear` : ''}.`}
+          : `Worn ${s.wearCount}×, last ${ago(s.lastWorn)}${s.costPerWear != null ? ` · ${money(s.costPerWear)} a wear` : ''}.`}
       </p>
       {s.wornWith.length > 0 && (
         <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">

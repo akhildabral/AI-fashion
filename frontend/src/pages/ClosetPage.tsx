@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate } from 'react-router-dom'
@@ -35,7 +36,7 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'new', label: 'New this month' },
 ]
 
-const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
+const inr = (n: number) => money(n)
 
 export function ClosetPage() {
   usePageTitle('Closet')

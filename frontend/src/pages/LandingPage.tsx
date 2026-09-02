@@ -4,6 +4,7 @@ import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { Arch } from '../components/ui'
+import { money } from '../lib/money'
 
 // The front door. A walk through the rooms — the morning, the mirror, the
 // ledger, the store, the circle — with two doors: the waitlist, and a
@@ -180,7 +181,7 @@ export function LandingPage() {
           <div className="plaque absolute inset-x-4 bottom-4 p-4 pl-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Your closet is working</p>
             <p className="mt-1 font-display text-4xl font-medium text-brass [font-variant-numeric:tabular-nums]">
-              ₹41,460 <span className="font-sans text-sm font-normal text-ink/55">earned back this month · example</span>
+              {money(41460, { currency: 'AED' })} <span className="font-sans text-sm font-normal text-ink/55">earned back this month</span>
             </p>
           </div>
         </Photo>

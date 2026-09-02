@@ -1,3 +1,4 @@
+import { money } from '../lib/money'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -19,7 +20,7 @@ interface Verdict {
 }
 
 function inr(n: number): string {
-  return `₹${Math.round(n).toLocaleString('en-IN')}`
+  return money(n)
 }
 function when(iso: string | null | undefined): string {
   if (!iso) return ''

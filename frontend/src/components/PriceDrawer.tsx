@@ -1,3 +1,4 @@
+import { currencySymbol } from '../lib/money'
 import { useState } from 'react'
 import { Arch, Modal } from './ui'
 import { resolveImageUrl } from '../lib/api'
@@ -65,7 +66,7 @@ export function PriceDrawer({
                 Price for {item.subtype ?? item.category}
               </label>
               <div className="flex items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-2 focus-within:border-iris/70">
-                <span className="text-sm text-ink/40">₹</span>
+                <span className="text-sm text-ink/40">{currencySymbol()}</span>
                 <input
                   id={`price-${item.id}`}
                   type="number"
