@@ -1,11 +1,6 @@
 // (Mirror of frontend/src/lib/flatlay.ts — keep in sync.)
-// The flat-lay: a deterministic composition for a look made of items, in
-// the language of an editorial "outfit board": pieces sit on a grid in
-// body order (outer layer and top up top, bottoms below, shoes at the foot),
-// side by side rather than piled, with even gutters and almost no rotation.
-// Accessories stack in a narrow column at the edge. Same items, same board.
-//
-// Coordinates are % of a 5:4 frame.
+// The flat-lay: a deterministic, stacked composition for a look made of
+// items. Same items, same board. See composeLook for the arrangement.
 
 export interface Slot {
   left: number
@@ -55,24 +50,27 @@ export interface Placed extends Slot {
 
 const isAcc = (r: Role) => r === 'bag' || r === 'jewel' || r === 'hat' || r === 'glasses' || r === 'small'
 
-// The board has three columns: the body column (left), a second column for
-// the top-beside-the-jacket and the shoes, and an accessory rail at the
-// right edge. Widths are chosen so the largest garment reads largest.
-const RAIL_LEFT = 82
-const RAIL_W = 15
+// A stacked flat-lay, in the language of the best outfit boards: the jacket
+// leads, the shirt shows half behind it, the jeans tuck under the hem and
+// swing right, the shoes cross the leg at the foot, the small things sit
+// where a hand would leave them. Sizes follow the real world (shoes are
+// about half a jacket wide, glasses a quarter). Nothing goes into the
+// arch's rounded corners: anything above y=20 stays inside x=20..80.
+//
+// Coordinates are % of a 5:4 frame: left, top, width, height, rotation, z.
 
-// Accessory rail slots, top to bottom, roughly by real size.
-const RAIL: Record<Exclude<Role, 'outerwear' | 'top' | 'dress' | 'bottom' | 'footwear'>, Slot> = {
-  glasses: { left: RAIL_LEFT, top: 8, w: RAIL_W, h: 9, rot: 0, z: 4 },
-  hat: { left: RAIL_LEFT, top: 20, w: RAIL_W, h: 14, rot: -4, z: 4 },
-  bag: { left: RAIL_LEFT - 1, top: 36, w: RAIL_W + 2, h: 22, rot: 0, z: 4 },
-  jewel: { left: RAIL_LEFT + 1, top: 62, w: RAIL_W - 2, h: 12, rot: 0, z: 4 },
-  small: { left: RAIL_LEFT, top: 78, w: RAIL_W, h: 14, rot: 0, z: 4 },
+const ACC: Record<Exclude<Role, 'outerwear' | 'top' | 'dress' | 'bottom' | 'footwear'>, Slot> = {
+  glasses: { left: 70, top: 16, w: 12, h: 8, rot: 12, z: 6 },
+  hat: { left: 26, top: 3, w: 18, h: 12, rot: -8, z: 6 },
+  bag: { left: 66, top: 30, w: 20, h: 26, rot: 6, z: 4 },
+  jewel: { left: 8, top: 64, w: 10, h: 12, rot: -6, z: 6 },
+  small: { left: 8, top: 80, w: 16, h: 12, rot: 3, z: 5 },
 }
-// If the rail's natural slot is taken (two bags), fall down the rail.
-const RAIL_FALLBACK: Slot[] = [
-  { left: RAIL_LEFT, top: 50, w: RAIL_W, h: 12, rot: 0, z: 4 },
-  { left: RAIL_LEFT, top: 90, w: RAIL_W, h: 9, rot: 0, z: 4 },
+// A second of the same accessory finds a free pocket of the frame.
+const ACC_FALLBACK: Slot[] = [
+  { left: 8, top: 46, w: 12, h: 12, rot: -4, z: 6 },
+  { left: 76, top: 52, w: 12, h: 12, rot: 8, z: 6 },
+  { left: 40, top: 86, w: 14, h: 10, rot: 2, z: 6 },
 ]
 
 export function composeLook(items: LayoutItem[]): Placed[] {
@@ -91,54 +89,51 @@ export function composeLook(items: LayoutItem[]): Placed[] {
   const hasDress = first('dress') >= 0
   const hasBottom = first('bottom') >= 0
   const hasShoes = first('footwear') >= 0
-  const hasAcc = roles.some(isAcc)
-  // With no accessories the rail's space goes back to the garments.
-  const wide = !hasAcc
 
   if (hasDress) {
-    // A dress carries the body column on its own; shoes and a bag beside.
-    place(first('dress'), { left: 8, top: 4, w: wide ? 46 : 40, h: 92, rot: -1, z: 5 })
-    if (hasOuter) place(first('outerwear'), { left: 52, top: 6, w: 28, h: 40, rot: 2, z: 4 })
-    if (hasShoes) place(first('footwear'), { left: 52, top: hasOuter ? 58 : 52, w: 26, h: 28, rot: -6, z: 6 })
+    // The dress is the spine; a jacket leans in from the right, shoes at the foot.
+    place(first('dress'), { left: 22, top: 6, w: 40, h: 90, rot: -3, z: 5 })
+    if (hasOuter) place(first('outerwear'), { left: 52, top: 10, w: 30, h: 42, rot: 6, z: 4 })
+    if (hasShoes) place(first('footwear'), { left: 60, top: 66, w: 20, h: 24, rot: -14, z: 6 })
   } else if (hasOuter && hasTop) {
-    // Jacket leads the body column; the top sits beside it, a touch smaller;
-    // bottoms hang below the jacket, tucked just under its hem.
-    place(first('outerwear'), { left: 5, top: 5, w: 40, h: 50, rot: -2, z: 5 })
-    place(first('top'), { left: 48, top: 8, w: wide ? 34 : 30, h: 40, rot: 2, z: 4 })
-    if (hasBottom) place(first('bottom'), { left: 11, top: 50, w: 30, h: 46, rot: 0, z: 3 })
-    if (hasShoes) place(first('footwear'), { left: 49, top: 58, w: 28, h: 30, rot: -6, z: 6 })
+    // Jacket leads; the shirt shows its right half behind it, a touch lower;
+    // the jeans tuck under the hem and swing right; shoes cross the leg.
+    place(first('outerwear'), { left: 16, top: 8, w: 42, h: 54, rot: -5, z: 5 })
+    place(first('top'), { left: 40, top: 12, w: 34, h: 46, rot: 6, z: 4 })
+    if (hasBottom) place(first('bottom'), { left: 30, top: 46, w: 36, h: 52, rot: 4, z: 3 })
+    if (hasShoes) place(first('footwear'), { left: 58, top: 70, w: 20, h: 24, rot: -14, z: 6 })
   } else if (hasOuter || hasTop) {
-    // One upper garment leads; bottoms below it; shoes take the second column.
+    // One upper garment leads, larger; jeans hang from its hem; shoes at the foot.
     const lead = hasOuter ? first('outerwear') : first('top')
-    place(lead, { left: 7, top: 5, w: wide ? 44 : 40, h: 50, rot: -2, z: 5 })
-    if (hasBottom) place(first('bottom'), { left: 12, top: 50, w: 30, h: 46, rot: 0, z: 3 })
-    if (hasShoes) place(first('footwear'), { left: 52, top: 54, w: 28, h: 30, rot: -6, z: 6 })
-    // With no shoes the second column is free: a bag moves up there, large.
-    if (!hasShoes && first('bag') >= 0) place(first('bag'), { left: 52, top: 14, w: 26, h: 34, rot: 2, z: 4 })
+    place(lead, { left: 18, top: 8, w: 44, h: 56, rot: -4, z: 5 })
+    if (hasBottom) place(first('bottom'), { left: 36, top: 44, w: 36, h: 54, rot: 4, z: 3 })
+    if (hasShoes) place(first('footwear'), { left: 60, top: 68, w: 20, h: 24, rot: -14, z: 6 })
+    // No shoes: a bag takes the foot of the frame instead, larger.
+    if (!hasShoes && first('bag') >= 0) place(first('bag'), { left: 62, top: 30, w: 22, h: 28, rot: 6, z: 4 })
   } else {
-    // Bottoms and shoes only: a pair, side by side.
-    if (hasBottom) place(first('bottom'), { left: 12, top: 6, w: 34, h: 88, rot: -1, z: 3 })
-    if (hasShoes) place(first('footwear'), { left: 52, top: 52, w: 28, h: 32, rot: -6, z: 6 })
+    // Bottoms and shoes only: the trousers stand tall, shoes at the hem.
+    if (hasBottom) place(first('bottom'), { left: 30, top: 6, w: 36, h: 80, rot: -2, z: 3 })
+    if (hasShoes) place(first('footwear'), { left: 56, top: 60, w: 20, h: 24, rot: -14, z: 6 })
   }
 
-  // Accessories: the rail, each in its natural slot, extras falling down it.
+  // Accessories: each where a hand would leave it; a second finds a free pocket.
   let fallback = 0
-  const railTaken = new Set<string>()
+  const taken = new Set<string>()
   items.forEach((_, index) => {
     const r = roles[index]
     if (used.has(index) || !isAcc(r)) return
-    const key = r as keyof typeof RAIL
-    const slot = railTaken.has(key) ? RAIL_FALLBACK[fallback++ % RAIL_FALLBACK.length] : RAIL[key]
-    railTaken.add(key)
+    const key = r as keyof typeof ACC
+    const slot = taken.has(key) ? ACC_FALLBACK[fallback++ % ACC_FALLBACK.length] : ACC[key]
+    taken.add(key)
     place(index, slot)
   })
 
-  // Anything still unplaced (a second top, a second pair of shoes): a row
-  // along the very bottom, small, so nothing is silently dropped.
+  // Anything still unplaced (a second top, a second pair of shoes): small,
+  // along the bottom-left, so nothing is silently dropped.
   let extra = 0
   items.forEach((_, index) => {
     if (used.has(index)) return
-    place(index, { left: 6 + (extra++ % 3) * 25, top: 86, w: 18, h: 12, rot: 0, z: 2 })
+    place(index, { left: 6 + (extra++ % 2) * 14, top: 86, w: 12, h: 12, rot: -3 + extra * 4, z: 2 })
   })
 
   return out
