@@ -107,7 +107,7 @@ export function PackingPage() {
                   </p>
                   <p className="mt-1 font-display text-xs italic text-ink/45">your brief styles from this capsule while you’re away</p>
                 </div>
-                <button type="button" onClick={() => void handleDeleteTrip(t.id)} className="btn-ghost !px-3 !py-1.5 !text-xs">
+                <button type="button" onClick={() => void handleDeleteTrip(t.id)} className="btn-ghost btn-sm">
                   Remove
                 </button>
               </div>
@@ -192,7 +192,7 @@ export function PackingPage() {
               {savedTripId ? (
                 <span className="inline-flex items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-2 text-sm font-semibold text-brass">Saved to your trips</span>
               ) : (
-                <button type="button" onClick={() => void handleSaveTrip()} disabled={savingTrip} className="btn-primary !px-4 !py-2 !text-sm">
+                <button type="button" onClick={() => void handleSaveTrip()} disabled={savingTrip} className="btn-primary btn-sm">
                   {savingTrip ? 'Saving…' : 'Save the trip'}
                 </button>
               )}

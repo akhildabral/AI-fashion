@@ -104,7 +104,7 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
       {looks && looks.length === 0 && (
         <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center">
           <p className="text-sm text-ink/60">Nothing logged in the last two weeks.</p>
-          <Link to="/" onClick={onClose} className="btn-primary mt-4 inline-flex !py-2 !text-xs">
+          <Link to="/" onClick={onClose} className="btn-primary mt-4 inline-flex btn-sm">
             Wear today’s brief
           </Link>
         </div>
@@ -136,7 +136,7 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
                     {l.photoUrl ? ' · with photo' : ''}
                   </p>
                 </div>
-                <button type="button" disabled={busy === l.id} onClick={() => void toggleShare(l)} className={l.shared ? 'btn-ghost !px-3 !py-2 !text-xs' : 'btn-primary !px-3 !py-2 !text-xs'}>
+                <button type="button" disabled={busy === l.id} onClick={() => void toggleShare(l)} className={l.shared ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'}>
                   {busy === l.id ? '…' : l.shared ? 'Take down' : 'Share'}
                 </button>
               </div>
@@ -320,7 +320,7 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
           className="field flex-1 !py-2 !text-sm"
           placeholder="Which one should I wear? (optional)"
         />
-        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary !py-2 !text-sm disabled:opacity-40">
+        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary btn-sm disabled:opacity-40">
           {sending ? 'Asking…' : `Ask (${chosen.length}/3)`}
         </button>
       </div>

@@ -239,7 +239,7 @@ export function AdminPage() {
               placeholder="Invite someone by email…"
               className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
             />
-            <button type="submit" disabled={inviting} className="btn-primary !px-4 !py-2 !text-sm">
+            <button type="submit" disabled={inviting} className="btn-primary btn-sm">
               {inviting ? <Spinner className="h-4 w-4" /> : 'Invite'}
             </button>
           </form>
@@ -288,7 +288,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void approveInvite(u)}
-                          className="btn-primary !px-4 !py-2 !text-xs"
+                          className="btn-primary btn-sm"
                         >
                           {busyId === u.id
                             ? 'Working…'
@@ -374,7 +374,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => handleResetPassword(u)}
-                          className="btn-ghost !px-3 !py-1.5 !text-xs"
+                          className="btn-ghost btn-sm"
                         >
                           Reset password
                         </button>
@@ -384,7 +384,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void runAction(u.id, `/admin/users/${u.id}/suspend`)}
-                          className="btn-ghost !border-rose-200 !px-3 !py-1.5 !text-xs !text-rose-700 dark:!border-rose-900 dark:!text-rose-400"
+                          className="btn-ghost !border-rose-200 btn-sm !text-rose-700 dark:!border-rose-900 dark:!text-rose-400"
                         >
                           Suspend
                         </button>
@@ -394,7 +394,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void runAction(u.id, `/admin/users/${u.id}/approve`)}
-                          className="btn-primary !px-3 !py-1.5 !text-xs"
+                          className="btn-primary btn-sm"
                         >
                           Reinstate
                         </button>
@@ -435,7 +435,7 @@ export function AdminPage() {
                 >
                   {inviteLink.url}
                 </div>
-                <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 !px-4 !py-2 !text-sm">
+                <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 btn-sm">
                   {copied ? 'Copied' : 'Copy invite link'}
                 </button>
               </>

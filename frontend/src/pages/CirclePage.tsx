@@ -351,10 +351,10 @@ export function CirclePage() {
                   <Stat v={me.picks} l="Styled for you" />
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <button type="button" onClick={() => openPeople('following')} className="btn-ghost flex-1 !py-2 !text-xs">
+                  <button type="button" onClick={() => openPeople('following')} className="btn-ghost flex-1 btn-sm">
                     Your people
                   </button>
-                  <Link to={`/u/${me.handle}`} className="btn-ghost flex-1 !py-2 !text-xs">
+                  <Link to={`/u/${me.handle}`} className="btn-ghost flex-1 btn-sm">
                     Your profile
                   </Link>
                 </div>
@@ -382,7 +382,7 @@ export function CirclePage() {
                       <button
                         type="button"
                         onClick={() => void quickFollow(t.handle)}
-                        className="press shrink-0 rounded-[3px] border border-brass/60 px-3 py-1.5 text-xs font-semibold text-brass hover:bg-iris-soft"
+                        className="btn-ghost btn-sm shrink-0 !border-brass/60 !text-brass hover:!bg-iris-soft"
                       >
                         Follow
                       </button>
@@ -391,7 +391,7 @@ export function CirclePage() {
                 ))}
               </div>
               {twins.length > 3 && (
-                <button type="button" onClick={() => openPeople('suggested')} className="press mt-2 text-xs font-semibold text-brass">
+                <button type="button" onClick={() => openPeople('suggested')} className="btn-quiet mt-1 !h-9 !text-xs !text-brass">
                   See all {twins.length} →
                 </button>
               )}
@@ -464,11 +464,11 @@ export function CirclePage() {
               </div>
             )}
             {recreate.result.pairs.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button type="button" onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)} className="btn-primary !px-4 !py-2 !text-sm">
+              <div className="action-row mt-5">
+                <button type="button" onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)} className="btn-primary btn-sm">
                   See it on you
                 </button>
-                <button type="button" disabled={saving} onClick={() => void saveRecreated()} className="btn-ghost !px-4 !py-2 !text-sm">
+                <button type="button" disabled={saving} onClick={() => void saveRecreated()} className="btn-ghost btn-sm">
                   {saving ? 'Saving…' : 'Save as outfit'}
                 </button>
               </div>
@@ -555,12 +555,12 @@ function SuggestedRail({
               <span className="mt-2 block max-w-full truncate text-sm font-semibold text-ink">@{t.handle}</span>
               <span className="mt-0.5 block max-w-full truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
             </Link>
-            <button type="button" onClick={() => onFollow(t.handle)} className="press mt-3 w-full rounded-[3px] border border-brass/60 py-1.5 text-xs font-semibold text-brass hover:bg-iris-soft">
+            <button type="button" onClick={() => onFollow(t.handle)} className="btn-ghost btn-sm mt-3 w-full !border-brass/60 !text-brass hover:!bg-iris-soft">
               Follow
             </button>
           </div>
         ))}
-        <button type="button" onClick={onSeeAll} className="press w-24 shrink-0 self-center text-xs font-semibold text-brass">
+        <button type="button" onClick={onSeeAll} className="btn-quiet w-24 shrink-0 self-center !text-xs !text-brass">
           See all →
         </button>
       </div>

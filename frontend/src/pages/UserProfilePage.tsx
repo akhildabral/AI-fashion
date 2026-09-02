@@ -273,7 +273,7 @@ export function UserProfilePage() {
                   <p className="text-sm text-ink/75">Tap 2–{MAX_PICK_ITEMS} of their pieces to build the look, add a note, and send.</p>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                     <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className="field flex-1 !py-2 !text-sm" placeholder="Why this works (optional)" maxLength={280} />
-                    <button type="button" onClick={() => void handleSendPick()} disabled={selected.length < 2 || sending} className="btn-primary !py-2 !text-sm disabled:opacity-40">
+                    <button type="button" onClick={() => void handleSendPick()} disabled={selected.length < 2 || sending} className="btn-primary btn-sm disabled:opacity-40">
                       {sending ? 'Sending…' : `Send look (${selected.length})`}
                     </button>
                   </div>
@@ -340,10 +340,10 @@ export function UserProfilePage() {
             )}
             {recreate.result.pairs.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-2">
-                <button type="button" onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)} className="btn-primary !px-4 !py-2 !text-sm">
+                <button type="button" onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)} className="btn-primary btn-sm">
                   See it on you
                 </button>
-                <button type="button" disabled={saving} onClick={() => void saveRecreated()} className="btn-ghost !px-4 !py-2 !text-sm">
+                <button type="button" disabled={saving} onClick={() => void saveRecreated()} className="btn-ghost btn-sm">
                   {saving ? 'Saving…' : 'Save as outfit'}
                 </button>
               </div>

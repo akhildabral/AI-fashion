@@ -356,11 +356,11 @@ export function MirrorPage() {
                     .catch(() => flash('Could not attach the render.'))
                     .finally(() => setAttaching(false))
                 }}
-                className="btn-primary !px-5 !py-2.5 !text-sm"
+                className="btn-primary"
               >
                 {attaching ? 'Sharing…' : 'Share this to your circle'}
               </button>
-              <button type="button" onClick={() => setShareFor(null)} className="btn-ghost !px-4 !py-2.5 !text-sm">
+              <button type="button" onClick={() => setShareFor(null)} className="btn-ghost">
                 Keep the pieces only
               </button>
             </div>
@@ -379,7 +379,7 @@ export function MirrorPage() {
               <button
                 type="button"
                 onClick={() => setActiveBook(null)}
-                className={`chip !px-3 !py-1.5 !text-xs ${activeBook === null ? 'chip-on' : ''}`}
+                aria-pressed={activeBook === null} className="filter press"
               >
                 All · {tryOns?.length ?? 0}
               </button>
@@ -388,7 +388,7 @@ export function MirrorPage() {
                   <button
                     type="button"
                     onClick={() => setActiveBook((prev) => (prev === b.id ? null : b.id))}
-                    className={`chip !px-3 !py-1.5 !text-xs ${activeBook === b.id ? 'chip-on' : ''}`}
+                    aria-pressed={activeBook === b.id} className="filter press"
                   >
                     {b.name} · {b.tryOnIds.length}
                   </button>
@@ -415,7 +415,7 @@ export function MirrorPage() {
                     type="button"
                     onClick={() => void createPollFromCompare()}
                     disabled={pollBusy}
-                    className="btn-primary !px-4 !py-2"
+                    className="btn-primarybtn-sm"
                   >
                     {pollBusy ? 'Sending…' : 'Ask the Circle'}
                   </button>
@@ -426,7 +426,7 @@ export function MirrorPage() {
                     setCompareMode((v) => !v)
                     setCompare([])
                   }}
-                  className={`chip ${compareMode ? '!border-brass !text-brass' : ''}`}
+                  aria-pressed={compareMode} className={`chip ${compareMode ? 'chip-on' : ''}`}
                 >
                   {compareMode ? 'Cancel face-off' : 'Which one?'}
                 </button>
@@ -598,7 +598,7 @@ export function MirrorPage() {
                 placeholder="New lookbook — e.g. Wedding options"
                 className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-ink outline-none placeholder:text-ink/35"
               />
-              <button type="button" onClick={() => void handleCreateBook()} className="btn-primary !px-4 !py-2 !text-xs">
+              <button type="button" onClick={() => void handleCreateBook()} className="btn-primary btn-sm">
                 Create
               </button>
             </div>

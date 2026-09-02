@@ -342,7 +342,7 @@ export function TodayPage() {
             <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your fitting</span>
             <span className="mt-0.5 block font-display text-lg italic text-ink">{Math.round(((profile.fittingStep ?? 0) / 13) * 100)}% taken. Pick it up where you left it.</span>
           </span>
-          <span className="btn-primary !px-4 !py-2 !text-xs">Continue</span>
+          <span className="btn-primary btn-sm">Continue</span>
         </Link>
       )}
 

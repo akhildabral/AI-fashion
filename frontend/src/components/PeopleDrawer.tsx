@@ -59,7 +59,7 @@ function PersonRow({
             setBusy(true)
             void onToggle().finally(() => setBusy(false))
           }}
-          className={`press shrink-0 rounded-[3px] border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+          className={`btn-ghost btn-sm shrink-0 ${
             following
               ? 'border-ink/15 text-ink/60 hover:border-ink/40'
               : 'border-brass/60 text-brass hover:bg-iris-soft'

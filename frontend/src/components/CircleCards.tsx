@@ -398,7 +398,7 @@ export function CommentThread({
           className="field !py-2 !text-sm"
           placeholder="Add a note… @mention a friend"
         />
-        <button type="submit" disabled={sending || !body.trim()} className="btn-ghost !px-3 !py-2 !text-xs disabled:opacity-40">
+        <button type="submit" disabled={sending || !body.trim()} className="btn-ghost btn-sm disabled:opacity-40">
           {sending ? '…' : 'Post'}
         </button>
       </form>
@@ -487,7 +487,7 @@ export function LookCard({
           </ActionButton>
         )}
         {!post.isMine && post.items.length > 0 && (
-          <button type="button" onClick={() => onRecreate(post.handle, post.items)} className="btn-primary ml-auto !px-4 !py-2 !text-xs">
+          <button type="button" onClick={() => onRecreate(post.handle, post.items)} className="btn-primary ml-auto btn-sm">
             Recreate
           </button>
         )}
@@ -625,7 +625,7 @@ export function PickCard({ post, onGone, onError }: { post: PickPost; onGone: (i
           ))}
         </div>
       )}
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-brass/20 px-4 py-3">
+      <div className="action-row mt-4 border-t border-brass/20 px-4 py-3 !gap-x-3">
         <button
           type="button"
           disabled={worn || post.items.length === 0}
@@ -634,11 +634,11 @@ export function PickCard({ post, onGone, onError }: { post: PickPost; onGone: (i
               .then(() => setWorn(true))
               .catch(() => onError('Could not log the wear — try again.'))
           }
-          className={worn ? 'btn-ghost !border-brass/50 !px-4 !py-2 !text-xs !text-brass' : 'btn-primary !px-4 !py-2 !text-xs'}
+          className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
         >
           {worn ? 'Worn — they’ll know' : 'I wore it'}
         </button>
-        <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost !px-4 !py-2 !text-xs">
+        <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost btn-sm">
           See it on me
         </button>
         <button
@@ -648,7 +648,7 @@ export function PickCard({ post, onGone, onError }: { post: PickPost; onGone: (i
               .then(() => onGone(post.id))
               .catch(() => onError('Could not dismiss that — try again.'))
           }
-          className="press ml-auto text-xs text-ink/40 transition-colors hover:text-ink/70"
+          className="btn-quiet ml-auto !h-9 !text-xs !text-ink/40"
         >
           Dismiss
         </button>

@@ -200,7 +200,7 @@ export function BillingPage() {
                   type="button"
                   disabled={busy === 'cancel'}
                   onClick={() => void cancelPlan()}
-                  className="btn-ghost !px-4 !py-2 !text-sm"
+                  className="btn-ghost btn-sm"
                 >
                   Cancel subscription
                 </button>
