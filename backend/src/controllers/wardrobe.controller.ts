@@ -14,8 +14,7 @@ import {
   suggestOutfits,
   tagGarment,
   type DetectedGarment,
-  type SuggestedOutfit,
-} from '../services/wardrobe.service';
+  type SuggestedOutfit, type GarmentTags } from '../services/wardrobe.service';
 import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGarment } from '../services/cleanup.service';
 import { fingerprintOf, matchPiece, SURE_AT } from '../services/closet-match.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
@@ -113,7 +112,7 @@ export async function catalogItem(
 
   const previous = await prisma.wardrobeItem.findUnique({
     where: { id: itemId },
-    select: { imageUrl: true, originalUrl: true, userId: true, attrConfidence: true },
+    select: { imageUrl: true, originalUrl: true, userId: true, attrConfidence: true, category: true },
   });
   // The item may have been deleted while processing.
   if (!previous) {
@@ -122,14 +121,25 @@ export async function catalogItem(
   }
 
   try {
-    const tags = await tagGarment(imageForTagging, mimeForTagging);
-    // 2. The studio re-render, now that the piece's kind is known (shoes and
-    //    bags are shot from the side), checked against the photo's shape.
     let display = local;
-    if (env.MATTING_ENABLED) {
-      const studio = await studioRender(image, mime, { target, category: tags.category, local });
-      if (studio) display = studio;
-      if (!display && target) display = await matteGarment(image);
+    let tags: GarmentTags;
+    if (target) {
+      // A named garment out of a photo that holds others: the studio isolates
+      // it first (posed by the kind the detector saw), and the facts are read
+      // from that isolated render — reading the crop would describe the
+      // jacket over it or the trousers below it.
+      if (env.MATTING_ENABLED) {
+        display = (await studioRender(image, mime, { target, category: previous.category, local: null })) ?? (await matteGarment(image));
+      }
+      tags = display ? await tagGarment(display.png, 'image/png') : await tagGarment(imageForTagging, mimeForTagging);
+    } else {
+      tags = await tagGarment(imageForTagging, mimeForTagging);
+      // 2. The studio re-render, now that the piece's kind is known (shoes and
+      //    bags are shot from the side), checked against the photo's shape.
+      if (env.MATTING_ENABLED) {
+        const studio = await studioRender(image, mime, { target, category: tags.category, local });
+        if (studio) display = studio;
+      }
     }
     if (display) {
       const stored = await saveImageBuffer(display.png, 'png');

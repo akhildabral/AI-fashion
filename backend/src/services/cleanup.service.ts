@@ -81,10 +81,16 @@ function targetedPrompt(target: string): string {
   return (
     `The output image must contain exactly ONE garment: ${target}. ` +
     'Show it by itself, unworn, front-facing on a pure white seamless studio ' +
-    'background. Absolutely no other clothing items, no people or body parts, ' +
+    'background. If the photo shows an outfit or a suit, output ONLY this one ' +
+    'piece: a jacket or blazer WITHOUT the trousers and WITHOUT the top beneath ' +
+    'it; trousers WITHOUT the jacket above them; a top WITHOUT what is layered ' +
+    'over it. Absolutely no other clothing items, no people or body parts, ' +
     'no furniture, no floor or wall — nothing but this one garment on white. ' +
     KEEP_PROPORTIONS +
-    ' Preserve its true colors, pattern, texture, logos, and stitching.'
+    ' Preserve its true colors, pattern, texture, logos, and stitching. Where part ' +
+    'of it is hidden in the photo (under a jacket, behind an arm, below the frame), ' +
+    'complete it in the SAME cut, width, length and fabric as the visible part — ' +
+    'never slimmer, shorter, or a different style.'
   );
 }
 

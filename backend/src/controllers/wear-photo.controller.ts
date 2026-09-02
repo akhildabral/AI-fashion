@@ -81,6 +81,8 @@ async function readPhoto(jobId: string, buffer: Buffer, mime: string): Promise<v
       // disagree on what kind of thing it is, the scene wins and the crop's
       // type is not trusted either.
       const category = g.category !== 'other' ? g.category : tags.category;
+      // Neither reader could call it clothing: a cushion, a bag strap, a shadow.
+      if (category === 'other') continue;
       if (tags.category !== category) tags.subtype = null;
       tags.category = category;
       // The same derived numbers a catalogued piece carries; without them a
@@ -218,7 +220,9 @@ export async function confirmWearPhoto(req: Request, res: Response) {
           ...(row.category !== 'other' ? { attrConfidence: { category: 1 } } : {}),
         },
       });
-      enqueue(`catalog:${item.id}`, () => catalogItem(item.id, crop, 'image/png'));
+      // The crop may hold more than this garment (a blazer worn over a top,
+      // a suit): the description is the target, so the studio isolates it.
+      enqueue(`catalog:${item.id}`, () => catalogItem(item.id, crop, 'image/png', row.description || undefined));
       added.push({ id: item.id });
     }
   }
