@@ -16,6 +16,17 @@ import {
 
 const POLL_MS = 60_000
 
+/** Where a notification lands: the post it's about when the payload names one. */
+function landing(n: Notification, fallback: string): string {
+  const t = n.payload.target
+  const id = n.payload.targetId
+  if (typeof t === 'string' && typeof id === 'string') return `/circle?focus=${t}:${id}`
+  if (typeof n.payload.wearLogId === 'string') return `/circle?focus=look:${n.payload.wearLogId}`
+  if (typeof n.payload.pickId === 'string') return `/circle?focus=pick:${n.payload.pickId}`
+  if (typeof n.payload.pollId === 'string') return `/circle?focus=verdict:${n.payload.pollId}`
+  return fallback
+}
+
 function line(n: Notification): { text: string; to: string } {
   const who = n.actorName ?? n.actorHandle ?? 'Someone'
   const profile = n.actorHandle ? `/u/${n.actorHandle}` : '/circle'
@@ -25,22 +36,28 @@ function line(n: Notification): { text: string; to: string } {
     case 'invite_joined':
       return { text: `${who} came in on your invite — you follow each other now.`, to: profile }
     case 'pick_received':
-      return { text: `${who} styled a look for you.`, to: '/circle' }
+      return { text: `${who} styled a look for you.`, to: landing(n, '/circle') }
     case 'pick_worn':
       return { text: `${who} wore the look you picked — a good eye.`, to: profile }
     case 'look_reacted': {
       const kind = String(n.payload.kind ?? '')
-      const verb = kind === 'bold' ? 'called your look bold' : kind === 'love' ? 'loved your look' : 'would wear your look'
-      return { text: `${who} ${verb}.`, to: '/circle' }
+      const what = n.payload.target === 'verdict' ? 'your verdict' : n.payload.target === 'pick' ? 'the look you picked' : 'your look'
+      const verb = kind === 'bold' ? `called ${what} bold` : kind === 'love' ? `loved ${what}` : `would wear ${what}`
+      return { text: `${who} ${verb}.`, to: landing(n, '/circle') }
     }
     case 'look_recreated':
       return { text: `${who} recreated your look from their own closet.`, to: profile }
     case 'commented': {
       const preview = String(n.payload.preview ?? '')
-      return { text: `${who} left a note on your ${n.payload.target === 'verdict' ? 'verdict' : 'look'}${preview ? `: “${preview}”` : '.'}`, to: '/circle' }
+      const on = n.payload.target === 'verdict' ? 'your verdict' : n.payload.target === 'pick' ? 'a pick' : 'your look'
+      return { text: `${who} left a note on ${on}${preview ? `: “${preview}”` : '.'}`, to: landing(n, '/circle') }
     }
     case 'mentioned':
-      return { text: `${who} mentioned you in a note.`, to: '/circle' }
+      return { text: `${who} mentioned you in a note.`, to: landing(n, '/circle') }
+    case 'verdict_asked': {
+      const q = String(n.payload.question ?? 'which one')
+      return { text: `${who} asked you: “${q}”`, to: landing(n, '/circle') }
+    }
     case 'verdict_settled': {
       const w = n.payload.winner ? String(n.payload.winner).toUpperCase() : null
       const q = String(n.payload.question ?? 'your verdict')
@@ -49,7 +66,7 @@ function line(n: Notification): { text: string; to: string } {
         text: mine
           ? w ? `The verdict is in on “${q}”: ${w} won.` : `The verdict is in on “${q}” — a split. Your call.`
           : w ? `${who}’s verdict settled: ${w} won.` : `${who}’s verdict settled in a split.`,
-        to: '/circle',
+        to: landing(n, '/circle'),
       }
     }
     case 'laundry_due': {

@@ -410,6 +410,9 @@ model Poll {
   options   Json
   expiresAt DateTime
   createdAt DateTime @default(now())
+  // Who it's asked of: circle (everyone who follows you) | friends (named) | link (only the page)
+  audience    String   @default("circle")
+  audienceIds String[] @default([])
   // Set once the asker (and voters) have been told the verdict is in.
   settledNotifiedAt DateTime?
 

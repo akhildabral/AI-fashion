@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Arch, Modal } from './ui'
 import { Spinner } from './Spinner'
 import { resolveImageUrl } from '../lib/api'
 import { clearLookPhoto, getMyRecentLooks, setLookPhoto, setLookPhotoFromRender, shareLook, unshareLook, type MyLook } from '../lib/circle'
+import { getOutfits, type Outfit } from '../lib/outfits'
+import { getNetwork, type NetworkEntry } from '../lib/social'
+import { FlatLay } from './CircleCards'
 import { getTryOns } from '../lib/tryon'
 import { getWardrobe } from '../lib/wardrobe'
-import { createPoll } from '../lib/polls'
+import { createPoll, type PollAudience, type PollOptionInput } from '../lib/polls'
 import type { TryOn, WardrobeItem } from '../lib/types'
 
 // Composing from inside the Circle: put a recent wear on the circle, or ask
@@ -179,14 +182,50 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
 
 /* ---------- Ask the circle ---------- */
 
-type Source = 'renders' | 'closet'
+type Source = 'outfits' | 'looks' | 'renders' | 'pieces'
+
+/** Something you can ask with: a picture, or a set of pieces the server lays out on a board. */
+interface Candidate {
+  key: string
+  label: string
+  imageUrl?: string
+  items?: { id: string; imageUrl: string; subtype: string | null; category: string }[]
+}
+
+const SOURCES: { key: Source; label: string }[] = [
+  { key: 'outfits', label: 'Outfits' },
+  { key: 'looks', label: 'Recent looks' },
+  { key: 'renders', label: 'Renders' },
+  { key: 'pieces', label: 'Pieces' },
+]
+
+const EXPIRIES: { key: string; label: string; minutes: () => number }[] = [
+  { key: 'day', label: '24 hours', minutes: () => 24 * 60 },
+  {
+    key: 'tonight',
+    label: 'Until tonight',
+    minutes: () => {
+      const t = new Date()
+      t.setHours(20, 0, 0, 0)
+      if (t.getTime() < Date.now() + 5 * 60_000) t.setDate(t.getDate() + 1)
+      return Math.max(5, Math.round((t.getTime() - Date.now()) / 60_000))
+    },
+  },
+  { key: 'three', label: '3 days', minutes: () => 3 * 24 * 60 },
+]
 
 export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onClose: () => void; onAsked: () => void }) {
-  const [source, setSource] = useState<Source>('renders')
+  const [source, setSource] = useState<Source>('outfits')
+  const [outfits, setOutfits] = useState<Outfit[] | null>(null)
+  const [looks, setLooks] = useState<MyLook[] | null>(null)
   const [renders, setRenders] = useState<TryOn[] | null>(null)
   const [closet, setCloset] = useState<WardrobeItem[] | null>(null)
-  const [chosen, setChosen] = useState<string[]>([])
+  const [people, setPeople] = useState<NetworkEntry[] | null>(null)
+  const [chosen, setChosen] = useState<Candidate[]>([])
   const [question, setQuestion] = useState('')
+  const [audience, setAudience] = useState<PollAudience>('circle')
+  const [friends, setFriends] = useState<string[]>([])
+  const [expiry, setExpiry] = useState('day')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -195,37 +234,56 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
     setChosen([])
     setQuestion('')
     setError(null)
-    setRenders(null)
-    setCloset(null)
-    void getTryOns()
+    setAudience('circle')
+    setFriends([])
+    setExpiry('day')
+    void getOutfits()
       .then((r) => {
-        setRenders(r.tryOns)
-        if (r.tryOns.length < 2) setSource('closet')
+        setOutfits(r.outfits)
+        if (r.outfits.length < 2) setSource('looks')
       })
-      .catch(() => {
-        setRenders([])
-        setSource('closet')
-      })
-    void getWardrobe()
-      .then((r) => setCloset(r.items.filter((i) => i.status === 'ready')))
-      .catch(() => setCloset([]))
+      .catch(() => setOutfits([]))
+    void getMyRecentLooks().then((r) => setLooks(r.looks)).catch(() => setLooks([]))
+    void getTryOns().then((r) => setRenders(r.tryOns.filter((t) => t.status === 'ready' && t.imageUrl))).catch(() => setRenders([]))
+    void getWardrobe().then((r) => setCloset(r.items.filter((i) => i.status === 'ready'))).catch(() => setCloset([]))
+    void getNetwork().then((n) => setPeople(n.following)).catch(() => setPeople([]))
   }, [open])
 
-  const pool: { id: string; imageUrl: string; label: string }[] =
-    source === 'renders'
-      ? (renders ?? []).map((r) => ({ id: r.imageUrl, imageUrl: r.imageUrl, label: 'Render' }))
-      : (closet ?? []).map((i) => ({ id: i.imageUrl, imageUrl: i.imageUrl, label: i.subtype ?? i.category }))
+  const pool: Candidate[] =
+    source === 'outfits'
+      ? (outfits ?? []).map((o) => ({ key: `o-${o.id}`, label: o.rationale?.slice(0, 40) || o.eventType, items: o.items }))
+      : source === 'looks'
+        ? (looks ?? []).map((l) => ({ key: `l-${l.id}`, label: dayLabel(l.wornOn), items: l.items, imageUrl: l.photoUrl ?? undefined }))
+        : source === 'renders'
+          ? (renders ?? []).map((r) => ({ key: `r-${r.id}`, label: 'Render', imageUrl: r.imageUrl }))
+          : (closet ?? []).map((i) => ({ key: `p-${i.id}`, label: i.subtype ?? i.category, imageUrl: i.imageUrl }))
 
-  function pick(url: string) {
-    setChosen((c) => (c.includes(url) ? c.filter((x) => x !== url) : c.length >= 3 ? c : [...c, url]))
+  const loading = source === 'outfits' ? outfits === null : source === 'looks' ? looks === null : source === 'renders' ? renders === null : closet === null
+
+  function pick(c: Candidate) {
+    setChosen((cs) => (cs.some((x) => x.key === c.key) ? cs.filter((x) => x.key !== c.key) : cs.length >= 3 ? cs : [...cs, c]))
   }
 
   async function ask() {
     if (chosen.length < 2 || sending) return
+    if (audience === 'friends' && friends.length === 0) {
+      setError('Pick at least one friend to ask.')
+      return
+    }
     setSending(true)
     setError(null)
     try {
-      await createPoll({ imageUrls: chosen, question: question.trim() || undefined, expiresInMinutes: 24 * 60 })
+      const options: PollOptionInput[] = chosen.map((c) =>
+        // A look with a photo asks with the photo; otherwise its pieces become a board.
+        c.imageUrl && (!c.items || c.key.startsWith('l-')) ? { imageUrl: c.imageUrl, label: c.label } : { itemIds: (c.items ?? []).map((i) => i.id), label: c.label },
+      )
+      await createPoll({
+        options,
+        question: question.trim() || undefined,
+        audience,
+        friendHandles: audience === 'friends' ? friends : undefined,
+        expiresInMinutes: EXPIRIES.find((e) => e.key === expiry)?.minutes() ?? 24 * 60,
+      })
       onAsked()
       onClose()
     } catch (err) {
@@ -235,96 +293,125 @@ export function AskCircleModal({ open, onClose, onAsked }: { open: boolean; onCl
     }
   }
 
-  const loading = source === 'renders' ? renders === null : closet === null
+  const empty: Record<Source, ReactNode> = {
+    outfits: (
+      <>
+        Save a couple of outfits first — from{' '}
+        <Link to="/closet/outfits" onClick={onClose} className="font-semibold text-brass hover:underline">
+          the Closet
+        </Link>
+        .
+      </>
+    ),
+    looks: 'Wear a few days and they gather here.',
+    renders: (
+      <>
+        You need two renders to compare.{' '}
+        <Link to="/mirror" onClick={onClose} className="font-semibold text-brass hover:underline">
+          Try a look in the Mirror
+        </Link>
+        .
+      </>
+    ),
+    pieces: 'Add a few pieces to your closet first.',
+  }
 
   return (
     <Modal open={open} onClose={onClose} title="Ask the circle">
-      <p className="text-sm text-ink/60">Pick two or three, ask which. Your circle votes; you see the verdict.</p>
+      <p className="text-sm text-ink/60">Two or three of anything. Ask everyone, a few friends, or just a link.</p>
 
-      <div role="tablist" aria-label="Choose from" className="tabs mt-4">
-        {(['renders', 'closet'] as Source[]).map((s) => (
-          <button
-            key={s}
-            role="tab"
-            type="button"
-            aria-selected={source === s}
-            onClick={() => {
-              setSource(s)
-              setChosen([])
-            }}
-            className="tab press"
-          >
-            {s === 'renders' ? 'Mirror renders' : 'Closet pieces'}
+      {/* what to ask with */}
+      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Ask with</p>
+      <div role="tablist" aria-label="Choose from" className="tabs mt-2">
+        {SOURCES.map((s) => (
+          <button key={s.key} role="tab" type="button" aria-selected={source === s.key} onClick={() => setSource(s.key)} className="tab press">
+            {s.label}
           </button>
         ))}
       </div>
-
       {loading && (
         <div className="py-10 text-center text-ink/40">
           <Spinner className="h-5 w-5" />
         </div>
       )}
-      {!loading && pool.length < 2 && (
-        <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center text-sm text-ink/60">
-          {source === 'renders' ? (
-            <>
-              You need two renders to compare.{' '}
-              <Link to="/mirror" onClick={onClose} className="font-semibold text-brass hover:underline">
-                Try a look in the Mirror
-              </Link>
-              .
-            </>
-          ) : (
-            'Add a few pieces to your closet first.'
-          )}
-        </div>
-      )}
-      {!loading && pool.length >= 2 && (
-        <div className="mt-4 grid max-h-[40vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
-          {pool.map((p) => {
-            const idx = chosen.indexOf(p.id)
+      {!loading && pool.length === 0 && <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center text-sm text-ink/60">{empty[source]}</div>}
+      {!loading && pool.length > 0 && (
+        <div className="mt-3 grid max-h-[38vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
+          {pool.map((c) => {
+            const idx = chosen.findIndex((x) => x.key === c.key)
             return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => pick(p.id)}
-                aria-pressed={idx >= 0}
-                className="press relative text-left"
-                aria-label={idx >= 0 ? `Remove ${p.label}` : `Choose ${p.label}`}
-              >
-                <Arch aspect={source === 'renders' ? 'aspect-[3/4]' : 'aspect-[4/5]'} bright={idx >= 0}>
-                  <img
-                    src={resolveImageUrl(p.imageUrl)}
-                    alt={p.label}
-                    loading="lazy"
-                    className={`relative z-[1] h-full w-full ${source === 'renders' ? 'object-cover' : 'object-contain p-[10%]'}`}
-                  />
-                </Arch>
-                {idx >= 0 && (
-                  <span className="absolute right-1.5 top-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)]">
-                    {'ABC'[idx]}
-                  </span>
+              <button key={c.key} type="button" onClick={() => pick(c)} aria-pressed={idx >= 0} className="press relative text-left" aria-label={idx >= 0 ? `Remove ${c.label}` : `Choose ${c.label}`}>
+                {c.items && !(c.imageUrl && c.key.startsWith('l-')) ? (
+                  <Arch aspect="aspect-[4/5]" bright={idx >= 0}>
+                    <FlatLay items={c.items} frameRatio={0.8} />
+                  </Arch>
+                ) : (
+                  <Arch aspect="aspect-[4/5]" bright={idx >= 0}>
+                    <img src={resolveImageUrl(c.imageUrl ?? '')} alt={c.label} loading="lazy" className={`relative z-[1] h-full w-full ${source === 'pieces' ? 'object-contain p-[10%]' : 'object-cover'}`} />
+                  </Arch>
                 )}
+                {idx >= 0 && <span className="absolute right-1.5 top-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)]">{'ABC'[idx]}</span>}
+                <p className="mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/55">{c.label}</p>
               </button>
             )
           })}
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          maxLength={140}
-          className="field flex-1 !py-2 !text-sm"
-          placeholder="Which one should I wear? (optional)"
-        />
-        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary btn-sm disabled:opacity-40">
+      <input type="text" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={140} className="field mt-4 !text-sm" placeholder="Which one should I wear? (optional)" />
+
+      {/* who */}
+      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Ask</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(
+          [
+            ['circle', 'Everyone'],
+            ['friends', 'A few friends'],
+            ['link', 'Just a link'],
+          ] as [PollAudience, string][]
+        ).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setAudience(k)} aria-pressed={audience === k} className="chip">
+            {l}
+          </button>
+        ))}
+      </div>
+      {audience === 'friends' && (
+        <div className="mt-2">
+          {people === null && <Spinner className="h-4 w-4" />}
+          {people && people.length === 0 && <p className="text-xs text-ink/50">Follow a few people first; they’ll appear here.</p>}
+          {people && people.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {people.slice(0, 24).map((p) => (
+                <button key={p.handle} type="button" onClick={() => setFriends((f) => (f.includes(p.handle) ? f.filter((x) => x !== p.handle) : f.length >= 8 ? f : [...f, p.handle]))} aria-pressed={friends.includes(p.handle)} className="chip !h-8 !text-xs">
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-ink/45">They’re told; the rest of the circle isn’t.</p>
+        </div>
+      )}
+      {audience === 'link' && <p className="mt-2 text-xs text-ink/45">Only people with the link see it. You still see who voted, if they’re members.</p>}
+
+      {/* how long */}
+      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">For</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {EXPIRIES.map((e) => (
+          <button key={e.key} type="button" onClick={() => setExpiry(e.key)} aria-pressed={expiry === e.key} className="chip">
+            {e.label}
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="mt-3 alert-error">{error}</p>}
+      <div className="action-row mt-5">
+        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary disabled:opacity-40">
           {sending ? 'Asking…' : `Ask (${chosen.length}/3)`}
         </button>
+        <button type="button" onClick={onClose} className="btn-quiet">
+          Cancel
+        </button>
       </div>
-      {error && <p className="mt-2 alert-error">{error}</p>}
     </Modal>
   )
 }

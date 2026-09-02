@@ -25,7 +25,7 @@ import {
   type VerdictPost,
 } from '../services/circle.service';
 
-type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; votes: { optionId: string; voterKey: string }[]; user: PersonRow };
+type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; audience: string; audienceIds: string[]; votes: { optionId: string; voterKey: string }[]; user: PersonRow };
 type PickRow = { id: string; byUserId: string; itemIds: string[]; note: string | null; createdAt: Date; byUser: PersonRow };
 
 /** Shape polls into verdict posts from the viewer's side. */
@@ -34,6 +34,14 @@ async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now())
   const ids = polls.map((p) => p.id);
   const [comments, reactions] = await Promise.all([commentCounts('verdict', ids), reactionSummaries('verdict', ids, me)]);
   const myKey = voterKeyFor(me);
+  // Names for the people a verdict was asked of, and for signed-in voters (the asker sees who answered).
+  const peopleIds = new Set<string>();
+  for (const p of polls) {
+    for (const id of p.audienceIds) peopleIds.add(id);
+    if (p.userId === me) for (const v of p.votes) if (v.voterKey.startsWith('user:')) peopleIds.add(v.voterKey.slice(5));
+  }
+  const people = peopleIds.size ? await prisma.user.findMany({ where: { id: { in: [...peopleIds] } }, select: { id: true, handle: true, firstName: true, lastName: true } }) : [];
+  const nameOf = new Map(people.map((p) => [p.id, displayName(p)]));
   return polls.map((poll) => {
     const isMine = poll.userId === me;
     const settled = poll.expiresAt.getTime() < now;
@@ -56,6 +64,10 @@ async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now())
       myVote,
       comments: comments.get(poll.id) ?? 0,
       reactions: reactions.get(poll.id) ?? EMPTY_REACTIONS,
+      audience: poll.audience as 'circle' | 'friends' | 'link',
+      askedOf: poll.audienceIds.map((id) => nameOf.get(id)).filter((n): n is string => Boolean(n)),
+      askedMe: poll.audienceIds.includes(me),
+      voters: isMine ? poll.votes.filter((v) => v.voterKey.startsWith('user:')).map((v) => ({ name: nameOf.get(v.voterKey.slice(5)) ?? 'Someone', optionId: v.optionId })) : [],
     };
   });
 }
@@ -110,11 +122,13 @@ export async function circleFeed(req: Request, res: Response) {
       where: {
         OR: [
           { userId: me, createdAt: { gte: monthAgo } },
-          // Friends' verdicts: open ones you can still weigh in on, and
-          // recently settled ones so you see how it went.
+          // Your circle's verdicts asked of everyone: open ones you can still
+          // weigh in on, and recently settled ones so you see how it went.
           ...(circle.length > 0
-            ? [{ userId: { in: circle }, OR: [{ expiresAt: { gt: new Date(now) } }, { expiresAt: { gte: weekAgo } }] }]
+            ? [{ userId: { in: circle }, audience: 'circle', OR: [{ expiresAt: { gt: new Date(now) } }, { expiresAt: { gte: weekAgo } }] }]
             : []),
+          // Verdicts asked of you by name.
+          { audienceIds: { has: me }, userId: { notIn: [...hidden] }, OR: [{ expiresAt: { gt: new Date(now) } }, { expiresAt: { gte: weekAgo } }] },
         ],
       },
       orderBy: { createdAt: 'desc' },

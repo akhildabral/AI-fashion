@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { notify } from '../lib/notify';
+import { renderBoard } from '../services/share.service';
+import { saveImageBuffer } from '../lib/storage';
 
 // Verdict polls (plan §8.1): "which of these?" — the highest-frequency social
 // action in fashion, already happening in messaging groups. The share link is
@@ -14,13 +17,27 @@ const OPTION_IDS = ['a', 'b', 'c'] as const;
 interface PollOption {
   id: string;
   imageUrl: string;
+  // When the option is an outfit or a look, the pieces behind the board.
+  itemIds?: string[];
+  label?: string;
 }
+
+const optionSchema = z.union([
+  z.object({ imageUrl: z.string().min(1).max(500), label: z.string().max(60).optional() }),
+  z.object({ itemIds: z.array(z.string().uuid()).min(1).max(8), label: z.string().max(60).optional() }),
+]);
 
 const createSchema = z.object({
   question: z.string().max(140).optional(),
-  imageUrls: z.array(z.string().min(1).max(500)).min(2).max(3),
-  // Plan default is a fast-expiring poll; capped at 24h.
-  expiresInMinutes: z.number().int().min(5).max(1440).default(30),
+  // Old shape (the Mirror still sends it) …
+  imageUrls: z.array(z.string().min(1).max(500)).min(2).max(3).optional(),
+  // … or anything: photos/renders by url, outfits and looks by their pieces.
+  options: z.array(optionSchema).min(2).max(3).optional(),
+  // Who it's asked of.
+  audience: z.enum(['circle', 'friends', 'link']).default('circle'),
+  friendHandles: z.array(z.string().min(3).max(20)).max(8).optional(),
+  // Up to three days.
+  expiresInMinutes: z.number().int().min(5).max(4320).default(1440),
 });
 
 function shareOrigin(req: Request): string {
@@ -37,21 +54,47 @@ function withMeta(req: Request, poll: { id: string; expiresAt: Date }) {
 
 export async function createPoll(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { question, imageUrls, expiresInMinutes } = createSchema.parse(req.body);
+  const me = req.user.id;
+  const body = createSchema.parse(req.body);
+  const raw: ({ imageUrl: string; label?: string } | { itemIds: string[]; label?: string })[] = body.options ?? (body.imageUrls ?? []).map((imageUrl) => ({ imageUrl }));
+  if (raw.length < 2) throw new HttpError(400, 'Pick two or three');
 
-  const options: PollOption[] = imageUrls.map((imageUrl, i) => ({
-    id: OPTION_IDS[i],
-    imageUrl,
-  }));
+  // Outfits and looks become boards; a render or a piece is already a picture.
+  const options: PollOption[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const o = raw[i];
+    if ('itemIds' in o) {
+      const items = await prisma.wardrobeItem.findMany({ where: { id: { in: o.itemIds }, userId: me }, select: { id: true, imageUrl: true, category: true, subtype: true } });
+      if (items.length === 0) throw new HttpError(400, 'Those pieces aren’t in your closet');
+      const ordered = o.itemIds.map((id) => items.find((x) => x.id === id)).filter((x): x is (typeof items)[number] => Boolean(x));
+      const stored = await saveImageBuffer(await renderBoard(ordered), 'jpg');
+      options.push({ id: OPTION_IDS[i], imageUrl: stored.url, itemIds: ordered.map((x) => x.id), label: o.label });
+    } else {
+      options.push({ id: OPTION_IDS[i], imageUrl: o.imageUrl, label: o.label });
+    }
+  }
+
+  // A few friends: only people you follow, by their address.
+  let audienceIds: string[] = [];
+  if (body.audience === 'friends') {
+    const handles = [...new Set((body.friendHandles ?? []).map((h) => h.toLowerCase()))];
+    if (handles.length === 0) throw new HttpError(400, 'Pick at least one friend to ask');
+    const people = await prisma.user.findMany({ where: { handle: { in: handles }, followers: { some: { followerId: me } } }, select: { id: true } });
+    audienceIds = people.map((p) => p.id);
+    if (audienceIds.length === 0) throw new HttpError(400, 'Ask people you follow');
+  }
 
   const poll = await prisma.poll.create({
     data: {
-      userId: req.user.id,
-      question: question?.trim() || 'Which one should I wear?',
+      userId: me,
+      question: body.question?.trim() || 'Which one should I wear?',
       options: options as unknown as Prisma.InputJsonValue,
-      expiresAt: new Date(Date.now() + expiresInMinutes * 60_000),
+      expiresAt: new Date(Date.now() + body.expiresInMinutes * 60_000),
+      audience: body.audience,
+      audienceIds,
     },
   });
+  for (const uid of audienceIds) void notify(uid, 'verdict_asked', me, { pollId: poll.id, target: 'verdict', targetId: poll.id, question: poll.question });
 
   res.status(201).json({ poll: { ...poll, votes: [], ...withMeta(req, poll) } });
 }
@@ -136,16 +179,12 @@ export async function votePoll(req: Request, res: Response) {
     throw new HttpError(400, 'Unknown option');
   }
 
-  try {
-    await prisma.pollVote.create({ data: { pollId: id, optionId, voterKey } });
-  } catch (err) {
-    // Unique (pollId, voterKey): this browser already voted — that's fine.
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-      res.json({ ok: true, alreadyVoted: true });
-      return;
-    }
-    throw err;
-  }
-
-  res.json({ ok: true, alreadyVoted: false });
+  // One vote each, changeable until it settles.
+  const existing = await prisma.pollVote.findUnique({ where: { pollId_voterKey: { pollId: id, voterKey } } });
+  await prisma.pollVote.upsert({
+    where: { pollId_voterKey: { pollId: id, voterKey } },
+    create: { pollId: id, optionId, voterKey },
+    update: { optionId },
+  });
+  res.json({ ok: true, alreadyVoted: Boolean(existing), changed: Boolean(existing && existing.optionId !== optionId) });
 }

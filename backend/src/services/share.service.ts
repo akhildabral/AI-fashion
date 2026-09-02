@@ -103,6 +103,43 @@ export async function renderLookCard(items: CardItem[], opts: { title: string; l
   return sharp(Buffer.from(svg)).composite(layers).png().toBuffer();
 }
 
+/**
+ * An outfit as a picture: the pieces laid out on the lit board, portrait,
+ * no text — what a verdict option or a look needs when it isn't a photo.
+ */
+export async function renderBoard(items: CardItem[], size = 900): Promise<Buffer> {
+  const ordered = dressingOrder(items);
+  const bw = size;
+  const bh = Math.round(size * (4 / 3));
+  const measured = await Promise.all(
+    ordered.map(async (it) => {
+      try {
+        const meta = await sharp(await readStored(it.imageUrl)).trim({ threshold: 8 }).toBuffer({ resolveWithObject: true });
+        return { ...it, aspect: (meta.info.height || 1) / (meta.info.width || 1) };
+      } catch {
+        return { ...it, aspect: undefined };
+      }
+    }),
+  );
+  const placed = composeLook(measured, bw / bh, 0.08);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}">
+    <defs><radialGradient id="n" cx="50%" cy="30%" r="80%"><stop offset="0" stop-color="#fdfbf6"/><stop offset="1" stop-color="#efe7d7"/></radialGradient></defs>
+    <rect width="${bw}" height="${bh}" fill="url(#n)"/>
+  </svg>`;
+  const layers: OverlayOptions[] = [];
+  for (const p of placed) {
+    const it = measured[p.index];
+    const boxW = Math.round((p.w / 100) * bw);
+    const boxH = Math.round((p.h / 100) * bh);
+    const t = await trimmed(it.imageUrl, boxW, boxH);
+    if (!t) continue;
+    const rotated = await sharp(t.buf).rotate(p.rot, { background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+    const rm = await sharp(rotated).metadata();
+    layers.push({ input: rotated, left: Math.round((p.left / 100) * bw + (boxW - (rm.width ?? boxW)) / 2), top: Math.round((p.top / 100) * bh + (boxH - (rm.height ?? boxH)) / 2) });
+  }
+  return sharp(Buffer.from(svg)).composite(layers).jpeg({ quality: 86 }).toBuffer();
+}
+
 /** One piece in its niche, with its story line. */
 export async function renderPieceCard(item: CardItem, opts: { title: string; line?: string; who?: string }): Promise<Buffer> {
   const bx = 190;

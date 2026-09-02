@@ -18,10 +18,16 @@ export interface Poll {
   expired: boolean
 }
 
-/** POST /api/polls — create a verdict poll from 2-3 image URLs. */
+export type PollOptionInput = { imageUrl: string; label?: string } | { itemIds: string[]; label?: string }
+export type PollAudience = 'circle' | 'friends' | 'link'
+
+/** POST /api/polls — ask a verdict with two or three of anything, of everyone, a few friends, or a link. */
 export function createPoll(params: {
-  imageUrls: string[]
+  imageUrls?: string[]
+  options?: PollOptionInput[]
   question?: string
+  audience?: PollAudience
+  friendHandles?: string[]
   expiresInMinutes?: number
 }): Promise<{ poll: Poll }> {
   return apiFetch<{ poll: Poll }>('/polls', { method: 'POST', body: params })

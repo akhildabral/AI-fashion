@@ -602,7 +602,8 @@ function Count({ n }: { n: number }) {
 export function VerdictCard({ post, actions, onVote, highlight = false }: { post: VerdictPost; actions: CardActions; onVote: (pollId: string, optionId: string) => Promise<void>; highlight?: boolean }) {
   const [voting, setVoting] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const canVote = !post.settled && !post.isMine && !post.myVote
+  // One vote each, changeable until it settles.
+  const canVote = !post.settled && !post.isMine
   const counts = post.counts
   const leader = counts ? Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] : null
   const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
@@ -617,7 +618,11 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
       <PostHeader
         handle={post.handle}
         name={post.name}
-        meta={post.isMine ? `Your verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}` : `needs a verdict · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`}
+        meta={
+          post.isMine
+            ? `Your verdict${post.audience === 'friends' ? ` · asked ${post.askedOf.slice(0, 2).join(' and ')}${post.askedOf.length > 2 ? ` +${post.askedOf.length - 2}` : ''}` : post.audience === 'link' ? ' · by link' : ''} · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`
+            : `${post.askedMe ? 'asked you' : 'needs a verdict'} · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`
+        }
         plate={<Plate>{post.settled ? 'Verdict is in' : 'Verdict'}</Plate>}
         menu={<CardMenu items={menu} />}
       />
@@ -658,11 +663,12 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
               type="button"
               disabled={voting !== null}
               onClick={() => {
+                if (chosen) return
                 setVoting(o.id)
                 void onVote(post.id, o.id).finally(() => setVoting(null))
               }}
               className="press flex-1 text-left disabled:opacity-60"
-              aria-label={`Vote ${o.id.toUpperCase()}`}
+              aria-label={chosen ? `Your vote: ${o.id.toUpperCase()}` : `Vote ${o.id.toUpperCase()}`}
             >
               {inner}
             </button>
@@ -674,11 +680,15 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
         })}
       </div>
       <p className="mt-3 px-4 text-xs text-ink/50">
-        {canVote
-          ? 'Tap the one they should wear.'
-          : post.settled
-            ? `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} · settled`
-            : `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} so far${post.myVote ? ' · you weighed in' : ''}`}
+        {post.settled
+          ? `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} · settled`
+          : post.isMine
+            ? post.voters.length > 0
+              ? `${post.voters.map((v) => `${v.name} (${v.optionId.toUpperCase()})`).slice(0, 4).join(', ')}${post.voters.length > 4 ? ` and ${post.voters.length - 4} more` : ''}${post.totalVotes > post.voters.length ? ` · ${post.totalVotes - post.voters.length} by link` : ''}`
+              : `${post.totalVotes} vote${post.totalVotes === 1 ? '' : 's'} so far`
+            : post.myVote
+              ? 'You weighed in. Tap another to change your mind until it settles.'
+              : 'Tap the one they should wear.'}
       </p>
 
       <CardFoot>

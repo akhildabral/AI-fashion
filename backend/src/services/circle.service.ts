@@ -61,6 +61,12 @@ export interface VerdictPost {
   myVote: string | null;
   comments: number;
   reactions: ReactionSummary;
+  audience: 'circle' | 'friends' | 'link';
+  /** Names of the people it was asked of, when a few friends. */
+  askedOf: string[];
+  askedMe: boolean;
+  /** For the asker: who answered, and how. */
+  voters: { name: string; optionId: string }[];
 }
 
 export interface PickPost {
@@ -270,7 +276,7 @@ export function score(post: CirclePost, now: number, ctx: RankContext = {}): num
   // A look someone made for you outranks anything fresh for about two days.
   if (post.type === 'pick') s += 90;
   if (post.type === 'verdict') {
-    if (!post.settled && !post.isMine && !post.myVote) s += 45;
+    if (!post.settled && !post.isMine && !post.myVote) s += post.askedMe ? 70 : 45;
     else if (post.settled && post.isMine) s += 25;
     else if (!post.settled) s += 10;
     s += Math.min(12, post.comments * 3);

@@ -55,6 +55,10 @@ export interface VerdictPost {
   myVote: string | null
   comments: number
   reactions: ReactionSummary
+  audience: 'circle' | 'friends' | 'link'
+  askedOf: string[]
+  askedMe: boolean
+  voters: { name: string; optionId: string }[]
 }
 
 export interface PickPost {
@@ -123,7 +127,7 @@ export function voteOnVerdict(pollId: string, optionId: string, userId: string) 
 
 export interface Notification {
   id: string
-  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge' | 'invite_joined'
+  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge' | 'invite_joined' | 'verdict_asked'
   actorHandle: string | null
   actorName: string | null
   payload: Record<string, unknown>

@@ -12,7 +12,8 @@ export type NotificationType =
   | 'verdict_settled'
   | 'laundry_due'
   | 'wishlist_nudge'
-  | 'invite_joined';
+  | 'invite_joined'
+  | 'verdict_asked';
 
 // @handles in a comment body — lowercase, deduped, in order of appearance.
 export function mentionedHandles(body: string): string[] {

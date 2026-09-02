@@ -229,9 +229,8 @@ export function CirclePage() {
     if (!user) return
     try {
       await voteOnVerdict(pollId, optionId, user.id)
-      const r = await getCircleFeed(lens === 'following' ? 'following' : 'foryou', 0)
-      const fresh = r.posts.find((p) => p.type === 'verdict' && p.id === pollId)
-      setPosts((prev) => (prev ? prev.map((p) => (p.type === 'verdict' && p.id === pollId && fresh ? fresh : p)) : prev))
+      const { post } = await getPost('verdict', pollId)
+      patchPost('verdict', pollId, () => post)
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Could not vote.')
     }
