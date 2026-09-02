@@ -63,7 +63,8 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
   }
 
   const used = invite?.used ?? []
-  const left = invite?.left
+  // null = unlimited (admins); the copy below only renders once `invite` is loaded.
+  const left: number | null = invite ? invite.left : null
   const usedLine =
     used.length === 0
       ? 'No one has come in on it yet.'
