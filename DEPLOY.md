@@ -88,9 +88,19 @@ Dumps the database and user images to `~/backups/ai-fashion`, keeping 14 days.
 Normally CI does this for you (§6). Manual equivalent:
 
 ```bash
-cd ~/ai-fashion && git pull
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+cd ~/ai-fashion && sudo -u deploy -H git pull
+bash deploy/deploy.sh
 ```
+
+`deploy/deploy.sh` is the whole safe sequence below in one file: it builds
+first and halts if the build fails, swaps only `backend` and `web`, renames a
+hash-prefixed container back, waits for the backend to be healthy, and checks
+the site answers 200 (set `PUBLIC_ORIGIN=https://…` in `.env.prod` for that
+last check). Always pass `-f docker-compose.prod.yml`: the bare
+`docker-compose.yml` is the dev file and only knows about `db`.
+
+When a real domain lands, change `VITE_PUBLIC_ORIGIN` in `frontend/.env.production`
+(share-card URLs) and `PUBLIC_ORIGIN` in `.env.prod`, then deploy.
 
 > **Recreating backend/web safely.** `up -d --build` (and especially
 > `--force-recreate`) can fail with *"container name /<hash>_ai-fashion-backend-1

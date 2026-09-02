@@ -234,6 +234,10 @@ export function updateTrip(id: string, data: { checked?: string[]; packedItemIds
 export function swapTripItem(id: string, itemId: string) {
   return apiFetch<{ trip: Trip; swappedFor: import('./types').WardrobeItem }>(`/trips/${id}/swap`, { method: 'POST', body: { itemId } })
 }
+/** Replan one day from the capsule. */
+export function replanTripDay(id: string, index: number) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/replan`, { method: 'POST', body: {} })
+}
 export function deleteTrip(id: string) {
   return apiFetch<void>(`/trips/${id}`, { method: 'DELETE' })
 }

@@ -54,3 +54,6 @@ deploy/backend.env
 
 # Local-only deploy secrets
 .deploy-secrets/
+
+# The committed public origin for share cards (no secrets in it).
+!frontend/.env.production

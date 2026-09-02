@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { usePageTitle } from '../lib/usePageTitle'
-import { deleteTrip, getTrip, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
+import { deleteTrip, getTrip, replanTripDay, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
 import { getWardrobe } from '../lib/wardrobe'
 import type { WardrobeItem } from '../lib/types'
 import { resolveImageUrl } from '../lib/api'
@@ -85,6 +85,7 @@ export function TripPage() {
   const [swapping, setSwapping] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [replanning, setReplanning] = useState<number | null>(null)
   const saveTimer = useRef<number | null>(null)
 
   const load = useCallback(async () => {
@@ -146,6 +147,18 @@ export function TripPage() {
       flash(`${ids.length} more packed.`)
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Could not pack that.')
+    }
+  }
+  async function replan(index: number) {
+    setReplanning(index)
+    try {
+      await replanTripDay(id, index)
+      await load()
+      flash('That day is replanned from the capsule.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not replan that day.')
+    } finally {
+      setReplanning(null)
     }
   }
   async function remove() {
@@ -308,11 +321,16 @@ export function TripPage() {
         <section className="mt-10 animate-rise-3">
           <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
           <div className="card mt-4 px-5">
-            {days.map((day) => (
+            {days.map((day, i) => (
               <article key={day.label} className="flex flex-col gap-2 border-t border-ink/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:gap-4">
                 <div className="sm:w-40 sm:shrink-0">
                   <p className="text-sm font-semibold text-ink">{day.label}</p>
                   <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>
+                  {!past && (
+                    <button type="button" disabled={replanning !== null} onClick={() => void replan(i)} className="press mt-1 text-[11px] font-semibold text-brass hover:underline disabled:opacity-40">
+                      {replanning === i ? 'Replanning…' : 'Replan this day'}
+                    </button>
+                  )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-wrap gap-2">
                   {day.items.map((item) => (

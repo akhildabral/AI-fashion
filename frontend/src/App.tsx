@@ -16,6 +16,7 @@ import { JoinPage } from './pages/JoinPage'
 import { ForgotPage } from './pages/ForgotPage'
 import { ResetPage } from './pages/ResetPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { PrivacyPage, TermsPage } from './pages/LegalPage'
 import { TodayPage } from './pages/TodayPage'
 import { ClosetPage } from './pages/ClosetPage'
 import { BasketRoom } from './pages/BasketRoom'
@@ -85,6 +86,8 @@ export default function App() {
                 <Route path="/reset" element={<ResetPage />} />
                 <Route path="/register" element={<Navigate to="/landing" replace />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
 
                 {/* The four spaces */}
                 <Route path="/" element={guarded(<TodayPage />)} />

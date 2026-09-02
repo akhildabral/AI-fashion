@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
-import { closestOwned } from '../services/pairing.service';
+import { closestOwned, outfitsAround } from '../services/pairing.service';
+import { EVENT_TYPES, type EventType } from '../lib/attributes';
 
 // Trips: a trip is a page, not a result. The plan is stored with it, the
 // checklist remembers its ticks, the capsule can be edited, and a past trip
@@ -150,6 +151,37 @@ export async function swapTripItem(req: Request, res: Response) {
     },
   });
   res.json({ trip: updated, swappedFor: closet.find((c) => c.id === best.id) });
+}
+
+/** Replan one day from the capsule: the best different outfit the pieces can make. */
+const replanSchema = z.object({ eventType: z.enum(EVENT_TYPES).optional() });
+
+export async function replanTripDay(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const trip = await ownTrip(req.user.id, String(req.params.id));
+  const index = Number(req.params.index);
+  const plan = (trip.plan as TripPlan | null) ?? null;
+  if (!plan || !Number.isInteger(index) || index < 0 || index >= plan.days.length) throw new HttpError(404, 'Day not found');
+  const { eventType } = replanSchema.parse(req.body ?? {});
+  const capsule = await prisma.wardrobeItem.findMany({ where: { id: { in: trip.packedItemIds }, userId: req.user.id } });
+  if (capsule.length < 2) throw new HttpError(400, 'Pack a few more pieces first');
+
+  const current = new Set(plan.days[index].itemIds);
+  const same = (ids: string[]) => ids.length === current.size && ids.every((id) => current.has(id));
+  const seen = new Set<string>();
+  let best: { itemIds: string[]; score: number } | null = null;
+  for (const piece of capsule) {
+    for (const o of outfitsAround(piece, capsule, { eventType: eventType as EventType | undefined, limit: 8 })) {
+      const key = [...o.itemIds].sort().join('|');
+      if (seen.has(key) || same(o.itemIds)) continue;
+      seen.add(key);
+      if (!best || o.score > best.score) best = o;
+    }
+  }
+  if (!best) throw new HttpError(404, 'The capsule can only make this one outfit for that day');
+  const days = plan.days.map((d, i) => (i === index ? { ...d, itemIds: best!.itemIds, note: d.note.replace(/\s*·\s*replanned$/, '') + ' · replanned' } : d));
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan, days } as Prisma.InputJsonValue } });
+  res.json({ trip: updated });
 }
 
 export async function deleteTrip(req: Request, res: Response) {

@@ -36,6 +36,7 @@ export function DoorShell({
           {lead && <p className="mt-3 animate-rise-2 font-display text-lg italic text-ink/55">{lead}</p>}
           {children && <div className="mt-6 animate-rise-3 rounded-[3px] border border-ink/10 bg-surface p-6">{children}</div>}
           {foot && <div className="mt-5 animate-rise-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink/55">{foot}</div>}
+          <LegalLinks className="mt-8 animate-rise-3" />
         </div>
         <div className="mx-auto hidden w-full max-w-sm md:block">
           <Arch aspect="aspect-[3/4]" className="arch-photo w-full">
@@ -44,6 +45,20 @@ export function DoorShell({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Privacy and terms, quietly, on every public page. */
+export function LegalLinks({ className = '' }: { className?: string }) {
+  return (
+    <p className={`flex flex-wrap gap-x-4 text-xs text-ink/40 ${className}`}>
+      <Link to="/privacy" className="hover:text-ink">
+        Privacy
+      </Link>
+      <Link to="/terms" className="hover:text-ink">
+        Terms
+      </Link>
+    </p>
   )
 }
 

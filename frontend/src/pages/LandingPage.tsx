@@ -234,11 +234,19 @@ export function LandingPage() {
         <p className="max-w-lg">
           <span className="font-semibold text-ink/70">Your photo is yours.</span> Delete it any time, and every render made from it goes with it.
         </p>
-        <p>
-          Already a member?{' '}
-          <Link to="/login" className="font-semibold text-brass underline-offset-4 hover:underline">
-            Sign in
+        <p className="flex flex-wrap items-center gap-x-4">
+          <Link to="/privacy" className="hover:text-ink">
+            Privacy
           </Link>
+          <Link to="/terms" className="hover:text-ink">
+            Terms
+          </Link>
+          <span>
+            Already a member?{' '}
+            <Link to="/login" className="font-semibold text-brass underline-offset-4 hover:underline">
+              Sign in
+            </Link>
+          </span>
         </p>
       </footer>
     </div>
