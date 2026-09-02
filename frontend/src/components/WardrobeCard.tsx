@@ -139,6 +139,8 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
               {item.pattern && <Chip>{item.pattern}</Chip>}
               {item.formality && <Chip>{item.formality}</Chip>}
               {item.material && <Chip>{item.material}</Chip>}
+              {item.brand && <Chip>{item.brand}</Chip>}
+              {item.size && <Chip>size {item.size}</Chip>}
               {item.season.map((s) => (
                 <Chip key={s}>{s}</Chip>
               ))}
@@ -218,6 +220,8 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
   const [formality, setFormality] = useState(item.formality ?? '')
   const [material, setMaterial] = useState(item.material ?? '')
   const [price, setPrice] = useState(item.price != null ? String(item.price) : '')
+  const [brand, setBrand] = useState(item.brand ?? '')
+  const [size, setSize] = useState(item.size ?? '')
   const [description, setDescription] = useState(item.description ?? '')
   const [season, setSeason] = useState<string[]>(item.season)
   const [saving, setSaving] = useState(false)
@@ -243,6 +247,8 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
       description: description.trim(),
       season,
       price: price.trim() === '' ? null : Number(price),
+      brand: brand.trim() || null,
+      size: size.trim() || null,
     }
     if (edits.price != null && (Number.isNaN(edits.price) || edits.price < 0)) {
       setError('Price must be a positive number.')
@@ -365,6 +371,21 @@ function WardrobeEditForm({ item, onCancel, onSaved }: WardrobeEditFormProps) {
             className="field"
             placeholder="e.g. 1500"
           />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label" htmlFor={`brand-${item.id}`}>
+            Brand
+          </label>
+          <input id={`brand-${item.id}`} type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="field" placeholder="optional" />
+        </div>
+        <div>
+          <label className="label" htmlFor={`size-${item.id}`}>
+            Size
+          </label>
+          <input id={`size-${item.id}`} type="text" value={size} onChange={(e) => setSize(e.target.value)} className="field" placeholder="e.g. M, 32, 9" />
         </div>
       </div>
 

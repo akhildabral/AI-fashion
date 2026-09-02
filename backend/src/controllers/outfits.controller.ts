@@ -69,3 +69,32 @@ export async function deleteOutfit(req: Request, res: Response) {
   if (r.count === 0) throw new HttpError(404, 'Outfit not found');
   res.json({ ok: true });
 }
+
+// GET /wardrobe/:id/story — last worn, worn with, cost per wear.
+export async function itemStory(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const piece = await prisma.wardrobeItem.findFirst({ where: { id, userId: req.user.id } });
+  if (!piece) throw new HttpError(404, 'Item not found');
+  const logs = await prisma.wearLog.findMany({
+    where: { userId: req.user.id, itemIds: { has: id } },
+    orderBy: { wornOn: 'desc' },
+    select: { wornOn: true, itemIds: true, eventType: true },
+  });
+  const counts = new Map<string, number>();
+  for (const l of logs) for (const other of l.itemIds) if (other !== id) counts.set(other, (counts.get(other) ?? 0) + 1);
+  const topIds = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k);
+  const items = topIds.length ? await prisma.wardrobeItem.findMany({ where: { id: { in: topIds } } }) : [];
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const wearCount = logs.length;
+  const days = new Set(logs.map((l) => l.eventType).filter(Boolean));
+  res.json({
+    wearCount,
+    lastWorn: logs[0]?.wornOn ?? null,
+    firstWorn: logs.length ? logs[logs.length - 1].wornOn : null,
+    costPerWear: piece.price != null && wearCount > 0 ? Math.round(piece.price / wearCount) : null,
+    wornWith: topIds.map((i) => ({ item: byId.get(i), times: counts.get(i) ?? 0 })).filter((w) => w.item),
+    days: [...days],
+    idleDays: logs[0] ? Math.floor((Date.now() - logs[0].wornOn.getTime()) / 86_400_000) : null,
+  });
+}

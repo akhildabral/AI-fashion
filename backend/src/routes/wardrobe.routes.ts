@@ -15,7 +15,7 @@ import {
 import { createOutfitTryOn } from '../controllers/tryon.controller';
 import { requireAuth } from '../middleware/auth';
 import { basketClean, getBasket } from '../controllers/basket.controller';
-import { itemPairs } from '../controllers/outfits.controller';
+import { itemPairs, itemStory } from '../controllers/outfits.controller';
 import { itemVerdict } from '../controllers/store.controller';
 import { quota } from '../middleware/quota';
 import { handleItemUpload } from '../middleware/upload';
@@ -35,6 +35,7 @@ wardrobeRouter.post('/:id/resale-draft', requireAuth, resaleDraft);
 wardrobeRouter.post('/tryon', requireAuth, quota('tryon'), createOutfitTryOn);
 wardrobeRouter.post('/:id/recatalog', requireAuth, quota('catalog'), recatalogItem);
 wardrobeRouter.get('/:id/pairs', requireAuth, itemPairs);
+wardrobeRouter.get('/:id/story', requireAuth, itemStory);
 wardrobeRouter.get('/:id/verdict', requireAuth, itemVerdict);
 wardrobeRouter.patch('/:id', requireAuth, updateItem);
 wardrobeRouter.delete('/:id', requireAuth, deleteItem);

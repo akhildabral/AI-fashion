@@ -90,3 +90,17 @@ export const EVENT_LABEL: Record<string, string> = {
   athletic: "Training",
   travel: "Travel",
 };
+
+export interface StoryResponse {
+  wearCount: number;
+  lastWorn: string | null;
+  firstWorn: string | null;
+  costPerWear: number | null;
+  wornWith: { item: WardrobeItem; times: number }[];
+  days: string[];
+  idleDays: number | null;
+}
+
+export function getStory(itemId: string) {
+  return apiFetch<StoryResponse>(`/wardrobe/${itemId}/story`);
+}

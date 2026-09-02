@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
+import { useNavigate } from 'react-router-dom'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
@@ -8,11 +9,13 @@ import { WardrobeCard } from '../components/WardrobeCard'
 import { GarmentTile, PageShell, Modal } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { GoesWith } from '../components/GoesWith'
+import { PieceStory } from '../components/PieceStory'
+import { LetGoModal } from '../components/LetGo'
 import { PriceDrawer } from '../components/PriceDrawer'
 import { Spinner } from '../components/Spinner'
 
-const MAX_BYTES = 10 * 1024 * 1024
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_BYTES = 12 * 1024 * 1024
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
 interface InsightItem {
   itemId: string
@@ -36,6 +39,7 @@ const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
 export function ClosetPage() {
   usePageTitle('Closet')
+  const navigate = useNavigate()
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
@@ -46,6 +50,7 @@ export function ClosetPage() {
   const [uploading, setUploading] = useState(0)
   const [dragActive, setDragActive] = useState(false)
   const [lens, setLens] = useState<Lens>('gallery')
+  const [lettingGo, setLettingGo] = useState<WardrobeItem | null>(null)
   const [category, setCategory] = useState<string | null>(null)
   const [collection, setCollection] = useState<Collection>('all')
   const [search, setSearch] = useState('')
@@ -84,24 +89,30 @@ export function ClosetPage() {
   }, [hasProcessing])
 
   async function uploadFiles(files: File[]) {
-    const valid = files.filter((f) => ACCEPTED.includes(f.type) && f.size <= MAX_BYTES)
+    const valid = files.filter((f) => (ACCEPTED.includes(f.type) || /\.hei[cf]$/i.test(f.name)) && f.size <= MAX_BYTES)
     if (valid.length === 0) {
-      setUploadError('Use JPG, PNG, or WebP photos up to 10MB.')
+      setUploadError('Use JPG, PNG, WebP or HEIC photos up to 12MB.')
       return
     }
     setUploadError(null)
     setUploading(valid.length)
-    for (const file of valid) {
-      try {
-        const res = await addWardrobeItem(file)
-        const added = res.items ?? [res.item]
-        setItems((prev) => (prev ? [...added, ...prev] : added))
-      } catch (err) {
-        setUploadError(err instanceof Error ? err.message : 'An upload failed.')
-      } finally {
-        setUploading((n) => n - 1)
+    // Three at a time: a first closet of forty photos develops as a board,
+    // not a queue, and each tile appears the moment its upload lands.
+    const queue = [...valid]
+    const worker = async () => {
+      for (let file = queue.shift(); file; file = queue.shift()) {
+        try {
+          const res = await addWardrobeItem(file)
+          const added = res.items ?? [res.item]
+          setItems((prev) => (prev ? [...added, ...prev] : added))
+        } catch (err) {
+          setUploadError(err instanceof Error ? err.message : 'An upload failed.')
+        } finally {
+          setUploading((n) => n - 1)
+        }
       }
     }
+    await Promise.all(Array.from({ length: Math.min(3, valid.length) }, worker))
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -274,7 +285,7 @@ export function ClosetPage() {
                 className="w-40 rounded-[3px] border border-ink/15 bg-surface px-4 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-brass/60 focus:ring-2 focus:ring-brass/20 sm:w-52"
               />
             </label>
-            <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
+            <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={handleFileChange} className="hidden" />
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
             <button
               type="button"
@@ -498,14 +509,24 @@ export function ClosetPage() {
               {idleItems.length > 0 ? (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
                   {idleItems.slice(0, 12).map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSelected(item)}
-                      className="press group block text-left opacity-70 grayscale-[0.25] transition hover:opacity-100 hover:grayscale-0"
-                    >
-                      <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel="idle" />
-                    </button>
+                    <div key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(item)}
+                        className="press group block w-full text-left opacity-70 grayscale-[0.25] transition hover:opacity-100 hover:grayscale-0"
+                      >
+                        <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel="idle" />
+                      </button>
+                      {/* A shelf is not a decision: style it, or let it go. */}
+                      <div className="mt-2 grid grid-cols-2 gap-1.5">
+                        <button type="button" onClick={() => navigate(`/closet/compose?pin=${item.id}`)} className="press rounded-[3px] border border-brass/50 py-1.5 text-[11px] font-semibold text-brass transition-colors hover:bg-iris-soft/40">
+                          Style it
+                        </button>
+                        <button type="button" onClick={() => setLettingGo(item)} className="press rounded-[3px] border border-ink/15 py-1.5 text-[11px] font-semibold text-ink/60 transition-colors hover:border-ink/40 hover:text-ink">
+                          Let it go
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -551,6 +572,16 @@ export function ClosetPage() {
           </div>
         </Modal>
 
+        <LetGoModal
+          item={lettingGo}
+          onClose={() => setLettingGo(null)}
+          onChanged={(u) => {
+            handleUpdated(u)
+            loadInsights()
+          }}
+          onNote={(l) => setUploadError(l)}
+        />
+
         {/* Item detail */}
         <Modal
           open={selected !== null}
@@ -567,6 +598,7 @@ export function ClosetPage() {
               onDeleted={handleDeleted}
             />
           )}
+          {selected && selected.status === 'ready' && <PieceStory itemId={selected.id} />}
           {selected && selected.status === 'ready' && <GoesWith itemId={selected.id} />}
         </Modal>
       </div>
