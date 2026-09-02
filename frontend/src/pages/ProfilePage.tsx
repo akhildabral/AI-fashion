@@ -258,32 +258,38 @@ export function ProfilePage() {
                     ))}
                   </div>
 
-                  <RowLabel>What you reach for · tops</RowLabel>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-7 flex items-end justify-between gap-3">
+                    <RowLabel first>What you reach for · tops</RowLabel>
+                    <input value={sizeDraft.top} onChange={(e) => setSizeDraft((d) => ({ ...d, top: e.target.value }))} onBlur={(e) => setSize('top', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Top size" />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     {TOP_SIZES.map((s) => (
                       <Chip key={s} on={(sizes.top ?? '').toUpperCase() === s} onClick={() => setSize('top', s)}>
                         {s}
                       </Chip>
                     ))}
-                    <input value={sizeDraft.top} onChange={(e) => setSizeDraft((d) => ({ ...d, top: e.target.value }))} onBlur={(e) => setSize('top', e.target.value.trim())} className="field field-sm w-24" placeholder="or…" aria-label="Top size" />
                   </div>
-                  <RowLabel>Bottoms</RowLabel>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-7 flex items-end justify-between gap-3">
+                    <RowLabel first>Bottoms</RowLabel>
+                    <input value={sizeDraft.bottom} onChange={(e) => setSizeDraft((d) => ({ ...d, bottom: e.target.value }))} onBlur={(e) => setSize('bottom', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Bottom size" />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     {BOTTOM_SIZES.map((s) => (
                       <Chip key={s} on={sizes.bottom === s} onClick={() => setSize('bottom', s)}>
                         {s}
                       </Chip>
                     ))}
-                    <input value={sizeDraft.bottom} onChange={(e) => setSizeDraft((d) => ({ ...d, bottom: e.target.value }))} onBlur={(e) => setSize('bottom', e.target.value.trim())} className="field field-sm w-24" placeholder="or…" aria-label="Bottom size" />
                   </div>
-                  <RowLabel>Shoes</RowLabel>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-7 flex items-end justify-between gap-3">
+                    <RowLabel first>Shoes</RowLabel>
+                    <input value={sizeDraft.shoe} onChange={(e) => setSizeDraft((d) => ({ ...d, shoe: e.target.value }))} onBlur={(e) => setSize('shoe', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Shoe size" />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     {SHOE_SIZES.map((s) => (
                       <Chip key={s} on={sizes.shoe === s} onClick={() => setSize('shoe', s)}>
                         {s}
                       </Chip>
                     ))}
-                    <input value={sizeDraft.shoe} onChange={(e) => setSizeDraft((d) => ({ ...d, shoe: e.target.value }))} onBlur={(e) => setSize('shoe', e.target.value.trim())} className="field field-sm w-24" placeholder="or…" aria-label="Shoe size" />
                   </div>
 
                   <RowLabel>Who we dress</RowLabel>

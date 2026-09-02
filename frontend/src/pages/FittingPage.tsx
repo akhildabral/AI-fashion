@@ -630,7 +630,7 @@ export function FittingPage() {
             >
               <span
                 aria-hidden
-                className="absolute -right-1 -top-[3px] h-2 w-2 rotate-45 bg-brass-hi ring-[3px] ring-bone"
+                className="absolute -right-[5px] -top-[4px] h-2.5 w-2.5 rounded-full bg-brass-hi shadow-[0_0_0_2px_rgb(var(--c-brass-hi)/0.25)]"
               />
             </div>
           </div>
