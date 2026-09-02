@@ -76,7 +76,6 @@ export function Header() {
         <Link to="/" className="group flex items-baseline gap-2 self-center">
           <span className="font-display text-xl font-extrabold tracking-tight text-ink">
             ZAUQ
-            <span className="text-iris transition-colors group-hover:text-iris-deep">*</span>
           </span>
           <span className="hidden font-display text-xs italic text-ink/40 lg:inline">your daily stylist</span>
         </Link>

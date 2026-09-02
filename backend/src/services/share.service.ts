@@ -79,7 +79,7 @@ export async function renderLookCard(items: CardItem[], opts: { title: string; l
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ<tspan fill="${NIGHT.brass}">*</tspan></text>
+    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'MY STYLIST').toUpperCase())}</text>
     <text x="80" y="960" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="64" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="80" y="1020" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="34" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
@@ -149,7 +149,7 @@ export async function renderPieceCard(item: CardItem, opts: { title: string; lin
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ<tspan fill="${NIGHT.brass}">*</tspan></text>
+    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'MY CLOSET').toUpperCase())}</text>
     <text x="540" y="1060" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="64" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="540" y="1120" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="34" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
@@ -170,7 +170,7 @@ export async function renderPhotoCard(imageUrl: string, opts: { title: string; l
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ<tspan fill="${NIGHT.brass}">*</tspan></text>
+    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'THE MIRROR').toUpperCase())}</text>
     <text x="540" y="1120" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="60" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="540" y="1178" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="32" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}

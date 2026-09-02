@@ -64,7 +64,7 @@ export function renderEmail(b: EmailBody): string {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
 
         <tr><td align="center" style="padding:0 0 28px;">
-          <span style="font-family:${SERIF};font-size:20px;font-weight:700;letter-spacing:-0.2px;color:${C.ink};">ZAUQ</span><span style="font-family:${SERIF};font-size:20px;font-weight:700;color:${C.brass};">*</span>
+          <span style="font-family:${SERIF};font-size:20px;font-weight:700;letter-spacing:-0.2px;color:${C.ink};">ZAUQ</span>
         </td></tr>
 
         <tr><td style="background-color:${C.surface};border:1px solid ${C.border};border-top:2px solid ${C.brass};border-radius:3px;padding:36px 36px 32px;">
