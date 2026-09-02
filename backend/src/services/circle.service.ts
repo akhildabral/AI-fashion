@@ -73,12 +73,22 @@ export interface PickPost {
   type: 'pick';
   id: string; // pickId
   at: string;
-  handle: string | null; // who styled you
+  handle: string | null; // who styled you (or, for one you made, who it's for)
   name: string;
+  /** for_me: someone dressed you. by_me: you dressed someone. */
+  role: 'for_me' | 'by_me';
+  forDay: string | null;
   note: string | null;
   items: PostItem[];
   reactions: ReactionSummary;
   comments: number;
+  thanksAt: string | null;
+  reply: string | null;
+  wornAt: string | null;
+  /** The photo of them wearing it, once there is one. */
+  photoUrl: string | null;
+  /** For the one it was made for: the wear it became, so a photo can be added. */
+  wornLogId: string | null;
 }
 
 export type CirclePost = LookPost | VerdictPost | PickPost;

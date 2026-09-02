@@ -121,7 +121,10 @@ export async function logWear(req: Request, res: Response) {
       where: { id: data.pickId, forUserId: req.user.id },
       select: { id: true, byUserId: true },
     });
-    if (pick) void notify(pick.byUserId, 'pick_worn', req.user.id, { pickId: pick.id }, { dedupeKey: `worn:${pick.id}` });
+    if (pick) {
+      await prisma.friendPick.update({ where: { id: pick.id }, data: { wornLogId: log.id, wornAt: new Date() } });
+      void notify(pick.byUserId, 'pick_worn', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id }, { dedupeKey: `worn:${pick.id}` });
+    }
   }
   res.status(201).json({ log });
 }

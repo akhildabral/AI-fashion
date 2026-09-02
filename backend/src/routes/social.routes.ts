@@ -4,6 +4,9 @@ import {
   wardrobeOverlap,
   createPick,
   deletePick,
+  dressSuggest,
+  thankPick,
+  withdrawPick,
   followUser,
   getProfileByHandle,
   listPicks,
@@ -38,7 +41,10 @@ socialRouter.post('/users/:handle/block', requireAuth, blockUser);
 socialRouter.delete('/users/:handle/block', requireAuth, unblockUser);
 socialRouter.post('/users/:handle/mute', requireAuth, muteUser);
 socialRouter.delete('/users/:handle/mute', requireAuth, unmuteUser);
+socialRouter.get('/users/:handle/dress', requireAuth, dressSuggest);
 socialRouter.post('/users/:handle/picks', requireAuth, createPick);
+socialRouter.post('/picks/:id/thanks', requireAuth, thankPick);
+socialRouter.post('/picks/:id/withdraw', requireAuth, withdrawPick);
 socialRouter.get('/picks', requireAuth, listPicks);
 socialRouter.delete('/picks/:id', requireAuth, deletePick);
 socialRouter.post('/reports', requireAuth, createReport);

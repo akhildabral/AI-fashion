@@ -67,10 +67,18 @@ export interface PickPost {
   at: string
   handle: string | null
   name: string
+  /** for_me: someone dressed you. by_me: you dressed someone. */
+  role: 'for_me' | 'by_me'
+  forDay: string | null
   note: string | null
   items: PostItem[]
   reactions: ReactionSummary
   comments: number
+  thanksAt: string | null
+  reply: string | null
+  wornAt: string | null
+  photoUrl: string | null
+  wornLogId: string | null
 }
 
 export type CirclePost = LookPost | VerdictPost | PickPost
@@ -127,7 +135,7 @@ export function voteOnVerdict(pollId: string, optionId: string, userId: string) 
 
 export interface Notification {
   id: string
-  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge' | 'invite_joined' | 'verdict_asked'
+  type: 'new_follower' | 'pick_received' | 'pick_worn' | 'look_reacted' | 'look_recreated' | 'commented' | 'mentioned' | 'verdict_settled' | 'laundry_due' | 'wishlist_nudge' | 'invite_joined' | 'verdict_asked' | 'pick_thanked'
   actorHandle: string | null
   actorName: string | null
   payload: Record<string, unknown>

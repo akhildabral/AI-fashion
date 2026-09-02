@@ -8,6 +8,9 @@ import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { InviteSheet } from '../components/InviteSheet'
 import { ReportSheet } from '../components/ReportSheet'
+import { StyleFriendModal } from '../components/StyleFriendModal'
+import { thankPick, withdrawPick } from '../lib/social'
+import { setLookPhoto } from '../lib/circle'
 import type { CardActions } from '../components/CircleCards'
 import { deletePoll } from '../lib/polls'
 import { muteUser, type ReportTarget } from '../lib/social'
@@ -71,6 +74,7 @@ export function CirclePage() {
   const [sharing, setSharing] = useState(false)
   const [asking, setAsking] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [styling, setStyling] = useState(false)
   const [reporting, setReporting] = useState<{ type: ReportTarget; id: string; label: string } | null>(null)
   const [focus, setFocus] = useState<{ type: PostTarget; id: string } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -304,6 +308,33 @@ export function CirclePage() {
     save: handleSave,
     recreate: openRecreate,
     gone: (type, id) => setPosts((prev) => (prev ? prev.filter((x) => !(x.type === type && x.id === id)) : prev)),
+    thank: async (pickId, reply) => {
+      try {
+        const r = await thankPick(pickId, reply || undefined)
+        patchPost('pick', pickId, (p) => (p.type === 'pick' ? { ...p, thanksAt: r.thanksAt, reply: r.reply } : p))
+        flash('Sent.')
+      } catch (err) {
+        flash(err instanceof Error ? err.message : 'Could not send that.')
+      }
+    },
+    photo: async (pickId, wearLogId, file) => {
+      try {
+        const { photoUrl } = await setLookPhoto(wearLogId, file)
+        patchPost('pick', pickId, (p) => (p.type === 'pick' ? { ...p, photoUrl } : p))
+        flash('Photo added. They’ll see it.')
+      } catch (err) {
+        flash(err instanceof Error ? err.message : 'Could not add the photo.')
+      }
+    },
+    withdraw: async (pickId) => {
+      try {
+        await withdrawPick(pickId)
+        setPosts((prev) => (prev ? prev.filter((x) => !(x.type === 'pick' && x.id === pickId)) : prev))
+        flash('Taken back.')
+      } catch (err) {
+        flash(err instanceof Error ? err.message : 'Could not take that back.')
+      }
+    },
   }
   const isFocus = (p: CirclePost) => focus?.type === p.type && focus.id === p.id
   const renderPost = (p: CirclePost) =>
@@ -365,7 +396,7 @@ export function CirclePage() {
             <ComposeButton onClick={() => setSharing(true)} label="Share a look" icon={<path d="M3 15l5-4 4 3 4-5 5 5M3 5h18v14H3z" />} />
             <ComposeButton onClick={() => setAsking(true)} label="Ask the circle" icon={<path d="M8 3v18M16 3v18M3 6h18v12H3z" />} />
             <ComposeButton
-              onClick={() => openPeople('following')}
+              onClick={() => setStyling(true)}
               label="Style a friend"
               icon={
                 <>
@@ -483,6 +514,7 @@ export function CirclePage() {
 
       <InviteSheet open={inviting} onClose={() => setInviting(false)} onNote={flash} />
       <ReportSheet target={reporting} onClose={() => setReporting(null)} onNote={flash} />
+      <StyleFriendModal open={styling} onClose={() => setStyling(false)} onSent={() => void loadFeed(lens)} onNote={flash} />
       <PeopleDrawer
         open={people.open}
         initialTab={people.tab}

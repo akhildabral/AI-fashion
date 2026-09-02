@@ -79,10 +79,30 @@ export function unfollowUser(handle: string): Promise<void> {
   return apiFetch(`/users/${encodeURIComponent(handle)}/follow`, { method: 'DELETE' })
 }
 
+export interface DressSuggestion {
+  pieces: { id: string; imageUrl: string; category: string; subtype: string | null; primaryColor: string | null; goesWith: number }[]
+  /** Pieces that go with the anchor, with a 0–10 score. */
+  pairs: { id: string; score: number }[]
+  outfits: { itemIds: string[]; score: number }[]
+}
+
+/** Their public closet with the stylist alongside; pass an anchor to see what goes with it. */
+export function dressSuggest(handle: string, anchor?: string): Promise<DressSuggestion> {
+  return apiFetch(`/users/${encodeURIComponent(handle)}/dress${anchor ? `?anchor=${encodeURIComponent(anchor)}` : ''}`)
+}
+
+export function thankPick(id: string, reply?: string): Promise<{ thanksAt: string; reply: string | null }> {
+  return apiFetch(`/picks/${id}/thanks`, { method: 'POST', body: reply ? { reply } : {} })
+}
+
+export function withdrawPick(id: string): Promise<{ withdrawn: boolean }> {
+  return apiFetch(`/picks/${id}/withdraw`, { method: 'POST' })
+}
+
 /** Assemble an outfit for a friend from their public items. */
 export function sendPick(
   handle: string,
-  params: { itemIds: string[]; note?: string },
+  params: { itemIds: string[]; note?: string; forDay?: string },
 ): Promise<{ pick: { id: string } }> {
   return apiFetch(`/users/${encodeURIComponent(handle)}/picks`, { method: 'POST', body: params })
 }

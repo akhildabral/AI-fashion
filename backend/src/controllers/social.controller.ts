@@ -7,6 +7,7 @@ import { notify } from '../lib/notify';
 import { graphFor, serializeLooks, standingFor } from '../services/circle.service';
 import { blockedEitherWay, hiddenIds } from '../lib/hidden';
 import { displayName, personOf } from '../lib/people';
+import { outfitsAround, pairsFor } from '../services/pairing.service';
 
 // The community layer: handles, an asymmetric follow graph (mutual follows
 // are "friends"), visitable profiles that expose ONLY public items, and the
@@ -232,17 +233,67 @@ export async function network(req: Request, res: Response) {
 const pickSchema = z.object({
   itemIds: z.array(z.string().uuid()).min(2).max(8),
   note: z.string().max(280).optional(),
+  forDay: z.string().max(40).optional(),
 });
+
+/** You can dress someone you follow each other with, or who came in on your invite (or let you in). */
+async function canDress(me: string, them: string): Promise<boolean> {
+  if (await isMutual(me, them)) return true;
+  const link = await prisma.user.findFirst({
+    where: { OR: [{ id: them, invitedById: me }, { id: me, invitedById: them }] },
+    select: { id: true },
+  });
+  return Boolean(link);
+}
+
+/** Their public closet, shaped for the pairing engine. */
+async function publicCloset(userId: string) {
+  return prisma.wardrobeItem.findMany({
+    where: { userId, visibility: 'public', status: 'ready', owned: true, suppressed: false },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+// GET /users/:handle/dress?anchor=… — the stylist alongside: what goes with what in their public closet.
+export async function dressSuggest(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const target = await userByHandle(String(req.params.handle));
+  if (target.id === req.user.id) throw new HttpError(400, 'That is your own closet');
+  if (!(await canDress(req.user.id, target.id))) throw new HttpError(403, 'You can dress friends, and people who came in on your invite');
+  const closet = await publicCloset(target.id);
+  const byId = new Map(closet.map((c) => [c.id, c]));
+  const anchorId = typeof req.query.anchor === 'string' ? req.query.anchor : null;
+  const anchor = anchorId ? byId.get(anchorId) ?? null : null;
+  const pairs = anchor ? pairsFor(anchor, closet).slice(0, 12).map((p) => ({ id: p.id, score: p.score })) : [];
+  // Without an anchor: the best outfits around each of their pieces, deduped.
+  const seen = new Set<string>();
+  const outfits: { itemIds: string[]; score: number }[] = [];
+  const seeds = anchor ? [anchor] : closet.slice(0, 8);
+  for (const seed of seeds) {
+    for (const o of outfitsAround(seed, closet, { limit: anchor ? 8 : 3 })) {
+      const key = [...o.itemIds].sort().join(',');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      outfits.push(o);
+    }
+  }
+  outfits.sort((a, b) => b.score - a.score);
+  res.json({
+    pieces: closet.map((c) => ({ id: c.id, imageUrl: c.imageUrl, category: c.category, subtype: c.subtype, primaryColor: c.primaryColor, goesWith: pairsFor(c, closet).length })),
+    pairs,
+    outfits: outfits.slice(0, 6),
+  });
+}
 
 export async function createPick(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const target = await userByHandle(String(req.params.handle));
   if (target.id === req.user.id) throw new HttpError(400, 'Pick outfits for your friends, not yourself');
   if (await blockedEitherWay(req.user.id, target.id)) throw new HttpError(403, 'That isn’t possible right now');
-  if (!(await isMutual(req.user.id, target.id))) {
-    throw new HttpError(403, 'You can only pick outfits for friends (you follow each other)');
+  if (!(await canDress(req.user.id, target.id))) {
+    throw new HttpError(403, 'You can dress friends (you follow each other), and people who came in on your invite');
   }
-  const { itemIds, note } = pickSchema.parse(req.body);
+  const { itemIds, note, forDay } = pickSchema.parse(req.body);
 
   // Only the target's PUBLIC items — privacy holds even between friends.
   const items = await prisma.wardrobeItem.findMany({
@@ -254,10 +305,35 @@ export async function createPick(req: Request, res: Response) {
   }
 
   const pick = await prisma.friendPick.create({
-    data: { forUserId: target.id, byUserId: req.user.id, itemIds, note: note?.trim() || null },
+    data: { forUserId: target.id, byUserId: req.user.id, itemIds, note: note?.trim() || null, forDay: forDay?.trim() || null },
   });
-  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id });
+  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id, forDay: pick.forDay });
   res.status(201).json({ pick });
+}
+
+const thanksSchema = z.object({ reply: z.string().max(280).optional() });
+
+// POST /picks/:id/thanks — the one it was made for says thanks, with a line.
+export async function thankPick(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { reply } = thanksSchema.parse(req.body ?? {});
+  const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: req.user.id } });
+  if (!pick) throw new HttpError(404, 'Pick not found');
+  const updated = await prisma.friendPick.update({ where: { id }, data: { thanksAt: pick.thanksAt ?? new Date(), reply: reply?.trim() || pick.reply } });
+  void notify(pick.byUserId, 'pick_thanked', req.user.id, { pickId: id, target: 'pick', targetId: id, preview: (reply ?? '').slice(0, 80) }, { dedupeKey: `thanks:${id}` });
+  res.json({ thanksAt: updated.thanksAt, reply: updated.reply });
+}
+
+// POST /picks/:id/withdraw — the picker takes it back, until it's worn.
+export async function withdrawPick(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const pick = await prisma.friendPick.findFirst({ where: { id, byUserId: req.user.id } });
+  if (!pick) throw new HttpError(404, 'Pick not found');
+  if (pick.wornAt) throw new HttpError(400, 'They’ve worn it — it’s theirs now');
+  await prisma.friendPick.update({ where: { id }, data: { withdrawnAt: new Date() } });
+  res.json({ withdrawn: true });
 }
 
 export async function listPicks(req: Request, res: Response) {

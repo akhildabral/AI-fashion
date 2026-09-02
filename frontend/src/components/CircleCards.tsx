@@ -45,14 +45,14 @@ export function Plate({ children }: { children: ReactNode }) {
   return <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{children}</p>
 }
 
-function PostHeader({ handle, name, meta, plate, menu }: { handle: string | null; name: string; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
+function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string | null; name: string; label?: string; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-4">
       <Link to={handle ? `/u/${handle}` : '#'} className="press">
         <Initials handle={handle} name={name} className="h-9 w-9" />
       </Link>
       <div className="min-w-0 flex-1">
-        <Handle handle={handle} name={name} className="text-sm" />
+        <Handle handle={handle} name={label ?? name} className="text-sm" />
         <p className="truncate text-xs text-ink/45">{meta}</p>
       </div>
       {plate && <div className="shrink-0">{plate}</div>}
@@ -432,6 +432,10 @@ export interface CardActions {
   recreate?: (handle: string | null, items: PostItem[]) => void
   /** A pick you dismissed or wore: it leaves the feed. */
   gone?: (target: PostTarget, id: string) => void
+  /** Dressing each other: thanks (with a line), a photo of the wear, taking a pick back. */
+  thank?: (pickId: string, reply: string) => Promise<void>
+  photo?: (pickId: string, wearLogId: string, file: File) => Promise<void>
+  withdraw?: (pickId: string) => Promise<void>
 }
 
 function reactionLine(r: ReactionSummary, verb = 'would wear this'): string | null {
@@ -702,53 +706,128 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
 
 export function PickCard({ post, actions, highlight = false }: { post: PickPost; actions: CardActions; highlight?: boolean }) {
   const navigate = useNavigate()
-  const [worn, setWorn] = useState(false)
+  const [worn, setWorn] = useState<string | null>(post.wornLogId)
   const [open, setOpen] = useState(false)
+  const [thanking, setThanking] = useState(false)
+  const [reply, setReply] = useState('')
+  const [photo, setPhoto] = useState<string | null>(post.photoUrl)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const byMe = post.role === 'by_me'
   const menu: { label: string; danger?: boolean; onSelect: () => void }[] = []
-  if (post.handle && actions.mute) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
-  if (actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('pick', post.id, `${post.name}’s pick`) })
-  menu.push({
-    label: 'Dismiss',
-    danger: true,
-    onSelect: () =>
-      void dismissPick(post.id)
-        .then(() => actions.gone?.('pick', post.id))
-        .catch(() => actions.note('Could not dismiss that — try again.')),
-  })
+  if (post.handle && actions.mute && !byMe) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => actions.mute?.(post.handle as string) })
+  if (actions.report && !byMe) menu.push({ label: 'Report', onSelect: () => actions.report?.('pick', post.id, `${post.name}’s pick`) })
+  if (byMe && !post.wornAt && actions.withdraw) menu.push({ label: 'Take it back', danger: true, onSelect: () => void actions.withdraw?.(post.id) })
+  if (!byMe)
+    menu.push({
+      label: 'Dismiss',
+      danger: true,
+      onSelect: () =>
+        void dismissPick(post.id)
+          .then(() => actions.gone?.('pick', post.id))
+          .catch(() => actions.note('Could not dismiss that — try again.')),
+    })
+  const forLine = post.forDay ? ` · for ${post.forDay}` : ''
+  const meta = byMe
+    ? `you styled a look for ${post.name}${forLine} · ${timeAgo(post.at)}`
+    : `styled a look for you${forLine} · ${timeAgo(post.at)}`
+  // What's happened since, from either side.
+  const state = post.wornAt
+    ? byMe
+      ? `${post.name} wore it${photo ? '' : ' — the photo will land here'}.`
+      : 'Worn — they’ll know.'
+    : post.thanksAt
+      ? byMe
+        ? `${post.name} said thanks${post.reply ? `: “${post.reply}”` : '.'}`
+        : `You said thanks${post.reply ? `: “${post.reply}”` : '.'}`
+      : byMe
+        ? 'Waiting for them.'
+        : null
+
   return (
-    <article id={`post-pick-${post.id}`} className={`card overflow-hidden !border-brass/35 bg-iris-soft/40 ${highlight ? 'ring-1 ring-brass' : ''}`}>
-      <PostHeader handle={post.handle} name={post.name} meta={`styled a look for you · ${timeAgo(post.at)}`} plate={<Plate>For you</Plate>} menu={<CardMenu items={menu} />} />
+    <article id={`post-pick-${post.id}`} className={`card overflow-hidden ${byMe ? '' : '!border-brass/35 bg-iris-soft/40'} ${highlight ? 'ring-1 ring-brass' : ''}`}>
+      <PostHeader handle={post.handle} name={post.name} label={byMe ? `For ${post.name}` : undefined} meta={meta} plate={<Plate>{byMe ? 'Your pick' : 'For you'}</Plate>} menu={<CardMenu items={menu} />} />
       {post.note && <p className="mt-2 px-4 font-display text-sm italic text-ink/70">“{post.note}”</p>}
-      {post.items.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 px-4">
-          {post.items.slice(0, 5).map((it) => (
-            <GarmentThumb key={it.id} item={it} />
-          ))}
-        </div>
+      <div className="mt-3 flex items-start gap-3 px-4">
+        {post.items.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {post.items.slice(0, 5).map((it) => (
+              <GarmentThumb key={it.id} item={it} />
+            ))}
+          </div>
+        )}
+        {photo && (
+          <div className="ml-auto w-24 shrink-0">
+            <Arch aspect="aspect-[3/4]" className="arch-photo w-full" bright>
+              <img src={resolveImageUrl(photo)} alt={`${post.name} wearing it`} className="relative z-[1] h-full w-full object-cover" />
+            </Arch>
+          </div>
+        )}
+      </div>
+      {state && <p className="mt-3 px-4 text-xs text-ink/55">{state}</p>}
+      {thanking && !byMe && (
+        <form
+          className="mt-3 flex gap-2 px-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void actions.thank?.(post.id, reply.trim()).then(() => setThanking(false))
+          }}
+        >
+          <input value={reply} onChange={(e) => setReply(e.target.value)} maxLength={280} autoFocus className="field field-sm min-w-0 flex-1" placeholder="A line back (optional)" />
+          <button type="submit" className="btn-primary btn-sm shrink-0">
+            Send thanks
+          </button>
+        </form>
       )}
       <CardFoot
         tone="border-brass/20"
         verbs={
-          <>
-            <button
-              type="button"
-              disabled={worn || post.items.length === 0}
-              onClick={() =>
-                void logWear({ itemIds: post.items.map((i) => i.id), pickId: post.id })
-                  .then(() => setWorn(true))
-                  .catch(() => actions.note('Could not log the wear — try again.'))
-              }
-              className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
-            >
-              {worn ? 'Worn — they’ll know' : 'I wore it'}
-            </button>
-            <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost btn-sm">
-              See it on me
-            </button>
-          </>
+          byMe ? undefined : (
+            <>
+              <button
+                type="button"
+                disabled={worn !== null || post.items.length === 0}
+                onClick={() =>
+                  void logWear({ itemIds: post.items.map((i) => i.id), pickId: post.id })
+                    .then((r) => setWorn(r.log?.id ?? 'worn'))
+                    .catch(() => actions.note('Could not log the wear — try again.'))
+                }
+                className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
+              >
+                {worn ? 'Worn ✓' : 'I wore it'}
+              </button>
+              {worn && worn !== 'worn' && !photo && actions.photo && (
+                <>
+                  <button type="button" onClick={() => fileRef.current?.click()} className="btn-ghost btn-sm">
+                    Add the photo
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f && worn) void actions.photo?.(post.id, worn, f).then(() => setPhoto(URL.createObjectURL(f)))
+                    }}
+                  />
+                </>
+              )}
+              {!worn && (
+                <button type="button" onClick={() => navigate(`/mirror?items=${post.items.map((i) => i.id).join(',')}`)} className="btn-ghost btn-sm">
+                  See it on me
+                </button>
+              )}
+              {!post.thanksAt && !thanking && actions.thank && (
+                <button type="button" onClick={() => setThanking(true)} className="btn-quiet !h-9 !text-xs">
+                  Say thanks
+                </button>
+              )}
+            </>
+          )
         }
->
-        <Reactions target="pick" post={post} mine={post.reactions.mine} counts={post.reactions.counts} actions={actions} />
+      >
+        {!byMe && <Reactions target="pick" post={post} mine={post.reactions.mine} counts={post.reactions.counts} actions={actions} />}
         <NotesButton open={open} count={post.comments} onClick={() => setOpen((v) => !v)} />
       </CardFoot>
       {open && <CommentThread target="pick" id={post.id} onCount={(n) => actions.commentCount('pick', post.id, n)} onError={actions.note} />}

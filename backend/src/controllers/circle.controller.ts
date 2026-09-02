@@ -26,7 +26,7 @@ import {
 } from '../services/circle.service';
 
 type PollRow = { id: string; userId: string; question: string; options: unknown; expiresAt: Date; createdAt: Date; audience: string; audienceIds: string[]; votes: { optionId: string; voterKey: string }[]; user: PersonRow };
-type PickRow = { id: string; byUserId: string; itemIds: string[]; note: string | null; createdAt: Date; byUser: PersonRow };
+type PickRow = { id: string; byUserId: string; forUserId: string; itemIds: string[]; note: string | null; forDay: string | null; thanksAt: Date | null; reply: string | null; wornAt: Date | null; wornLogId: string | null; createdAt: Date; byUser: PersonRow; forUser: PersonRow };
 
 /** Shape polls into verdict posts from the viewer's side. */
 async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now()): Promise<VerdictPost[]> {
@@ -72,23 +72,43 @@ async function serializeVerdicts(polls: PollRow[], me: string, now = Date.now())
   });
 }
 
-/** Shape friend picks into pick posts. */
+/** Shape friend picks into pick posts, from whichever side the viewer is on. */
 async function serializePicks(picks: PickRow[], me: string): Promise<PickPost[]> {
   if (picks.length === 0) return [];
   const ids = picks.map((p) => p.id);
-  const [items, comments, reactions] = await Promise.all([itemsById(picks.flatMap((p) => p.itemIds)), commentCounts('pick', ids), reactionSummaries('pick', ids, me)]);
-  return picks.map((p) => ({
-    type: 'pick',
-    id: p.id,
-    at: p.createdAt.toISOString(),
-    handle: p.byUser.handle,
-    name: displayName(p.byUser),
-    note: p.note,
-    items: p.itemIds.map((id) => items.get(id)).filter((i): i is NonNullable<typeof i> => Boolean(i)),
-    reactions: reactions.get(p.id) ?? EMPTY_REACTIONS,
-    comments: comments.get(p.id) ?? 0,
-  }));
+  const wornIds = picks.map((p) => p.wornLogId).filter((x): x is string => Boolean(x));
+  const [items, comments, reactions, wornLogs] = await Promise.all([
+    itemsById(picks.flatMap((p) => p.itemIds)),
+    commentCounts('pick', ids),
+    reactionSummaries('pick', ids, me),
+    wornIds.length ? prisma.wearLog.findMany({ where: { id: { in: wornIds } }, select: { id: true, photoUrl: true } }) : [],
+  ]);
+  const photoOf = new Map(wornLogs.map((w) => [w.id, w.photoUrl]));
+  return picks.map((p) => {
+    const byMe = p.byUserId === me;
+    const other = byMe ? p.forUser : p.byUser;
+    return {
+      type: 'pick',
+      id: p.id,
+      at: p.createdAt.toISOString(),
+      handle: other.handle,
+      name: displayName(other),
+      role: byMe ? 'by_me' : 'for_me',
+      forDay: p.forDay,
+      note: p.note,
+      items: p.itemIds.map((id) => items.get(id)).filter((i): i is NonNullable<typeof i> => Boolean(i)),
+      reactions: reactions.get(p.id) ?? EMPTY_REACTIONS,
+      comments: comments.get(p.id) ?? 0,
+      thanksAt: p.thanksAt ? p.thanksAt.toISOString() : null,
+      reply: p.reply,
+      wornAt: p.wornAt ? p.wornAt.toISOString() : null,
+      photoUrl: p.wornLogId ? (photoOf.get(p.wornLogId) ?? null) : null,
+      wornLogId: byMe ? null : p.wornLogId,
+    };
+  });
 }
+
+const PICK_INCLUDE = { byUser: { select: { handle: true, firstName: true, lastName: true } }, forUser: { select: { handle: true, firstName: true, lastName: true } } } as const;
 
 const PAGE = 20;
 
@@ -136,14 +156,15 @@ export async function circleFeed(req: Request, res: Response) {
       include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true, firstName: true, lastName: true } } },
     }),
     prisma.friendPick.findMany({
-      where: { forUserId: me, createdAt: { gte: monthAgo } },
+      // Ones made for you (not withdrawn), and ones you made — the conversation runs both ways.
+      where: { OR: [{ forUserId: me, withdrawnAt: null }, { byUserId: me, withdrawnAt: null }], createdAt: { gte: monthAgo } },
       orderBy: { createdAt: 'desc' },
-      take: 20,
-      include: { byUser: { select: { handle: true, firstName: true, lastName: true } } },
+      take: 30,
+      include: PICK_INCLUDE,
     }),
   ]);
 
-  const picks = dropHidden(picksRaw, hidden, (p) => p.byUserId);
+  const picks = dropHidden(picksRaw, hidden, (p) => (p.byUserId === me ? p.forUserId : p.byUserId));
   const posts: CirclePost[] = [];
   posts.push(...(await serializeLooks(logs, me, friendIds)));
   posts.push(...(await serializeVerdicts(polls, me, now)));
@@ -187,8 +208,8 @@ export async function getPost(req: Request, res: Response) {
     return;
   }
   if (type === 'pick') {
-    const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: me }, include: { byUser: { select: { handle: true, firstName: true, lastName: true } } } });
-    if (!pick || hidden.has(pick.byUserId)) throw new HttpError(404, 'That pick isn’t here');
+    const pick = await prisma.friendPick.findFirst({ where: { id, OR: [{ forUserId: me }, { byUserId: me }] }, include: PICK_INCLUDE });
+    if (!pick || hidden.has(pick.byUserId === me ? pick.forUserId : pick.byUserId)) throw new HttpError(404, 'That pick isn’t here');
     const [post] = await serializePicks([pick], me);
     res.json({ post });
     return;

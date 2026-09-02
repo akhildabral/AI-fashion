@@ -5,6 +5,7 @@ import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
+import { StyleFriendModal } from '../components/StyleFriendModal'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
 import {
@@ -16,7 +17,6 @@ import {
   muteUser,
   removeFollower,
   report,
-  sendPick,
   unblockUser,
   unfollowUser,
   unmuteUser,
@@ -27,7 +27,6 @@ import {
 import { reactToPost, saveLook, unreactToPost, unsaveLook, type LookPost, type PostItem, type PostTarget, type ReactionKind } from '../lib/circle'
 import type { CardActions } from '../components/CircleCards'
 
-const MAX_PICK_ITEMS = 8
 
 // Someone's room: the looks they've shared (the gallery), their earned
 // standing, their public wardrobe — and, between friends, the act of
@@ -47,11 +46,7 @@ export function UserProfilePage() {
   const [busy, setBusy] = useState(false)
   const [lens, setLens] = useState<Lens>('looks')
 
-  // Friend-pick composition.
-  const [picking, setPicking] = useState(false)
-  const [selected, setSelected] = useState<string[]>([])
-  const [note, setNote] = useState('')
-  const [sending, setSending] = useState(false)
+  const [styling, setStyling] = useState(false)
 
   const [recreate, setRecreate] = useState<{ result: RecreateResponse | null } | null>(null)
   const [saving, setSaving] = useState(false)
@@ -113,7 +108,6 @@ export function UserProfilePage() {
     setProfile(null)
     setError(null)
     setOverlap(null)
-    setPicking(false)
     getProfileByHandle(handle)
       .then((p) => {
         if (cancelled) return
@@ -149,25 +143,7 @@ export function UserProfilePage() {
     }
   }
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : prev.length >= MAX_PICK_ITEMS ? prev : [...prev, id]))
-  }
 
-  async function handleSendPick() {
-    if (sending || selected.length < 2) return
-    setSending(true)
-    try {
-      await sendPick(handle, { itemIds: selected, note: note.trim() || undefined })
-      flash('Sent — it’s waiting in their circle.')
-      setPicking(false)
-      setSelected([])
-      setNote('')
-    } catch (err) {
-      flash(err instanceof Error ? err.message : 'Could not send your pick.')
-    } finally {
-      setSending(false)
-    }
-  }
 
   const patchLook = (id: string, fn: (p: LookPost) => LookPost) =>
     setProfile((p) => (p ? { ...p, looks: p.looks.map((l) => (l.id === id ? fn(l) : l)) } : p))
@@ -265,17 +241,9 @@ export function UserProfilePage() {
             </div>
             {!profile.isMe && (
               <div className="flex gap-2">
-                {profile.isFriend && profile.publicItems.length >= 2 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPicking((v) => !v)
-                      setSelected([])
-                      setLens('wardrobe')
-                    }}
-                    className={picking ? 'btn-primary' : 'btn-ghost'}
-                  >
-                    {picking ? 'Cancel' : 'Style them'}
+                {!profile.blockedByMe && profile.publicItems.length >= 2 && (
+                  <button type="button" onClick={() => setStyling(true)} className="btn-ghost">
+                    Style them
                   </button>
                 )}
                 {!profile.blockedByMe && (
@@ -373,17 +341,6 @@ export function UserProfilePage() {
           {/* ---- wardrobe ---- */}
           {lens === 'wardrobe' && (
             <>
-              {picking && (
-                <div className="mt-5 rounded-[3px] border border-brass/30 bg-iris-soft/40 p-4">
-                  <p className="text-sm text-ink/75">Tap 2–{MAX_PICK_ITEMS} of their pieces to build the look, add a note, and send.</p>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className="field flex-1 !py-2 !text-sm" placeholder="Why this works (optional)" maxLength={280} />
-                    <button type="button" onClick={() => void handleSendPick()} disabled={selected.length < 2 || sending} className="btn-primary btn-sm disabled:opacity-40">
-                      {sending ? 'Sending…' : `Send look (${selected.length})`}
-                    </button>
-                  </div>
-                </div>
-              )}
               {profile.publicItems.length === 0 ? (
                 <div className="mt-5 rounded-[3px] border border-dashed border-ink/20 py-14 text-center text-sm text-ink/55">
                   Their public wardrobe is empty{profile.isMe ? ' — make pieces public from your Closet.' : '.'}
@@ -391,22 +348,16 @@ export function UserProfilePage() {
               ) : (
                 <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {profile.publicItems.map((item) => {
-                    const idx = selected.indexOf(item.id)
                     return (
                       <button
                         key={item.id}
                         type="button"
-                        disabled={!picking}
-                        onClick={() => toggleSelect(item.id)}
-                        aria-pressed={picking ? idx >= 0 : undefined}
-                        className={`press relative text-left ${picking ? 'cursor-pointer' : 'cursor-default'}`}
+                        disabled
+                        className="relative cursor-default text-left"
                       >
-                        <Arch aspect="aspect-[5/6]" bright={idx >= 0}>
+                        <Arch aspect="aspect-[5/6]">
                           <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[7%]" />
                         </Arch>
-                        {idx >= 0 && (
-                          <span className="absolute right-2 top-2 z-[3] flex h-6 w-6 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)]">{idx + 1}</span>
-                        )}
                         <p className="mt-2 truncate text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">{item.subtype ?? item.category}</p>
                       </button>
                     )
@@ -420,6 +371,7 @@ export function UserProfilePage() {
         </>
       )}
 
+      <StyleFriendModal open={styling} onClose={() => setStyling(false)} onSent={() => flash('Sent — it’s waiting on their table.')} onNote={flash} initialHandle={handle} />
       <Modal open={reporting} onClose={() => setReporting(false)} title={`Report ${who}`}>
         <p className="text-sm text-ink/60">Tell the house what’s wrong. They won’t know it came from you.</p>
         <div className="mt-4 flex flex-wrap gap-2">

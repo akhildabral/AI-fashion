@@ -457,9 +457,18 @@ model FriendPick {
   byUser    User     @relation("picksBy", fields: [byUserId], references: [id], onDelete: Cascade)
   itemIds   String[]
   note      String?
+  // The day it was picked for ("Saturday", "tonight", a date or an occasion).
+  forDay      String?
+  // The conversation back: thanks (with a line), the wear, the picker withdrawing it.
+  thanksAt    DateTime?
+  reply       String?
+  wornLogId   String?
+  wornAt      DateTime?
+  withdrawnAt DateTime?
   createdAt DateTime @default(now())
 
   @@index([forUserId])
+  @@index([byUserId])
 }
 
 // One row per AI-powered request, for per-user daily quotas and admin

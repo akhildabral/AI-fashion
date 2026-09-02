@@ -37,8 +37,12 @@ function line(n: Notification): { text: string; to: string } {
       return { text: `${who} came in on your invite — you follow each other now.`, to: profile }
     case 'pick_received':
       return { text: `${who} styled a look for you.`, to: landing(n, '/circle') }
+    case 'pick_thanked': {
+      const preview = String(n.payload.preview ?? '')
+      return { text: `${who} said thanks for the look you picked${preview ? `: “${preview}”` : '.'}`, to: landing(n, '/circle') }
+    }
     case 'pick_worn':
-      return { text: `${who} wore the look you picked — a good eye.`, to: profile }
+      return { text: `${who} wore the look you picked — a good eye.`, to: landing(n, profile) }
     case 'look_reacted': {
       const kind = String(n.payload.kind ?? '')
       const what = n.payload.target === 'verdict' ? 'your verdict' : n.payload.target === 'pick' ? 'the look you picked' : 'your look'
