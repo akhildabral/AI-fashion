@@ -112,7 +112,7 @@ export function LookHero({
   }
 
   const lay = (
-    <Arch aspect="aspect-[4/3]" className="w-full">
+    <Arch aspect="aspect-[5/4]" className="w-full">
       <FlatLay items={items} />
     </Arch>
   )
@@ -171,7 +171,7 @@ export function FlatLay({ items }: { items: PostItem[] }) {
               src={resolveImageUrl(it.imageUrl)}
               alt={it.subtype ?? it.category}
               loading="lazy"
-              className="h-full w-full object-contain object-top"
+              className="h-full w-full object-contain object-center"
               style={{ filter: 'drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14))' }}
             />
           </div>

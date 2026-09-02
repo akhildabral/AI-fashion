@@ -109,11 +109,11 @@ ${o.ogImage ? `<meta property="og:image" content="${esc(o.ogImage)}" />\n<meta n
   .lbl { margin-top: 4px; text-align: center; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); }
   .down { text-align: center; color: var(--brass-lo); font-size: 11px; line-height: 1; margin-top: 2px; }
   .bezel { padding: 3px; border-radius: 24% 24% 6px 6px / 9% 9% 6px 6px; background: linear-gradient(160deg, var(--brass-hi), var(--brass) 45%, var(--brass-lo) 84%); }
-  .niche { position: relative; overflow: hidden; border-radius: 24% 24% 5px 5px / 9% 9% 5px 5px; background: radial-gradient(80% 76% at 50% 30%, #fdfbf6, #efe7d7 96%); aspect-ratio: 4/3; box-shadow: inset 0 3px 12px rgba(40,25,8,.14), inset 0 -20px 30px -12px rgba(40,25,8,.08); }
+  .niche { position: relative; overflow: hidden; border-radius: 24% 24% 5px 5px / 9% 9% 5px 5px; background: radial-gradient(80% 76% at 50% 30%, #fdfbf6, #efe7d7 96%); aspect-ratio: 5/4; box-shadow: inset 0 3px 12px rgba(40,25,8,.14), inset 0 -20px 30px -12px rgba(40,25,8,.08); }
   .bezel.tall .niche { aspect-ratio: 3/4; }
   .niche .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .piece { position: absolute; }
-  .piece img { width: 100%; height: 100%; object-fit: contain; object-position: top; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
+  .piece img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; filter: drop-shadow(0 10px 14px rgba(60,40,12,.22)) drop-shadow(0 1px 2px rgba(60,40,12,.14)); }
   @media (max-width: 480px) { .look { grid-template-columns: 1fr; } .recipe { flex-direction: row; flex-wrap: wrap; } .recipe li { width: 56px; } .down { display: none; } }
   .state { margin-top: 44px; text-align: center; }
   .state .big { font-family: 'Bodoni Moda', Georgia, serif; font-size: 26px; font-weight: 500; max-width: 22ch; text-wrap: balance; line-height: 1.15; }
