@@ -53,6 +53,9 @@ export function GoogleButton({
   const [clientId, setClientId] = useState<string | null>(null)
   const { adoptSession } = useAuth()
   const navigate = useNavigate()
+  // Latest callbacks, without making the draw effect depend on their identity.
+  const latest = useRef({ onMessage, adoptSession, navigate, redirectTo })
+  latest.current = { onMessage, adoptSession, navigate, redirectTo }
 
   useEffect(() => {
     apiFetch<{ googleClientId: string | null }>('/auth/config', { auth: false })
@@ -76,11 +79,11 @@ export function GoogleButton({
               auth: false,
             })
               .then((r) => {
-                adoptSession(r.token, r.user)
-                navigate(redirectTo, { replace: true })
+                latest.current.adoptSession(r.token, r.user)
+                latest.current.navigate(latest.current.redirectTo, { replace: true })
               })
               .catch((err) => {
-                onMessage(err instanceof Error ? err.message : 'Google sign-in failed.')
+                latest.current.onMessage(err instanceof Error ? err.message : 'Google sign-in failed.')
               })
           },
         })
@@ -110,12 +113,12 @@ export function GoogleButton({
         ro.observe(el)
         cleanup = () => ro.disconnect()
       })
-      .catch(() => onMessage('Could not load Google sign-in.'))
+      .catch(() => latest.current.onMessage('Could not load Google sign-in.'))
     return () => {
       cancelled = true
       cleanup?.()
     }
-  }, [clientId, adoptSession, navigate, onMessage, joinCode, redirectTo])
+  }, [clientId, joinCode])
 
   if (!clientId) return null
   return <div ref={holder} className="flex w-full justify-center overflow-hidden" />

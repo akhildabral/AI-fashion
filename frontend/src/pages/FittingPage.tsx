@@ -575,7 +575,7 @@ export function FittingPage() {
         `shops ${BUDGETS.find(([k]) => k === budget)?.[1].toLowerCase()} when a gap needs filling`,
       );
     if (city) n.push(`mornings in ${city}, weather checked daily`);
-    if (claimed) n.push(`goes by @${claimed}`);
+    if (claimed) n.push(`their room is at /u/${claimed}`);
     if (photoUrl) n.push("in the Mirror: looks render on you");
     if (pieces.length)
       n.push(
@@ -617,7 +617,7 @@ export function FittingPage() {
       <Toast msg={toast} />
 
       {/* the thread */}
-      <div className="sticky top-0 z-30 bg-bone/80 backdrop-blur-md">
+      <div className="sticky top-0 z-20 bg-bone/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
           <div className="relative h-0.5 flex-1 bg-ink/10">
             <div
@@ -1646,7 +1646,7 @@ export function FittingPage() {
               Your stylist’s notes
             </p>
             <p className="mt-1 font-display text-2xl font-medium text-ink">
-              {claimed ? `@${claimed}` : "A new client."}
+              {user?.firstName ? `${user.firstName}.` : "A new client."}
             </p>
             {notes.length === 0 ? (
               <p className="mt-3 font-display text-sm italic text-ink/45">
