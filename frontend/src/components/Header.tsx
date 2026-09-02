@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Wordmark } from './Brand'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { PullCord } from './PullCord'
@@ -74,9 +75,7 @@ export function Header() {
     <header className="sticky top-0 z-30 bg-bone/80 backdrop-blur-md" style={{ boxShadow: 'inset 0 -1px 0 rgb(var(--c-ink) / 0.1)' }}>
       <div className="mx-auto flex h-16 max-w-[1400px] items-stretch justify-between gap-6 px-4 sm:px-6">
         <Link to="/" className="group flex items-baseline gap-2 self-center">
-          <span className="font-display text-xl font-extrabold tracking-tight text-ink">
-            ZAUQ
-          </span>
+          <Wordmark className="text-[19px] text-ink" />
         </Link>
 
         {!user && pathname !== '/login' && (

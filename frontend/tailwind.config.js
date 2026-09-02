@@ -7,6 +7,8 @@ export default {
       fontFamily: {
         // Atelier: Bodoni Moda (Vogue display serif) + Archivo (UI/body).
         display: ['"Bodoni Moda"', 'Georgia', 'serif'],
+        // The wordmark only: the brand's own face.
+        brand: ['"Playfair Display"', 'Georgia', 'serif'],
         serif: ['"Bodoni Moda"', 'Georgia', 'serif'],
         sans: ['Archivo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },

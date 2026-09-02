@@ -3,6 +3,17 @@ import { composeLook, dressingOrder } from '../lib/flatlay';
 import { readStored } from '../lib/storage';
 import { CARD_FONTS } from '../lib/fonts';
 
+// The wordmark as the guide sets it: Playfair Display, caps, kerned ZA .24em,
+// AU .20em, UQ .16em; the arch mark with the script beside it, in gold.
+const BRAND_GOLD = '#D8B26A';
+function brandLine(x: number, y: number, size: number, fill: string): string {
+  const k = (em: number) => (size * em).toFixed(1);
+  const h = size * 1.3, w = (h * 3) / 4, sc = h / 400, mx = x, my = y - h + size * 0.12;
+  const mark = `<g transform="translate(${mx} ${my}) scale(${sc})"><path d="M4 392V150A146 146 0 0 1 296 150V392A4 4 0 0 1 292 396H8A4 4 0 0 1 4 392Z" fill="none" stroke="${BRAND_GOLD}" stroke-width="${(4 / sc) * 0.35}"/><text x="150" y="316" text-anchor="middle" font-family="Noto Nastaliq Urdu" font-weight="600" font-size="50" fill="${fill}" direction="rtl">ذوق</text><rect x="119" y="333" width="62" height="3" fill="${BRAND_GOLD}"/></g>`;
+  const word = `<text x="${x + w + size * 0.45}" y="${y}" font-family="Playfair Display, Georgia, serif" font-weight="400" font-size="${size}" fill="${fill}"><tspan>Z</tspan><tspan dx="${k(0.24)}">A</tspan><tspan dx="${k(0.2)}">U</tspan><tspan dx="${k(0.16)}">Q</tspan></text>`;
+  return mark + word;
+}
+
 // Share cards: one image per thing (an outfit, a piece, a look you wore) in
 // our frame — the arch, the brass line, the wordmark — so what leaves the
 // app still looks like us. 1080×1350 (4:5), the size every feed accepts.
@@ -79,7 +90,7 @@ export async function renderLookCard(items: CardItem[], opts: { title: string; l
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
+    ${brandLine(80, 82, 34, NIGHT.ink)}
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'MY STYLIST').toUpperCase())}</text>
     <text x="80" y="960" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="64" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="80" y="1020" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="34" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
@@ -149,7 +160,7 @@ export async function renderPieceCard(item: CardItem, opts: { title: string; lin
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
+    ${brandLine(80, 82, 34, NIGHT.ink)}
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'MY CLOSET').toUpperCase())}</text>
     <text x="540" y="1060" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="64" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="540" y="1120" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="34" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
@@ -170,7 +181,7 @@ export async function renderPhotoCard(imageUrl: string, opts: { title: string; l
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${NIGHT.bg}"/>
     ${archSvg(bx, by, bw, bh)}
-    <text x="80" y="82" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="600" font-size="34" fill="${NIGHT.ink}">ZAUQ</text>
+    ${brandLine(80, 82, 34, NIGHT.ink)}
     <text x="1000" y="82" text-anchor="end" font-family="${CARD_FONTS.text}, sans-serif" font-weight="600" font-size="20" letter-spacing="5" fill="${NIGHT.muted}">${esc((opts.who ? `@${opts.who}` : 'THE MIRROR').toUpperCase())}</text>
     <text x="540" y="1120" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-weight="500" font-size="60" fill="${NIGHT.ink}">${esc(opts.title)}</text>
     ${opts.line ? `<text x="540" y="1178" text-anchor="middle" font-family="${CARD_FONTS.display}, Georgia, serif" font-style="italic" font-size="32" fill="${NIGHT.muted}">${esc(opts.line)}</text>` : ''}
