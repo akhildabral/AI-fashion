@@ -6,7 +6,7 @@ import { Spinner } from './Spinner'
 /**
  * Onboarding gate: renders children only once the user has a style profile.
  * While the profile is loading we show a spinner; if none exists we send the
- * user to the /welcome onboarding flow.
+ * user to the fitting.
  */
 export function RequireProfile({ children }: { children: ReactNode }) {
   const { profile, loading, loadFailed, refresh } = useProfile()
@@ -31,7 +31,7 @@ export function RequireProfile({ children }: { children: ReactNode }) {
   }
 
   if (!profile) {
-    return <Navigate to="/welcome" replace />
+    return <Navigate to="/fitting" replace />
   }
 
   return <>{children}</>

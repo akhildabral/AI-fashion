@@ -11,6 +11,10 @@ export interface ProfileInput {
   city?: string | null;
   styleFor?: string | null;
   avoidColors?: string[];
+  intents?: string[];
+  occasions?: string[];
+  fittingStep?: number;
+  fittingDone?: boolean;
 }
 
 export function getProfile(userId: string) {
@@ -31,6 +35,10 @@ export function upsertProfile(userId: string, input: ProfileInput) {
     city?: string | null;
     styleFor?: string | null;
     avoidColors?: string[];
+    intents?: string[];
+    occasions?: string[];
+    fittingStep?: number;
+    fittingCompletedAt?: Date | null;
   } = {};
   if (input.bodyType !== undefined) data.bodyType = input.bodyType;
   if (input.heightCm !== undefined) data.heightCm = input.heightCm;
@@ -41,6 +49,11 @@ export function upsertProfile(userId: string, input: ProfileInput) {
   if (input.styleVibe !== undefined) data.styleVibe = input.styleVibe;
   if (input.budgetBand !== undefined) data.budgetBand = input.budgetBand;
   if (input.avoidColors !== undefined) data.avoidColors = input.avoidColors;
+  if (input.intents !== undefined) data.intents = input.intents;
+  if (input.occasions !== undefined) data.occasions = input.occasions;
+  // Progress only moves forward; a Back tap never loses ground.
+  if (input.fittingStep !== undefined) data.fittingStep = input.fittingStep;
+  if (input.fittingDone) data.fittingCompletedAt = new Date();
 
   return prisma.styleProfile.upsert({
     where: { userId },

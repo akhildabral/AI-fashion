@@ -259,6 +259,13 @@ model StyleProfile {
   city        String?
   // Who we style for: female | male | unisex.
   styleFor    String?
+  // From the fitting: what matters most (decided | own | friends) and the
+  // days they dress for (event types). Progress lets an abandoned fitting
+  // resume from Today instead of resetting.
+  intents            String[]
+  occasions          String[]
+  fittingStep        Int       @default(0)
+  fittingCompletedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

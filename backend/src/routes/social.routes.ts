@@ -14,11 +14,14 @@ import {
   unfollowUser,
 } from '../controllers/social.controller';
 import { requireAuth } from '../middleware/auth';
+import { handleAvailable, weatherFor } from '../controllers/fitting.controller';
 
 export const socialRouter = Router();
 
 socialRouter.put('/social/handle', requireAuth, setHandle);
 socialRouter.get('/social/me', requireAuth, socialMe);
+socialRouter.get('/social/handle/available', requireAuth, handleAvailable);
+socialRouter.get('/weather', requireAuth, weatherFor);
 socialRouter.get('/social/network', requireAuth, network);
 socialRouter.get('/users/search', requireAuth, searchUsers);
 socialRouter.get('/social/twins', requireAuth, styleTwins);

@@ -252,6 +252,17 @@ export function TodayPage() {
         </div>
       )}
 
+      {/* An abandoned fitting resumes from here, never resets */}
+      {!loading && profile && !profile.fittingCompletedAt && (profile.fittingStep ?? 0) > 0 && (
+        <Link to={`/fitting?s=${profile.fittingStep}`} className="plaque press mt-4 flex animate-rise items-center justify-between gap-4 p-4 pl-5">
+          <span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your fitting</span>
+            <span className="mt-0.5 block font-display text-lg italic text-ink">{Math.round(((profile.fittingStep ?? 0) / 13) * 100)}% taken. Pick it up where you left it.</span>
+          </span>
+          <span className="btn-primary !px-4 !py-2 !text-xs">Continue</span>
+        </Link>
+      )}
+
       {/* ---------------- STARTER: empty closet ---------------- */}
       {!loading && mode === 'starter' && (
         <div className="mt-4">

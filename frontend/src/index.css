@@ -186,6 +186,36 @@
     background: linear-gradient(var(--c-brass-hi), var(--c-brass-lo));
   }
 
+  /* The fitting's tailor's tape: a range input drawn as a brass thread. */
+  .tape {
+    appearance: none;
+    height: 2px;
+    background: linear-gradient(90deg, var(--c-brass) var(--p, 50%), rgb(var(--c-ink) / 0.12) var(--p, 50%));
+    outline: none;
+  }
+  .tape::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 26px;
+    border-radius: 2px;
+    border: 0;
+    background: var(--c-brass);
+    box-shadow: 0 0 0 3px rgb(var(--c-bone));
+    cursor: pointer;
+  }
+  .tape::-moz-range-thumb {
+    width: 18px;
+    height: 26px;
+    border-radius: 2px;
+    border: 0;
+    background: var(--c-brass);
+    box-shadow: 0 0 0 3px rgb(var(--c-bone));
+    cursor: pointer;
+  }
+  .tape:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgb(var(--c-bone)), 0 0 0 5px var(--c-brass);
+  }
+
   /* Universal press feedback for any tappable that isn't a .btn-*. */
   .press {
     @apply transition-transform duration-150 active:scale-[0.97];

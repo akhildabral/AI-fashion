@@ -19,6 +19,12 @@ const profileSchema = z.object({
   styleFor: z.enum(['female', 'male', 'unisex']).nullish(),
   budgetBand: z.string().max(50).nullish(),
   avoidColors: z.array(z.string().max(40)).max(30).optional(),
+  // The fitting: what matters most, the days they dress for, and where they
+  // got to (so an abandoned fitting resumes instead of resetting).
+  intents: z.array(z.enum(['decided', 'own', 'friends'])).max(3).optional(),
+  occasions: z.array(z.string().max(30)).max(8).optional(),
+  fittingStep: z.number().int().min(0).max(20).optional(),
+  fittingDone: z.boolean().optional(),
 });
 
 export async function getMyProfile(req: Request, res: Response) {

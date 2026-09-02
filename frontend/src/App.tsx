@@ -13,10 +13,9 @@ import { TodayPage } from './pages/TodayPage'
 import { ClosetPage } from './pages/ClosetPage'
 import { MirrorPage } from './pages/MirrorPage'
 import { CirclePage } from './pages/CirclePage'
-import { WelcomePage } from './pages/WelcomePage'
 import { ProfilePage } from './pages/ProfilePage'
 import { JournalPage } from './pages/JournalPage'
-import { QuizPage } from './pages/QuizPage'
+import { FittingPage } from './pages/FittingPage'
 import { PackingPage } from './pages/PackingPage'
 import { UserProfilePage } from './pages/UserProfilePage'
 import { AdminPage } from './pages/AdminPage'
@@ -69,9 +68,10 @@ export default function App() {
                 <Route path="/circle/people" element={<Navigate to="/circle" replace />} />
                 <Route path="/u/:handle" element={guarded(<UserProfilePage />)} />
 
-                {/* First run */}
-                <Route path="/welcome" element={guarded(<WelcomePage />, false)} />
-                <Route path="/quiz" element={guarded(<QuizPage />, false)} />
+                {/* First run: the fitting */}
+                <Route path="/fitting" element={guarded(<FittingPage />, false)} />
+                <Route path="/welcome" element={<Navigate to="/fitting" replace />} />
+                <Route path="/quiz" element={<Navigate to="/fitting?s=4" replace />} />
 
                 {/* Menu destinations */}
                 <Route path="/trips" element={guarded(<PackingPage />)} />

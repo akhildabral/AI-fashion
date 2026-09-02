@@ -42,6 +42,11 @@ export interface StyleProfile {
   avoidColors: string[]
   /** Taste-quiz output; null until the quiz has been taken. */
   styleSignals?: { signals: string[]; takenAt: string } | null
+  /** The fitting: what matters most, the days they dress for, and progress. */
+  intents?: string[]
+  occasions?: string[]
+  fittingStep?: number
+  fittingCompletedAt?: string | null
 }
 
 // ---- Taste quiz (cold-start personalization) ----
