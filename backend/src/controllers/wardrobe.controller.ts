@@ -43,9 +43,11 @@ async function cropToRegion(
 ): Promise<Buffer> {
   try {
     if (box.w <= 0.02 || box.h <= 0.02 || box.w * box.h > 0.95) return image;
-    const meta = await sharp(image).rotate().metadata();
-    const W = meta.width ?? 0;
-    const H = meta.height ?? 0;
+    // The size after the EXIF rotation: metadata() reports the stored size,
+    // which is swapped for a portrait phone photo.
+    const { info } = await sharp(image).rotate().toBuffer({ resolveWithObject: true });
+    const W = info.width;
+    const H = info.height;
     if (!W || !H) return image;
     const margin = 0.15;
     const left = Math.max(0, Math.floor((box.x - box.w * margin) * W));
