@@ -338,7 +338,7 @@ export function ClosetPage() {
 
         {/* ---------------- Loading / error / empty ---------------- */}
         {loading && (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60">
                 <div className="arch-niche h-full w-full" />
@@ -418,7 +418,7 @@ export function ClosetPage() {
             {sorted.length === 0 ? (
               <p className="mt-12 text-center text-sm text-ink/45">Nothing matches that filter.</p>
             ) : (
-              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {sorted.map((item) => (
                   <GarmentTile
                     key={item.id}

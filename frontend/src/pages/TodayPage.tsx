@@ -120,7 +120,8 @@ export function TodayPage() {
       const res = await getBrief(opts)
       apply(res)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load your brief.')
+      const msg = err instanceof Error ? err.message : ''
+      setError(/status 5\d\d|failed to fetch/i.test(msg) ? 'The stylist is out for a moment. Try again in a few seconds.' : msg || 'Could not load your brief.')
       setMode((prev) => prev ?? 'starter')
     } finally {
       setLoading(false)
@@ -266,8 +267,52 @@ export function TodayPage() {
   const evening = new Date().getHours() >= 18
   const reconsiderable = !worn && !isRefinement
 
+  const nudges = (stacked: boolean) => (
+    <>
+          {(cards.length > 0 || upcomingTrip) && (
+            <div className={stacked ? 'mt-8 grid gap-3' : 'mt-12 grid gap-3 sm:grid-cols-3'}>
+              {upcomingTrip && (
+                <Link to="/trips" className="card card-hover press animate-rise p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
+                    Trip coming up
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
+                    {upcomingTrip.destination} on {upcomingTrip.startDate} —{' '}
+                    {upcomingTrip.packedItemIds.length > 0
+                      ? `${upcomingTrip.packedItemIds.length} pieces packed`
+                      : 'pack from your closet'}
+                  </p>
+                </Link>
+              )}
+              {cards.map((card, i) => (
+                <Link key={i} to={card.type === 'new_follower' && card.handle ? `/u/${String(card.handle)}` : card.type === 'ootd' && card.handle ? `/u/${String(card.handle)}` : '/circle'} className="card card-hover press animate-rise p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
+                    {card.type === 'ootd' && 'Circle OOTD'}
+                    {card.type === 'pick_received' && 'A friend styled you'}
+                    {card.type === 'poll_result' && 'Your poll ended'}
+                    {card.type === 'poll_open' && 'Poll running'}
+                    {card.type === 'new_follower' && 'New follower'}
+                    {card.type === 'style_a_friend' && 'Your circle'}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
+                    {card.type === 'ootd' && `@${String(card.handle)} shared today's outfit`}
+                    {card.type === 'pick_received' &&
+                      `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
+                    {card.type === 'poll_result' &&
+                      `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
+                    {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
+                    {card.type === 'new_follower' && `@${String(card.handle)} started following you`}
+                    {card.type === 'style_a_friend' && 'Pick an outfit for a friend'}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+    </>
+  )
+
   return (
-    <PageShell>
+    <PageShell wide>
       <Toast msg={toast} />
 
       {/* ---------------- Greeting ---------------- */}
@@ -402,10 +447,10 @@ export function TodayPage() {
             </p>
           )}
 
-          <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
+          <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
           <div className="min-w-0">
           <div className="max-w-3xl">
-            <h1 className="animate-rise-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
+            <h1 className="animate-rise-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl xl:text-7xl">
               {worn ? (
                 <>
                   Looking good <em className="text-brass">today.</em>
@@ -453,7 +498,7 @@ export function TodayPage() {
 
           {/* The outfit — arched apertures, with a one-time light-catch sweep */}
           <div key={brief.itemIds.join('-')} className="relative mt-8">
-            <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4">
+            <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
               {brief.items.map((item) => (
                 <GarmentTile
                   key={item.id}
@@ -611,49 +656,11 @@ export function TodayPage() {
             </div>
           )}
 
+            <div className="hidden lg:block">{nudges(true)}</div>
           </aside>
           </div>
 
-          {/* Trip + circle nudges */}
-          {(cards.length > 0 || upcomingTrip) && (
-            <div className="mt-12 grid gap-3 sm:grid-cols-3">
-              {upcomingTrip && (
-                <Link to="/trips" className="card card-hover press animate-rise p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
-                    Trip coming up
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
-                    {upcomingTrip.destination} on {upcomingTrip.startDate} —{' '}
-                    {upcomingTrip.packedItemIds.length > 0
-                      ? `${upcomingTrip.packedItemIds.length} pieces packed`
-                      : 'pack from your closet'}
-                  </p>
-                </Link>
-              )}
-              {cards.map((card, i) => (
-                <Link key={i} to={card.type === 'new_follower' && card.handle ? `/u/${String(card.handle)}` : card.type === 'ootd' && card.handle ? `/u/${String(card.handle)}` : '/circle'} className="card card-hover press animate-rise p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
-                    {card.type === 'ootd' && 'Circle OOTD'}
-                    {card.type === 'pick_received' && 'A friend styled you'}
-                    {card.type === 'poll_result' && 'Your poll ended'}
-                    {card.type === 'poll_open' && 'Poll running'}
-                    {card.type === 'new_follower' && 'New follower'}
-                    {card.type === 'style_a_friend' && 'Your circle'}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-sm text-ink/75">
-                    {card.type === 'ootd' && `@${String(card.handle)} shared today's outfit`}
-                    {card.type === 'pick_received' &&
-                      `@${String(card.byHandle ?? 'a friend')} picked an outfit for you`}
-                    {card.type === 'poll_result' &&
-                      `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
-                    {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
-                    {card.type === 'new_follower' && `@${String(card.handle)} started following you`}
-                    {card.type === 'style_a_friend' && 'Pick an outfit for a friend'}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="lg:hidden">{nudges(false)}</div>
         </>
       )}
 

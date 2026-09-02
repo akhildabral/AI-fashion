@@ -15,7 +15,7 @@ export function PageShell({
   wide?: boolean
   narrow?: boolean
 }) {
-  const width = wide ? 'max-w-7xl' : narrow ? 'max-w-3xl' : 'max-w-6xl'
+  const width = wide ? 'max-w-[1400px]' : narrow ? 'max-w-3xl' : 'max-w-6xl'
   return <div className={`mx-auto ${width} px-4 py-8 sm:px-6 sm:py-10`}>{children}</div>
 }
 
