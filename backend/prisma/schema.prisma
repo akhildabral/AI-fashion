@@ -530,6 +530,10 @@ model Trip {
   endDate       String // YYYY-MM-DD
   activities    String?
   packedItemIds String[]
+  // The plan as composed: { rationale, essentials, forecast, days:[{label,note,itemIds}] }.
+  plan          Json?
+  // Checklist ticks, as "item-<id>" / "extra-<text>" keys.
+  checked       String[] @default([])
   createdAt     DateTime @default(now())
 
   @@index([userId, startDate])

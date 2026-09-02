@@ -28,6 +28,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { JournalPage } from './pages/JournalPage'
 import { FittingPage } from './pages/FittingPage'
 import { PackingPage } from './pages/PackingPage'
+import { TripPage } from './pages/TripPage'
 import { UserProfilePage } from './pages/UserProfilePage'
 import { AdminPage } from './pages/AdminPage'
 import { BillingPage } from './pages/BillingPage'
@@ -104,6 +105,7 @@ export default function App() {
 
                 {/* Menu destinations */}
                 <Route path="/trips" element={guarded(<PackingPage />)} />
+                <Route path="/trips/:id" element={guarded(<TripPage />)} />
                 <Route path="/profile" element={guarded(<ProfilePage />, false)} />
                 <Route path="/journal" element={guarded(<JournalPage />)} />
                 <Route path="/billing" element={guarded(<BillingPage />, false)} />

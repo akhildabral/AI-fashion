@@ -182,6 +182,14 @@ export function getClosetGaps() {
   return apiFetch<{ suggestions: GapSuggestion[]; outfitsPossible: number }>('/stats/gaps')
 }
 
+/** The plan as composed, stored with the trip. */
+export interface TripPlan {
+  rationale: string
+  essentials: string[]
+  forecast: import('./types').TripForecast
+  days: { label: string; note: string; itemIds: string[] }[]
+}
+
 export interface Trip {
   id: string
   destination: string
@@ -189,10 +197,25 @@ export interface Trip {
   endDate: string
   activities: string | null
   packedItemIds: string[]
+  /** Checklist ticks: "item-<id>" and "extra-<text>". */
+  checked: string[]
+  plan: TripPlan | null
 }
 
+export interface TripPage {
+  trip: Trip
+  capsule: import('./types').WardrobeItem[]
+  days: { label: string; note: string; items: import('./types').WardrobeItem[] }[]
+  /** Once the trip is over: what was packed and never worn. */
+  recap: { packed: number; worn: number; unworn: import('./types').WardrobeItem[] } | null
+}
+
+/** Upcoming (and current) trips, and the last few that ended. */
 export function getTrips() {
-  return apiFetch<{ trips: Trip[] }>('/trips')
+  return apiFetch<{ trips: Trip[]; past: Trip[] }>('/trips')
+}
+export function getTrip(id: string) {
+  return apiFetch<TripPage>(`/trips/${id}`)
 }
 export function createTrip(data: {
   destination: string
@@ -200,8 +223,16 @@ export function createTrip(data: {
   endDate: string
   activities?: string | null
   packedItemIds: string[]
+  plan?: TripPlan
 }) {
   return apiFetch<{ trip: Trip }>('/trips', { method: 'POST', body: data })
+}
+export function updateTrip(id: string, data: { checked?: string[]; packedItemIds?: string[]; activities?: string | null }) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}`, { method: 'PATCH', body: data })
+}
+/** "Not this": swap a packed piece for the closest thing you own. */
+export function swapTripItem(id: string, itemId: string) {
+  return apiFetch<{ trip: Trip; swappedFor: import('./types').WardrobeItem }>(`/trips/${id}/swap`, { method: 'POST', body: { itemId } })
 }
 export function deleteTrip(id: string) {
   return apiFetch<void>(`/trips/${id}`, { method: 'DELETE' })

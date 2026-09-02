@@ -14,7 +14,7 @@ import {
 import { closetGaps, ritualStats } from '../controllers/ritual.controller';
 import { getFeed } from '../controllers/feed.controller';
 import { recreateFromCloset } from '../controllers/recreate.controller';
-import { createTrip, deleteTrip, listTrips } from '../controllers/trip.controller';
+import { createTrip, deleteTrip, getTrip, listTrips, swapTripItem, updateTrip } from '../controllers/trip.controller';
 import {
   createLookbook,
   deleteLookbook,
@@ -43,6 +43,9 @@ briefRouter.post('/recreate', requireAuth, recreateFromCloset);
 briefRouter.get('/trips', requireAuth, listTrips);
 briefRouter.post('/trips', requireAuth, createTrip);
 briefRouter.delete('/trips/:id', requireAuth, deleteTrip);
+briefRouter.get('/trips/:id', requireAuth, getTrip);
+briefRouter.patch('/trips/:id', requireAuth, updateTrip);
+briefRouter.post('/trips/:id/swap', requireAuth, swapTripItem);
 briefRouter.get('/lookbooks', requireAuth, listLookbooks);
 briefRouter.post('/lookbooks', requireAuth, createLookbook);
 briefRouter.post('/lookbooks/:id/toggle', requireAuth, toggleLookbookItem);

@@ -70,6 +70,18 @@ function itemLabel(i: BriefItem): string {
   return i.subtype ?? i.category
 }
 
+const tripDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+function tripIsTomorrow(t: Trip): boolean {
+  const tm = new Date()
+  tm.setDate(tm.getDate() + 1)
+  return t.startDate === localDay(tm)
+}
+function tripIsOn(t: Trip): boolean {
+  const today = localDay(new Date())
+  return t.startDate <= today && t.endDate >= today
+}
+
 export function TodayPage() {
   usePageTitle('Today')
   const { user } = useAuth()
@@ -276,15 +288,14 @@ export function TodayPage() {
           {(cards.length > 0 || upcomingTrip) && (
             <div className={stacked ? 'mt-8 grid gap-3' : 'mt-12 grid gap-3 sm:grid-cols-3'}>
               {upcomingTrip && (
-                <Link to="/trips" className="card card-hover press animate-rise p-4">
+                <Link to={`/trips/${upcomingTrip.id}`} className="card card-hover press animate-rise p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">
-                    Trip coming up
+                    {tripIsTomorrow(upcomingTrip) ? 'Packing tonight?' : tripIsOn(upcomingTrip) ? 'On the road' : 'Trip coming up'}
                   </p>
                   <p className="mt-1 line-clamp-2 text-sm text-ink/75">
-                    {upcomingTrip.destination} on {upcomingTrip.startDate} —{' '}
-                    {upcomingTrip.packedItemIds.length > 0
-                      ? `${upcomingTrip.packedItemIds.length} pieces packed`
-                      : 'pack from your closet'}
+                    {upcomingTrip.destination}
+                    {tripIsOn(upcomingTrip) ? '' : ` from ${tripDay(upcomingTrip.startDate)}`} ·{' '}
+                    {tripIsTomorrow(upcomingTrip) ? 'the checklist is ready' : `${upcomingTrip.packedItemIds.length} pieces packed`}
                   </p>
                 </Link>
               )}
