@@ -628,9 +628,10 @@ export function FittingPage() {
                   "linear-gradient(90deg, var(--c-brass-lo), var(--c-brass-hi))",
               }}
             >
+              {/* the diamond at the head of the thread, sitting on the line */}
               <span
                 aria-hidden
-                className="absolute -right-[5px] -top-[4px] h-2.5 w-2.5 rounded-full bg-brass-hi shadow-[0_0_0_2px_rgb(var(--c-brass-hi)/0.25)]"
+                className="absolute -right-[6px] -top-[5px] h-3 w-3 rotate-45 bg-brass-hi"
               />
             </div>
           </div>
