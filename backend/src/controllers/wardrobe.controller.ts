@@ -68,9 +68,18 @@ async function catalogItem(
   target?: string,
   region?: { x: number; y: number; w: number; h: number },
 ): Promise<void> {
+  // A piece out of a group photo: its region, with a margin, becomes its own
+  // original from here on. The whole group photo stops mattering to it —
+  // showing it as "the original" misleads, and re-reading from it means
+  // guessing which garment was meant.
   if (region) {
     image = await cropToRegion(image, region);
     mime = 'image/png';
+    const crop = await saveImageBuffer(image, 'png');
+    const before = await prisma.wardrobeItem.findUnique({ where: { id: itemId }, select: { originalUrl: true, imageUrl: true } });
+    await prisma.wardrobeItem.update({ where: { id: itemId }, data: { originalUrl: crop.url, imageUrl: crop.url, cropped: true } });
+    // Each piece held its own copy of the group photo; this one's copy goes.
+    if (before?.originalUrl && before.originalUrl !== crop.url) await deleteFile(before.originalUrl).catch(() => undefined);
   }
   let imageForTagging = image;
   let mimeForTagging = mime;
@@ -237,7 +246,7 @@ export async function recatalogItem(req: Request, res: Response) {
 
   const item = await prisma.wardrobeItem.findFirst({
     where: { id, userId: req.user.id },
-    select: { imageUrl: true, originalUrl: true, description: true, subtype: true, category: true },
+    select: { imageUrl: true, originalUrl: true, description: true, subtype: true, category: true, cropped: true },
   });
   if (!item) throw new HttpError(404, 'Item not found');
 
@@ -254,9 +263,10 @@ export async function recatalogItem(req: Request, res: Response) {
     where: { id },
     data: { status: 'processing' },
   });
-  // Name the garment so extraction stays targeted — the original photo may
-  // contain other items (or a person wearing them).
-  const target = item.description ?? item.subtype ?? item.category;
+  // Name the garment so extraction stays targeted when the original is a
+  // group photo. A piece's own crop is a single garment: no target, so the
+  // read is the predictable single-garment one.
+  const target = item.cropped ? undefined : (item.description ?? item.subtype ?? item.category);
   enqueue(`recatalog:${id}`, () =>
     catalogItem(id, image, mimeForKey(keyFromStored(source)), target || undefined),
   );
