@@ -194,10 +194,14 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
     const spec = modelSpec();
     const S = spec.inputSize;
 
-    const meta = await sharp(image).rotate().metadata();
-    const width = meta.width ?? 0;
-    const height = meta.height ?? 0;
-    if (!width || !height) return null;
+    // The frame's true size AFTER the EXIF rotation is applied. metadata()
+    // reports the stored (unrotated) size, which is swapped for a portrait
+    // phone photo — and a mask laid over pixels with width and height
+    // swapped comes out as ghosted, repeated copies of the garment.
+    const { data: rgb, info: rgbInfo } = await sharp(image).rotate().removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const width = rgbInfo.width;
+    const height = rgbInfo.height;
+    if (!width || !height || rgbInfo.channels !== 3) return null;
 
     // Preprocess: resize, normalize, NCHW float32.
     const resized = await sharp(image)
@@ -267,7 +271,6 @@ export async function removeBackground(image: Buffer): Promise<MattingResult | n
 
     // Two steps: sharp applies operations in a fixed internal order, so
     // removeAlpha and joinChannel cannot live in the same pipeline.
-    const rgb = await sharp(image).rotate().removeAlpha().raw().toBuffer();
     const { data: rgba, info } = await sharp(rgb, { raw: { width, height, channels: 3 } })
       .joinChannel(alpha, { raw: { width, height, channels: 1 } })
       .raw()
