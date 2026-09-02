@@ -103,6 +103,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 > docker compose -f docker-compose.prod.yml --env-file .env.prod build backend web
 > docker compose -f docker-compose.prod.yml --env-file .env.prod stop backend web
 > docker compose -f docker-compose.prod.yml --env-file .env.prod rm -f backend web
+> # rm returns before the daemon has finished removing; give it a moment or
+> # `up` fails with "removal of container … is already in progress".
+> sleep 5
 > docker compose -f docker-compose.prod.yml --env-file .env.prod up -d backend web
 > ```
 >
