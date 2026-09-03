@@ -142,6 +142,16 @@ export function ComposePage() {
 
   // Categories you only ever wear one of at a time.
   const SINGULAR = new Set(["bottom", "footwear", "dress"]);
+  const isSeparate = (i: WardrobeItem) => i.category === "top" || i.category === "bottom";
+
+  // Would adding `a` mean wearing two of something you can't? Then `b` steps out.
+  function conflicts(a: WardrobeItem, b: WardrobeItem): boolean {
+    if (SINGULAR.has(a.category) && b.category === a.category) return true; // one bottom / pair of shoes / dress
+    if (a.subtype && b.subtype && a.subtype === b.subtype) return true; // no two of the same subtype
+    if (a.category === "dress" && isSeparate(b)) return true; // a dress replaces the top/bottom
+    if (isSeparate(a) && b.category === "dress") return true; // and a top/bottom replaces the dress
+    return false;
+  }
 
   function toggle(id: string) {
     setChosen((c) => {
@@ -150,15 +160,11 @@ export function ComposePage() {
       const item = byId.get(id);
       if (!item) return [...c, id];
       // An outfit is one-per-slot: adding a piece swaps out anything it would
-      // double up — the same singular category (a second pair of trousers or
-      // shoes), or the same subtype anywhere (a second handbag). Different
-      // subtypes still layer (a camisole under a shirt, a bag with a belt).
+      // double up. Different subtypes still layer (a camisole under a shirt,
+      // a bag with a belt).
       const kept = c.filter((xid) => {
         const x = byId.get(xid);
-        if (!x) return true;
-        if (SINGULAR.has(item.category) && x.category === item.category) return false;
-        if (item.subtype && x.subtype && x.subtype === item.subtype) return false;
-        return true;
+        return !x || !conflicts(item, x);
       });
       return [...kept, id];
     });
@@ -233,18 +239,42 @@ export function ComposePage() {
             )}
           </p>
           {picked.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {picked.map((i) => (
-                <button
-                  key={i.id}
-                  type="button"
-                  onClick={() => toggle(i.id)}
-                  className="chip !px-2.5 !py-1 !text-xs"
-                  aria-label={`Remove ${i.subtype ?? i.category}`}
-                >
-                  {i.subtype ?? i.category} ×
-                </button>
-              ))}
+            <div className="mt-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">In the outfit</p>
+              <div className="mt-2 flex flex-wrap gap-2.5">
+                {picked.map((i) => (
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => toggle(i.id)}
+                    className="press group relative w-16 shrink-0 text-center"
+                    aria-label={`Remove ${i.subtype ?? i.category}`}
+                    title={`Remove ${i.subtype ?? i.category}`}
+                  >
+                    <div className="arch-bezel aspect-[5/6]">
+                      <div className="arch-niche h-full w-full">
+                        <img
+                          src={resolveImageUrl(i.imageUrl)}
+                          alt={i.subtype ?? i.category}
+                          loading="lazy"
+                          className="relative z-[1] h-full w-full object-contain p-[10%]"
+                        />
+                      </div>
+                    </div>
+                    <span
+                      aria-hidden
+                      className="absolute -right-1.5 -top-1.5 z-[2] flex h-5 w-5 items-center justify-center rounded-[3px] border border-bone/20 bg-ink/85 text-bone transition-colors group-hover:bg-[rgb(var(--c-danger))]"
+                    >
+                      <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.7" fill="none" />
+                      </svg>
+                    </span>
+                    <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/55">
+                      {i.subtype ?? i.category}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           <div className="mt-5">
