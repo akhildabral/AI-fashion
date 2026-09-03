@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { PageShell } from '../components/ui'
+import { PageShell, Modal } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
@@ -68,31 +68,42 @@ async function loadRazorpay(): Promise<void> {
 function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: string }) {
   const pct = meter.limit > 0 ? Math.min(100, Math.round((meter.used / meter.limit) * 100)) : 0
   const full = meter.used >= meter.limit
+  const near = !full && pct >= 80
+  const tone = full ? 'var(--c-danger)' : near ? 'var(--c-warning)' : null
   return (
     <div>
       <div className="flex items-baseline justify-between text-sm">
         <span className="text-ink/80">{label}</span>
-        <span className={`tabular-nums ${full ? 'font-medium text-rose-600' : 'text-ink/60'}`}>
+        <span
+          className="tabular-nums"
+          style={tone ? { color: `rgb(${tone})`, fontWeight: 500 } : { color: 'rgb(var(--c-ink) / 0.6)' }}
+        >
           {meter.used} / {meter.limit} {per}
         </span>
       </div>
       <div className="mt-1 h-2 overflow-hidden rounded-[3px] bg-ink/10">
         <div
-          className={`h-full rounded-[3px] ${full ? 'bg-rose-500' : 'bg-iris'}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-[3px]"
+          style={{ width: `${pct}%`, background: tone ? `rgb(${tone})` : 'rgb(var(--c-iris))' }}
         />
       </div>
+      {near && (
+        <p className="mt-1 text-xs" style={{ color: 'rgb(var(--c-warning))' }}>
+          Almost out for this cycle.
+        </p>
+      )}
     </div>
   )
 }
 
 export function BillingPage() {
-  usePageTitle('Subscription')
+  usePageTitle('Plan & usage')
   const { user } = useAuth()
   const [summary, setSummary] = useState<BillingSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -125,10 +136,24 @@ export function BillingPage() {
         prefill: { email: session.email },
         theme: { color: '#B98C3B' },
         handler: () => {
-          setNotice(
-            'Payment received! Your plan activates as soon as the payment is confirmed. Refresh in a few seconds.',
-          )
-          void load()
+          setNotice('Payment received. Activating your plan…')
+          // The webhook confirms a beat after the handler fires — poll a few
+          // times so the plan flips on its own; no manual refresh.
+          void (async () => {
+            for (let i = 0; i < 6; i++) {
+              await new Promise((r) => setTimeout(r, 2500))
+              try {
+                const next = await apiFetch<BillingSummary>('/billing/summary')
+                setSummary(next)
+                if (next.plan === plan) {
+                  setNotice('You’re on ' + (next.label ?? plan) + '. Enjoy.')
+                  return
+                }
+              } catch {
+                /* keep polling */
+              }
+            }
+          })()
         },
       }).open()
     } catch (err) {
@@ -139,8 +164,7 @@ export function BillingPage() {
   }
 
   async function cancelPlan() {
-    if (!window.confirm('Cancel your subscription? Your plan stays active until the period ends.'))
-      return
+    setConfirmCancel(false)
     setBusy('cancel')
     try {
       const res = await apiFetch<{ message: string }>('/billing/cancel', { method: 'POST' })
@@ -205,7 +229,7 @@ export function BillingPage() {
                 <button
                   type="button"
                   disabled={busy === 'cancel'}
-                  onClick={() => void cancelPlan()}
+                  onClick={() => setConfirmCancel(true)}
                   className="btn-ghost btn-sm"
                 >
                   Cancel subscription
@@ -269,6 +293,19 @@ export function BillingPage() {
           )}
         </>
       )}
+      <Modal open={confirmCancel} onClose={() => setConfirmCancel(false)} title="Cancel subscription?">
+        <p className="text-sm text-ink/70">
+          Your plan stays active until {periodEnd ?? 'the period ends'}. You can come back any time.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="btn-quiet" onClick={() => setConfirmCancel(false)}>
+            Keep it
+          </button>
+          <button type="button" className="btn-danger" onClick={() => void cancelPlan()}>
+            Cancel plan
+          </button>
+        </div>
+      </Modal>
     </PageShell>
   )
 }

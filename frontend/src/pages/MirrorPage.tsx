@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, resolveImageUrl } from '../lib/api'
@@ -70,6 +70,7 @@ export function MirrorPage() {
   const [photoMax, setPhotoMax] = useState(3)
   const [photoChecked, setPhotoChecked] = useState(false)
   const [photoModal, setPhotoModal] = useState(false)
+  const [confirmRemovePhoto, setConfirmRemovePhoto] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -336,7 +337,7 @@ export function MirrorPage() {
   async function removePhoto(id: string) {
     const p = photos.find((x) => x.id === id)
     if (!p) return
-    if (!window.confirm('Delete this photo? Every render made from it goes with it.')) return
+    setConfirmRemovePhoto(null)
     try {
       const r = await deleteReflection(id)
       setPhotoUrl(r.photoUrl)
@@ -674,7 +675,7 @@ export function MirrorPage() {
                   <button type="button" onClick={() => void pickPhoto(p.id)} aria-pressed={p.active} title={p.active ? 'The one the Mirror dresses' : 'Dress this one'} className={`press block w-12 overflow-hidden rounded-[3px] border transition-colors ${p.active ? 'border-brass ring-2 ring-brass/30' : 'border-ink/15 opacity-70 hover:opacity-100'}`}>
                     <img src={resolveImageUrl(p.url)} alt="" className="aspect-[3/4] w-full object-cover" />
                   </button>
-                  <button type="button" onClick={() => void removePhoto(p.id)} aria-label="Delete this photo and its renders" className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-[3px] bg-ink/80 text-bone group-hover:flex">
+                  <button type="button" onClick={() => setConfirmRemovePhoto(p.id)} aria-label="Delete this photo and its renders" className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-[3px] bg-ink/80 text-bone group-hover:flex">
                     <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
                       <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" fill="none" />
                     </svg>
@@ -865,11 +866,11 @@ export function MirrorPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-                {galleryRenders.map((t) => {
+                {galleryRenders.map((t, i) => {
                   const idx = compare.indexOf(t.id)
                   const isCurrent = current?.id === t.id
                   return (
-                    <div key={t.id} className="group relative">
+                    <div key={t.id} className="group relative rise-stagger" style={{ '--i': i } as CSSProperties}>
                       <button
                         type="button"
                         onClick={() => {
@@ -965,6 +966,18 @@ export function MirrorPage() {
               ))}
           </div>
         )}
+      </Modal>
+
+      <Modal open={confirmRemovePhoto !== null} onClose={() => setConfirmRemovePhoto(null)} title="Delete this photo?">
+        <p className="text-sm text-ink/70">Every render made from it goes with it. There’s no way back.</p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="btn-quiet" onClick={() => setConfirmRemovePhoto(null)}>
+            Keep it
+          </button>
+          <button type="button" className="btn-danger" onClick={() => confirmRemovePhoto && void removePhoto(confirmRemovePhoto)}>
+            Delete photo
+          </button>
+        </div>
       </Modal>
 
       {/* ---- Photo door ---- */}

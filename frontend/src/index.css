@@ -36,6 +36,12 @@
     --c-on-brass: 26 21 9; /* ink on a brass fill (both themes) */
     --grain-blend: multiply;
     --grain-op: 0.045;
+    /* Motion vocabulary — one set of curves for the whole app.
+       Strong ease-out for entrances/UI (Emil), ease-in-out for on-screen
+       movement, an iOS drawer curve for sheets. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   /* Atelier by night */
@@ -380,6 +386,13 @@
 }
 .animate-filament { animation: filament 5.5s ease-in-out infinite; }
 
+/* Index-driven entrance for grids and lists of any length: on each item set
+   style={{ '--i': i }}. Delay is capped so a long grid never crawls in. */
+.rise-stagger {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 55ms);
+}
+
 @keyframes cord-swing {
   0% { transform: rotate(0deg); }
   18% { transform: rotate(8deg); }
@@ -393,6 +406,7 @@
   .animate-cord-swing,
   .animate-arch-sweep,
   .animate-filament,
+  .rise-stagger,
   [class*='animate-rise'] {
     animation: none !important;
   }

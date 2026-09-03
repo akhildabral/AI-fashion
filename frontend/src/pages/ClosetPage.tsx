@@ -1,5 +1,5 @@
 import { money } from '../lib/money'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type CSSProperties } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate } from 'react-router-dom'
 import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
@@ -400,10 +400,12 @@ export function ClosetPage() {
                   <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Review →</span>
                 </button>
               )}
-              <div className="mt-6 grid animate-rise-3 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-                {sorted.map((item) => (
+              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+                {sorted.map((item, i) => (
                   <GarmentTile
                     key={item.id}
+                    className="rise-stagger"
+                    style={{ '--i': i } as CSSProperties}
                     imageUrl={item.imageUrl}
                     label={item.subtype ?? item.category}
                     sublabel={item.twinOfId ? 'A twin? · decide' : cpwLabel(item)}

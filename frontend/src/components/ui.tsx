@@ -1,4 +1,4 @@
-import { useState as useFlashState, useRef as useFlashRef, useEffect as useFlashEffect,  useEffect, type ReactNode } from 'react'
+import { useState as useFlashState, useRef as useFlashRef, useEffect as useFlashEffect,  useEffect, type ReactNode, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { resolveImageUrl } from '../lib/api'
 
@@ -77,6 +77,8 @@ export function GarmentTile({
   aspect = 'aspect-[5/6]',
   // kept for source compatibility; the tile is always arched now.
   arch: _arch,
+  className = '',
+  style,
 }: {
   imageUrl: string
   label?: string
@@ -86,13 +88,16 @@ export function GarmentTile({
   processing?: boolean
   aspect?: string
   arch?: boolean
+  className?: string
+  style?: CSSProperties
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`press group block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+      style={style}
+      className={`press group block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'} ${className}`}
     >
       <Arch aspect={aspect} bright={selected}>
         <img

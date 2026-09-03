@@ -138,7 +138,7 @@ export function Header() {
 
       {/* Phones: the rooms on their own hairline under the wordmark */}
       {user && !inFitting && (
-        <nav aria-label="Rooms" className="flex h-11 items-stretch gap-6 overflow-x-auto px-4 sm:hidden" style={{ scrollbarWidth: 'none' }}>
+        <nav aria-label="Rooms" className="flex h-11 items-stretch justify-between px-5 sm:hidden">
           {NAV.map((item) => (
             <RoomLink key={item.to} to={item.to} label={item.label} on={isActive(pathname, item.match)} className="!text-[12px]" />
           ))}
