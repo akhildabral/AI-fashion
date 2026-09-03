@@ -2,6 +2,7 @@
 // slides between them.
 import { MaterialIcons } from '@expo/vector-icons'
 import { Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs'
+import { Platform } from 'react-native'
 import { useTheme } from '@/src/design/theme'
 import { alpha } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
@@ -22,6 +23,8 @@ export default function TabsLayout() {
       iconColor={alpha(t.ink, 0.55)}
       labelStyle={{ fontFamily: fonts.sansMedium, fontSize: 10, color: alpha(t.ink, 0.55) }}
       minimizeBehavior="onScrollDown"
+      // iOS keeps the system glass; Material needs the surface and the pill named.
+      {...(Platform.OS === 'android' ? { backgroundColor: t.surface, indicatorColor: t.brassSoft } : {})}
     >
       {ROOMS.map((room) => (
         <NativeTabs.Trigger key={room.name} name={room.name}>
