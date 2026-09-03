@@ -11,7 +11,7 @@ import { logWear } from '../lib/wearlog'
 import { saveOutfit } from '../lib/outfits'
 import type { Reflection, TryOn, WardrobeItem } from '../lib/types'
 import { Spinner } from '../components/Spinner'
-import { MirrorFrame, Modal, Tabs, Toast, useFlash } from '../components/ui'
+import { MirrorFrame, Modal, Tabs, Toast, useFlash, MoreMenu, MenuItem } from '../components/ui'
 import { InspirationLens } from '../components/InspirationLens'
 
 // The Mirror, as a fitting room. The glass in the centre; under it the rail —
@@ -729,6 +729,18 @@ export function MirrorPage() {
                   {decided.tomorrow ?? 'Tomorrow'}
                 </button>
                 <ShareButton target={{ kind: 'render', id: current.id, title: 'Me, in the Mirror', text: 'Rendered on me from my own closet.' }} onDone={(l) => l && flash(l)} />
+                {/* The fixes — try again, or flag — behind one door so the
+                    three real choices stay front and centre. */}
+                <MoreMenu up align="right" label="More for this render">
+                  {!current.retryOf ? (
+                    <MenuItem onClick={() => void tryAgain()}>Not right? Try again — free once</MenuItem>
+                  ) : (
+                    <MenuItem onClick={() => void fire(true)}>Render fresh — 1 render</MenuItem>
+                  )}
+                  {!current.reportedAt && (
+                    <MenuItem danger onClick={() => void notMine()}>Not my clothes</MenuItem>
+                  )}
+                </MoreMenu>
               </div>
               {shareFor && (
                 <div className="action-row mt-3">
@@ -755,22 +767,6 @@ export function MirrorPage() {
                   </button>
                 </div>
               )}
-              <div className="action-row mt-2">
-                {!current.retryOf ? (
-                  <button type="button" disabled={busy !== null} onClick={() => void tryAgain()} className="btn-quiet btn-quiet-sm">
-                    {busy === 'retry' ? 'Starting…' : 'Not right? Try again, free once'}
-                  </button>
-                ) : (
-                  <button type="button" disabled={busy !== null} onClick={() => void fire(true)} className="btn-quiet btn-quiet-sm">
-                    Render fresh · 1 render
-                  </button>
-                )}
-                {!current.reportedAt && (
-                  <button type="button" disabled={busy !== null} onClick={() => void notMine()} className="btn-quiet btn-quiet-sm !text-ink/40">
-                    Not my clothes
-                  </button>
-                )}
-              </div>
             </section>
           )}
 

@@ -393,6 +393,14 @@
   animation-delay: calc(min(var(--i, 0), 8) * 55ms);
 }
 
+/* Origin-aware popover: scales up from the trigger corner (set the corner with
+   origin-top-left / origin-top-right on the element). */
+@keyframes menu-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.menu-pop { animation: menu-pop 0.14s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
 @keyframes cord-swing {
   0% { transform: rotate(0deg); }
   18% { transform: rotate(8deg); }
@@ -407,6 +415,7 @@
   .animate-arch-sweep,
   .animate-filament,
   .rise-stagger,
+  .menu-pop,
   [class*='animate-rise'] {
     animation: none !important;
   }

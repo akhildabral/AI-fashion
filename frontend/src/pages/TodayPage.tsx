@@ -32,7 +32,7 @@ import {
 } from '../lib/brief'
 import type { GenerateResponse, Look } from '../lib/types'
 import { LookCard } from '../components/LookCard'
-import { GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { GarmentTile, Modal, PageShell, Toast, useFlash, MoreMenu, MenuItem } from '../components/ui'
 import { WorePhotoPanel } from '../components/WorePhotoPanel'
 import { Spinner } from '../components/Spinner'
 import { shareCard, outcomeLine } from '../lib/share'
@@ -636,32 +636,35 @@ export function TodayPage() {
             <button type="button" onClick={handleSeeOnYou} className={worn ? 'btn-primary' : 'btn-ghost'}>
               See it on you
             </button>
-            {!isRefinement && !worn ? (
-              <button
-                type="button"
-                onClick={() => void load({ refresh: true })}
-                disabled={busy === 'another'}
-                className="btn-quiet"
-              >
-                {busy === 'another' ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" /> Restyling…
-                  </>
-                ) : (
-                  'Another'
-                )}
-              </button>
-            ) : null}
-            {data?.canUndo && !worn && (
-              <button type="button" disabled={busy === 'undo'} onClick={() => void goBack()} className="btn-quiet">
-                {busy === 'undo' ? '…' : 'Back to the first'}
-              </button>
-            )}
-            {!isRefinement && !data?.wornLook && (
-              <button type="button" disabled={busy !== null} onClick={() => setPhotoOpen(true)} className="btn-quiet">
-                {worn ? 'Wore something else?' : 'Wore something else'}
-              </button>
-            )}
+            {/* Everything that changes the look lives behind one door, so the
+                primary act stays the obvious one. */}
+            {(() => {
+              const canRestyle = !isRefinement && !worn
+              const canUndo = !!data?.canUndo && !worn
+              const canWoreElse = !isRefinement && !data?.wornLook
+              const busyRestyle = busy === 'another'
+              if (!canRestyle && !canUndo && !canWoreElse) return null
+              return (
+                <MoreMenu
+                  align="left"
+                  up
+                  label="Change today's look"
+                  trigger={
+                    <span className="btn-quiet">
+                      {busyRestyle ? (
+                        <><Spinner className="mr-2 h-4 w-4" /> Restyling…</>
+                      ) : (
+                        <>Change<span aria-hidden className="ml-1 text-ink/40">▾</span></>
+                      )}
+                    </span>
+                  }
+                >
+                  {canRestyle && <MenuItem onClick={() => void load({ refresh: true })}>Restyle it</MenuItem>}
+                  {canUndo && <MenuItem onClick={() => void goBack()}>Back to the first</MenuItem>}
+                  {canWoreElse && <MenuItem onClick={() => setPhotoOpen(true)}>I wore something else</MenuItem>}
+                </MoreMenu>
+              )
+            })()}
           </div>
 
           <Modal open={photoOpen} onClose={() => setPhotoOpen(false)} title="What you wore">

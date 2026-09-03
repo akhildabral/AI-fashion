@@ -307,3 +307,94 @@ export function Filter({ on, onClick, children, count }: { on: boolean; onClick:
     </button>
   )
 }
+
+/** An origin-aware overflow menu. Default trigger is a ··· icon button; pass
+ *  `trigger` for a labelled control. Closes on outside click, Escape, or any
+ *  item selection. Items are <MenuItem>. */
+export function MoreMenu({
+  trigger,
+  align = 'left',
+  up = false,
+  label = 'More options',
+  className = '',
+  children,
+}: {
+  trigger?: ReactNode
+  align?: 'left' | 'right'
+  /** Open above the trigger — for controls that sit low on the screen. */
+  up?: boolean
+  label?: string
+  className?: string
+  children: ReactNode
+}) {
+  const [open, setOpen] = useFlashState(false)
+  const ref = useFlashRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        className={trigger ? 'press inline-flex items-center gap-1.5' : 'btn-icon'}
+      >
+        {trigger ?? <span className="text-lg leading-none tracking-tight">···</span>}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          onClick={() => setOpen(false)}
+          className={`menu-pop absolute z-40 min-w-[13rem] overflow-hidden rounded-[3px] border border-brass/30 bg-surface py-1.5 shadow-float ${
+            up ? 'bottom-full mb-2' : 'top-full mt-2'
+          } ${
+            align === 'right'
+              ? `right-0 ${up ? 'origin-bottom-right' : 'origin-top-right'}`
+              : `left-0 ${up ? 'origin-bottom-left' : 'origin-top-left'}`
+          }`}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** A row inside a MoreMenu. */
+export function MenuItem({
+  onClick,
+  danger = false,
+  children,
+}: {
+  onClick?: () => void
+  danger?: boolean
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-bone ${
+        danger ? 'text-[rgb(var(--c-danger))] hover:!bg-[rgb(var(--c-danger)/0.08)]' : 'text-ink/75 hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
