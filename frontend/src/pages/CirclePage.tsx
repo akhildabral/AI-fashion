@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
+import { Arch, Modal, PageShell, Toast, useFlash, Tabs, MoreMenu, MenuItem } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { InviteSheet } from '../components/InviteSheet'
@@ -362,7 +362,6 @@ export function CirclePage() {
       <header>
         <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">The Circle</p>
         <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium text-ink sm:text-6xl">Circle</h1>
-        {me && <Identity me={me} onOpenPeople={openPeople} />}
       </header>
 
       <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
@@ -400,19 +399,24 @@ export function CirclePage() {
           </section>
 
           {/* ---- compose ---- */}
-          <div className="mt-4 grid animate-rise-1 grid-cols-3 gap-2">
-            <ComposeButton onClick={() => setSharing(true)} label="Share a look" icon={<path d="M3 15l5-4 4 3 4-5 5 5M3 5h18v14H3z" />} />
-            <ComposeButton onClick={() => setAsking(true)} label="Ask the circle" icon={<path d="M8 3v18M16 3v18M3 6h18v12H3z" />} />
-            <ComposeButton
-              onClick={() => setStyling(true)}
-              label="Style a friend"
-              icon={
-                <>
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-                </>
+          {/* One door. Sharing is also a tap away on the today rail above, so the
+              three actions live behind a single button instead of a button wall. */}
+          <div className="mt-4 animate-rise-1">
+            <MoreMenu
+              align="left"
+              label="Post to your circle"
+              trigger={
+                <span className="btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2 shrink-0" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  Post to your circle
+                  <span aria-hidden className="ml-1.5 text-on-brass/50">▾</span>
+                </span>
               }
-            />
+            >
+              <MenuItem onClick={() => setSharing(true)}>Share a look</MenuItem>
+              <MenuItem onClick={() => setAsking(true)}>Ask the circle</MenuItem>
+              <MenuItem onClick={() => setStyling(true)}>Style a friend</MenuItem>
+            </MoreMenu>
           </div>
 
           {/* ---- lens ---- */}
@@ -740,35 +744,3 @@ function Stat({ v, l }: { v: number; l: string }) {
   )
 }
 
-function ComposeButton({ onClick, label, icon }: { onClick: () => void; label: string; icon: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="press flex items-center justify-center gap-2 rounded-[3px] border border-ink/15 bg-surface px-2 py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brass"
-    >
-      {/* On a phone three columns don't fit an icon and a label; the label wins. */}
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="hidden shrink-0 text-brass sm:block" aria-hidden="true">
-        {icon}
-      </svg>
-      <span className="whitespace-nowrap">{label}</span>
-    </button>
-  )
-}
-
-/* ---- identity: the handle claim lives in the mantel, not a separate card ---- */
-function Identity({ me, onOpenPeople }: { me: SocialMe; onOpenPeople: (tab: PeopleTab) => void }) {
-  return (
-    <p className="mt-3 animate-rise-1 text-sm text-ink/55">
-      You are <span className="font-semibold text-ink">{me.name}</span>
-      <span className="mx-2 text-ink/25">·</span>
-      <button type="button" onClick={() => onOpenPeople('followers')} className="press hover:text-ink">
-        {me.followers} follower{me.followers === 1 ? '' : 's'}
-      </button>
-      <span className="mx-2 text-ink/25">·</span>
-      <button type="button" onClick={() => onOpenPeople('following')} className="press hover:text-ink">
-        following {me.following}
-      </button>
-    </p>
-  )
-}

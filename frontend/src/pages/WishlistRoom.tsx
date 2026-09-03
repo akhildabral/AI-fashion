@@ -137,7 +137,7 @@ export function WishlistRoom() {
                       The verdict
                     </Link>
                     <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="btn-quiet btn-quiet-sm !text-ink/40">
-                      Let go
+                      Let it go
                     </button>
                   </div>
                 </div>

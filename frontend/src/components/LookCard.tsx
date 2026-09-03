@@ -265,7 +265,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
               className="btn-ghost"
             >
               <TryOnIcon />
-              <span className="ml-2">Try it on</span>
+              <span className="ml-2">See it on me</span>
             </button>
 
             {onDeleted && (

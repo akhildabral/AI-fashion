@@ -177,7 +177,7 @@ export function OutfitsRoom() {
             onClick={() => navigate("/closet/compose")}
             className="btn-primary"
           >
-            Compose by hand
+            Style by hand
           </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -318,7 +318,7 @@ export function OutfitsRoom() {
                     onClick={() => void remove(o)}
                     className="btn-quiet btn-quiet-sm !text-ink/40"
                   >
-                    Let go
+                    Let it go
                   </button>
                 </div>
               </article>
