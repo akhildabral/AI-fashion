@@ -12,6 +12,7 @@ import {
 import { logWear } from "../lib/wearlog";
 import { RoomMantel } from "../components/ClosetRooms";
 import { PageShell, Toast, useFlash, ArchSkeleton } from "../components/ui";
+import { TryOnModal } from "../components/TryOnModal";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
@@ -82,6 +83,7 @@ export function ComposePage() {
   const { toast, flash } = useFlash();
   const [closet, setCloset] = useState<WardrobeItem[] | null>(null);
   const [closetFailed, setClosetFailed] = useState(false);
+  const [tryOn, setTryOn] = useState(false);
   const [chosen, setChosen] = useState<string[]>([]);
   const [slot, setSlot] = useState<string>("top");
   const [eventType, setEventType] = useState("work");
@@ -272,7 +274,7 @@ export function ComposePage() {
             {chosen.length >= 2 && (
               <button
                 type="button"
-                onClick={() => navigate(`/mirror?items=${chosen.join(",")}`)}
+                onClick={() => setTryOn(true)}
                 className="btn-quiet"
               >
                 See it on me
@@ -372,6 +374,7 @@ export function ComposePage() {
           )}
         </div>
       </div>
+      {tryOn && chosen.length >= 2 && <TryOnModal itemIds={chosen} onClose={() => setTryOn(false)} />}
     </PageShell>
   );
 }

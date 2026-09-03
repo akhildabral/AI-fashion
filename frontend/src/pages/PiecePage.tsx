@@ -11,6 +11,7 @@ import { Spinner } from '../components/Spinner'
 import { ShareButton } from '../components/ShareButton'
 import { GoesWith } from '../components/GoesWith'
 import { LetGoModal } from '../components/LetGo'
+import { TryOnModal } from '../components/TryOnModal'
 
 // The piece page: one garment, every fact in order, each with its source;
 // the story and Goes with beside them. Tap a fact to change it.
@@ -264,6 +265,7 @@ export function PiecePage() {
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'facts' | 'story' | 'goes'>('facts')
   const [openFact, setOpenFact] = useState<string | null>(null)
+  const [tryOn, setTryOn] = useState(false)
   const [original, setOriginal] = useState(false)
   const [menu, setMenu] = useState(false)
   const [lettingGo, setLettingGo] = useState(false)
@@ -421,9 +423,9 @@ export function PiecePage() {
             <Link to={`/closet/compose?pin=${item.id}`} className="btn-primary">
               Style it
             </Link>
-            <Link to={`/mirror?items=${item.id}`} className="btn-quiet">
+            <button type="button" onClick={() => setTryOn(true)} className="btn-quiet">
               See it on me
-            </Link>
+            </button>
             <div className="relative">
               <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-icon" aria-label="More">
                 ···
@@ -578,6 +580,7 @@ export function PiecePage() {
         }}
         onNote={flash}
       />
+      {tryOn && item && <TryOnModal itemIds={[item.id]} onClose={() => setTryOn(false)} />}
     </PageShell>
   )
 }

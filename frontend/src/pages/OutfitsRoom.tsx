@@ -16,6 +16,7 @@ import { PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../componen
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
+import { TryOnModal } from "../components/TryOnModal";
 import { AskCircleModal } from "../components/ComposeModals";
 import type { WardrobeItem } from "../lib/types";
 
@@ -60,6 +61,7 @@ export function OutfitsRoom() {
   const [suggested, setSuggested] = useState<Suggested[] | null>(null);
   const [asking, setAsking] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [tryOnItems, setTryOnItems] = useState<string[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -299,12 +301,13 @@ export function OutfitsRoom() {
                   >
                     Wearing it today
                   </button>
-                  <Link
-                    to={`/mirror?items=${o.itemIds.join(",")}`}
+                  <button
+                    type="button"
+                    onClick={() => setTryOnItems(o.itemIds)}
                     className="btn-quiet btn-quiet-sm"
                   >
                     See it on me
-                  </Link>
+                  </button>
                   <button type="button" onClick={() => setAskingCircle(o.id)} className="btn-quiet btn-quiet-sm">
                     Ask the circle
                   </button>
@@ -330,6 +333,7 @@ export function OutfitsRoom() {
         )}
       </section>
           <AskCircleModal open={askingCircle !== null} onClose={() => setAskingCircle(null)} onAsked={() => flash("Asked. The verdict lands in your Circle.")} initialOutfitId={askingCircle} />
+      {tryOnItems && <TryOnModal itemIds={tryOnItems} onClose={() => setTryOnItems(null)} />}
     </PageShell>
   );
 }
