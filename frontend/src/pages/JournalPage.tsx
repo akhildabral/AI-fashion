@@ -1,5 +1,5 @@
 import { money } from '../lib/money'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { copyText } from '../lib/clipboard'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -634,8 +634,10 @@ export function JournalPage() {
         )}
         {logs && logs.length > 0 && (
           <div className="mt-4 grid gap-3">
-            {logs.map((log) => (
-              <DayCard key={log.id} log={log} onChange={upsert} onRemove={remove} onNote={flash} />
+            {logs.map((log, i) => (
+              <div key={log.id} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
+                <DayCard log={log} onChange={upsert} onRemove={remove} onNote={flash} />
+              </div>
             ))}
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
@@ -340,16 +340,19 @@ export function CirclePage() {
     },
   }
   const isFocus = (p: CirclePost) => focus?.type === p.type && focus.id === p.id
-  const renderPost = (p: CirclePost) =>
-    p.type === 'look' ? (
-      <LookCard key={`l-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
-    ) : p.type === 'verdict' ? (
-      <VerdictCard key={`v-${p.id}`} post={p} actions={actions} onVote={handleVote} highlight={isFocus(p)} />
-    ) : p.type === 'pick' ? (
-      <PickCard key={`p-${p.id}`} post={p} actions={actions} highlight={isFocus(p)} />
-    ) : (
-      <WeekCard key={`w-${p.id}`} post={p} onOpen={(t, id) => setSearchParams({ focus: `${t}:${id}` })} />
-    )
+  const renderPost = (p: CirclePost, i: number) => (
+    <div key={`${p.type}-${p.id}`} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
+      {p.type === 'look' ? (
+        <LookCard post={p} actions={actions} highlight={isFocus(p)} />
+      ) : p.type === 'verdict' ? (
+        <VerdictCard post={p} actions={actions} onVote={handleVote} highlight={isFocus(p)} />
+      ) : p.type === 'pick' ? (
+        <PickCard post={p} actions={actions} highlight={isFocus(p)} />
+      ) : (
+        <WeekCard post={p} onOpen={(t, id) => setSearchParams({ focus: `${t}:${id}` })} />
+      )}
+    </div>
+  )
 
   return (
     <PageShell>

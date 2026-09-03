@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Arch, GarmentTile, PageShell, Tabs } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -139,8 +139,10 @@ export function PackingPage() {
             <p className="mt-4 text-sm text-ink/50">{tab === 'upcoming' ? 'Nothing planned yet. Start one below.' : 'No trips have ended yet.'}</p>
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {list.map((t) => (
-                <TripRow key={t.id} t={t} past={tab === 'past'} />
+              {list.map((t, i) => (
+                <div key={t.id} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
+                  <TripRow t={t} past={tab === 'past'} />
+                </div>
               ))}
             </div>
           )}

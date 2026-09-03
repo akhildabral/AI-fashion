@@ -239,7 +239,7 @@ export function NotificationsBell() {
     createPortal(
       place ? (
         // Under the bell: a dropping panel, like the account menu.
-        <div ref={panelRef} role="dialog" aria-label="What happened" style={{ top: place.top, right: place.right }} className="fixed z-50 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[3px] border border-brass/30 bg-surface shadow-float animate-rise">
+        <div ref={panelRef} role="dialog" aria-label="What happened" style={{ top: place.top, right: place.right }} className="menu-pop fixed z-50 w-[380px] max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-[3px] border border-brass/30 bg-surface shadow-float">
           <div className="flex items-center justify-between border-b border-ink/10 px-4 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What happened</p>
             <Link to="/circle" onClick={() => setOpen(false)} className="text-xs font-semibold text-ink/50 hover:text-ink">

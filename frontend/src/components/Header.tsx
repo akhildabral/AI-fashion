@@ -113,7 +113,7 @@ export function Header() {
                 {initials}
               </button>
               {menuOpen && (
-                <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-[3px] border border-brass/30 bg-surface py-2 shadow-float">
+                <div role="menu" className="menu-pop absolute right-0 top-full z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-[3px] border border-brass/30 bg-surface py-2 shadow-float">
                   <p className="truncate px-4 py-2 text-xs text-ink/45">{user.email}</p>
                   {MENU.map((item) => (
                     <Link key={item.to} to={item.to} role="menuitem" className="block px-4 py-2 text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink">
