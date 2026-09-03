@@ -25,9 +25,15 @@ export function quota(kind: MeteredKind) {
       const user = req.user;
       if (!user) throw new HttpError(401, 'Authentication required');
 
+      // Reserve the usage first, then verify against a window that already
+      // counts this reservation — so a burst of concurrent requests can't all
+      // slip past a stale count and run up real AI cost. Over the limit, the
+      // reservation is rolled back.
+      const event = await prisma.usageEvent.create({ data: { userId: user.id, kind } });
       if (user.role !== 'admin') {
-        const { allowed, limit } = await checkGenerationQuota(user.id, user.plan, kind);
-        if (!allowed) {
+        const { used, limit } = await checkGenerationQuota(user.id, user.plan, kind);
+        if (used > limit) {
+          await prisma.usageEvent.delete({ where: { id: event.id } }).catch(() => undefined);
           const limits = planLimits(user.plan);
           throw new HttpError(
             429,
@@ -37,8 +43,6 @@ export function quota(kind: MeteredKind) {
           );
         }
       }
-
-      const event = await prisma.usageEvent.create({ data: { userId: user.id, kind } });
       req.usageEventId = event.id;
       next();
     } catch (err) {

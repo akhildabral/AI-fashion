@@ -93,7 +93,7 @@ export function renderEmail(b: EmailBody): string {
 
 export async function sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
   if (!transport) {
-    console.log(`[mailer] SMTP not configured — verification link for ${to}: ${verifyUrl}`);
+    if (env.NODE_ENV !== 'production') console.log(`[mailer] SMTP not configured — verification link for ${to}: ${verifyUrl}`);
     return;
   }
 
@@ -124,7 +124,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!transport) {
-    console.log(`[mailer] SMTP not configured — password reset link for ${to}: ${resetUrl}`);
+    if (env.NODE_ENV !== 'production') console.log(`[mailer] SMTP not configured — password reset link for ${to}: ${resetUrl}`);
     return;
   }
   await transport.sendMail({
@@ -147,7 +147,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
 
 export async function sendInviteEmail(to: string, inviteUrl: string): Promise<boolean> {
   if (!transport) {
-    console.log(`[mailer] SMTP not configured — invite link for ${to}: ${inviteUrl}`);
+    if (env.NODE_ENV !== 'production') console.log(`[mailer] SMTP not configured — invite link for ${to}: ${inviteUrl}`);
     return false;
   }
   await transport.sendMail({

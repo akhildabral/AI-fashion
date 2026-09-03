@@ -173,6 +173,10 @@ const voteSchema = z.object({
 export async function votePoll(req: Request, res: Response) {
   const id = String(req.params.id);
   const { optionId, voterKey } = voteSchema.parse(req.body);
+  // `user:<id>` keys are reserved for authenticated in-app votes and are set
+  // server-side. A public voter can't claim one — that would let anyone cast a
+  // vote as (and shown as the name of) another member.
+  if (voterKey.startsWith('user:')) throw new HttpError(400, 'Invalid voter key');
 
   const poll = await prisma.poll.findUnique({ where: { id } });
   if (!poll) throw new HttpError(404, 'Poll not found');

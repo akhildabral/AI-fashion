@@ -24,6 +24,10 @@ export async function subscribePush(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   if (!pushEnabled) throw new HttpError(503, 'Push is not configured');
   const { subscription, timezone, hour } = subscribeSchema.parse(req.body);
+  // A push endpoint belongs to one account. Don't let a caller re-bind
+  // someone else's endpoint to themselves (or hijack their briefs).
+  const owned = await prisma.pushSubscription.findUnique({ where: { endpoint: subscription.endpoint }, select: { userId: true } });
+  if (owned && owned.userId !== req.user.id) throw new HttpError(409, 'That device is already registered to another account');
   const sub = await prisma.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
     create: { userId: req.user.id, endpoint: subscription.endpoint, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth, timezone, hour },

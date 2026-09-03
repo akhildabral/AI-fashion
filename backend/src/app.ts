@@ -83,8 +83,17 @@ export function createApp() {
   app.use('/api', circleRouter);
   app.use('/api', pushRouter);
   app.use('/api', shareRouter);
-  app.use(votePageRouter);
-  app.use(lookPageRouter);
+  // The public share/vote HTML pages sit outside /api, so give them their own
+  // ceiling — each does DB work and must not be a free DoS lever.
+  const shareLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: 'Too many requests',
+  });
+  app.use(shareLimiter, votePageRouter);
+  app.use(shareLimiter, lookPageRouter);
   app.use('/api', wearLogRouter);
   app.use('/api', tryOnRouter);
   app.use('/api', looksRouter);

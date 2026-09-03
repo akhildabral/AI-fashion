@@ -28,6 +28,11 @@ const tryOnSelect = {
 
 const itemSelect = { id: true, imageUrl: true, category: true, subtype: true, primaryColor: true, material: true, pattern: true, description: true, renderNotes: true } as const;
 
+// "Not my clothes" refunds are real recourse but bounded, so report→re-render
+// can't mint unlimited free paid renders.
+const REFUND_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const REFUND_CAP = 6;
+
 async function refund(usageEventId: string | null | undefined, tryOnId: string) {
   if (!usageEventId) return;
   await prisma.usageEvent.deleteMany({ where: { id: usageEventId } }).catch(() => undefined);
@@ -163,6 +168,9 @@ export async function retryTryOn(req: Request, res: Response) {
   const prev = await prisma.tryOn.findFirst({ where: { id: String(req.params.id), userId: req.user.id } });
   if (!prev) throw new HttpError(404, 'Try-on not found');
   if (prev.retryOf) throw new HttpError(400, 'That one was already a second try — render it fresh from the rail if you want another');
+  // Free retry is once per render. `reportedAt` is set the moment a render is
+  // retried (or reported), so this also blocks retrying the same original again.
+  if (prev.reportedAt) throw new HttpError(400, 'This render already had its free retry — render it fresh from the rail');
   if (prev.status === 'rendering' || prev.status === 'queued') throw new HttpError(400, 'Still rendering');
   const again = await prisma.tryOn.create({
     data: { userId: req.user.id, lookId: null, imageUrl: '', itemIds: prev.itemIds, status: 'queued', mode: prev.mode, model: prev.model, key: prev.key, photoPath: prev.photoPath, retryOf: prev.id, usageEventId: null },
@@ -179,11 +187,23 @@ export async function reportTryOn(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const row = await prisma.tryOn.findFirst({ where: { id: String(req.params.id), userId: req.user.id } });
   if (!row) throw new HttpError(404, 'Try-on not found');
+  let refunded = row.refunded;
   if (!row.reportedAt) {
     await prisma.tryOn.update({ where: { id: row.id }, data: { reportedAt: new Date() } });
-    if (!row.refunded) await refund(row.usageEventId, row.id);
+    // "Not my clothes" gives the render back — but capped, so it can't be a
+    // loop for unlimited free paid renders. Beyond the cap it's flagged, not
+    // refunded.
+    if (!row.refunded) {
+      const recent = await prisma.tryOn.count({
+        where: { userId: req.user.id, refunded: true, createdAt: { gte: new Date(Date.now() - REFUND_WINDOW_MS) } },
+      });
+      if (recent < REFUND_CAP) {
+        await refund(row.usageEventId, row.id);
+        refunded = true;
+      }
+    }
   }
-  res.json({ ok: true, refunded: true });
+  res.json({ ok: true, refunded });
 }
 
 export async function listTryOns(req: Request, res: Response) {
