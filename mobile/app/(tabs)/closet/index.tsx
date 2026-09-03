@@ -384,9 +384,10 @@ export default function ClosetRoom() {
               </T>
             )
           }
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <View style={styles.cell}>
               <GarmentTile
+                testID={index === 0 ? 'closet-first-tile' : undefined}
                 imageUrl={item.imageUrl}
                 width={tileW}
                 label={title(nameOf(item))}

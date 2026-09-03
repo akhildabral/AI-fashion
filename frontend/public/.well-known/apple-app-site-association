@@ -1,0 +1,24 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.myzauq.app"],
+        "components": [
+          { "/": "/look/*", "comment": "A shared look" },
+          { "/": "/vote/*", "comment": "A verdict to vote on" },
+          { "/": "/join/*", "comment": "A friend's invite code" },
+          { "/": "/u/*", "comment": "Someone's public room" },
+          { "/": "/invite", "comment": "The emailed invite (token in the query)" },
+          { "/": "/reset", "comment": "Password reset (token in the query)" },
+          { "/": "/verify-email", "comment": "Email verification (token in the query)" },
+          { "/": "/trips/*", "comment": "A trip" },
+          { "/": "/closet/*", "comment": "A piece in the closet" },
+          { "/": "/mirror", "comment": "The Mirror with pieces staged in the query" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.myzauq.app"]
+  }
+}

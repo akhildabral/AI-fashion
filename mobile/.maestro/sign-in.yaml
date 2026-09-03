@@ -1,0 +1,25 @@
+# The door: sign in with the seeded smoke member. Run from mobile/ with
+#   maestro test -e DEV_PASSWORD=... .maestro/sign-in.yaml
+# EMAIL defaults to the seed's smoke@test.dev (backend/scripts/seed-dev.ts).
+appId: com.myzauq.app
+env:
+  EMAIL: smoke@test.dev
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome back."
+- tapOn:
+    id: "signin-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "signin-password"
+- inputText: ${DEV_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "signin-submit"
+# A fitted member lands in Today (the native tab bar); an unfitted one at
+# the threshold of the fitting.
+- extendedWaitUntil:
+    visible:
+      text: "Today|Welcome in"
+    timeout: 20000

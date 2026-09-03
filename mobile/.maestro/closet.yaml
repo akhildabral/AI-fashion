@@ -1,0 +1,15 @@
+# Open the Closet and the first piece's dossier.
+#   maestro test -e DEV_PASSWORD=... .maestro/closet.yaml
+appId: com.myzauq.app
+---
+- runFlow: sign-in.yaml
+- tapOn: "Closet"
+- assertVisible: "Closet"
+- extendedWaitUntil:
+    visible:
+      id: "closet-first-tile"
+    timeout: 15000
+- tapOn:
+    id: "closet-first-tile"
+- assertVisible: "The facts"
+- assertVisible: "Goes with"

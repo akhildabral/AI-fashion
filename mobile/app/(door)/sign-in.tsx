@@ -78,6 +78,7 @@ export default function SignIn() {
         <Animated.View entering={rise(2)} style={styles.form}>
           <Field
             label="Email"
+            testID="signin-email"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -92,6 +93,7 @@ export default function SignIn() {
           <Field
             ref={passwordRef}
             label="Password"
+            testID="signin-password"
             password
             value={password}
             onChangeText={setPassword}
@@ -106,7 +108,7 @@ export default function SignIn() {
               {error.message}
             </T>
           ) : null}
-          <Button label="Sign in" block loading={busy === 'email'} disabled={busy !== null} onPress={submit} />
+          <Button label="Sign in" block loading={busy === 'email'} disabled={busy !== null} onPress={submit} testID="signin-submit" />
           <Link href="/(door)/forgot" asChild>
             <Button label="Forgot your password?" variant="quiet" size="sm" style={styles.center} />
           </Link>

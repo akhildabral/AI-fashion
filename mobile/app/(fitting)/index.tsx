@@ -48,13 +48,14 @@ export default function Threshold() {
       }
       lead="A few taps, and this morning is decided for you, from clothes you already own."
       corner={<Button label="Sign out" variant="quiet" size="sm" onPress={() => void signOut()} />}
-      actions={<Button label="Continue" block disabled={!hydrated || !intent} onPress={next} />}
+      actions={<Button label="Continue" block disabled={!hydrated || !intent} onPress={next} testID="fitting-continue" />}
     >
       <View style={styles.mark}>
         <ArchMark size={44} script />
       </View>
       <Field
         label="First name"
+        testID="fitting-name"
         value={name}
         onChangeText={(v) => {
           setName(v)

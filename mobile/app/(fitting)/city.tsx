@@ -73,10 +73,11 @@ export default function City() {
         </>
       }
       lead="The weather in your city is the first thing the stylist checks each day."
-      actions={<Button label="Continue" block onPress={next} />}
+      actions={<Button label="Continue" block onPress={next} testID="fitting-continue" />}
     >
       <Field
         label="Your city"
+        testID="fitting-city"
         value={city}
         onChangeText={(v) => {
           setCity(v)

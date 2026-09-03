@@ -128,8 +128,9 @@ are untouched by rebuilds.
 
 ## 6. CI/CD — auto-deploy on push to main
 
-`.github/workflows/ci.yml` runs backend typecheck + tests and the frontend
-build on every push/PR. On a green push to `main` it then SSHes into the VPS
+`.github/workflows/ci.yml` runs backend typecheck + tests, the frontend
+build and the mobile checks (types, lint, jest; no native build) on every
+push/PR. On a green push to `main` it then SSHes into the VPS
 and runs `git reset --hard origin/main` + a compose rebuild (30-minute
 timeout, single-flight via a concurrency group).
 
@@ -316,11 +317,46 @@ Upgrade path once the real domain has DNS: a transactional service (Brevo
 
 ```bash
 cd mobile
-EXPO_PUBLIC_API_URL=https://your.domain npx expo start --tunnel
+EXPO_PUBLIC_API_URL=https://myzauq.com npx expo start --dev-client --tunnel
 ```
 
-Poll share links and profile URLs now use the stable domain automatically
-(derived from the request host).
+Poll share links and profile URLs use the stable domain automatically
+(derived from the request host). The preview and production EAS profiles
+pin `EXPO_PUBLIC_API_URL` themselves (`mobile/eas.json`); see
+`mobile/README.md` for builds, updates and store submission.
+
+## 13. The phone app: backend env vars and `.well-known`
+
+Four keys in `deploy/backend.env` serve the app (push per §7, prefix as
+noted):
+
+| Key | Value |
+|-----|-------|
+| `GOOGLE_CLIENT_IDS` | comma-separated: the web client id first, then the iOS and Android OAuth client ids of the app. Replaces `GOOGLE_CLIENT_ID`, which still works as a single value. Prefix `GOOGLE_`. |
+| `APPLE_BUNDLE_IDS` | `com.myzauq.app` (defaults to that); the audience Sign in with Apple identity tokens are verified against. Prefix `APPLE_`. |
+| `EXPO_ACCESS_TOKEN` | optional; an Expo access token (expo.dev, Access tokens) once "Enhanced push security" is on for the project. Prefix `EXPO_`. |
+| `MIN_SUPPORTED_CLIENT` | semver; app builds below it are asked to update on launch (`GET /api/health` and `/api/bootstrap` return it). Bump only after a forced-upgrade release has been in both stores for a while. |
+
+The native push branch needs no keys (Expo's service); web push keeps
+`VAPID_*`. The Prisma migrations for device sessions and native push
+subscriptions are additive and run on boot with the rest.
+
+**Universal / app links.** The site serves two files from
+`frontend/public/.well-known/`, copied into the web image by the Vite
+build and handled by their own `handle` blocks in `deploy/Caddyfile` (so the
+SPA fallback never swallows them; the extensionless AASA gets
+`Content-Type: application/json`):
+
+- `apple-app-site-association`: replace `TEAMID` with the Apple Team ID.
+- `assetlinks.json`: replace the placeholder with the SHA-256 fingerprint
+  of the Android signing key (`cd mobile && eas credentials -p android`).
+
+`frontend/public/.well-known/README.md` has the exact steps. After a deploy:
+
+```bash
+curl -sI https://myzauq.com/.well-known/apple-app-site-association | grep -i content-type
+curl -s https://myzauq.com/.well-known/assetlinks.json
+```
 
 ## Local smoke test of the production stack
 

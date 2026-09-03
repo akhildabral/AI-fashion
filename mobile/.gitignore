@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# EAS submit: the Play service account key (never committed)
+google-play-service-account.json

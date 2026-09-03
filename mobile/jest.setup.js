@@ -1,6 +1,10 @@
 require('react-native-gesture-handler/jestSetup')
 require('react-native-reanimated').setUpTests()
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+)
+
 jest.mock('expo-secure-store', () => {
   const store = new Map()
   return {
@@ -20,4 +24,8 @@ jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => undefined),
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
   NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}))
+
+jest.mock('expo-localization', () => ({
+  getLocales: () => [{ languageTag: 'en-AE', measurementSystem: 'metric' }],
 }))

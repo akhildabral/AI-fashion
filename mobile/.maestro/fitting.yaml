@@ -1,0 +1,43 @@
+# The fitting's happy path up to the pieces step. Needs a member who has
+# not been fitted yet (no style profile), so pass their email:
+#   maestro test -e DEV_PASSWORD=... -e FITTING_EMAIL=new@test.dev .maestro/fitting.yaml
+appId: com.myzauq.app
+env:
+  FITTING_EMAIL: fitting@test.dev
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      EMAIL: ${FITTING_EMAIL}
+
+# 1. The threshold: a name and the one thing that matters most.
+- assertVisible: "Welcome in"
+- tapOn:
+    id: "fitting-name"
+- inputText: "Sam"
+- hideKeyboard
+- tapOn: "Decided for me"
+- tapOn:
+    id: "fitting-continue"
+
+# 2. Taste: the deck loads from the API; skip the rest of the pairs.
+- extendedWaitUntil:
+    visible:
+      text: "Skip the rest|Continue without"
+    timeout: 15000
+- tapOn:
+    text: "Skip the rest|Continue without"
+
+# 3. City.
+- assertVisible: "Where do mornings"
+- tapOn:
+    id: "fitting-city"
+- inputText: "Dubai"
+- hideKeyboard
+- tapOn:
+    id: "fitting-continue"
+
+# 4. Pieces: the four arches are waiting. The camera and the library need a
+# human (or the simulator's photo library), so the flow stops here.
+- assertVisible: "Four pieces"
+- assertVisible: "Photograph a piece"

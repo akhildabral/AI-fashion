@@ -25,6 +25,8 @@ export interface GarmentTileProps {
   onPress?: () => void
   onLongPress?: () => void
   accessibilityLabel?: string
+  /** For the Maestro flows; reaches the pressable. */
+  testID?: string
 }
 
 /** A garment spotlit in an arch, with its label beneath. */
@@ -42,6 +44,7 @@ export function GarmentTile({
   onPress,
   onLongPress,
   accessibilityLabel,
+  testID,
 }: GarmentTileProps) {
   const { t } = useTheme()
   const scale = useSharedValue(1)
@@ -92,9 +95,10 @@ export function GarmentTile({
     </Animated.View>
   )
 
-  if (!interactive) return <View style={{ width }}>{tile}</View>
+  if (!interactive) return <View style={{ width }} testID={testID}>{tile}</View>
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label ?? 'Garment'}
       accessibilityState={{ selected: !!selected }}

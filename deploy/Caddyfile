@@ -32,6 +32,20 @@
 		reverse_proxy backend:3000
 	}
 
+	# Universal links (iOS) and app links (Android) for the phone app. The
+	# AASA has no extension, so its JSON content type is set by hand; both
+	# are served straight from the built site (frontend/public/.well-known)
+	# and never fall through to the SPA's index.html.
+	handle /.well-known/apple-app-site-association {
+		root * /srv/www
+		header Content-Type "application/json"
+		file_server
+	}
+	handle /.well-known/* {
+		root * /srv/www
+		file_server
+	}
+
 	# The SPA — client-side routing falls back to index.html.
 	handle {
 		# The app holds the bearer token, so its CSP is the real containment

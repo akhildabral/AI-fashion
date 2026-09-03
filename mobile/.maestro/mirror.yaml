@@ -1,0 +1,11 @@
+# Open the Mirror.
+#   maestro test -e DEV_PASSWORD=... .maestro/mirror.yaml
+appId: com.myzauq.app
+---
+- runFlow: sign-in.yaml
+- tapOn: "Mirror"
+- assertVisible: "The Mirror."
+# With a reflection on the glass the rail and the meter are there; without
+# one the room asks for a photo first.
+- assertVisible:
+    text: "See it on me|Add your reflection"

@@ -24,8 +24,28 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
 
+  # The phone app: types, lint and the jest-expo unit tests. No native build
+  # and no EAS here (those run from a developer machine or EAS itself), so
+  # the job is a few minutes and does not gate the deploy.
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter mobile...
+      - run: pnpm --filter mobile exec tsc --noEmit
+      - run: pnpm --filter mobile exec eslint .
+      - run: pnpm --filter mobile exec jest --ci
+        env:
+          CI: true
+
   # The web app and the shared package live in the pnpm workspace at the
-  # repo root (the mobile app too, but it is not built here).
+  # repo root (the mobile app too; it has its own job above).
   frontend:
     runs-on: ubuntu-latest
     steps:
