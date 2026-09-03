@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/react':
+        specifier: ~19.1.10
+        version: 19.1.17
 
   frontend:
     dependencies:

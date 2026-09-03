@@ -7,5 +7,8 @@
     "web": "pnpm --filter ai-fashion-frontend dev",
     "web:build": "pnpm --filter ai-fashion-frontend build",
     "mobile": "pnpm --filter mobile start"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10"
   }
 }
