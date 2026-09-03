@@ -26,7 +26,7 @@ function signToken(userId: string): string {
 
 export function publicOrigin(req: Request): string {
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
-  return `${proto}://${req.get('host')}`;
+  return env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
 }
 
 /** Frontend bootstrap config (public). */
@@ -300,6 +300,12 @@ export async function joinWithCode(req: Request, res: Response) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing?.status === 'approved') throw new HttpError(409, 'You’re already a member — sign in instead');
   if (existing?.status === 'suspended') throw new HttpError(403, 'This account is suspended');
+  // An unauthenticated join must never overwrite an account that already has a
+  // way in — a password, a Google login, or a standing invite. Claiming one
+  // would be a takeover of someone else's email. They use their own path.
+  if (existing && (existing.passwordHash || existing.googleId || existing.inviteToken)) {
+    throw new HttpError(409, 'That email already has an account — sign in, or open the link we emailed you.');
+  }
 
   const passwordHash = await bcrypt.hash(data.password, 12);
   // Someone on the waitlist who gets a friend's link comes in on it.

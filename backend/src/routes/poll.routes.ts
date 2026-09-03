@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { env } from '../config/env';
 import {
   createPoll,
   deletePoll,
@@ -32,7 +33,7 @@ votePageRouter.get('/vote/:id', async (req, res) => {
   // Open Graph for the unfurl in a group chat: the question and option A.
   const poll = await prisma.poll.findUnique({ where: { id }, select: { question: true, options: true, userId: true } }).catch(() => null);
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
-  const base = `${proto}://${req.get('host')}`;
+  const base = env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
   const first = ((poll?.options as { imageUrl?: string }[] | null) ?? [])[0]?.imageUrl;
   const door = poll ? await joinLinkFor(poll.userId, base) : null;
   res.type('html').send(
@@ -132,7 +133,12 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
       if (i > 0) { var s = document.createElement('div'); s.className = 'seam'; s.textContent = 'or'; opts.appendChild(s); }
       var b = document.createElement('button');
       b.className = 'opt';
-      b.innerHTML = '<div class="bezel"><div class="niche"><img alt="Look" src="' + o.imageUrl + '" /></div></div>';
+      // Build the node, never string-concatenate a URL into innerHTML: the src
+      // is set as a property so it can never break out into markup.
+      var bezel = document.createElement('div'); bezel.className = 'bezel';
+      var niche = document.createElement('div'); niche.className = 'niche';
+      var img = document.createElement('img'); img.alt = 'Look'; img.src = o.imageUrl;
+      niche.appendChild(img); bezel.appendChild(niche); b.appendChild(bezel);
       b.onclick = function () {
         if (b.disabled) return;
         b.classList.add('chosen'); haptic();

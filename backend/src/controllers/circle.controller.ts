@@ -283,6 +283,13 @@ export async function getPost(req: Request, res: Response) {
   if (type === 'verdict') {
     const poll = await prisma.poll.findUnique({ where: { id }, include: { votes: { select: { optionId: true, voterKey: true } }, user: { select: { handle: true, firstName: true, lastName: true } } } });
     if (!poll || hidden.has(poll.userId)) throw new HttpError(404, 'That verdict isn’t here');
+    // A verdict is not public by UUID: the asker sees their own; a named
+    // audience sees theirs; a circle poll is visible only to people who
+    // follow the asker. Otherwise it isn't here.
+    if (poll.userId !== me && !poll.audienceIds.includes(me)) {
+      const follows = poll.audience === 'circle' && (await graphFor(me)).followingIds.has(poll.userId);
+      if (!follows) throw new HttpError(404, 'That verdict isn’t here');
+    }
     const [post] = await serializeVerdicts([poll], me);
     res.json({ post });
     return;

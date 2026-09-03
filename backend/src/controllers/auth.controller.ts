@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { env } from '../config/env';
 import { z } from 'zod';
 import {
   loginUser,
@@ -20,7 +21,7 @@ const credentialsSchema = z.object({
 // forwarded headers so it works behind the proxy and in dev.
 function publicOrigin(req: Request): string {
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
-  return `${proto}://${req.get('host')}`;
+  return env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
 }
 
 export async function register(req: Request, res: Response) {

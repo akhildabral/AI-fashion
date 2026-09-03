@@ -1,0 +1,11 @@
+# Never let build context leak into an image.
+**/node_modules
+**/dist
+**/.git
+**/.env
+**/.env.*
+!frontend/.env.production
+# Dev-only staged auth token (see frontend/public/_*.json) must never ship.
+frontend/public/_*.json
+**/*.log
+.deploy-secrets

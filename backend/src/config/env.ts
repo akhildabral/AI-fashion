@@ -50,6 +50,10 @@ const envSchema = z.object({
         .map((o) => o.trim())
         .filter(Boolean),
     ),
+  // The canonical public origin (https://myzauq.com). Used to build every
+  // emailed link and share URL so they never depend on the request Host
+  // header (which a client controls). Falls back to the header in dev.
+  PUBLIC_ORIGIN: z.string().url().optional(),
   // ---- AI provider (agnostic) -------------------------------------------
   // Which provider serves chat/vision (tagging, suggestions, stylist plans):
   //   openai     — api.openai.com

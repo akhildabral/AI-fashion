@@ -1,11 +1,12 @@
 import type { Request, Response } from 'express';
+import { env } from '../config/env';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
 import { renderBoard } from '../services/share.service';
-import { saveImageBuffer } from '../lib/storage';
+import { saveImageBuffer, isStorageImageUrl } from '../lib/storage';
 
 // Verdict polls (plan §8.1): "which of these?" — the highest-frequency social
 // action in fashion, already happening in messaging groups. The share link is
@@ -42,7 +43,7 @@ const createSchema = z.object({
 
 function shareOrigin(req: Request): string {
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
-  return `${proto}://${req.get('host')}`;
+  return env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
 }
 
 function withMeta(req: Request, poll: { id: string; expiresAt: Date }) {
@@ -70,6 +71,10 @@ export async function createPoll(req: Request, res: Response) {
       const stored = await saveImageBuffer(await renderBoard(ordered), 'jpg');
       options.push({ id: OPTION_IDS[i], imageUrl: stored.url, itemIds: ordered.map((x) => x.id), label: o.label });
     } else {
+      // Only a real stored image may become a poll board. A raw client string
+      // (a foreign URL, a javascript: scheme, an HTML-injection payload) is
+      // refused here so it can never reach the public /vote page.
+      if (!isStorageImageUrl(o.imageUrl)) throw new HttpError(400, 'That image can’t be used for a verdict');
       options.push({ id: OPTION_IDS[i], imageUrl: o.imageUrl, label: o.label });
     }
   }

@@ -1,4 +1,5 @@
 import { Router, type Request } from 'express';
+import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import sharp from 'sharp';
 import { composeLook, dressingOrder } from '../lib/flatlay';
@@ -25,7 +26,7 @@ export const lookPageRouter = Router();
 
 function origin(req: Request): string {
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
-  return `${proto}://${req.get('host')}`;
+  return env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
 }
 
 export function absoluteImage(base: string, url: string): string {

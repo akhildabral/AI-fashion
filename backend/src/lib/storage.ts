@@ -127,6 +127,17 @@ export function keyFromStored(stored: string): string {
   return path.basename(stored.split('?')[0]);
 }
 
+// A stored image URL is only ever a canonical driver URL over a uuid.ext key.
+// Anything else — a foreign host, a javascript:/data: scheme, an HTML/attribute
+// injection payload — fails the round-trip and is rejected. Used to gate any
+// image URL that a client hands us to store and later render (e.g. poll options).
+const STORAGE_KEY_RE = /^[0-9a-f-]{36}\.(jpe?g|png|webp)$/i;
+export function isStorageImageUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || url.length === 0 || url.length > 500) return false;
+  const key = keyFromStored(url);
+  return STORAGE_KEY_RE.test(key) && storage.urlFor(key) === url;
+}
+
 export function mimeForKey(key: string): string {
   const ext = path.extname(key).toLowerCase().replace('.', '');
   return CONTENT_TYPES[ext] ?? 'image/png';
