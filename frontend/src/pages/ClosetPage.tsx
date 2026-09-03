@@ -209,8 +209,8 @@ export function ClosetPage() {
           <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm">
             <div className="arch-bezel w-64" style={{ aspectRatio: '5 / 4' }}>
               <div className="arch-niche flex h-full w-full flex-col items-center justify-center px-6 text-center">
-                <p className="font-display text-2xl font-medium text-ink">Release</p>
-                <p className="mt-1 text-xs text-ink/60">every garment gets its own niche</p>
+                <p className="font-display text-2xl font-medium text-[rgb(var(--c-on-brass))]">Release</p>
+                <p className="mt-1 text-xs text-[rgb(var(--c-on-brass))]/60">every garment gets its own niche</p>
               </div>
             </div>
           </div>

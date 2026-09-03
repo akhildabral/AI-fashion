@@ -26,8 +26,8 @@
     --c-brass-hi: #cba24e;
     --c-brass: #b98c3b;
     --c-brass-lo: #7a5a22;
-    --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
-    --c-niche-edge: rgba(239, 231, 215, 0.85);
+    --c-niche: radial-gradient(84% 78% at 50% 20%, #f8eed9, #dfc79b 98%);
+    --c-niche-edge: rgba(230, 212, 175, 0.85);
     --c-sheen: rgba(255, 255, 255, 0.16);
     /* Semantic status + text-on-brass (one source of truth) */
     --c-danger: 190 66 58; /* #BE423A */
@@ -61,8 +61,8 @@
     --c-brass-lo: #8f6e32;
     /* A warm-lit vitrine glowing in the dark room — near-white so product-shot
        backgrounds melt into it, and premium: a boutique display case at night. */
-    --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
-    --c-niche-edge: rgba(243, 237, 224, 0.9);
+    --c-niche: radial-gradient(84% 78% at 50% 20%, #f8eed9, #dfc79b 98%);
+    --c-niche-edge: rgba(230, 212, 175, 0.9);
     --c-sheen: rgba(233, 217, 188, 0.07);
     --c-danger: 216 108 100; /* #D86C64 reads on near-black */
     --c-success: 138 184 148;
@@ -261,8 +261,8 @@
     /* Recessed display case: a soft top shadow under the arch crown and a
        floor glow, so the garment sits in a lit vitrine, not on a flat card. */
     box-shadow:
-      inset 0 3px 12px rgba(40, 25, 8, 0.14),
-      inset 0 -20px 30px -12px rgba(40, 25, 8, 0.08);
+      inset 0 3px 14px rgba(60, 40, 10, 0.16),
+      inset 0 -20px 30px -12px rgba(60, 40, 10, 0.09);
   }
   .arch-bezel.aspect-\[3\/4\] { --arch-h: 28%; }
   .arch-bezel.aspect-\[4\/5\] { --arch-h: 29.8%; }

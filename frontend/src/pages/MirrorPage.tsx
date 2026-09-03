@@ -635,7 +635,7 @@ export function MirrorPage() {
                     <button type="button" onClick={() => setSwapFor({ id: '', imageUrl: '', category: '', subtype: null })} className="press block w-full text-left" title="Add a piece">
                       <div className="arch-bezel aspect-[5/6] opacity-40 transition-opacity hover:opacity-80">
                         <div className="arch-niche flex h-full w-full items-center justify-center">
-                          <span className="relative z-[1] font-display text-3xl text-ink/45">+</span>
+                          <span className="relative z-[1] font-display text-3xl text-[rgb(var(--c-on-brass))]/45">+</span>
                         </div>
                       </div>
                       <span className="mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/40">Add a piece</span>

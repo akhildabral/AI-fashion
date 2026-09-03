@@ -117,7 +117,7 @@ export function GarmentTile({
           }`}
         />
         {processing && (
-          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-brass">
+          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--c-on-brass))]">
             developing
           </span>
         )}
