@@ -6,7 +6,7 @@ import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch, pinFile } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
-import { GarmentTile, PageShell, Modal, Filter } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Filter, LoadError } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { LetGoModal } from '../components/LetGo'
 import { PriceDrawer } from '../components/PriceDrawer'
@@ -63,15 +63,21 @@ export function ClosetPage() {
       .catch(() => undefined)
   }, [])
 
-  useEffect(() => {
+  const loadWardrobe = useCallback(() => {
+    setError(null)
+    setLoading(true)
     getWardrobe()
       .then(({ items: list }) => setItems(list ?? []))
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load your closet.'))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    loadWardrobe()
     loadInsights()
     getRitualStats().then(setStats).catch(() => undefined)
     getClosetGaps().then((g) => setGaps(g.suggestions)).catch(() => undefined)
-  }, [loadInsights])
+  }, [loadInsights, loadWardrobe])
 
   const hasProcessing = items?.some((it) => it.status === 'processing') ?? false
   useEffect(() => {
@@ -307,7 +313,7 @@ export function ClosetPage() {
             ))}
           </div>
         )}
-        {!loading && error && <p className="mt-6 alert-error">{error}</p>}
+        {!loading && error && <LoadError message={error} onRetry={loadWardrobe} />}
         {!loading && !error && list.length === 0 && (
           <div className="mx-auto mt-12 max-w-md text-center">
             <div className="arch-bezel mx-auto w-56" style={{ aspectRatio: '5 / 6' }}>

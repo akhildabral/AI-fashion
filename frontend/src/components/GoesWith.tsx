@@ -23,7 +23,25 @@ export function GoesWith({ itemId }: { itemId: string }) {
     };
   }, [itemId]);
 
-  if (failed) return null;
+  if (failed)
+    return (
+      <p className="mt-5 border-t border-ink/10 pt-4 text-xs text-ink/45">
+        Couldn’t read the closet for pairings.{' '}
+        <button
+          type="button"
+          onClick={() => {
+            setFailed(false);
+            setData(null);
+            getPairs(itemId)
+              .then((r) => setData(r))
+              .catch(() => setFailed(true));
+          }}
+          className="press font-semibold text-brass hover:underline"
+        >
+          Try again
+        </button>
+      </p>
+    );
   if (!data)
     return (
       <div className="mt-5 flex items-center gap-2 text-xs text-ink/45">

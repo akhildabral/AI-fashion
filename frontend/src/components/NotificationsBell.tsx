@@ -146,6 +146,7 @@ export function NotificationsBell() {
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Notification[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [place, setPlace] = useState<{ top: number; right: number } | null>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -211,23 +212,34 @@ export function NotificationsBell() {
     }
     setPlace(panelPlacement(bellRef.current))
     setOpen(true)
+    loadNotifications()
+  }
+
+  function loadNotifications() {
     setItems(null)
+    setFailed(false)
     void getNotifications()
       .then((r) => {
         setItems(r.items)
         hadUnreadRef.current = r.unread > 0
       })
-      .catch(() => setItems([]))
+      .catch(() => setFailed(true))
   }
 
   const list = (
     <>
-      {items === null && (
+      {items === null && !failed && (
         <div className="py-10 text-center text-ink/40">
           <Spinner className="h-5 w-5" />
         </div>
       )}
-      {items && items.length === 0 && <p className="py-10 text-center text-sm text-ink/50">Nothing yet. When your circle reacts, it lands here.</p>}
+      {failed && (
+        <div className="py-10 text-center">
+          <p className="text-sm text-ink/55">Couldn’t load these.</p>
+          <button type="button" onClick={loadNotifications} className="btn-quiet btn-quiet-sm mt-2 !text-brass">Try again</button>
+        </div>
+      )}
+      {!failed && items && items.length === 0 && <p className="py-10 text-center text-sm text-ink/50">Nothing yet. When your circle reacts, it lands here.</p>}
       {items && items.length > 0 && (
         <ul>
           {digest(items).map((d) => {

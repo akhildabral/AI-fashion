@@ -538,9 +538,10 @@ export function MirrorPage() {
           )}
 
           {error && (
-            <p className="alert-error mt-4" role="alert">
-              {error}
-            </p>
+            <div className="alert-error mt-4 flex items-center justify-between gap-3" role="alert">
+              <span>{error}</span>
+              <button type="button" onClick={() => { setError(null); loadAll() }} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
+            </div>
           )}
         </div>
 

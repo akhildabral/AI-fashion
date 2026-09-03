@@ -103,6 +103,7 @@ export function PeopleDrawer({
   const [network, setNetwork] = useState<{ following: NetworkEntry[]; followers: NetworkEntry[] } | null>(null)
   const [twins, setTwins] = useState<StyleTwin[] | null>(null)
   const [hidden, setHidden] = useState<Hidden | null>(null)
+  const [note, setNote] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ handle: string; name: string }[]>([])
   const [searching, setSearching] = useState(false)
@@ -137,16 +138,21 @@ export function PeopleDrawer({
   const followingSet = new Set((network?.following ?? []).map((u) => u.handle))
 
   async function toggle(handle: string) {
-    if (followingSet.has(handle)) {
-      await unfollowUser(handle)
-      setNetwork((n) => (n ? { ...n, following: n.following.filter((u) => u.handle !== handle) } : n))
-    } else {
-      const { isFriend } = await followUser(handle)
-      const known = network?.followers.find((u) => u.handle === handle) ?? twins?.find((t) => t.handle === handle) ?? results.find((r) => r.handle === handle)
-      setNetwork((n) => (n ? { ...n, following: [{ handle, name: known?.name ?? handle, isFriend }, ...n.following] } : n))
-      setTwins((t) => (t ? t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)) : t))
+    setNote(null)
+    try {
+      if (followingSet.has(handle)) {
+        await unfollowUser(handle)
+        setNetwork((n) => (n ? { ...n, following: n.following.filter((u) => u.handle !== handle) } : n))
+      } else {
+        const { isFriend } = await followUser(handle)
+        const known = network?.followers.find((u) => u.handle === handle) ?? twins?.find((t) => t.handle === handle) ?? results.find((r) => r.handle === handle)
+        setNetwork((n) => (n ? { ...n, following: [{ handle, name: known?.name ?? handle, isFriend }, ...n.following] } : n))
+        setTwins((t) => (t ? t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)) : t))
+      }
+      onChanged?.()
+    } catch {
+      setNote('Couldn’t update that. Check your connection and try again.')
     }
-    onChanged?.()
   }
 
   const tabs: { key: PeopleTab; label: string; count?: number }[] = [
@@ -158,10 +164,15 @@ export function PeopleDrawer({
   ]
 
   async function unhide(kind: 'mute' | 'block', handle: string) {
-    if (kind === 'mute') await unmuteUser(handle)
-    else await unblockUser(handle)
-    setHidden((h) => (h ? { blocked: kind === 'block' ? h.blocked.filter((b) => b.handle !== handle) : h.blocked, muted: kind === 'mute' ? h.muted.filter((m) => m.handle !== handle) : h.muted } : h))
-    onChanged?.()
+    setNote(null)
+    try {
+      if (kind === 'mute') await unmuteUser(handle)
+      else await unblockUser(handle)
+      setHidden((h) => (h ? { blocked: kind === 'block' ? h.blocked.filter((b) => b.handle !== handle) : h.blocked, muted: kind === 'mute' ? h.muted.filter((m) => m.handle !== handle) : h.muted } : h))
+      onChanged?.()
+    } catch {
+      setNote('Couldn’t update that. Check your connection and try again.')
+    }
   }
 
   return (
@@ -181,6 +192,10 @@ export function PeopleDrawer({
           </button>
         ))}
       </div>
+
+      {note && (
+        <p className="mt-3 alert-error !py-2 text-xs" role="alert">{note}</p>
+      )}
 
       {tab === 'find' && (
         <div className="mt-4">

@@ -28,6 +28,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [tryOn, setTryOn] = useState<TryOn | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [retryNonce, setRetryNonce] = useState(0)
 
   const lookId = 'lookId' in target ? target.lookId : undefined
   const itemIds = 'itemIds' in target ? target.itemIds : undefined
@@ -74,7 +75,13 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lookId, itemsKey])
+  }, [lookId, itemsKey, retryNonce])
+
+  function retry() {
+    setError(null)
+    setPhase('checking')
+    setRetryNonce((n) => n + 1)
+  }
 
   return (
     <div
@@ -162,9 +169,14 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
                 Couldn't render this look
               </h3>
               <p className="max-w-xs alert-error">{error}</p>
-              <button type="button" onClick={onClose} className="btn-ghost mt-2">
-                Close
-              </button>
+              <div className="mt-2 flex gap-3">
+                <button type="button" onClick={retry} className="btn-primary">
+                  Try again
+                </button>
+                <button type="button" onClick={onClose} className="btn-ghost">
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>

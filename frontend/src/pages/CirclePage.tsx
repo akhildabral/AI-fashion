@@ -457,7 +457,12 @@ export function CirclePage() {
                 ))}
               </>
             )}
-            {error && <p className="alert-error">{error}</p>}
+            {error && (
+              <div className="alert-error flex items-center justify-between gap-3">
+                <span>{error}</span>
+                <button type="button" onClick={() => void loadFeed(lens)} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
+              </div>
+            )}
             {feedEmpty && <EmptyFeed lens={lens} circleSize={circleSize} onFind={() => openPeople('find')} onShare={() => setSharing(true)} onInvite={() => setInviting(true)} />}
 
             {posts?.slice(0, 2).map(renderPost)}

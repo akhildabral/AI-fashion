@@ -311,18 +311,21 @@ export function CommentThread({
   onError: (msg: string) => void
 }) {
   const [comments, setComments] = useState<Comment[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [reloadNonce, setReloadNonce] = useState(0)
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
     let alive = true
+    setFailed(false)
     getComments(target, id)
       .then((r) => alive && setComments(r.comments))
-      .catch(() => alive && setComments([]))
+      .catch(() => alive && setFailed(true))
     return () => {
       alive = false
     }
-  }, [target, id])
+  }, [target, id, reloadNonce])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -359,12 +362,18 @@ export function CommentThread({
 
   return (
     <div className="border-t border-ink/10 px-4 py-3">
-      {comments === null && (
+      {comments === null && !failed && (
         <div className="py-3 text-center text-ink/40">
           <Spinner className="h-4 w-4" />
         </div>
       )}
-      {comments && comments.length === 0 && (
+      {failed && (
+        <p className="pb-2 text-xs text-ink/45">
+          Couldn’t load the notes.{' '}
+          <button type="button" onClick={() => { setComments(null); setReloadNonce((n) => n + 1) }} className="press font-semibold text-brass hover:underline">Try again</button>
+        </p>
+      )}
+      {!failed && comments && comments.length === 0 && (
         <p className="pb-2 text-xs text-ink/45">No notes yet. Say what works, or @mention a friend.</p>
       )}
       {comments && comments.length > 0 && (
