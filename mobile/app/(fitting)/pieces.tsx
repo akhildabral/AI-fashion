@@ -1,7 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Linking, StyleSheet, useWindowDimensions, View } from 'react-native'
-import { Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { useJobs } from '@/src/context/JobsProvider'
@@ -12,7 +11,11 @@ import { PieceArches } from '@/src/features/fitting/PieceArches'
 import { hrefOf, PIECES_MIN, PIECES_WANTED } from '@/src/features/fitting/steps'
 import { usePieces } from '@/src/features/fitting/usePieces'
 
-/** Step 4, the quick win: four pieces into four arches already waiting. */
+/**
+ * Step 4, the quick win: four pieces into four arches already waiting.
+ * FittingPage.tsx's closet step: the arches, then one quiet line 16 beneath
+ * saying how many to go, developing, or that's a look.
+ */
 export default function Pieces() {
   const router = useRouter()
   const { width: screenW } = useWindowDimensions()
@@ -29,8 +32,7 @@ export default function Pieces() {
     }, []),
   )
 
-  const { items, processing, uploading, uploadError } = usePieces(focused)
-  const count = Math.min(items.length, PIECES_WANTED)
+  const { items, readyCount, processing, uploading, uploadError } = usePieces(focused)
   const enough = items.length >= PIECES_WANTED
 
   const add = async (source: PickSource) => {
@@ -51,12 +53,10 @@ export default function Pieces() {
   const next = () => router.push(hrefOf('reveal'))
 
   const status = enough
-    ? `${count} pieces. That is a look.`
+    ? `${readyCount >= PIECES_WANTED ? readyCount : items.length} pieces. That’s a look.`
     : processing || uploading
       ? 'Developing… each piece takes a moment.'
-      : items.length === 0
-        ? 'A top, a bottom, shoes, and one more. Flat or on a hanger; the stylist does the rest.'
-        : `${PIECES_WANTED - items.length} to go. Each one develops in front of you.`
+      : `${PIECES_WANTED - items.length} to go. Each one develops in front of you.`
 
   return (
     <Frame
@@ -64,34 +64,30 @@ export default function Pieces() {
       who="Last"
       ask={
         <>
-          Four pieces <T role="h1" tone="brass" italic>to start.</T>
+          Four pieces, and your first look <T role="h1" tone="brass" italic>hangs here.</T>
         </>
       }
+      lead="A top, a bottom, shoes, and one more. Photograph them flat or on a hanger; the stylist does the rest."
       actions={
         <>
           {enough ? (
-            <Button label="Continue" block onPress={next} />
+            <Button label="Compose my first look" block onPress={next} />
           ) : (
             <Button label="Photograph a piece" block loading={picking === 'camera'} disabled={picking !== null} onPress={() => void add('camera')} />
           )}
           {enough ? (
             <Button label="Add one more" variant="quiet" size="sm" style={styles.center} disabled={picking !== null} onPress={() => void add('camera')} />
           ) : (
-            <Button label="From your photos" variant="ghost" block loading={picking === 'library'} disabled={picking !== null} onPress={() => void add('library')} />
+            <Button label="Choose photos" variant="ghost" block loading={picking === 'library'} disabled={picking !== null} onPress={() => void add('library')} />
           )}
-          {!enough && items.length >= PIECES_MIN ? (
-            <Button label={`Continue with ${items.length}`} variant="quiet" size="sm" style={styles.center} onPress={next} />
-          ) : null}
+          {!enough && items.length >= PIECES_MIN ? <Button label="I’ll do this later" variant="quiet" size="sm" style={styles.center} onPress={next} /> : null}
         </>
       }
     >
-      <View style={styles.count}>
-        <Stat value={`${count} of ${PIECES_WANTED}`} label="pieces" tone={enough ? 'brass' : 'ink'} />
-        <T role="bodySm" tone="muted" style={styles.status} accessibilityLiveRegion="polite">
-          {status}
-        </T>
-      </View>
       <PieceArches items={items} width={screenW - gutter * 2} />
+      <T role="caption" tone="faint" accessibilityLiveRegion="polite">
+        {status}
+      </T>
       {denied ? (
         <View style={styles.notice}>
           <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
@@ -109,8 +105,6 @@ export default function Pieces() {
 }
 
 const styles = StyleSheet.create({
-  count: { flexDirection: 'row', alignItems: 'flex-end', gap: space.lg },
-  status: { flex: 1, paddingBottom: 2 },
   notice: { gap: space.sm, alignItems: 'flex-start' },
   center: { alignSelf: 'center' },
 })

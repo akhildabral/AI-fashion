@@ -1,5 +1,7 @@
 // Reconsider one piece of today's look: swap it for another from the closet,
-// or tell the stylist what's off so it learns.
+// or tell the stylist what's off so it learns. TodayPage.tsx's reconsider
+// modal: the piece 80 wide beside one line, the labels 8 above their chips,
+// the note on the soft brass wash at 16 / 12, the alternatives three across.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
@@ -114,18 +116,18 @@ export default function ReconsiderSheet() {
     <SheetShell title={`The ${itemLabel(item)}`} footer={<Button label="Keep it as it is" variant="quiet" onPress={() => router.back()} />}>
       <View style={styles.intro}>
         <GarmentTile imageUrl={item.imageUrl} width={80} accessibilityLabel={itemLabel(item)} />
-        <T role="bodySm" tone="muted" style={{ flex: 1 }}>
+        <T role="bodySm" tone="muted" style={styles.fill}>
           Swap it for another piece. Or tell the stylist what’s off, and it’ll learn.
         </T>
       </View>
 
-      <View style={{ gap: space.md }}>
+      <View style={styles.group}>
         <T role="label" tone="faint">
           Tell the stylist
         </T>
         {note ? (
           <Animated.View entering={fadeIn} style={[styles.note, { borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft, borderRadius: radius }]}>
-            <T role="lede" style={{ fontSize: 15, lineHeight: 22 }}>
+            <T role="lede" style={{ color: alpha(t.ink, 0.8) }}>
               {note}
             </T>
           </Animated.View>
@@ -138,7 +140,7 @@ export default function ReconsiderSheet() {
         )}
       </View>
 
-      <View style={{ gap: space.md }}>
+      <View style={styles.group}>
         <T role="label" tone="faint">
           Swap it
         </T>
@@ -154,12 +156,12 @@ export default function ReconsiderSheet() {
           </T>
         ) : !alts || alts.length === 0 ? (
           <View style={[styles.empty, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }]}>
-            <T role="bodySm" tone="muted">
+            <T role="bodySm" style={{ color: alpha(t.ink, 0.5) }}>
               No other {item.category} pieces free right now. Add more to your closet to unlock swaps.
             </T>
           </View>
         ) : (
-          <View style={[styles.grid, swap.isPending && { opacity: 0.5 }]}>
+          <View style={[styles.grid, swap.isPending && styles.swapping]}>
             {alts.map((alt) => (
               <GarmentTile
                 key={alt.id}
@@ -173,7 +175,7 @@ export default function ReconsiderSheet() {
           </View>
         )}
         {swap.isPending ? (
-          <T role="caption" tone="faint" align="center">
+          <T role="bodySm" align="center" style={{ color: alpha(t.ink, 0.5) }}>
             swapping…
           </T>
         ) : null}
@@ -183,9 +185,14 @@ export default function ReconsiderSheet() {
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   intro: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  note: { borderWidth: hairline, paddingHorizontal: 14, paddingVertical: 10 },
+  // `.label` sits `mb-1.5` over its content.
+  group: { gap: space.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  // `px-4 py-3`.
+  note: { borderWidth: hairline, paddingHorizontal: space.lg, paddingVertical: space.md },
   empty: { borderWidth: hairline, borderStyle: 'dashed', padding: space.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  swapping: { opacity: 0.5 },
 })

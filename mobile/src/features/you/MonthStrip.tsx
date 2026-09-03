@@ -1,5 +1,7 @@
 // The month, with the holes showing: a 7-column grid, logged days marked with
-// a brass dot, unlogged past days dashed, today ringed in brass.
+// a brass dot, unlogged past days dashed, today ringed in brass. Laid out as
+// the web's MonthStrip: the month between its arrows on the left, the count
+// beneath (the web's row wraps at this width), the grid 12 below.
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
@@ -27,7 +29,7 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.head}>
+      <View style={styles.nav}>
         <Button
           variant="icon"
           accessibilityLabel="Earlier month"
@@ -37,7 +39,7 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
           }}
           icon={<T role="h3">‹</T>}
         />
-        <T role="h2" style={styles.title} align="center">
+        <T role="h2" accessibilityRole="header">
           {formatMonth(month)}
         </T>
         <Button
@@ -51,67 +53,71 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
           icon={<T role="h3">›</T>}
         />
       </View>
-      <T role="caption" tone="faint" align="center">
+      <T role="caption" tone="faint">
         {logged} of {past} days logged{past > logged ? ' · tap a dashed day to fill it' : ''}
       </T>
-      <View style={styles.week}>
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-          <View key={i} style={styles.cell}>
-            <T role="micro" tone="faint" align="center">
-              {d}
-            </T>
+      <View style={styles.grid}>
+        <View style={styles.weekdays}>
+          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+            <View key={i} style={styles.cell}>
+              <T role="micro" tone="faint" align="center">
+                {d}
+              </T>
+            </View>
+          ))}
+        </View>
+        {weeks.map((week, wi) => (
+          <View key={wi} style={styles.week}>
+            {week.map((key, ci) => {
+              if (!key) return <View key={`blank-${wi}-${ci}`} style={styles.cell} />
+              const isLogged = days.has(key)
+              const future = key > today
+              const isToday = key === today
+              return (
+                <View key={key} style={styles.cell}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${key}${isLogged ? ', logged' : future ? '' : ', not logged'}`}
+                    accessibilityState={{ disabled: future }}
+                    disabled={future}
+                    onPress={() => {
+                      haptics.select()
+                      onPick(key, isLogged)
+                    }}
+                    pressRetentionOffset={8}
+                    style={({ pressed }) => [
+                      styles.day,
+                      {
+                        borderRadius: radius,
+                        borderWidth: isToday ? 1.5 : hairline,
+                        borderStyle: isLogged || future ? 'solid' : 'dashed',
+                        borderColor: isToday ? t.brass : isLogged ? alpha(t.ink, 0.25) : future ? 'transparent' : alpha(t.ink, 0.2),
+                        opacity: pressed ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    <T role="caption" style={{ fontFamily: fonts.sansSemi, fontVariant: ['tabular-nums'], color: isLogged ? t.ink : future ? alpha(t.ink, 0.2) : alpha(t.ink, 0.4) }}>
+                      {String(Number(key.slice(-2)))}
+                    </T>
+                    {isLogged ? <View style={[styles.dot, { backgroundColor: t.brass }]} /> : null}
+                  </Pressable>
+                </View>
+              )
+            })}
           </View>
         ))}
       </View>
-      {weeks.map((week, wi) => (
-        <View key={wi} style={styles.week}>
-          {week.map((key, ci) => {
-            if (!key) return <View key={`blank-${wi}-${ci}`} style={styles.cell} />
-            const isLogged = days.has(key)
-            const future = key > today
-            const isToday = key === today
-            return (
-              <View key={key} style={styles.cell}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${key}${isLogged ? ', logged' : future ? '' : ', not logged'}`}
-                  accessibilityState={{ disabled: future }}
-                  disabled={future}
-                  onPress={() => {
-                    haptics.select()
-                    onPick(key, isLogged)
-                  }}
-                  pressRetentionOffset={8}
-                  style={({ pressed }) => [
-                    styles.day,
-                    {
-                      borderRadius: radius,
-                      borderWidth: isToday ? 1.5 : hairline,
-                      borderStyle: isLogged || future ? 'solid' : 'dashed',
-                      borderColor: isToday ? t.brass : isLogged ? alpha(t.ink, 0.25) : future ? 'transparent' : alpha(t.ink, 0.2),
-                      opacity: pressed ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  <T role="caption" style={{ fontFamily: fonts.sansSemi, fontVariant: ['tabular-nums'], color: isLogged ? t.ink : future ? alpha(t.ink, 0.2) : alpha(t.ink, 0.4) }}>
-                    {String(Number(key.slice(-2)))}
-                  </T>
-                  {isLogged ? <View style={[styles.dot, { backgroundColor: t.brass }]} /> : null}
-                </Pressable>
-              </View>
-            )
-          })}
-        </View>
-      ))}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.sm },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  title: { flex: 1 },
-  week: { flexDirection: 'row', gap: 4 },
+  // The web's `flex-wrap ... gap-3`: 12 between the wrapped rows, and `mt-3` to the grid.
+  wrap: { gap: space.md },
+  nav: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  grid: { gap: space.xs },
+  weekdays: { flexDirection: 'row', gap: space.xs, paddingBottom: space.xs },
+  week: { flexDirection: 'row', gap: space.xs },
   cell: { flex: 1 },
   day: { aspectRatio: 1, alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   dot: { position: 'absolute', bottom: 4, width: 4, height: 4 },

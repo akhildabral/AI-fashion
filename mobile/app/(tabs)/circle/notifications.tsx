@@ -45,9 +45,13 @@ export default function NotificationsScreen() {
     <Screen>
       <Stack.Screen options={{ headerShown: true, title: 'What happened' }} />
       {!q.data && q.isPending ? (
+        // Rows shaped like the real ones: a 32 square and a line.
         <View style={styles.skeleton}>
           {[0, 1, 2, 3].map((i) => (
-            <SkeletonBlock key={i} height={44} />
+            <View key={i} style={styles.skeletonRow}>
+              <SkeletonBlock width={32} height={32} />
+              <SkeletonBlock width={i % 2 ? '72%' : '56%'} height={14} />
+            </View>
           ))}
         </View>
       ) : !q.data && q.isError ? (
@@ -86,7 +90,9 @@ function Row({ d, first }: { d: Digest; first: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  skeleton: { paddingHorizontal: gutter, paddingTop: 16, gap: 12 },
+  skeleton: { paddingHorizontal: gutter, paddingTop: 12 },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  // The web's row: `flex items-center gap-3 px-4 py-3`
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingVertical: 12, minHeight: 56 },
   text: { flex: 1 },
 })

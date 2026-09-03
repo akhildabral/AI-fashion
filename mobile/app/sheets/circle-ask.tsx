@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { getMyRecentLooks } from '@zauq/shared/circle'
 import { getOutfits } from '@zauq/shared/outfits'
 import { createPoll, type PollAudience, type PollOptionInput } from '@zauq/shared/polls'
@@ -152,8 +152,9 @@ export default function AskSheet() {
     ask.mutate()
   }
 
+  // The web's `grid-cols-3 gap-3`.
   const cols = 3
-  const cell = Math.floor((width - gutter * 2 - 10 * (cols - 1)) / cols)
+  const cell = Math.floor((width - gutter * 2 - GRID_GAP * (cols - 1)) / cols)
 
   return (
     <SheetFrame
@@ -169,9 +170,9 @@ export default function AskSheet() {
       <SheetLabel>Ask with</SheetLabel>
       <Tabs items={SOURCES} value={source} onChange={setSource} />
       {loading ? (
-        <T role="caption" tone="faint">
-          One moment…
-        </T>
+        <View style={styles.busy}>
+          <ActivityIndicator color={t.brass} />
+        </View>
       ) : pool.length === 0 ? (
         <Dashed>
           <T role="bodySm" tone="muted" align="center">
@@ -188,8 +189,11 @@ export default function AskSheet() {
                 <View style={{ width: cell, gap: 4 }}>
                   {asBoard ? <LookBoard items={c.items ?? []} width={cell} aspect={4 / 5} selected={idx >= 0} /> : <PhotoArch uri={c.imageUrl ?? ''} width={cell} aspect={4 / 5} selected={idx >= 0} cover={!c.contain} />}
                   {idx >= 0 ? (
+                    // `right-1.5 top-1.5 h-6 w-6 text-[11px] font-bold`
                     <View style={[styles.letter, { backgroundColor: t.brass, borderRadius: radius }]}>
-                      <T style={{ fontFamily: fonts.sansBold, fontSize: 11, lineHeight: 13, color: t.onBrass }}>{'ABC'[idx]}</T>
+                      <T style={{ fontFamily: fonts.sansBold, fontSize: 11, lineHeight: 14, color: t.onBrass }} maxFontSizeMultiplier={1}>
+                        {'ABC'[idx]}
+                      </T>
                     </View>
                   ) : null}
                   <T role="micro" tone="faint" numberOfLines={1} align="center">
@@ -244,8 +248,12 @@ export default function AskSheet() {
   )
 }
 
+const GRID_GAP = 12
+
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  letter: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  busy: { paddingVertical: 40, alignItems: 'center' },
+  letter: { position: 'absolute', top: 6, right: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  // `mt-2 flex flex-wrap gap-2`
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 })

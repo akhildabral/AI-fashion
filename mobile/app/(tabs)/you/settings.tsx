@@ -1,12 +1,13 @@
 // Settings: how the app looks and measures, the lock, the nudges, the legal
-// pages in the in-app browser, and the version.
+// pages in the in-app browser, and the version. A `card p-5` of choices,
+// then lists of 44px rows, the cards 20 apart.
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQuery } from '@tanstack/react-query'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { Stack, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { CURRENCIES, guessCurrency } from '@zauq/shared/money'
 import { setCurrentUnits } from '@zauq/shared/units'
 import { Screen } from '@/src/components/Screen'
@@ -64,15 +65,15 @@ export default function Settings() {
       <Stack.Screen options={{ headerShown: true, title: 'Settings' }} />
       <Screen>
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          <Card style={styles.section}>
+          <Card padding="form">
             <RowLabel first>Appearance</RowLabel>
-            <Wrap style={{ marginTop: space.sm }}>
+            <Wrap style={styles.mt3}>
               {MODES.map((m) => (
                 <Chip key={m.key} label={m.label} on={mode === m.key} onPress={() => setMode(m.key)} />
               ))}
             </Wrap>
             <RowLabel>Units</RowLabel>
-            <Wrap style={{ marginTop: space.sm }}>
+            <Wrap style={styles.mt3}>
               <Chip
                 label="°C · cm"
                 on={units === 'metric'}
@@ -90,20 +91,18 @@ export default function Settings() {
                 }}
               />
             </Wrap>
-            <View style={{ marginTop: space.md }}>
-              <NavRow first label="Currency" value={currency ? currency.code : `Guessed: ${guessCurrency()}`} onPress={() => router.push(routes.picker('currency'))} />
-            </View>
           </Card>
 
           <Card>
-            {biometric ? <ToggleRow first label="Lock with Face ID" line="Ask for Face ID or Touch ID when ZAUQ opens." value={lockQ.data ?? false} onChange={(v) => void setLock(v)} /> : null}
-            <NavRow first={!biometric} label="Notifications" value="The morning ritual" onPress={() => router.push(routes.notifications)} />
+            <NavRow first label="Currency" value={currency ? currency.code : `Guess from my location (${guessCurrency()})`} onPress={() => router.push(routes.picker('currency'))} />
+            {biometric ? <ToggleRow label="Lock with Face ID" line="Ask for Face ID or Touch ID when ZAUQ opens." value={lockQ.data ?? false} onChange={(v) => void setLock(v)} /> : null}
+            <NavRow label="Notifications" value="The morning ritual" onPress={() => router.push(routes.notifications)} />
           </Card>
 
           <Card>
             <NavRow first label="Privacy" onPress={() => open('/privacy')} />
             <NavRow label="Terms" onPress={() => open('/terms')} />
-            <NavRow label="Version" value={`ZAUQ ${APP_VERSION}`} />
+            <NavRow label="Version" value={APP_VERSION} />
           </Card>
 
           <T role="caption" tone="faint" align="center">
@@ -116,6 +115,6 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.lg },
-  section: { paddingVertical: space.lg },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: 20 },
+  mt3: { marginTop: space.md },
 })

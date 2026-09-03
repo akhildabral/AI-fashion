@@ -2,7 +2,7 @@
 // through the phone's share sheet (WhatsApp, Instagram, anything).
 //
 // Params: date (defaults to today), wearLogId (the day's wear log when
-// known), lookId (which of the day's looks, for "See it on me").
+// known), lookId (which of the day's looks, for "Render it on me first").
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
@@ -12,7 +12,8 @@ import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
-import { space } from '@/src/design/tokens'
+import { useTheme } from '@/src/design/theme'
+import { alpha, radius, space } from '@/src/design/tokens'
 import { longDay } from '@/src/features/today/copy'
 import { stripFrom, tk } from '@/src/features/today/keys'
 import { go, paths } from '@/src/features/today/nav'
@@ -24,6 +25,7 @@ import { qk } from '@/src/lib/query'
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/
 
 export default function ShareSheet() {
+  const { t } = useTheme()
   const params = useLocalSearchParams<{ date?: string; wearLogId?: string; lookId?: string }>()
   const date = typeof params.date === 'string' && DAY_KEY.test(params.date) ? params.date : todayKey()
   const isToday = date === todayKey()
@@ -94,14 +96,16 @@ export default function ShareSheet() {
       footer={<Button label="Not now" variant="quiet" onPress={() => router.back()} />}
     >
       <View style={styles.stack}>
-        {isToday ? <Button label="Share the pieces with your circle" block loading={busy === 'circle'} disabled={busy !== null} onPress={() => void toCircle()} /> : null}
-        <Button label={isToday ? 'Share the card elsewhere' : 'Share the card'} block variant={isToday ? 'ghost' : 'primary'} loading={busy === 'card'} disabled={busy !== null} onPress={() => void theCard()} />
+        {isToday ? <Button label="Share the pieces" block loading={busy === 'circle'} disabled={busy !== null} onPress={() => void toCircle()} /> : null}
+        <Button label={isToday ? 'Share elsewhere' : 'Share the card'} block variant={isToday ? 'ghost' : 'primary'} loading={busy === 'card'} disabled={busy !== null} onPress={() => void theCard()} />
         {itemIds.length > 0 ? <Button label="Render it on me first" block variant="quiet" disabled={busy !== null} onPress={() => go(paths.mirror(itemIds))} /> : null}
       </View>
       {error ? (
-        <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
-          {error}
-        </T>
+        <View style={[styles.alert, { backgroundColor: alpha(t.danger, 0.1), borderRadius: radius }]} accessibilityLiveRegion="polite">
+          <T role="bodySm" tone="danger">
+            {error}
+          </T>
+        </View>
       ) : null}
     </SheetShell>
   )
@@ -109,4 +113,5 @@ export default function ShareSheet() {
 
 const styles = StyleSheet.create({
   stack: { gap: space.md },
+  alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
 })

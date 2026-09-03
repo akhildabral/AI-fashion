@@ -25,7 +25,8 @@ export function CountUp({ to, size = 72, duration = 900 }: { to: number; size?: 
       animatedProps={props}
       accessible
       accessibilityLabel={String(to)}
-      style={{ fontFamily: fonts.serif, fontSize: size, lineHeight: size * 1.05, color: t.brass, padding: 0, fontVariant: ['tabular-nums'], minWidth: size * 0.6 }}
+      // Bodoni's figures stand tall: anything under 1.25x clips the top on device.
+      style={{ fontFamily: fonts.serif, fontSize: size, lineHeight: Math.round(size * 1.25), color: t.brass, padding: 0, fontVariant: ['tabular-nums'], minWidth: size * 0.6 }}
     />
   )
 }

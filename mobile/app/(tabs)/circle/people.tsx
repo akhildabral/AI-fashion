@@ -147,7 +147,7 @@ export default function PeopleScreen() {
       <Tabs items={tabs} value={tab} onChange={setTab} />
       {tab === 'find' ? <Field value={query} onChangeText={setQuery} placeholder="Search by name…" autoFocus autoCorrect={false} autoCapitalize="none" returnKeyType="search" accessibilityLabel="Find people by name" /> : null}
       {lead ? (
-        <T role="caption" tone="faint">
+        <T role="caption" tone="faint" style={{ marginTop: -8 }}>
           {lead}
         </T>
       ) : null}
@@ -187,7 +187,9 @@ export default function PeopleScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: gutter, paddingTop: 8, paddingBottom: 6, gap: 12 },
+  // The web's drawer: the tabs, the search `mt-4`, the list `mt-2`
+  header: { paddingHorizontal: gutter, paddingTop: 8, paddingBottom: 8, gap: 16 },
   row: { paddingHorizontal: gutter },
-  center: { paddingVertical: 28, alignItems: 'center' },
+  // `py-8 text-center`
+  center: { paddingVertical: 32, alignItems: 'center' },
 })

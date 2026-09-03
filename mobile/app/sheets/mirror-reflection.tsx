@@ -15,6 +15,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, radius } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { Check } from '@/src/features/mirror/Check'
 import { CONSENT_LINE, uploadReflection, useInvalidateMirror, useReflections } from '@/src/features/mirror/data'
 import { useMirrorStore } from '@/src/features/mirror/store'
@@ -111,7 +112,7 @@ export default function ReflectionSheet() {
       <Stack.Screen options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true, sheetCornerRadius: 3 }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <T role="h2" accessibilityRole="header">
-          {photos.length > 0 ? 'Your reflections' : 'Add your reflection'}
+          {photos.length > 0 ? 'Your reflections' : 'Add your photo'}
         </T>
 
         {photos.length > 0 ? (
@@ -160,9 +161,11 @@ export default function ReflectionSheet() {
               </T>
             ) : null}
             {photos.length === 0 && chosen ? (
-              <T role="lede" tone="muted">
-                The pieces stay on the rail. Once your photo’s in, See it on me is one tap.
-              </T>
+              <View style={[styles.note, { borderRadius: radius, borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft }]}>
+                <T role="bodySm" style={{ color: alpha(t.ink, 0.8), fontFamily: fonts.serifItalic }}>
+                  The pieces stay on the rail. Once your photo’s in, See it on me is one tap.
+                </T>
+              </View>
             ) : null}
             <Check checked={consent} onChange={setConsent} label={CONSENT_LINE} disabled={uploading} />
             <View style={styles.doors}>
@@ -201,6 +204,8 @@ const styles = StyleSheet.create({
   thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   thumbAction: { alignSelf: 'center', marginTop: 2 },
   confirm: { padding: 16, gap: 8, borderWidth: hairline },
+  // The web's `border-brass/30 bg-iris-soft px-4 py-3 font-display text-sm italic`.
+  note: { paddingHorizontal: 16, paddingVertical: 12, borderWidth: hairline },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   doors: { gap: 8 },
 })

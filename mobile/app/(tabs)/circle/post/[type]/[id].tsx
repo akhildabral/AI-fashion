@@ -7,11 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getPost, type PostTarget } from '@zauq/shared/circle'
 import { LoadError, SectionHead } from '@/src/components/Bits'
 import { Screen } from '@/src/components/Screen'
-import { ArchSkeleton, SkeletonBlock } from '@/src/components/Skeleton'
 import { gutter } from '@/src/design/tokens'
 import { useTheme } from '@/src/design/theme'
 import { qk } from '@/src/lib/query'
-import { PostCard, useCardWidth } from '@/src/features/circle/cards'
+import { CardSkeleton, PostCard } from '@/src/features/circle/cards'
 import { CommentComposer, CommentList } from '@/src/features/circle/CommentThread'
 import { useCardActions } from '@/src/features/circle/hooks'
 
@@ -24,7 +23,6 @@ export default function PostScreen() {
   const target: PostTarget = type === 'verdict' || type === 'pick' ? type : 'look'
   const q = useQuery({ queryKey: qk.post(target, id), queryFn: () => getPost(target, id), enabled: !!id })
   const actions = useCardActions()
-  const cardWidth = useCardWidth()
   const post = q.data?.post
 
   return (
@@ -36,10 +34,7 @@ export default function PostScreen() {
         ) : q.isError ? (
           <LoadError message="That post isn’t on the circle any more." onRetry={() => void q.refetch()} />
         ) : (
-          <View style={{ gap: 12 }}>
-            <SkeletonBlock width={160} height={36} />
-            <ArchSkeleton count={1} width={cardWidth} columns={1} />
-          </View>
+          <CardSkeleton />
         )}
         {post && post.type !== 'week' ? (
           <View style={styles.notes}>
@@ -60,7 +55,7 @@ export default function PostScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: 16, gap: 20 },
-  notes: { gap: 8 },
+  content: { paddingHorizontal: gutter, paddingTop: 12, gap: 24 },
+  notes: { gap: 12 },
   sticky: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 })

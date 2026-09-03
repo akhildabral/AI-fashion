@@ -17,6 +17,7 @@ import { PermissionDenied, pickImages, type PickedImage } from '@/src/lib/upload
 
 type Way = 'camera' | 'library' | 'store'
 
+/** The web's chooser row: border-ink/12 px-5 py-4, a semibold line over a quiet one, an arrow. */
 function Row({ title, line, onPress, disabled }: { title: string; line: string; onPress: () => void; disabled?: boolean }) {
   const { t } = useTheme()
   return (
@@ -27,13 +28,13 @@ function Row({ title, line, onPress, disabled }: { title: string; line: string; 
       disabled={disabled}
       pressRetentionOffset={12}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, { borderColor: pressed ? t.brass : alpha(t.ink, 0.14), borderRadius: radius, opacity: disabled ? 0.5 : 1 }]}
+      style={({ pressed }) => [styles.row, { borderColor: pressed ? t.brass : alpha(t.ink, 0.12), borderRadius: radius, opacity: disabled ? 0.5 : 1 }]}
     >
-      <View style={{ flex: 1, gap: 2 }}>
-        <T role="body" style={{ fontFamily: fonts.sansSemi }}>
+      <View style={styles.rowText}>
+        <T role="bodySm" style={styles.semi}>
           {title}
         </T>
-        <T role="caption" tone="muted">
+        <T role="caption" tone="faint">
           {line}
         </T>
       </View>
@@ -99,7 +100,7 @@ export default function AddPiecesSheet() {
         <T role="h2" accessibilityRole="header">
           Add to your collection
         </T>
-        <T role="bodySm" tone="muted">
+        <T role="bodySm" tone="muted" style={styles.intro}>
           Flat-lays and hangers keep true proportions. Each garment is extracted and framed on its own.
         </T>
         <View style={styles.rows}>
@@ -129,8 +130,13 @@ export default function AddPiecesSheet() {
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, paddingHorizontal: gutter, paddingTop: space.xl, gap: space.md },
-  rows: { gap: 10, paddingTop: space.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingHorizontal: 18, paddingVertical: 14, borderWidth: hairline },
+  content: { flex: 1, paddingHorizontal: gutter, paddingTop: space.xl },
+  intro: { marginTop: space.md },
+  // The modal's p-5 under its title bar, the rows at space-y-3
+  rows: { gap: space.md, marginTop: 20 },
+  // px-5 py-4
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: 20, paddingVertical: space.lg, borderWidth: hairline },
+  rowText: { flex: 1, gap: 2 },
+  semi: { fontFamily: fonts.sansSemi },
   foot: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.md },
 })

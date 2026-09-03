@@ -6,7 +6,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { money } from '@zauq/shared/money'
 import { deleteWardrobeItem, updateWardrobeItem } from '@zauq/shared/wardrobe'
-import { EmptyState, LoadError } from '@/src/components/Bits'
+import { LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
@@ -17,11 +17,15 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { labelOf, nameOf, title, useInvalidateCloset, useWishlist, type WishItem } from '@/src/features/closet/data'
 import { RoomTabs } from '@/src/features/closet/RoomTabs'
 import { UndoBar, useUndoDelete } from '@/src/features/closet/UndoBar'
+
+/** The card's arch: the web's 96px column at 5/6. */
+const TILE_W = 96
+const TILE_H = Math.round(TILE_W / (5 / 6))
 
 function when(iso: string | null | undefined): string {
   if (!iso) return ''
@@ -97,7 +101,7 @@ export default function WishlistRoom() {
             lead={items ? `${items.length} piece${items.length === 1 ? '' : 's'} in mind${total > 0 ? ` · ${money(total)} if you bought them all` : ''}` : undefined}
           />
         </Animated.View>
-        <Animated.View entering={rise(1)}>
+        <Animated.View entering={rise(1)} style={styles.rooms}>
           <RoomTabs current="wishlist" />
         </Animated.View>
 
@@ -107,11 +111,11 @@ export default function WishlistRoom() {
           <View style={styles.list} accessibilityLabel="Loading" aria-busy>
             {[0, 1, 2].map((i) => (
               <View key={i} style={[styles.card, card]}>
-                <SkeletonBlock width={96} height={115} />
+                <SkeletonBlock width={TILE_W} height={TILE_H} />
                 <View style={styles.cardText}>
                   <SkeletonBlock width="75%" height={20} />
-                  <SkeletonBlock width="50%" height={14} />
-                  <SkeletonBlock width={96} height={32} style={{ marginTop: 'auto' }} />
+                  <SkeletonBlock width="50%" height={16} style={styles.line} />
+                  <SkeletonBlock width={96} height={32} style={styles.skeletonAction} />
                 </View>
               </View>
             ))}
@@ -119,11 +123,13 @@ export default function WishlistRoom() {
         ) : null}
 
         {items && items.length === 0 ? (
-          <Animated.View entering={rise(2)}>
-            <EmptyState
-              title="Nothing in mind yet."
-              line="Next time you’re holding something in a shop, point the camera at it. The closet says how many outfits it makes before you pay for it, and “keep in mind” lands here."
-            />
+          <Animated.View entering={rise(2)} style={styles.empty}>
+            <T role="h2" italic tone="muted">
+              Nothing in mind yet.
+            </T>
+            <T role="bodySm" tone="muted" style={styles.emptyLine}>
+              Next time you’re holding something in a shop, point the camera at it. The closet says how many outfits it makes before you pay for it, and “keep in mind” lands here.
+            </T>
           </Animated.View>
         ) : null}
 
@@ -134,28 +140,28 @@ export default function WishlistRoom() {
               const label = labelOf(it)
               return (
                 <View key={it.id} style={[styles.card, card]}>
-                  <GarmentTile imageUrl={it.imageUrl} width={96} processing={it.status === 'processing'} accessibilityLabel={`${title(label)}, the verdict`} onPress={() => router.push(`/closet/store?item=${it.id}`)} />
+                  <GarmentTile imageUrl={it.imageUrl} width={TILE_W} processing={it.status === 'processing'} accessibilityLabel={`${title(label)}, the verdict`} onPress={() => router.push(`/closet/store?item=${it.id}`)} />
                   <View style={styles.cardText}>
                     <T role="h3">{title(label)}</T>
                     {v ? (
-                      <T role="bodySm" tone="muted">
-                        <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                      <T role="bodySm" tone="muted" style={styles.line}>
+                        <T role="bodySm" tone="brass" style={styles.semi}>
                           {v.outfits} outfit{v.outfits === 1 ? '' : 's'}
                         </T>{' '}
                         · pairs with {v.pairs}
                       </T>
                     ) : (
-                      <T role="bodySm" tone="faint">
+                      <T role="bodySm" tone="faint" style={styles.line}>
                         {it.status === 'processing' ? 'still developing' : 'verdict pending'}
                       </T>
                     )}
-                    <T role="caption" tone="faint">
+                    <T role="caption" tone="faint" style={styles.line}>
                       {it.seenAt ? `Seen ${when(it.seenAt)}` : 'Seen'}
                       {it.store ? ` at ${it.store}` : ''}
                       {it.seenPrice != null ? ` · ${money(it.seenPrice)}` : ''}
                     </T>
                     {it.nudgeAt ? (
-                      <T role="caption" tone="faint">
+                      <T role="caption" tone="faint" style={styles.line}>
                         Nudge on {new Date(it.nudgeAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </T>
                     ) : null}
@@ -181,9 +187,20 @@ export default function WishlistRoom() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm, gap: space.lg },
-  list: { gap: space.md, paddingTop: space.sm },
-  card: { flexDirection: 'row', gap: 14, padding: 14, borderWidth: 1 },
-  cardText: { flex: 1, gap: 4, minWidth: 0 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 },
+  content: { paddingHorizontal: gutter, paddingTop: space.sm },
+  // The mantel's pb-7 above the rooms' hairline; the title carries 16 already.
+  rooms: { paddingTop: space.md },
+  // mt-8 grid gap-4
+  list: { paddingTop: space.xxl, gap: space.lg },
+  // card grid-cols-[96px_1fr] gap-4 p-4
+  card: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg, padding: space.lg, borderWidth: hairline },
+  cardText: { flex: 1, minWidth: 0 },
+  line: { marginTop: space.xs },
+  semi: { fontFamily: fonts.sansSemi },
+  // action-row mt-3 !gap-x-3
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.md, rowGap: space.sm, marginTop: space.md },
+  skeletonAction: { marginTop: space.lg },
+  // mt-10 max-w-lg
+  empty: { paddingTop: 40, maxWidth: 512 },
+  emptyLine: { marginTop: space.sm },
 })

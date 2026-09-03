@@ -1,5 +1,9 @@
 // The ritual. Greeting, the week, the day's looks in order, why this, and
 // one brass verb in the thumb zone: Wearing it.
+//
+// The rhythm is TodayPage.tsx's: the greeting, the plaques 16 beneath, the
+// notes 16 beneath, the week 24 beneath, the headline 12 under its rule; the
+// acts 32 apart on hairlines; Why this, the ROI plaque and the nudges 32 apart.
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
@@ -18,9 +22,11 @@ import { useProfile } from '@/src/context/ProfileProvider'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { gutter, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
+import { AddLook } from '@/src/features/today/AddLook'
 import { ClosetNotes } from '@/src/features/today/ClosetNotes'
-import { currentActIndex, firstName } from '@/src/features/today/copy'
+import { currentActIndex, firstName, longDay } from '@/src/features/today/copy'
 import { Greeting } from '@/src/features/today/Greeting'
 import { stripFrom } from '@/src/features/today/keys'
 import { LookAct } from '@/src/features/today/LookAct'
@@ -88,10 +94,11 @@ export default function TodayRoom() {
       { look },
       {
         onSuccess: async () => {
-          flash('Wear logged.')
           const fresh = await getRitualStats().catch(() => null)
           const brk = fresh?.priceBreaks[0]
-          if (brk) flash(`Wear logged. Your ${brk.label} just broke ${money(brk.threshold)}/wear.`)
+          if (brk) flash(`Logged. Your ${brk.label} just broke ${money(brk.threshold)}/wear.`)
+          else if (fresh) flash(`Logged. ${fresh.streak} day${fresh.streak === 1 ? '' : 's'} styled in a row.`)
+          else flash('Logged for today.')
         },
         onError: (err) => flash(err instanceof Error ? err.message : 'Could not log the wear.'),
       },
@@ -114,23 +121,25 @@ export default function TodayRoom() {
     go(paths.reconsider(date, item.id))
   }
 
+  // Everything that changes the look lives behind one door, so the primary act stays the obvious one.
   const menuItems: MenuItem[] = []
   if (mode === 'brief') {
+    if (main && !main.worn) menuItems.push({ label: 'Restyle it', onPress: restyle })
+    if (data?.canUndo && !data.worn) menuItems.push({ label: 'Back to the first', onPress: () => undo.mutate(undefined, { onError: (err) => flash(err instanceof Error ? err.message : 'Nothing to go back to.') }) })
     if (!main?.wornLook) menuItems.push({ label: 'I wore something else', onPress: () => go(paths.woreElse({ date, eventType: data?.brief?.eventType, alreadyLogged: !!data?.worn, hasSuggestion: true })) })
     menuItems.push({ label: 'Share', onPress: () => go(paths.share({ date, lookId: current?.id, wearLogId: todayOnStrip?.wearLogId })) })
   }
   menuItems.push({ label: 'Add a look', onPress: () => go(paths.addLook(date)) })
-  if (data?.canUndo && !data.worn) menuItems.push({ label: 'Back to the first', onPress: () => undo.mutate(undefined, { onError: (err) => flash(err instanceof Error ? err.message : 'Nothing to go back to.') }) })
   menuItems.push({ label: 'Plan tomorrow', onPress: () => go(paths.day(shiftKey(date, 1))) })
 
-  const more = <Button variant="icon" accessibilityLabel="More" icon={<T role="h3">···</T>} onPress={() => setMenu(true)} style={{ marginLeft: 'auto' }} />
+  const more = <Button variant="icon" accessibilityLabel="Change today's look" icon={<T role="h3">···</T>} onPress={() => setMenu(true)} style={styles.right} />
 
   const bar = () => {
     if (!data) return null
     if (mode === 'starter') {
       return (
         <ActionBar>
-          <Button label="Add pieces" onPress={() => go(paths.closet)} />
+          <Button label="Add your clothes" onPress={() => go(paths.closet)} />
           {more}
         </ActionBar>
       )
@@ -151,22 +160,19 @@ export default function TodayRoom() {
         </ActionBar>
       )
     }
+    const shown = (current.wornLook?.items ?? current.items).map((i) => i.id)
     if (!current.worn) {
       return (
         <ActionBar>
           <Button label={evening ? 'I wore this' : 'Wearing it'} loading={wear.isPending} disabled={recompose.isPending} onPress={() => handleWear(current)} />
-          {currentIdx === 0 ? (
-            <Button label="Restyle" variant="ghost" loading={recompose.isPending} disabled={wear.isPending} onPress={restyle} />
-          ) : (
-            <Button label="See it on me" variant="ghost" onPress={() => go(paths.mirror(current.itemIds))} />
-          )}
+          <Button label="See it on you" variant="ghost" disabled={wear.isPending} onPress={() => go(paths.mirror(shown))} />
           {more}
         </ActionBar>
       )
     }
     return (
       <ActionBar>
-        <Button label="See it on me" onPress={() => go(paths.mirror((current.wornLook?.items ?? current.items).map((i) => i.id)))} />
+        <Button label="See it on you" onPress={() => go(paths.mirror(shown))} />
         <Button label="Share" variant="ghost" onPress={() => go(paths.share({ date, lookId: current.id, wearLogId: todayOnStrip?.wearLogId }))} />
         {more}
       </ActionBar>
@@ -180,7 +186,7 @@ export default function TodayRoom() {
 
     if (mode === 'rest') {
       return (
-        <Animated.View key="rest" entering={fadeIn} style={styles.section}>
+        <Animated.View key="rest" entering={fadeIn} style={styles.rest}>
           <T role="display" accessibilityRole="header">
             A home{' '}
             <T role="display" tone="brass" italic>
@@ -211,13 +217,15 @@ export default function TodayRoom() {
     }
 
     return (
-      <Animated.View key="brief" entering={fadeIn} style={styles.section}>
+      <Animated.View key="brief" entering={fadeIn} style={styles.sections}>
         {brief.isError ? (
-          <T role="caption" tone="danger">
-            Couldn’t refresh the brief. Pull down to try again.
-          </T>
+          <View style={[styles.alert, { backgroundColor: alpha(t.danger, 0.1), borderRadius: radius }]} accessibilityLiveRegion="polite">
+            <T role="bodySm" tone="danger">
+              Couldn’t refresh the brief. Pull down to try again.
+            </T>
+          </View>
         ) : null}
-        <View key={looks.map((l) => `${l.id}:${l.itemIds.join('-')}`).join('|')} style={styles.section}>
+        <View key={looks.map((l) => `${l.id}:${l.itemIds.join('-')}`).join('|')} style={styles.sections}>
           {looks.map((look, i) => (
             <LookAct
               key={look.id}
@@ -234,41 +242,45 @@ export default function TodayRoom() {
             />
           ))}
         </View>
-        <Button label="Add a look" variant="quiet" size="sm" onPress={() => go(paths.addLook(date))} />
+        <AddLook date={date} isToday index={2 + looks.length} />
 
         <WhyThis brief={data.brief} data={data} index={3 + looks.length} />
 
-        {hour >= 20 ? (
-          <Animated.View entering={rise(4 + looks.length)}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Tomorrow, laid out tonight. Open tomorrow" pressRetentionOffset={12} onPress={() => go(paths.day(shiftKey(date, 1), { laidOut: true }))}>
-              <Plaque style={{ gap: 4 }}>
-                <T role="micro" tone="brass">
-                  Act three
-                </T>
-                <T role="lede">Tomorrow, laid out tonight.</T>
-              </Plaque>
-            </Pressable>
-          </Animated.View>
-        ) : null}
-
         {stats && stats.monthlyPayback > 0 ? (
-          <Animated.View entering={rise(5 + looks.length)}>
-            <Plaque style={{ gap: space.md }}>
-              <T role="micro" tone="faint">
-                Your closet is working
-              </T>
-              <T role="stat" tone="brass">
-                {money(stats.monthlyPayback)}{' '}
-                <T role="caption" tone="muted">
-                  this month
+          <Animated.View entering={rise(4 + looks.length)}>
+            <Plaque style={styles.plaque}>
+              <View style={styles.plaqueHead}>
+                <T role="micro" tone="faint" style={styles.tracked2}>
+                  Your closet is working
                 </T>
-              </T>
-              <View style={styles.statRow}>
+                <T role="stat" tone="brass">
+                  {money(stats.monthlyPayback)}{' '}
+                  <T role="caption" tone="muted" style={styles.semi}>
+                    this month
+                  </T>
+                </T>
+              </View>
+              <View style={[styles.statRow, { borderTopColor: alpha(t.ink, 0.1) }]}>
                 <Stat small value={`${stats.rotationPct}%`} label="in rotation" />
                 <Stat small value={stats.outfitsThisWeek} label="this week" />
                 <Stat small value={stats.streak} label="day streak" />
               </View>
             </Plaque>
+          </Animated.View>
+        ) : null}
+
+        {hour >= 20 ? (
+          <Animated.View entering={rise(5 + looks.length)} style={[styles.actThree, { borderTopColor: alpha(t.ink, 0.1) }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Tomorrow, laid out tonight. Open tomorrow" pressRetentionOffset={12} onPress={() => go(paths.day(shiftKey(date, 1), { laidOut: true }))}>
+              <Plaque style={styles.plaque}>
+                <View style={styles.plaqueHead}>
+                  <T role="micro" tone="brass" style={styles.tracked}>
+                    Tomorrow · {longDay(shiftKey(date, 1))}
+                  </T>
+                  <T role="lede">Tomorrow, laid out tonight.</T>
+                </View>
+              </Plaque>
+            </Pressable>
           </Animated.View>
         ) : null}
       </Animated.View>
@@ -287,28 +299,33 @@ export default function TodayRoom() {
           <TodaySkeleton />
         ) : (
           <>
-            <Greeting name={firstName(user)} stats={stats} />
-            {profile && !profile.sizes?.top && !profile.sizes?.bottom && !profile.sizes?.shoe ? (
+            <View style={styles.header}>
+              <Greeting name={firstName(user)} stats={stats} />
+              {profile && !profile.sizes?.top && !profile.sizes?.bottom && !profile.sizes?.shoe ? (
+                <Animated.View entering={rise(2)}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="A finer fit. Add your sizes and tone" pressRetentionOffset={12} onPress={() => go(paths.profile)}>
+                    <Plaque style={styles.finerFit}>
+                      <View style={styles.finerFitText}>
+                        <T role="micro" tone="faint" style={styles.tracked2}>
+                          A finer fit
+                        </T>
+                        <T role="lede">Add your sizes and tone: looks land better when the Mirror knows them.</T>
+                      </View>
+                      <Button label="Add details" variant="ghost" size="sm" onPress={() => go(paths.profile)} />
+                    </Plaque>
+                  </Pressable>
+                </Animated.View>
+              ) : null}
+              <ClosetNotes index={2} />
+            </View>
+            <View style={styles.week}>
               <Animated.View entering={rise(2)}>
-                <Pressable accessibilityRole="button" accessibilityLabel="A finer fit. Add your sizes" pressRetentionOffset={12} onPress={() => go(paths.profile)}>
-                  <Plaque style={styles.plaque}>
-                    <T role="micro" tone="faint">
-                      A finer fit
-                    </T>
-                    <T role="lede" style={styles.plaqueLine}>
-                      Add your sizes and tone: looks land better when the Mirror knows them.
-                    </T>
-                  </Plaque>
-                </Pressable>
+                <WeekStrip selected={date} onSelect={(d) => d !== date && go(paths.day(d))} />
               </Animated.View>
-            ) : null}
-            <ClosetNotes index={2} />
-            <Animated.View entering={rise(2)}>
-              <WeekStrip selected={date} onSelect={(d) => d !== date && go(paths.day(d))} />
-            </Animated.View>
-            {body()}
-            {!loading && data ? (
-              <View style={styles.section}>
+              {body()}
+            </View>
+            {!loading && data && (upcomingTrip || (nudges.data?.length ?? 0) > 0) ? (
+              <View style={styles.nudges}>
                 {upcomingTrip ? <TripBanner trip={upcomingTrip} index={6} /> : null}
                 <Nudges cards={nudges.data ?? []} index={7} />
               </View>
@@ -323,9 +340,26 @@ export default function TodayRoom() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, gap: space.xl },
-  section: { gap: space.xl },
-  statRow: { flexDirection: 'row', gap: space.xl },
-  plaque: { paddingVertical: 14, paddingRight: space.lg, paddingLeft: 20, gap: 4 },
-  plaqueLine: { fontSize: 16, lineHeight: 22 },
+  body: { paddingHorizontal: gutter, paddingTop: space.sm, gap: space.xxl },
+  // greeting, plaques and notes: `mt-4` apart.
+  header: { gap: space.lg },
+  // the strip, and the headline `mt-3` under its rule.
+  week: { gap: space.md },
+  sections: { gap: space.xxl },
+  rest: { gap: space.lg },
+  nudges: { gap: space.md },
+  right: { marginLeft: 'auto' },
+  alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
+  // `plaque p-4 pl-5`, `items-center justify-between gap-4`.
+  finerFit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.lg, padding: space.lg, paddingLeft: 20 },
+  finerFitText: { flex: 1, gap: 2 },
+  // `p-5 pl-6` (the primitive), the figure `mt-1`, the row `mt-3 border-t pt-3 gap-6`.
+  plaque: { gap: space.md },
+  plaqueHead: { gap: space.xs },
+  statRow: { flexDirection: 'row', gap: space.xl, borderTopWidth: hairline, paddingTop: space.md },
+  // `mt-10 border-t border-ink/10 pt-6`.
+  actThree: { borderTopWidth: hairline, paddingTop: space.xl },
+  tracked: { letterSpacing: 2.8 },
+  tracked2: { letterSpacing: 2 },
+  semi: { fontFamily: fonts.sansSemi },
 })

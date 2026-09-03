@@ -10,7 +10,7 @@ import { useFlash } from '@/src/components/Toast'
 import { useProfile } from '@/src/context/ProfileProvider'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, space } from '@/src/design/tokens'
+import { alpha, hairline, height, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk, queryClient } from '@/src/lib/query'
 import { SheetShell } from '@/src/features/you/SheetShell'
@@ -57,7 +57,7 @@ export default function PickerSheet() {
               pressRetentionOffset={12}
               style={({ pressed }) => [styles.row, { borderTopColor: alpha(t.ink, 0.1), borderTopWidth: i === 0 ? 0 : hairline, opacity: pressed ? 0.6 : 1 }]}
             >
-              <T role="body" style={[{ flex: 1 }, on && { fontFamily: fonts.sansSemi }]}>
+              <T role="bodySm" style={[{ flex: 1 }, on && { fontFamily: fonts.sansSemi }]}>
                 {o.label}
               </T>
               {o.line ? (
@@ -79,5 +79,6 @@ export default function PickerSheet() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 48, paddingVertical: space.sm },
+  // A 44px row with the hairline between, like every settings list.
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: height.action, paddingVertical: space.sm },
 })

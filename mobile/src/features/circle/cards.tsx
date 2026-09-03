@@ -1,17 +1,23 @@
 // The Circle's cards, ported from CircleCards.tsx: a look, a verdict, a
 // pick, the week. Every card asks something of you. The board is the
 // flat-lay engine every look sits on; a double tap on it is "would wear".
+//
+// The web's rhythm, value by value: the card is `p-4` (16); the handle row
+// sits at the top; the caption, the board and the foot each follow at 12
+// (`mt-3`); the foot is a hairline with the verbs first and the reactions
+// after, in `text-xs font-semibold`, brass when on.
 import { MaterialIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated'
+import Animated, { ReduceMotion, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 import { dressingOrder } from '@zauq/shared/flatlay'
 import { timeAgo, timeLeft, type CirclePost, type LookPost, type PickPost, type PostItem, type PostTarget, type ReactionKind, type ReactionSummary, type VerdictPost, type WeekPost } from '@zauq/shared/circle'
 import { Arch } from '@/src/components/Arch'
 import { Button } from '@/src/components/Button'
 import { FlatLay, LookBoard } from '@/src/components/LookBoard'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { EASE_OUT } from '@/src/design/motion'
@@ -29,6 +35,7 @@ function mirrorHref(items: PostItem[]) {
   return `/(tabs)/mirror?items=${items.map((i) => i.id).join(',')}` as never
 }
 
+/** The handle row: a 36 square of initials, the name in `text-sm font-semibold`, the meta in `text-xs`, the kicker, the "···". */
 function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string | null; name: string; label?: string; meta: string; plate: string; menu: ReactNode }) {
   const open = handle ? () => router.push(userHref(handle)) : undefined
   return (
@@ -81,8 +88,10 @@ function NotesButton({ count, onPress }: { count: number; onPress: () => void })
 }
 
 /**
- * A card's foot: the verbs (primary first), then the shared row of
- * reactions and notes, wrapping as wholes.
+ * A card's foot (the web's `CardFoot`): a hairline 12 below the last line,
+ * the verbs first (primary leading), then the row of reactions and notes,
+ * wrapping as wholes. The verbs sit on the card's 16 gutter; the chips
+ * carry their own 8 of padding, pulled back so their icons sit on it too.
  */
 function CardFoot({ verbs, children, brass }: { verbs?: ReactNode; children: ReactNode; brass?: boolean }) {
   const { t } = useTheme()
@@ -130,6 +139,7 @@ function LookHero({ items, photoUrl, width, onDouble }: { items: PostItem[]; pho
 
   if (items.length === 0 && !photoUrl) return null
   const strip = dressingOrder(items)
+  // The web's `w-12` strip thumbs.
   const thumb = 48
 
   const overlay = (
@@ -178,6 +188,7 @@ function LookHero({ items, photoUrl, width, onDouble }: { items: PostItem[]; pho
 
 /* ---------- cards ---------- */
 
+/** A card's inner width: the screen less the gutters and the card's own padding. Boards fill it. */
 export function useCardWidth(): number {
   const { width } = useWindowDimensions()
   return width - gutter * 2 - CARD_PAD * 2
@@ -244,7 +255,8 @@ export function VerdictCard({ post, actions }: { post: VerdictPost; actions: Car
   const counts = post.counts
   const leader = counts ? Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] : null
   const options = post.options.slice(0, 3)
-  const optW = Math.floor((inner - 10 * (options.length - 1)) / options.length)
+  // Three options across the card's inner width, `gap-3` apart.
+  const optW = Math.floor((inner - OPTION_GAP * (options.length - 1)) / options.length)
 
   const menu: MenuItem[] = []
   if (post.isMine && !post.settled) menu.push({ label: 'Share the vote page', onSelect: () => void actions.share('verdict', post.id, post.question) })
@@ -283,25 +295,26 @@ export function VerdictCard({ post, actions }: { post: VerdictPost; actions: Car
           const n = counts?.[o.id] ?? 0
           const share = counts && post.totalVotes > 0 ? Math.round((n / post.totalVotes) * 100) : null
           const body = (
-            <View style={{ width: optW, gap: 6 }}>
+            <View style={{ width: optW }}>
               <PhotoArch uri={o.imageUrl} width={optW} aspect={3 / 4} selected={won || chosen} cover={false} />
               {counts ? (
                 <>
-                  <View style={[styles.bar, { backgroundColor: alpha(t.ink, 0.1) }]}>
+                  <View style={[styles.bar, { backgroundColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
                     <View style={[styles.barFill, { width: `${share ?? 0}%`, backgroundColor: t.brass }]} />
                   </View>
                   <View style={styles.optMeta}>
-                    <T role="micro" tone={won || chosen ? 'brass' : 'faint'}>
+                    <T role="caption" tone={won || chosen ? 'brass' : 'faint'} style={{ fontFamily: fonts.sansSemi }}>
                       {o.id.toUpperCase()}
                       {won ? ' · won' : chosen ? ' · yours' : ''}
                     </T>
-                    <T role="statSm" style={{ fontSize: 14, lineHeight: 16 }}>
+                    {/* the web's `font-display text-sm` figure */}
+                    <T role="statSm" style={styles.share}>
                       {`${share ?? 0}%`}
                     </T>
                   </View>
                 </>
               ) : (
-                <T role="micro" tone={chosen ? 'brass' : 'faint'} align="center">
+                <T role="label" tone={chosen ? 'brass' : 'faint'} align="center" style={styles.optLabel}>
                   {voting === o.id ? 'Sending…' : chosen ? `${o.id.toUpperCase()} · yours` : o.id.toUpperCase()}
                 </T>
               )}
@@ -371,7 +384,8 @@ export function PickCard({ post, actions }: { post: PickPost; actions: CardActio
     <Card tone={byMe ? 'plain' : 'soft'}>
       <PostHeader handle={post.handle} name={post.name} label={byMe ? `For ${post.name}` : undefined} meta={meta} plate={byMe ? 'Your pick' : 'For you'} menu={<MoreButton items={menu} title={byMe ? `Your pick for ${post.name}` : `${post.name}’s pick`} />} />
       {post.note ? (
-        <T role="lede" tone="muted" style={[styles.line, { fontSize: 15, lineHeight: 22 }]}>
+        // The caption: `font-display italic text-base`.
+        <T role="lede" tone="muted" style={[styles.line, styles.note]}>
           {`“${post.note}”`}
         </T>
       ) : null}
@@ -465,7 +479,7 @@ export function WeekCard({ post, actions }: { post: WeekPost; actions: CardActio
             Your circle this week
           </T>
           <T role="caption" tone="faint" numberOfLines={1}>
-            {`${from} to ${to} · ${post.looksShared} look${post.looksShared === 1 ? '' : 's'} from ${post.people} ${post.people === 1 ? 'person' : 'people'}`}
+            {`${from} – ${to} · ${post.looksShared} look${post.looksShared === 1 ? '' : 's'} from ${post.people} ${post.people === 1 ? 'person' : 'people'}`}
           </T>
         </View>
         <Plate>The week</Plate>
@@ -477,7 +491,7 @@ export function WeekCard({ post, actions }: { post: WeekPost; actions: CardActio
               <Arch width={64} aspect={4 / 5} variant={post.topLook.photoUrl ? 'photo' : 'niche'} selected>
                 {post.topLook.photoUrl ? <PhotoArch uri={post.topLook.photoUrl} width={64} aspect={4 / 5} /> : <FlatLay items={post.topLook.items} frameRatio={0.8} />}
               </Arch>
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={styles.tileText}>
                 <Plate>Look of the week</Plate>
                 <T role="bodySm">
                   <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
@@ -492,7 +506,7 @@ export function WeekCard({ post, actions }: { post: WeekPost; actions: CardActio
         {post.mostWorn ? (
           <View style={[styles.tile, tile]}>
             <GarmentThumb item={post.mostWorn.item} width={56} />
-            <View style={{ flex: 1, gap: 4 }}>
+            <View style={styles.tileText}>
               <Plate>Most on the table</Plate>
               <T role="bodySm">
                 {'The '}
@@ -518,22 +532,24 @@ export function WeekCard({ post, actions }: { post: WeekPost; actions: CardActio
         {post.dressed.length > 0 ? (
           <View style={[styles.tile, styles.tileColumn, tile]}>
             <Plate>Dressed each other</Plate>
-            {post.dressed.map((d, i) => (
-              <T key={i} role="bodySm">
-                <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
-                  {d.by}
-                </T>
-                {' dressed '}
-                <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
-                  {d.for}
-                </T>
-                {d.worn ? (
-                  <T role="bodySm" tone="faint">
-                    {' · worn'}
+            <View style={styles.dressed}>
+              {post.dressed.map((d, i) => (
+                <T key={i} role="bodySm">
+                  <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                    {d.by}
                   </T>
-                ) : null}
-              </T>
-            ))}
+                  {' dressed '}
+                  <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                    {d.for}
+                  </T>
+                  {d.worn ? (
+                    <T role="bodySm" tone="faint">
+                      {' · worn'}
+                    </T>
+                  ) : null}
+                </T>
+              ))}
+            </View>
           </View>
         ) : null}
       </View>
@@ -555,30 +571,68 @@ export function PostCard({ post, actions }: { post: CirclePost; actions: CardAct
   }
 }
 
+/**
+ * A card while its post loads, shaped like the real one (the web's
+ * `card animate-pulse p-4`): a handle row's worth of block, then a board.
+ */
+export function CardSkeleton() {
+  const inner = useCardWidth()
+  const v = useSharedValue(0.35)
+  useEffect(() => {
+    v.set(withRepeat(withTiming(0.7, { duration: 900, reduceMotion: ReduceMotion.System }), -1, true))
+  }, [v])
+  const pulse = useAnimatedStyle(() => ({ opacity: v.get() }))
+  return (
+    <Card style={styles.skeleton}>
+      <SkeletonBlock width={160} height={36} />
+      <Animated.View style={pulse}>
+        <Arch width={inner} aspect={4 / 3} bezel={false} variant="plain" />
+      </Animated.View>
+    </Card>
+  )
+}
+
+/** The web's `gap-3` between a verdict's options. */
+const OPTION_GAP = 12
+
 const styles = StyleSheet.create({
+  // `flex items-center gap-3 px-4 pt-4`
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: CARD_PAD, paddingTop: CARD_PAD },
-  headText: { flex: 1, gap: 2 },
-  hero: { paddingHorizontal: CARD_PAD, paddingTop: 12, gap: 10 },
+  headText: { flex: 1 },
+  // `mx-4 mt-3`, the strip `mt-3 gap-2`, the names `mt-2.5 gap-x-4 gap-y-1 px-0.5`
+  hero: { paddingHorizontal: CARD_PAD, paddingTop: 12, gap: 12 },
   pulse: { alignItems: 'center', justifyContent: 'center' },
   pulseDisc: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   strip: { flexDirection: 'row', gap: 8 },
-  names: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 4, paddingHorizontal: 2 },
+  names: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, paddingHorizontal: 2, marginTop: -2 },
+  // `px-4 pt-3`
   line: { paddingHorizontal: CARD_PAD, paddingTop: 12 },
-  question: { paddingHorizontal: CARD_PAD, paddingTop: 10 },
-  options: { flexDirection: 'row', gap: 10, paddingHorizontal: CARD_PAD, paddingTop: 12, alignItems: 'flex-start' },
-  bar: { height: 4, borderRadius: 2, overflow: 'hidden' },
+  note: { fontSize: 16, lineHeight: 24 },
+  question: { paddingHorizontal: CARD_PAD, paddingTop: 12 },
+  options: { flexDirection: 'row', gap: OPTION_GAP, paddingHorizontal: CARD_PAD, paddingTop: 12, alignItems: 'flex-start' },
+  // `mt-2 h-1`, then `mt-1.5 px-0.5`
+  bar: { height: 4, overflow: 'hidden', marginTop: 8 },
   barFill: { height: '100%' },
-  optMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 1 },
-  foot: { marginTop: 12, paddingHorizontal: CARD_PAD - 6, paddingVertical: 8, borderTopWidth: hairline, gap: 4 },
-  verbs: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingTop: 4 },
-  reactions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  optMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 2, marginTop: 6 },
+  share: { fontSize: 14, lineHeight: 20 },
+  optLabel: { marginTop: 8 },
+  // `mt-3 border-t px-3 py-2.5 gap-y-1.5`; the verbs `gap-2`; the chips `gap-x-0.5`
+  foot: { marginTop: 12, paddingHorizontal: CARD_PAD, paddingVertical: 10, borderTopWidth: hairline, gap: 6 },
+  verbs: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  reactions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, marginHorizontal: -8 },
+  // `mt-3 flex items-start gap-3 px-4`; the thumbs `gap-3`, left-aligned
   pickBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: CARD_PAD, paddingTop: 12 },
-  thumbs: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  thumbs: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  // `mt-3 flex gap-2 px-4`
   thanks: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: CARD_PAD, paddingTop: 12 },
   replyBox: { flex: 1, height: height.secondary, borderWidth: hairline, paddingHorizontal: 12, justifyContent: 'center' },
   replyInput: { fontSize: 16, paddingVertical: 0, height: '100%' },
   seven: { width: 36, height: 36, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
-  week: { padding: CARD_PAD, gap: 10 },
+  // `mt-3 grid gap-3 px-4 pb-4`; each tile `gap-3 p-3`
+  week: { paddingHorizontal: CARD_PAD, paddingTop: 12, paddingBottom: CARD_PAD, gap: 12 },
   tile: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: hairline },
   tileColumn: { flexDirection: 'column', alignItems: 'flex-start', gap: 4 },
+  tileText: { flex: 1, gap: 4 },
+  dressed: { gap: 2 },
+  skeleton: { padding: CARD_PAD, gap: 12 },
 })

@@ -109,5 +109,6 @@ export function useUndoDelete<Item>({
 
 const styles = StyleSheet.create({
   host: { position: 'absolute', left: gutter, right: gutter, alignItems: 'center', zIndex: 20 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, maxWidth: 420 },
+  // The web's px-4 py-2.5 gap-3 border-brass/40
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, maxWidth: 420 },
 })

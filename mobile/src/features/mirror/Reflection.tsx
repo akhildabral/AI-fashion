@@ -1,104 +1,187 @@
-// The glass at the top of the Mirror: your reflection in the brass-bezelled
-// dark frame; the door when there is none; the developing state while a
-// render is a job.
+// The glass at the top of the Mirror, state for state as the web's
+// MirrorFrame: the door when there is no photo; the developing state while a
+// render is a job; the latest render on the glass with the photo underneath;
+// "You're in the mirror" when there is a photo and nothing on it yet; and
+// the compare grid, two glasses side by side.
 import { Image } from 'expo-image'
 import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
+import type { TryOn } from '@zauq/shared/types'
 import { Arch } from '@/src/components/Arch'
 import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { fadeIn, fadeOut } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, dark } from '@/src/design/tokens'
+import { alpha, dark, radius } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
-import { DRESSING_LINES } from './data'
+import { DRESSING_LINES, isLive, isReady, renderLabel } from './data'
 import { Filament } from './Filament'
 
-/** Text on the glass is always the night palette's ink: the mirror is dark in both themes. */
+/** Text on the glass is always the night palette's ink: the mirror is dark in both themes (the web's #ECE5D8). */
 const GLASS_INK = dark.ink
+/** The web's `max-w-[26ch]` and `[28ch]` at 14px Archivo. */
+const CH_26 = 208
+const CH_28 = 224
+const LETTERS = ['A', 'B', 'C', 'D']
 
 export interface ReflectionProps {
   width: number
   /** Whether the photo has been looked up yet (the glass keeps its shape meanwhile). */
   checked: boolean
   photoUrl: string | null
-  /** A render is in progress: the figure is being dressed. */
+  /** The render on the glass: the latest that did not fail (the web's `current`). */
+  current: TryOn | null
+  /** A render is a job: the figure is being dressed. */
   developing: boolean
+  /** Pieces are on the rail, for the line under "You're in the mirror." */
+  chosen: boolean
   onAdd: () => void
-  onOpenDeveloping?: () => void
+  /** Open a render (the one on the glass, or the one developing). */
+  onOpen: (id: string) => void
 }
 
-export function Reflection({ width, checked, photoUrl, developing, onAdd, onOpenDeveloping }: ReflectionProps) {
+export function Reflection({ width, checked, photoUrl, current, developing, chosen, onAdd, onOpen }: ReflectionProps) {
   const { t } = useTheme()
+  // The web glass is `aspect-[3/4]` inside a full-width frame.
   const height = Math.round((width * 4) / 3)
   const [line, setLine] = useState(0)
 
+  const dressing = developing || isLive(current)
   useEffect(() => {
-    if (!developing) return
+    if (!dressing) return
     setLine(0)
     const id = setInterval(() => setLine((n) => (n + 1) % DRESSING_LINES.length), 3200)
     return () => clearInterval(id)
-  }, [developing])
+  }, [dressing])
 
   const uri = photoUrl ? resolveImageUrl(photoUrl) : null
+  const failed = current?.status === 'failed'
+  const onGlass = !dressing && !!uri && !!current && isReady(current) && !!current.imageUrl
 
   return (
-    <View style={[styles.host, { width }]}>
-      <Arch width={width} height={height} variant="mirror">
-        {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" accessible={false} /> : null}
+    <Arch width={width} height={height} variant="mirror">
+      {/* still finding out whether there's a photo: the glass keeps its shape */}
+      {!dressing && !checked ? (
+        <View style={[StyleSheet.absoluteFill, styles.center]}>
+          <ActivityIndicator color={alpha(GLASS_INK, 0.4)} />
+        </View>
+      ) : null}
 
-        {checked && !uri && !developing ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add your reflection"
-            onPress={onAdd}
-            pressRetentionOffset={12}
-            style={[StyleSheet.absoluteFill, styles.center]}
-          >
-            <Svg width={52} height={72} viewBox="0 0 52 72" accessible={false}>
-              <Path d="M4 68V26C4 13.85 13.85 4 26 4s22 9.85 22 22v42" fill="none" stroke={alpha(t.brass, 0.55)} strokeWidth={1.5} />
-              <Path d="M14 68V30a12 12 0 0 1 24 0v38" fill="none" stroke={alpha(t.brass, 0.3)} strokeWidth={1} />
-            </Svg>
-            <T role="h3" align="center" style={{ color: GLASS_INK }}>
-              The mirror is waiting for you.
+      {/* rendering: the figure is being dressed */}
+      {dressing ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dressing you. Open the render."
+          onPress={() => onOpen(current?.id ?? '')}
+          pressRetentionOffset={12}
+          style={[StyleSheet.absoluteFill, styles.developing]}
+        >
+          {uri ? <Image source={{ uri }} blurRadius={2} style={[StyleSheet.absoluteFill, styles.underlay]} contentFit="cover" cachePolicy="disk" accessible={false} /> : null}
+          <Filament height={height} />
+          <Animated.View key={line} entering={fadeIn} exiting={fadeOut}>
+            <T role="lede" align="center" style={{ color: alpha(GLASS_INK, 0.8) }}>
+              {DRESSING_LINES[line]}
             </T>
-            <T role="bodySm" align="center" style={[styles.copy, { color: alpha(GLASS_INK, 0.6) }]}>
-              One clear, full-length photo, and every outfit renders on you.
-            </T>
-            <Button label="Add your photo" onPress={onAdd} style={styles.link} />
-          </Pressable>
-        ) : null}
+          </Animated.View>
+          <T role="label" align="center" style={{ color: alpha(GLASS_INK, 0.5) }}>
+            Leave if you like; you’ll hear when it’s ready
+          </T>
+        </Pressable>
+      ) : null}
 
-        {developing ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Dressing you. Open the render."
-            onPress={onOpenDeveloping}
-            disabled={!onOpenDeveloping}
-            style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: alpha(dark.bone, uri ? 0.7 : 0.2) }]}
-          >
-            <Filament height={height} />
-            <Animated.View key={line} entering={fadeIn} exiting={fadeOut}>
-              <T role="lede" align="center" style={{ color: alpha(GLASS_INK, 0.85), fontFamily: fonts.serifItalic }}>
-                {DRESSING_LINES[line]}
+      {/* no photo: the door */}
+      {!dressing && checked && !uri ? (
+        <View style={[StyleSheet.absoluteFill, styles.door]}>
+          <Svg width={52} height={72} viewBox="0 0 52 72" accessible={false}>
+            <Path d="M4 68V26C4 13.85 13.85 4 26 4s22 9.85 22 22v42" fill="none" stroke={alpha(t.brass, 0.55)} strokeWidth={1.5} />
+            <Path d="M14 68V30a12 12 0 0 1 24 0v38" fill="none" stroke={alpha(t.brass, 0.3)} strokeWidth={1} />
+          </Svg>
+          <T role="h3" align="center" style={{ color: GLASS_INK }}>
+            The mirror is waiting for you.
+          </T>
+          <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: CH_26 }}>
+            One clear, full-length photo, and every outfit renders on you.
+          </T>
+          <Button label="Add your photo" onPress={onAdd} style={styles.doorAction} />
+        </View>
+      ) : null}
+
+      {/* a render on the glass, with the photo underneath */}
+      {onGlass ? (
+        <Pressable accessibilityRole="imagebutton" accessibilityLabel="You, in the render. Open it." onPress={() => onOpen(current.id)} pressRetentionOffset={12} style={StyleSheet.absoluteFill}>
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" accessible={false} />
+          <Image source={{ uri: resolveImageUrl(current.imageUrl) }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" accessible={false} />
+        </Pressable>
+      ) : null}
+
+      {/* failed */}
+      {!dressing && failed ? (
+        <View style={[StyleSheet.absoluteFill, styles.failed]}>
+          <T role="h3" align="center" style={{ color: GLASS_INK }}>
+            That one didn’t take.
+          </T>
+          <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: CH_28 }}>
+            Nothing was charged. Try again, or change a piece on the rail.
+          </T>
+        </View>
+      ) : null}
+
+      {/* a photo, no render yet */}
+      {!dressing && uri && !onGlass && !failed ? (
+        <View style={[StyleSheet.absoluteFill, styles.door]}>
+          <Image source={{ uri }} style={[styles.thumb, { borderRadius: radius }]} contentFit="cover" cachePolicy="disk" accessibilityLabel="You" />
+          <T role="h3" align="center" style={{ color: GLASS_INK }}>
+            You’re in the mirror.
+          </T>
+          <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: CH_26 }}>
+            {chosen ? 'The pieces are on the rail. Tap See it on me.' : 'Bring pieces from Today or the Closet, or pick them here.'}
+          </T>
+        </View>
+      ) : null}
+    </Arch>
+  )
+}
+
+/** Compare: the chosen renders, each in its own glass, two across (the web's `grid-cols-2 gap-3`). */
+export function CompareGlass({ width, renders }: { width: number; renders: TryOn[] }) {
+  const { t } = useTheme()
+  const w = Math.floor((width - 12) / 2)
+  const h = Math.round((w * 4) / 3)
+  return (
+    <View style={[styles.compare, { width }]}>
+      {renders.map((r, i) => (
+        <View key={r.id} style={{ width: w }}>
+          <Arch width={w} height={h} variant="mirror">
+            <Image source={{ uri: resolveImageUrl(r.imageUrl) }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" accessibilityLabel={LETTERS[i]} />
+            {/* the letter sits below the crown, where the arch's sides are straight, so nothing clips */}
+            <View style={[styles.letter, { backgroundColor: t.brass, borderRadius: radius }]}>
+              <T role="caption" tone="onBrass" style={{ fontFamily: fonts.sansBold }}>
+                {LETTERS[i]}
               </T>
-            </Animated.View>
-            <T role="label" align="center" style={{ color: alpha(GLASS_INK, 0.5) }}>
-              Leave if you like; you’ll hear when it’s ready
-            </T>
-          </Pressable>
-        ) : null}
-      </Arch>
+            </View>
+          </Arch>
+          <T role="caption" align="center" numberOfLines={2} style={[styles.compareLabel, { color: alpha(t.ink, 0.5) }]}>
+            {renderLabel(r)}
+          </T>
+        </View>
+      ))}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  host: { alignSelf: 'center' },
-  center: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 },
-  copy: { maxWidth: 220 },
-  link: { marginTop: 4 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  // The web's `gap-5 p-8` while dressing, `gap-4 p-8` at the door, `gap-3 p-8` when it failed.
+  developing: { alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 },
+  door: { alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
+  failed: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  underlay: { opacity: 0.25 },
+  doorAction: { marginTop: 4 },
+  thumb: { width: 112, height: 112, opacity: 0.8 },
+  compare: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  letter: { position: 'absolute', left: 12, bottom: 12, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  compareLabel: { marginTop: 8 },
 })

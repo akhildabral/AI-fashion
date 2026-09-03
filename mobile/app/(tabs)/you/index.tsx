@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { Plaque } from '@/src/components/Bits'
+import { Wordmark } from '@/src/components/Brand'
 import { Button } from '@/src/components/Button'
 import { Screen } from '@/src/components/Screen'
 import { T } from '@/src/components/Text'
@@ -33,10 +34,11 @@ export default function YouRoom() {
   return (
     <Screen edges={['top']}>
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/* The arch, the name and the handle share the header's baseline. */}
         <Animated.View entering={rise(0)} style={styles.identity}>
           <Avatar name={shown} size={64} />
           <View style={styles.who}>
-            <T role="label" tone="faint">
+            <T role="micro" tone="brass" style={styles.eyebrow}>
               You
             </T>
             <T role="h1" accessibilityRole="header" numberOfLines={2}>
@@ -59,14 +61,14 @@ export default function YouRoom() {
                 <T role="micro" tone="faint">
                   Complete your fitting
                 </T>
-                <T role="statSm" tone="brass">
+                <T role="statSm">
                   {progress.done} of {progress.total}
                 </T>
               </View>
-              <View style={[styles.track, { backgroundColor: alpha(t.ink, 0.1), borderRadius: radius }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: progress.total, now: progress.done }}>
-                <View style={[styles.fill, { backgroundColor: t.brass, borderRadius: radius, width: `${Math.round(share * 100)}%` }]} />
+              <View style={[styles.track, { backgroundColor: alpha(t.ink, 0.1) }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: progress.total, now: progress.done }}>
+                <View style={[styles.fill, { backgroundColor: t.brass, width: `${Math.round(share * 100)}%` }]} />
               </View>
-              <T role="bodySm" tone="muted" style={{ marginTop: space.sm }}>
+              <T role="bodySm" tone="muted" style={styles.progressLine}>
                 The more the stylist knows, the better the brief. Each takes a moment.
               </T>
               <View style={styles.missing}>
@@ -94,9 +96,14 @@ export default function YouRoom() {
 
         <Animated.View entering={rise(3)} style={styles.foot}>
           <Button label="Sign out" variant="ghost" block onPress={() => router.push(routes.signOut)} />
-          <T role="micro" tone="faint" align="center">
-            ZAUQ {APP_VERSION}
-          </T>
+          <View style={styles.version} accessible accessibilityLabel={`ZAUQ ${APP_VERSION}`}>
+            <View style={styles.faintMark}>
+              <Wordmark size={10} />
+            </View>
+            <T role="micro" tone="faint" accessible={false}>
+              {APP_VERSION}
+            </T>
+          </View>
         </Animated.View>
       </ScrollView>
     </Screen>
@@ -105,11 +112,17 @@ export default function YouRoom() {
 
 const styles = StyleSheet.create({
   body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.xl },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: space.lg, paddingTop: space.sm },
+  identity: { flexDirection: 'row', alignItems: 'flex-end', gap: space.lg, paddingTop: space.sm },
   who: { flex: 1, gap: 4 },
+  // The web's `text-[10px] tracking-[0.28em]`, as RoomHeader sets it.
+  eyebrow: { letterSpacing: 2.8 },
   progressHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md },
-  track: { height: 6, overflow: 'hidden', marginTop: space.sm },
-  fill: { height: '100%' },
-  missing: { marginTop: space.sm, gap: 2 },
+  track: { height: 6, borderRadius: radius, overflow: 'hidden', marginTop: space.md },
+  fill: { height: '100%', borderRadius: radius },
+  progressLine: { marginTop: space.sm },
+  missing: { marginTop: space.md, gap: space.md },
   foot: { gap: space.md, paddingTop: space.sm },
+  version: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
+  // The mark at the faint wash the version beside it uses (ink/45).
+  faintMark: { opacity: 0.45 },
 })

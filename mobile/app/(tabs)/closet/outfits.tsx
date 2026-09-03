@@ -8,19 +8,19 @@ import Animated from 'react-native-reanimated'
 import { deleteOutfit, EVENT_LABEL, saveOutfit, suggestOutfits, type Outfit, type Suggested } from '@zauq/shared/outfits'
 import type { WardrobeItem } from '@zauq/shared/types'
 import { logWear } from '@zauq/shared/wearlog'
-import { EmptyState, LoadError, SectionHead } from '@/src/components/Bits'
+import { LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { LookBoard } from '@/src/components/LookBoard'
 import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
-import { ArchSkeleton } from '@/src/components/Skeleton'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { nameOf, useInvalidateCloset, useOutfits } from '@/src/features/closet/data'
 import { RoomTabs } from '@/src/features/closet/RoomTabs'
 import { shareCard } from '@/src/features/closet/share'
@@ -32,6 +32,9 @@ const OCCASIONS: { key: string; label: string; ask: string }[] = [
   { key: 'evening', label: 'Evening', ask: 'dinner out this evening' },
   { key: 'occasion', label: 'Occasion', ask: 'a special occasion' },
 ]
+
+/** The board's aspect inside every card (the web's LookBoard, 5/4). */
+const BOARD_ASPECT = 5 / 4
 
 const names = (items: WardrobeItem[]) => items.map(nameOf).join(' · ')
 
@@ -60,7 +63,8 @@ export default function OutfitsRoom() {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [refreshing, setRefreshing] = useState(false)
 
-  const boardW = width - gutter * 2 - 32
+  // The card's p-4 either side of the board.
+  const boardW = width - gutter * 2 - space.lg * 2
   const card = { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }
 
   async function ask(key: string) {
@@ -140,6 +144,15 @@ export default function OutfitsRoom() {
   const list = (outfits.data ?? []).filter((o) => !hidden.has(o.id))
   const count = list.length
 
+  /** A card the shape of a kept outfit, while they load. */
+  const cardSkeleton = (i: number) => (
+    <View key={i} style={[styles.card, card]}>
+      <SkeletonBlock height={Math.round(boardW / BOARD_ASPECT)} />
+      <SkeletonBlock width="85%" height={18} style={styles.cardBlock} />
+      <SkeletonBlock width="50%" height={12} style={styles.cardLine} />
+    </View>
+  )
+
   return (
     <Screen edges={[]}>
       <Stack.Screen options={{ headerShown: true, title: 'Outfits' }} />
@@ -150,49 +163,54 @@ export default function OutfitsRoom() {
         <Animated.View entering={rise(0)}>
           <RoomHeader eyebrow="The collection" title="Outfits" lead={outfits.data ? `${count} outfit${count === 1 ? '' : 's'} the closet has made` : undefined} />
         </Animated.View>
-        <Animated.View entering={rise(1)}>
+        <Animated.View entering={rise(1)} style={styles.rooms}>
           <RoomTabs current="outfits" />
         </Animated.View>
 
         {/* Suggested: name the day, the engine composes from what's clean */}
-        <Animated.View entering={rise(2)} style={styles.section}>
-          <View style={styles.headline}>
-            <T role="label" tone="faint">
-              Suggested
+        <Animated.View entering={rise(2)} style={styles.suggested}>
+          <T role="micro" tone="faint" style={styles.eyebrow}>
+            Suggested
+          </T>
+          <T role="h2" accessibilityRole="header" style={styles.headline}>
+            What would you{' '}
+            <T role="h2" tone="brass" italic>
+              wear for…
             </T>
-            <T role="h2" accessibilityRole="header">
-              What would you{' '}
-              <T role="h2" tone="brass" italic>
-                wear for…
-              </T>
-            </T>
-          </View>
+          </T>
           <View style={styles.chips}>
             {OCCASIONS.map((o) => (
               <Chip key={o.key} label={o.label} on={occasion === o.key} onPress={() => (asking ? undefined : void ask(o.key))} />
             ))}
           </View>
           {asking ? (
-            <View style={styles.stack}>
+            <View style={styles.after}>
               <T role="bodySm" tone="muted">
                 composing from what’s clean…
               </T>
-              <ArchSkeleton count={1} width={boardW} columns={1} />
+              <View style={styles.cardBlock}>{cardSkeleton(0)}</View>
             </View>
           ) : null}
-          {suggested && suggested.length === 0 && !asking ? <T role="lede" tone="muted">Nothing held together for that. Try another day, or add a piece.</T> : null}
-          {suggested && suggested.length > 0
-            ? suggested.map((s) => {
+          {suggested && suggested.length === 0 && !asking ? (
+            <T role="lede" tone="muted" style={styles.after}>
+              Nothing held together for that. Try another day, or add a piece.
+            </T>
+          ) : null}
+          {suggested && suggested.length > 0 ? (
+            <View style={[styles.after, styles.cards]}>
+              {suggested.map((s) => {
                 const key = s.items.map((i) => i.id).join(',')
                 return (
                   <Animated.View key={key} entering={fadeIn} style={[styles.card, card]}>
                     <LookBoard items={s.items} width={boardW} />
-                    <T role="lede">{s.rationale}</T>
-                    <T role="caption" tone="muted">
+                    <T role="lede" style={styles.cardBlock}>
+                      {s.rationale}
+                    </T>
+                    <T role="caption" tone="faint" style={styles.cardLine}>
                       {names(s.items)}
                     </T>
                     {s.validation.warnings.length > 0 ? (
-                      <T role="caption" tone="faint">
+                      <T role="caption" tone="faint" style={styles.cardLine}>
                         {s.validation.warnings[0].message}
                       </T>
                     ) : null}
@@ -202,49 +220,68 @@ export default function OutfitsRoom() {
                     </View>
                   </Animated.View>
                 )
-              })
-            : null}
+              })}
+            </View>
+          ) : null}
         </Animated.View>
 
         {/* Yours */}
-        <Animated.View entering={rise(3)} style={styles.section}>
-          <View style={styles.headline}>
-            <T role="label" tone="faint">
-              Yours
-            </T>
-            <SectionHead title="Kept and worn" />
-          </View>
-          {outfits.isPending ? <ArchSkeleton count={2} width={boardW} columns={1} /> : null}
+        <Animated.View entering={rise(3)} style={styles.yours}>
+          <T role="micro" tone="faint" style={styles.eyebrow}>
+            Yours
+          </T>
+          <T role="h2" accessibilityRole="header" style={styles.headline}>
+            Kept and worn
+          </T>
+          {outfits.isPending ? (
+            <View style={[styles.after, styles.cards]} accessibilityLabel="Loading" aria-busy>
+              {[0, 1, 2].map(cardSkeleton)}
+            </View>
+          ) : null}
           {outfits.isError && !outfits.data ? <LoadError message="Couldn’t load your outfits. Check your connection and try again." onRetry={() => void outfits.refetch()} /> : null}
           {outfits.data && list.length === 0 ? (
-            <EmptyState title="Nothing kept yet." line="Wear a brief, keep a suggestion, or compose one by hand, and it lives here." action={<Button label="Compose the first" variant="ghost" onPress={() => router.push('/closet/compose')} />} />
-          ) : null}
-          {list.map((o) => (
-            <View key={o.id} style={[styles.card, card]}>
-              <LookBoard items={o.items} width={boardW} />
-              <View style={{ gap: 4 }}>
-                <Provenance o={o} />
-                {o.rationale ? <T role="lede">{o.rationale}</T> : null}
-                <T role="caption" tone="muted">
-                  {names(o.items)}
-                </T>
-              </View>
-              <View style={styles.actions}>
-                <Button label="Wearing it today" variant="ghost" size="sm" loading={busy === `wear:${o.id}`} disabled={busy !== null} onPress={() => void wear(o)} />
-                <Button label="See it on me" variant="quiet" size="sm" onPress={() => router.push(`/(tabs)/mirror?items=${o.itemIds.join(',')}`)} />
-                <Button label="Adjust" variant="quiet" size="sm" onPress={() => router.push(`/closet/compose?from=${o.id}`)} />
-                <Button
-                  label="Share"
-                  variant="quiet"
-                  size="sm"
-                  onPress={() => {
-                    shareCard('outfit', o.id, 'An outfit from my closet').catch((err) => flash(err instanceof Error ? err.message : 'Could not prepare the card.'))
-                  }}
-                />
-                <Button label="Let it go" variant="quiet" size="sm" onPress={() => undo.remove(o, 'Outfit let go.')} />
-              </View>
+            <View style={styles.after}>
+              <T role="lede" tone="muted" style={styles.emptyLine}>
+                Nothing kept yet. Wear a brief, keep a suggestion, or compose one by hand, and it lives here.
+              </T>
+              <Button label="Compose the first" variant="ghost" style={styles.emptyAction} onPress={() => router.push('/closet/compose')} />
             </View>
-          ))}
+          ) : null}
+          {list.length > 0 ? (
+            <View style={[styles.after, styles.cards]}>
+              {list.map((o) => (
+                <View key={o.id} style={[styles.card, card]}>
+                  <LookBoard items={o.items} width={boardW} />
+                  <View style={styles.cardBlock}>
+                    <Provenance o={o} />
+                    {o.rationale ? (
+                      <T role="lede" style={styles.cardLine}>
+                        {o.rationale}
+                      </T>
+                    ) : null}
+                    <T role="caption" tone="faint" style={styles.cardLine}>
+                      {names(o.items)}
+                    </T>
+                  </View>
+                  <View style={styles.actions}>
+                    <Button label="Wearing it today" variant="ghost" size="sm" loading={busy === `wear:${o.id}`} disabled={busy !== null} onPress={() => void wear(o)} />
+                    <Button label="See it on me" variant="quiet" size="sm" onPress={() => router.push(`/(tabs)/mirror?items=${o.itemIds.join(',')}`)} />
+                    <Button label="Ask the circle" variant="quiet" size="sm" onPress={() => router.push('/sheets/circle-ask')} />
+                    <Button
+                      label="Share"
+                      variant="quiet"
+                      size="sm"
+                      onPress={() => {
+                        shareCard('outfit', o.id, 'An outfit from my closet').catch((err) => flash(err instanceof Error ? err.message : 'Could not prepare the card.'))
+                      }}
+                    />
+                    <Button label="Adjust" variant="quiet" size="sm" onPress={() => router.push(`/closet/compose?from=${o.id}`)} />
+                    <Button label="Let it go" variant="quiet" size="sm" onPress={() => undo.remove(o, 'Outfit let go.')} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </Animated.View>
       </ScrollView>
 
@@ -257,11 +294,26 @@ export default function OutfitsRoom() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm, gap: space.lg },
-  section: { gap: space.md, paddingTop: space.md },
-  headline: { gap: 4 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  stack: { gap: space.md },
-  card: { padding: 16, gap: 10, borderWidth: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 2 },
+  content: { paddingHorizontal: gutter, paddingTop: space.sm },
+  // The mantel's pb-7 above the rooms' hairline; the title carries 16 already.
+  rooms: { paddingTop: space.md },
+  // mt-8 and mt-12 for the two sections
+  suggested: { paddingTop: space.xxl },
+  yours: { paddingTop: 48 },
+  // text-[10px] tracking-[0.2em]
+  eyebrow: { letterSpacing: 2 },
+  headline: { marginTop: space.xs },
+  // mt-4 flex-wrap gap-2
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.lg },
+  // mt-6 for whatever follows the chips or the head
+  after: { marginTop: space.xl },
+  // grid gap-5
+  cards: { gap: 20 },
+  card: { padding: space.lg, borderWidth: hairline },
+  cardBlock: { marginTop: space.md },
+  cardLine: { marginTop: space.xs },
+  // action-row mt-3 gap-x-4 gap-y-2
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.lg, rowGap: space.sm, marginTop: space.md },
+  emptyLine: { maxWidth: 512 },
+  emptyAction: { marginTop: space.lg },
 })

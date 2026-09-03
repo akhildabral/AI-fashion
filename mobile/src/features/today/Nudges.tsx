@@ -1,9 +1,9 @@
 // What else is on this morning: a trip coming up, and the circle's three
-// most recent notes. Each is one card with one place to go.
+// most recent notes. Each is one card with one place to go. TodayPage.tsx:
+// `card p-4`, a tracked brass eyebrow, a two-line 14px note at ink/75, 12 apart.
 import { Pressable, StyleSheet } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { FeedCard, Trip } from '@zauq/shared/brief'
-import { Plaque } from '@/src/components/Bits'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
@@ -51,55 +51,56 @@ function cardPath(card: FeedCard): string {
   return paths.circle
 }
 
+/** One nudge: the web's `card card-hover press p-4`. */
+function NudgeCard({ eyebrow, line, accessibilityLabel, onPress }: { eyebrow: string; line: string; accessibilityLabel: string; onPress: () => void }) {
+  const { t } = useTheme()
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      pressRetentionOffset={12}
+      onPress={onPress}
+      style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}
+    >
+      <T role="micro" tone="brass" style={styles.eyebrow}>
+        {eyebrow}
+      </T>
+      <T role="bodySm" numberOfLines={2} style={{ color: alpha(t.ink, 0.75) }}>
+        {line}
+      </T>
+    </Pressable>
+  )
+}
+
 export function TripBanner({ trip, index = 0 }: { trip: Trip; index?: number }) {
   const on = tripIsOn(trip)
   const tomorrow = tripIsTomorrow(trip)
+  const line = `${trip.destination}${on ? '' : ` from ${tripDay(trip.startDate)}`} · ${tomorrow ? 'the checklist is ready' : `${trip.packedItemIds.length} pieces packed`}`
   return (
     <Animated.View entering={rise(index)}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${trip.destination}. Open the trip`} pressRetentionOffset={12} onPress={() => go(paths.trip(trip.id))}>
-        <Plaque style={styles.plaque}>
-          <T role="micro" tone="brass">
-            {tomorrow ? 'Packing tonight?' : on ? 'On the road' : 'Trip coming up'}
-          </T>
-          <T role="lede" numberOfLines={2} style={styles.plaqueLine}>
-            {trip.destination}
-            {on ? '' : ` from ${tripDay(trip.startDate)}`} · {tomorrow ? 'the checklist is ready' : `${trip.packedItemIds.length} pieces packed`}
-          </T>
-        </Plaque>
-      </Pressable>
+      <NudgeCard
+        eyebrow={tomorrow ? 'Packing tonight?' : on ? 'On the road' : 'Trip coming up'}
+        line={line}
+        accessibilityLabel={`${trip.destination}. Open the trip`}
+        onPress={() => go(paths.trip(trip.id))}
+      />
     </Animated.View>
   )
 }
 
 export function Nudges({ cards, index = 0 }: { cards: FeedCard[]; index?: number }) {
-  const { t } = useTheme()
   if (cards.length === 0) return null
   return (
     <Animated.View entering={rise(index)} style={styles.list}>
       {cards.map((card, i) => (
-        <Pressable
-          key={`${card.type}-${card.at}-${i}`}
-          accessibilityRole="button"
-          accessibilityLabel={`${cardEyebrow(card)}. ${cardLine(card)}`}
-          pressRetentionOffset={12}
-          onPress={() => go(cardPath(card))}
-          style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}
-        >
-          <T role="micro" tone="brass">
-            {cardEyebrow(card)}
-          </T>
-          <T role="bodySm" tone="muted" numberOfLines={2}>
-            {cardLine(card)}
-          </T>
-        </Pressable>
+        <NudgeCard key={`${card.type}-${card.at}-${i}`} eyebrow={cardEyebrow(card)} line={cardLine(card)} accessibilityLabel={`${cardEyebrow(card)}. ${cardLine(card)}`} onPress={() => go(cardPath(card))} />
       ))}
     </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
-  list: { gap: space.sm },
-  card: { borderWidth: hairline, padding: space.lg, gap: 4 },
-  plaque: { padding: space.lg, paddingLeft: 20, gap: 4 },
-  plaqueLine: { fontSize: 16, lineHeight: 22 },
+  list: { gap: space.md },
+  card: { borderWidth: hairline, padding: space.lg, gap: space.xs },
+  eyebrow: { letterSpacing: 1.8 },
 })

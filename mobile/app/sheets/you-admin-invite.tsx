@@ -39,7 +39,7 @@ export default function AdminInviteSheet() {
           <T role="bodySm">{p.email}</T> signed up with Google, so they are approved directly. They can sign in with Google right now.
         </T>
       ) : (
-        <View style={{ gap: space.md }}>
+        <View style={styles.stack}>
           <T role="bodySm" tone="muted">
             Invite for <T role="bodySm">{p.email}</T>: {emailed ? 'an invite email is on its way (tell them to check spam). You can also copy the link. Valid 7 days.' : 'the invite email could not be sent, so copy the link and share it yourself. Valid 7 days.'}
           </T>
@@ -57,5 +57,7 @@ export default function AdminInviteSheet() {
 }
 
 const styles = StyleSheet.create({
+  // The web's `mt-4` to the link box, which is `p-3`.
+  stack: { gap: space.lg },
   link: { borderWidth: 1, padding: space.md },
 })

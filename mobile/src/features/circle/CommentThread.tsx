@@ -104,19 +104,21 @@ export function CommentList({ target, id }: { target: CommentTarget; id: string 
       </View>
     )
   }
+  // The web's thread: rows `gap-2.5` apart, a 24 square of initials, the
+  // handle in `text-xs font-semibold`, the note in `text-sm`, the time after.
   return (
     <View style={styles.list}>
-      {comments.map((c, i) => (
-        <View key={c.id} style={[styles.row, i > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.08) }]}>
-          <Press accessibilityRole="button" accessibilityLabel={c.name} disabled={!c.handle} onPress={() => c.handle && router.push(userHref(c.handle))}>
-            <Initials handle={c.handle} name={c.name} size={26} />
+      {comments.map((c) => (
+        <View key={c.id} style={styles.row}>
+          <Press accessibilityRole="button" accessibilityLabel={c.name} disabled={!c.handle} onPress={() => c.handle && router.push(userHref(c.handle))} style={styles.avatar}>
+            <Initials handle={c.handle} name={c.name} size={24} />
           </Press>
           <View style={styles.body}>
-            <T role="bodySm">
-              <T role="bodySm" style={{ fontFamily: fonts.sansSemi }} onPress={c.handle ? () => router.push(userHref(c.handle as string)) : undefined}>
+            <T role="bodySm" tone="muted">
+              <T role="caption" style={{ fontFamily: fonts.sansSemi }} onPress={c.handle ? () => router.push(userHref(c.handle as string)) : undefined}>
                 {c.name?.trim() || c.handle || 'someone'}
               </T>
-              {'  '}
+              {' '}
               <Mentions text={c.body} />
               {'  '}
               <T role="caption" tone="faint">
@@ -191,11 +193,15 @@ export function CommentComposer({ target, id }: { target: CommentTarget; id: str
 }
 
 const styles = StyleSheet.create({
-  center: { paddingVertical: 20, alignItems: 'center', gap: 8 },
-  list: { paddingBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10 },
+  center: { paddingVertical: 12, alignItems: 'center', gap: 8 },
+  // `gap-2.5 pb-1`
+  list: { gap: 10, paddingBottom: 4 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  // `mt-0.5`, so the square sits on the first line
+  avatar: { marginTop: 2 },
   body: { flex: 1 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: gutter, paddingTop: 10, paddingBottom: 10, borderTopWidth: hairline },
+  // `mt-2 flex gap-2`
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: gutter, paddingTop: 12, paddingBottom: 12, borderTopWidth: hairline },
   field: { flex: 1, borderWidth: hairline, minHeight: height.secondary, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
   input: { fontSize: 16, lineHeight: 20, paddingVertical: 0 },
 })

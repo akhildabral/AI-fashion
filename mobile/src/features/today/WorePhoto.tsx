@@ -1,11 +1,14 @@
 // "This is what I wore." One photo in; every garment found in it comes back
 // as a row (yours for sure, probably yours, or new) and nothing is written
-// until each row is answered. The web's WorePhotoPanel, for a camera.
+// until each row is answered. The web's WorePhotoPanel, for a camera: each
+// row a plaque padded 12, the crop and the match 64 wide at 4:5, the chips
+// 8 beneath the line, the closet's matches 12 beneath.
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { EventType } from '@zauq/shared/types'
 import { confirmWearPhoto, getWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '@zauq/shared/wear-photo'
+import { Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { Chip } from '@/src/components/Tabs'
@@ -14,6 +17,7 @@ import * as haptics from '@/src/design/haptics'
 import { fadeIn } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { apiUpload } from '@/src/lib/api'
 import { imageForm, PermissionDenied, pickImages, type PickSource } from '@/src/lib/upload'
 import { SheetShell } from './SheetShell'
@@ -22,6 +26,8 @@ type Decision = RowDecision & { open?: boolean }
 type Stage = 'pick' | 'reading' | 'confirm' | 'saving'
 
 const POLL_MS = 2000
+const THUMB = 64
+const THUMB_ASPECT = 4 / 5
 
 function defaultFor(row: PhotoRow): Decision {
   const top = row.matches[0]
@@ -49,6 +55,7 @@ export function WorePhoto({
   hasSuggestion?: boolean
   onLogged: (r: ConfirmWearPhotoResponse) => void
 }) {
+  const { t } = useTheme()
   const [job, setJob] = useState<WearPhotoJob | null>(null)
   const [stage, setStage] = useState<Stage>('pick')
   const [decisions, setDecisions] = useState<Record<number, Decision>>({})
@@ -121,6 +128,13 @@ export function WorePhoto({
   }
 
   const reading = stage === 'reading' || (stage === 'pick' && source !== null)
+  const alert = error ? (
+    <View style={[styles.alert, { backgroundColor: alpha(t.danger, 0.1), borderRadius: radius }]} accessibilityLiveRegion="polite">
+      <T role="bodySm" tone="danger">
+        {error}
+      </T>
+    </View>
+  ) : null
 
   if (stage === 'pick' || stage === 'reading') {
     return (
@@ -130,17 +144,13 @@ export function WorePhoto({
         footer={
           <>
             <Button label="Take a photo" loading={source === 'camera' || stage === 'reading'} disabled={reading} onPress={() => void pick('camera')} />
-            <Button label="From the library" variant="ghost" loading={source === 'library'} disabled={reading} onPress={() => void pick('library')} />
+            <Button label="Choose a photo" variant="ghost" loading={source === 'library'} disabled={reading} onPress={() => void pick('library')} />
           </>
         }
       >
-        {error ? (
-          <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
-            {error}
-          </T>
-        ) : null}
+        {alert}
         {stage === 'reading' ? (
-          <Animated.View entering={fadeIn} style={{ gap: space.sm }}>
+          <Animated.View entering={fadeIn} style={styles.reading}>
             <T role="lede" tone="muted">
               Reading the photo…
             </T>
@@ -180,11 +190,11 @@ export function WorePhoto({
       }
     >
       {rows.length === 0 ? (
-        <T role="body" tone="muted">
+        <T role="bodySm" style={{ color: alpha(t.ink, 0.7) }}>
           No clothes could be made out in that photo. Try one in better light, or log the day by its pieces.
         </T>
       ) : (
-        <View style={{ gap: space.md }}>
+        <View style={styles.rows}>
           {rows.map((row) => (
             <RowCard key={row.index} row={row} decision={decisions[row.index]} onChange={(d) => setDecisions((cur) => ({ ...cur, [row.index]: d }))} />
           ))}
@@ -192,7 +202,7 @@ export function WorePhoto({
       )}
 
       {alreadyLogged && rows.length > 0 ? (
-        <View style={{ gap: space.sm }}>
+        <View style={[styles.logged, { borderTopColor: alpha(t.ink, 0.1) }]}>
           <T role="label" tone="faint">
             The day was already logged
           </T>
@@ -207,11 +217,7 @@ export function WorePhoto({
           Logged as the day’s look, in place of what was laid out. The suggestion stays on record.
         </T>
       ) : null}
-      {error ? (
-        <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
-          {error}
-        </T>
-      ) : null}
+      {alert}
     </SheetShell>
   )
 }
@@ -233,13 +239,13 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           : ''
 
   return (
-    <View style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
+    <Plaque style={styles.card}>
       <View style={styles.cardRow}>
         {/* The crop is a photograph: lit by itself. The piece beside it is a cut-out in its niche. */}
-        <GarmentTile imageUrl={row.cropUrl} width={64} aspect={4 / 5} photo accessibilityLabel={row.description} />
-        {chosen && d.action === 'use' ? <GarmentTile imageUrl={chosen.item.imageUrl} width={64} aspect={4 / 5} accessibilityLabel={nameOf(chosen.item)} /> : null}
-        <View style={{ flex: 1, gap: 6 }}>
-          <T role="micro" tone="brass">
+        <GarmentTile imageUrl={row.cropUrl} width={THUMB} aspect={THUMB_ASPECT} photo accessibilityLabel={row.description} />
+        {chosen && d.action === 'use' ? <GarmentTile imageUrl={chosen.item.imageUrl} width={THUMB} aspect={THUMB_ASPECT} accessibilityLabel={nameOf(chosen.item)} /> : null}
+        <View style={styles.cardText}>
+          <T role="micro" tone="brass" style={styles.tracked}>
             {row.description}
           </T>
           <T role="bodySm">{line}</T>
@@ -262,7 +268,7 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
         ) : null}
       </View>
       {d.open && row.matches.length > 0 ? (
-        <Animated.View entering={fadeIn} style={{ gap: space.sm }}>
+        <Animated.View entering={fadeIn} style={styles.matches}>
           {row.matches.map((m) => {
             const on = d.itemId === m.itemId && d.action === 'use'
             return (
@@ -278,9 +284,9 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
                 }}
                 style={[styles.match, { borderColor: on ? t.brass : alpha(t.ink, 0.15), borderRadius: radius }]}
               >
-                <GarmentTile imageUrl={m.item.imageUrl} width={40} aspect={4 / 5} />
-                <View style={{ flex: 1, gap: 2 }}>
-                  <T role="bodySm" style={{ fontFamily: 'Archivo_600SemiBold' }}>
+                <GarmentTile imageUrl={m.item.imageUrl} width={40} aspect={THUMB_ASPECT} />
+                <View style={styles.matchText}>
+                  <T role="caption" style={styles.semi}>
                     {nameOf(m.item)}
                   </T>
                   <T role="caption" tone="muted">
@@ -297,13 +303,25 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           ) : null}
         </Animated.View>
       ) : null}
-    </View>
+    </Plaque>
   )
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: hairline, padding: 12, gap: 10 },
-  cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  match: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: hairline, padding: 6, paddingRight: 12, minHeight: 44 },
+  reading: { gap: space.sm },
+  rows: { gap: space.md },
+  // `plaque p-3`; the row `items-start gap-3`; the chips `mt-2`; the matches `mt-3`.
+  card: { padding: space.md, paddingLeft: space.md, gap: space.sm },
+  cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  cardText: { flex: 1, minWidth: 0, gap: space.xs },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  matches: { gap: space.sm, paddingTop: space.xs },
+  // `border p-1 pr-3 text-xs gap-2`.
+  match: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: hairline, padding: space.xs, paddingRight: space.md, minHeight: 44 },
+  matchText: { flex: 1, gap: 2 },
+  // `mt-5 border-t pt-4`, the label `mb-1.5`.
+  logged: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.sm },
+  alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
+  tracked: { letterSpacing: 1.8 },
+  semi: { fontFamily: fonts.sansSemi },
 })

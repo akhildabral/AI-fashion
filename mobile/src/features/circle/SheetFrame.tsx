@@ -34,11 +34,15 @@ export function SheetFrame({ title, lead, children, action, busy }: { title: str
   )
 }
 
-/** A brass micro-label above a group in a sheet: "Ask with", "For", "Their public closet". */
+/**
+ * A brass kicker above a group in a sheet: "Ask with", "For", "Their public
+ * closet". The web's `mt-5 text-[10px] tracking-[0.28em] text-brass`, with
+ * its group `mt-2` beneath.
+ */
 export function SheetLabel({ children, right }: { children: string; right?: ReactNode }) {
   return (
     <View style={styles.label}>
-      <T role="label" tone="brass">
+      <T role="micro" tone="brass" style={styles.labelText}>
         {children}
       </T>
       {right}
@@ -47,8 +51,11 @@ export function SheetLabel({ children, right }: { children: string; right?: Reac
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: 22, paddingBottom: 24, gap: 12 },
+  // The web's modal body: `p-5`, the title above; the column runs 12 apart.
+  content: { paddingHorizontal: gutter, paddingTop: 20, paddingBottom: 24, gap: 12 },
   busy: { paddingVertical: 40, alignItems: 'center' },
-  action: { paddingHorizontal: gutter, paddingTop: 12, paddingBottom: 8, borderTopWidth: hairline, flexDirection: 'row', gap: 10, alignItems: 'center' },
-  label: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8 },
+  // `action-row mt-5`: gap-x-4
+  action: { paddingHorizontal: gutter, paddingTop: 12, paddingBottom: 8, borderTopWidth: hairline, flexDirection: 'row', gap: 16, alignItems: 'center' },
+  label: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8, marginBottom: -4 },
+  labelText: { letterSpacing: 2.8 },
 })

@@ -25,5 +25,5 @@ export default function Notifications() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.lg },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: 20 },
 })

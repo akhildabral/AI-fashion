@@ -11,7 +11,7 @@ import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline } from '@/src/design/tokens'
+import { alpha, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { labelFor, SOURCE_TAG, SOURCE_WORD, sourceOf, valueOf, type Fact } from './facts'
 
@@ -57,7 +57,7 @@ export function FactRow({
   const isText = fact.kind === 'text' || fact.kind === 'money' || fact.kind === 'note'
 
   return (
-    <View style={[styles.row, !first && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1) }]}>
+    <View style={!first && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1) }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${fact.label}: ${empty ? 'not set' : labelFor(fact, value)}`}
@@ -66,25 +66,22 @@ export function FactRow({
         onPress={onOpen}
         style={styles.head}
       >
-        <T role="bodySm" tone="muted" style={{ flexShrink: 0 }}>
+        <T role="bodySm" tone="muted" style={styles.label}>
           {fact.label}
         </T>
-        <View style={styles.valueWrap}>
-          {empty ? (
-            <T role="lede" tone="brass" style={styles.emptyWord} numberOfLines={1}>
-              {emptyWord}
+        {empty ? (
+          <T role="lede" tone="brass" style={[styles.value, styles.emptyWord]}>
+            {emptyWord}
+          </T>
+        ) : (
+          <T role="bodySm" tone={source === 'guess' ? 'brass' : 'ink'} style={[styles.value, styles.semi]} align="right">
+            {labelFor(fact, value)}
+            {/* The web's ml-2 text-[9px] tracking-[0.14em] tag, on the same line */}
+            <T role="micro" tone="faint" style={styles.tag}>
+              {`  ${SOURCE_TAG[source]}`}
             </T>
-          ) : (
-            <T role="bodySm" tone={source === 'guess' ? 'brass' : 'ink'} style={{ fontFamily: fonts.sansSemi }} numberOfLines={2} align="right">
-              {labelFor(fact, value)}
-            </T>
-          )}
-          {!empty ? (
-            <T role="micro" tone="faint">
-              {SOURCE_TAG[source]}
-            </T>
-          ) : null}
-        </View>
+          </T>
+        )}
       </Pressable>
 
       {open ? (
@@ -118,34 +115,32 @@ export function FactRow({
           ) : null}
           {isText ? (
             <View style={styles.form}>
-              <View style={{ flex: 1 }}>
-                <Field
-                  compact={fact.kind !== 'note'}
-                  value={draft}
-                  onChangeText={setDraft}
-                  autoFocus
-                  multiline={fact.kind === 'note'}
-                  numberOfLines={fact.kind === 'note' ? 4 : 1}
-                  maxLength={fact.key === 'renderNotes' ? 900 : fact.kind === 'note' ? 400 : 80}
-                  keyboardType={fact.kind === 'money' ? 'decimal-pad' : 'default'}
-                  returnKeyType={fact.kind === 'note' ? 'default' : 'done'}
-                  onSubmitEditing={() => {
-                    const v = draft.trim()
-                    void commit(fact.kind === 'money' ? (v ? Number(v) : null) : v || null)
-                  }}
-                  placeholder={
-                    fact.kind === 'money'
-                      ? 'What it cost'
-                      : fact.key === 'renderNotes'
-                        ? 'What the Mirror must get right: the exact shade, the fabric, the collar, every logo and where it sits'
-                        : fact.kind === 'note'
-                          ? 'Sleeves taken up, a gift from, dry clean only'
-                          : fact.label
-                  }
-                  style={fact.kind === 'note' ? styles.note : undefined}
-                  accessibilityLabel={fact.label}
-                />
-              </View>
+              <Field
+                compact={fact.kind !== 'note'}
+                value={draft}
+                onChangeText={setDraft}
+                autoFocus
+                multiline={fact.kind === 'note'}
+                numberOfLines={fact.kind === 'note' ? 4 : 1}
+                maxLength={fact.key === 'renderNotes' ? 900 : fact.kind === 'note' ? 400 : 80}
+                keyboardType={fact.kind === 'money' ? 'decimal-pad' : 'default'}
+                returnKeyType={fact.kind === 'note' ? 'default' : 'done'}
+                onSubmitEditing={() => {
+                  const v = draft.trim()
+                  void commit(fact.kind === 'money' ? (v ? Number(v) : null) : v || null)
+                }}
+                placeholder={
+                  fact.kind === 'money'
+                    ? 'What it cost'
+                    : fact.key === 'renderNotes'
+                      ? 'What the Mirror must get right: the exact shade, the fabric, the collar, every logo and where it sits'
+                      : fact.kind === 'note'
+                        ? 'Sleeves taken up, a gift from, dry clean only'
+                        : fact.label
+                }
+                style={fact.kind === 'note' ? styles.note : undefined}
+                accessibilityLabel={fact.label}
+              />
               <View style={styles.formActions}>
                 <Button
                   label="Save"
@@ -168,13 +163,18 @@ export function FactRow({
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: 2 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, minHeight: 44, paddingVertical: 10 },
-  valueWrap: { flex: 1, alignItems: 'flex-end', gap: 2 },
-  emptyWord: { fontSize: 15, lineHeight: 20 },
-  editor: { gap: 10, paddingBottom: 12 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  form: { gap: 10 },
-  formActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // items-baseline justify-between gap-4 py-3
+  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.lg, paddingVertical: space.md },
+  label: { flexShrink: 0 },
+  value: { flex: 1, minWidth: 0 },
+  semi: { fontFamily: fonts.sansSemi },
+  // font-display text-sm italic
+  emptyWord: { fontSize: 14, lineHeight: 20, textAlign: 'right' },
+  tag: { letterSpacing: 1.4 },
+  // pb-4, the source word mb-2, the form gap-2
+  editor: { gap: space.sm, paddingBottom: space.lg },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  form: { gap: space.sm },
+  formActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   note: { minHeight: 88, textAlignVertical: 'top', paddingVertical: 10 },
 })

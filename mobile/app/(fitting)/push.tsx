@@ -49,10 +49,10 @@ export default function Push() {
   return (
     <Frame
       step="push"
-      who="The ritual"
+      who="The morning ritual"
       ask={
         <>
-          Laid out every morning <T role="h1" tone="brass" italic>at {hour}?</T>
+          Want this waiting for you <T role="h1" tone="brass" italic>at {hour} tomorrow?</T>
         </>
       }
       lead="The look waits for you before you are up: composed from your closet, checked against the weather."
@@ -67,13 +67,13 @@ export default function Push() {
               {note}
             </T>
           ) : null}
-          <Button label={error ? 'Try again' : 'Yes, every morning'} block loading={busy === 'yes'} disabled={busy !== null} onPress={() => void finish(true)} />
+          <Button label={error ? 'Try again' : 'Wake me with it'} block loading={busy === 'yes'} disabled={busy !== null} onPress={() => void finish(true)} />
           <Button label="Not now" variant="quiet" size="sm" style={styles.center} loading={busy === 'no'} disabled={busy !== null} onPress={() => void finish(false)} />
         </>
       }
     >
       <View style={styles.group}>
-        <T role="label" tone="faint">
+        <T role="micro" tone="faint" style={styles.tracked}>
           Which hour
         </T>
         <View style={styles.chips} accessibilityRole="radiogroup">
@@ -98,4 +98,5 @@ const styles = StyleSheet.create({
   group: { gap: space.md },
   chips: { flexDirection: 'row', gap: space.sm },
   center: { alignSelf: 'center' },
+  tracked: { letterSpacing: 2 },
 })

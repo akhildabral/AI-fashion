@@ -32,6 +32,10 @@ interface FrameProps {
  * The shape every step shares: a quiet Back, the thread, the stylist's
  * question, the content, the actions. Focusing a step records it in the
  * draft so a killed app resumes here.
+ *
+ * FittingPage.tsx: Who is 11px tracked 0.32em in brass, Ask (text-4xl: the
+ * h1 role) 12 beneath, Lead 16 beneath, the content 24 beneath, the actions
+ * 12 apart.
  */
 export function Frame({ step, who, ask, lead, children, actions, scroll = true, corner }: FrameProps) {
   const router = useRouter()
@@ -47,22 +51,24 @@ export function Frame({ step, who, ask, lead, children, actions, scroll = true, 
     <>
       <View style={styles.head}>
         <Animated.View entering={rise(0)}>
-          <T role="label" tone="brass">
+          <T role="label" tone="brass" style={styles.who}>
             {who}
           </T>
         </Animated.View>
-        <Animated.View entering={rise(1)}>
-          <T role="h1" accessibilityRole="header">
-            {ask}
-          </T>
-        </Animated.View>
-        {lead ? (
-          <Animated.View entering={rise(2)}>
-            <T role="lede" tone="muted">
-              {lead}
+        <View style={styles.ask}>
+          <Animated.View entering={rise(1)}>
+            <T role="h1" accessibilityRole="header">
+              {ask}
             </T>
           </Animated.View>
-        ) : null}
+          {lead ? (
+            <Animated.View entering={rise(2)}>
+              <T role="lede" tone="muted">
+                {lead}
+              </T>
+            </Animated.View>
+          ) : null}
+        </View>
       </View>
       {children ? (
         <Animated.View entering={rise(3)} style={styles.content}>
@@ -96,9 +102,12 @@ export function Frame({ step, who, ask, lead, children, actions, scroll = true, 
 }
 
 const styles = StyleSheet.create({
+  // The quiet Back carries 6 of its own padding: pull it onto the gutter.
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, marginLeft: -6 },
   scroll: { flexGrow: 1, paddingTop: space.lg, paddingBottom: space.lg, gap: space.xl },
   head: { gap: space.md },
+  who: { letterSpacing: 3.52 },
+  ask: { gap: space.lg },
   content: { gap: space.lg },
-  actions: { gap: space.sm, paddingTop: space.md, paddingBottom: space.sm, alignItems: 'stretch' },
+  actions: { gap: space.md, paddingTop: space.lg, paddingBottom: space.sm, alignItems: 'stretch' },
 })

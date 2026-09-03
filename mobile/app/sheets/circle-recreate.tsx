@@ -49,7 +49,7 @@ export default function RecreateSheet() {
         result && result.pairs.length > 0 ? (
           <>
             <Button
-              label="See it on me"
+              label="See it on you"
               block
               style={{ flex: 1 }}
               onPress={() => {
@@ -73,16 +73,17 @@ export default function RecreateSheet() {
       {result ? (
         <>
           {result.pairs.length > 0 ? (
-            <View>
-              {result.pairs.map((p, i) => (
-                <View key={p.source.id} style={[styles.pair, i > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1) }]}>
-                  <GarmentThumb item={{ id: p.source.id, imageUrl: p.source.imageUrl, subtype: p.source.label, category: p.source.label }} width={56} />
-                  <T role="bodySm" tone="faint">
+            // `space-y-3`: theirs, an arrow, yours (`w-16`), the names
+            <View style={styles.pairs}>
+              {result.pairs.map((p) => (
+                <View key={p.source.id} style={styles.pair}>
+                  <GarmentThumb item={{ id: p.source.id, imageUrl: p.source.imageUrl, subtype: p.source.label, category: p.source.label }} width={64} />
+                  <T role="bodySm" style={{ color: alpha(t.ink, 0.35) }}>
                     →
                   </T>
-                  <GarmentThumb item={{ id: p.match.id, imageUrl: p.match.imageUrl, subtype: p.match.label, category: p.match.label }} width={56} selected />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <T role="bodySm" numberOfLines={1} style={{ fontFamily: fonts.sansSemi, textTransform: 'capitalize' }}>
+                  <GarmentThumb item={{ id: p.match.id, imageUrl: p.match.imageUrl, subtype: p.match.label, category: p.match.label }} width={64} selected />
+                  <View style={styles.names}>
+                    <T role="bodySm" numberOfLines={1} style={{ fontFamily: fonts.sansMedium, textTransform: 'capitalize' }}>
                       {p.match.label}
                     </T>
                     <T role="caption" tone="faint">
@@ -116,6 +117,9 @@ export default function RecreateSheet() {
 }
 
 const styles = StyleSheet.create({
-  pair: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  missing: { borderWidth: hairline, padding: 14, gap: 6, marginTop: 4 },
+  pairs: { gap: 12 },
+  pair: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  names: { flex: 1 },
+  // `mt-4 p-4`, the lines `mt-2 space-y-1`
+  missing: { borderWidth: hairline, padding: 16, gap: 4, marginTop: 4 },
 })

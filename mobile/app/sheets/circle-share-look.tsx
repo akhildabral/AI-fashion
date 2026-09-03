@@ -125,7 +125,8 @@ export default function ShareLookSheet() {
         </Dashed>
       ) : null}
       {list?.map((l, i) => (
-        <View key={l.id} style={[styles.look, i > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1) }]}>
+        // The web's list: `gap-3`, each after the first `border-t pt-3`
+        <View key={l.id} style={[styles.look, i > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1), paddingTop: 12 }]}>
           <View style={styles.row}>
             {l.photoUrl ? (
               <PhotoArch uri={l.photoUrl} width={44} />
@@ -202,9 +203,12 @@ export default function ShareLookSheet() {
 }
 
 const styles = StyleSheet.create({
-  look: { paddingVertical: 12, gap: 8 },
+  look: { gap: 8 },
+  // `flex items-center gap-3`; the thumbs `w-11 gap-1.5`
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   thumbs: { flexDirection: 'row', gap: 6 },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingLeft: 2, minHeight: 32, alignItems: 'center' },
+  // `mt-2 gap-x-3 gap-y-1 pl-0.5`, kept 32 tall for the thumb
+  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4, paddingLeft: 2, minHeight: 32, alignItems: 'center' },
+  // `mt-2 gap-2 pb-1`
   renders: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
 })

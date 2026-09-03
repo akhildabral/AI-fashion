@@ -9,6 +9,7 @@ import { Button } from '@/src/components/Button'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
+import { space } from '@/src/design/tokens'
 import { qk, queryClient } from '@/src/lib/query'
 import { PieceGrid } from '@/src/features/you/Pieces'
 import { SheetShell } from '@/src/features/you/SheetShell'
@@ -48,7 +49,7 @@ export default function TripAddSheet() {
       ) : pieces.length === 0 ? (
         <EmptyState title="Everything you own is already packed." />
       ) : (
-        <PieceGrid items={pieces} selected={picked} onToggle={(pid) => setPicked((s) => (s.includes(pid) ? s.filter((x) => x !== pid) : [...s, pid]))} />
+        <PieceGrid items={pieces} selected={picked} columns={4} gap={space.sm} onToggle={(pid) => setPicked((s) => (s.includes(pid) ? s.filter((x) => x !== pid) : [...s, pid]))} />
       )}
     </SheetShell>
   )

@@ -1,6 +1,11 @@
 // One look in the day's timeline. The act the clock is on gets its full
 // board and the pieces beneath; an act that has passed folds to a row; one
 // still to come is laid out smaller, waiting its turn.
+//
+// Values from TodayPage.tsx (the main brief) and LookAct.tsx (the later
+// acts): a tracked brass eyebrow with LOGGED on its baseline, the headline 4
+// beneath, the rationale 16 (main) or 8 beneath, the board 32 (main) or 24
+// beneath, the action row 24 beneath at 16 / 8, a section rule 24 above.
 import { useState } from 'react'
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native'
 import Animated from 'react-native-reanimated'
@@ -13,7 +18,8 @@ import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, height, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { itemLabel, itemSublabel, lookTitle, prettyTime } from './copy'
 import { go, paths } from './nav'
 
@@ -50,20 +56,19 @@ function defaultHeadline(look: LookSlot, first: boolean, evening: boolean): Head
   return { lead: 'Then,', emphasis: 'wear this.' }
 }
 
+/** `text-[10px] tracking-[0.28em] text-brass`, the time at ink/40, LOGGED on the same baseline. */
 function Eyebrow({ look }: { look: LookSlot }) {
+  const { t } = useTheme()
   const time = prettyTime(look.time)
+  const quiet = { color: alpha(t.ink, 0.4) }
   return (
     <View style={styles.eyebrow}>
-      <T role="label" tone="brass">
+      <T role="micro" tone="brass" style={styles.tracked}>
         {lookTitle(look)}
-        {time ? (
-          <T role="label" tone="faint">
-            {`  ${time}`}
-          </T>
-        ) : null}
+        {time ? <T role="micro" style={[styles.tracked, quiet]}>{`  ${time}`}</T> : null}
       </T>
       {look.worn ? (
-        <T role="micro" tone="faint">
+        <T role="micro" style={quiet}>
           Logged
         </T>
       ) : null}
@@ -71,10 +76,22 @@ function Eyebrow({ look }: { look: LookSlot }) {
   )
 }
 
-/** The pieces in a row of small arches, for a folded act and the laid-out record. */
-function Thumbs({ items, width = 44 }: { items: BriefItem[]; width?: number }) {
+/** The web's logged pill: a brass hairline box on the soft wash, in the action row. */
+function LoggedPill({ label }: { label: string }) {
+  const { t } = useTheme()
   return (
-    <View style={styles.thumbs}>
+    <View style={[styles.pill, { borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft, borderRadius: radius }]} accessible accessibilityLabel={label}>
+      <T role="caption" tone="brass" style={styles.semi}>
+        {label}
+      </T>
+    </View>
+  )
+}
+
+/** The pieces in a row of small arches, for a folded act and the laid-out record. */
+function Thumbs({ items, width = 44, gap = space.sm }: { items: BriefItem[]; width?: number; gap?: number }) {
+  return (
+    <View style={[styles.thumbs, { gap }]}>
       {items.slice(0, 6).map((it) => (
         <GarmentTile key={it.id} imageUrl={it.imageUrl} width={width} accessibilityLabel={itemLabel(it)} />
       ))}
@@ -89,7 +106,8 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
   const shown = look.wornLook?.items?.length ? look.wornLook.items : look.items
   const head = headline === undefined ? defaultHeadline(look, first, evening) : headline
   const busy = !!wearing || !!removing
-  const seeOnMe = () => go(paths.mirror(shown.map((i) => i.id)))
+  const seeOnYou = () => go(paths.mirror(shown.map((i) => i.id)))
+  const title = lookTitle(look)
 
   // ---- an act that has passed: one row, opening to its board on a tap ----
   if (state === 'past') {
@@ -98,7 +116,7 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
-          accessibilityLabel={`${lookTitle(look)}, ${look.worn ? 'logged' : 'not logged'}. ${open ? 'Hide' : 'Show'} the look`}
+          accessibilityLabel={`${title}, ${look.worn ? 'logged' : 'not logged'}. ${open ? 'Hide' : 'Show'} the look`}
           pressRetentionOffset={12}
           onPress={() => {
             haptics.tap()
@@ -106,7 +124,7 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
           }}
           style={styles.pastRow}
         >
-          <View style={{ flex: 1, gap: 6 }}>
+          <View style={styles.pastText}>
             <Eyebrow look={look} />
             <T role="bodySm" tone="muted">
               {look.worn ? 'Worn, and on record.' : planning ? 'Laid out.' : 'Laid out, not logged.'}
@@ -115,11 +133,11 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
           <Thumbs items={shown} width={40} />
         </Pressable>
         {open ? (
-          <Animated.View entering={fadeIn} style={{ gap: space.md, paddingTop: space.md }}>
+          <Animated.View entering={fadeIn} style={styles.pastOpen}>
             <LookBoard items={shown} width={W} />
             <View style={styles.actions}>
               {!planning && !look.worn && onWear ? <Button label="Wearing it" variant="ghost" size="sm" loading={wearing} disabled={busy} onPress={() => onWear(look)} /> : null}
-              <Button label="See it on me" variant="quiet" size="sm" onPress={seeOnMe} />
+              <Button label="See it on you" variant="quiet" size="sm" onPress={seeOnYou} />
             </View>
           </Animated.View>
         ) : null}
@@ -131,83 +149,101 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
   const current = state === 'current'
   const boardWidth = current ? W : Math.round(W * 0.72)
   const tile = (W - 24) / 3
+  const role = first ? 'display' : 'h2'
+  const showActions = (!planning && !current && !look.worn && !!onWear) || (!planning && look.worn) || !current || (!first && !look.worn && !!onRemove)
 
   return (
-    <Animated.View entering={rise(index)} style={[styles.act, !first && { borderTopColor: alpha(t.ink, 0.1) }, first && styles.first]}>
-      {(!first || !current) && <Eyebrow look={look} />}
-      {head ? (
-        <T role={current ? 'display' : 'h2'} accessibilityRole="header" style={current ? styles.display : undefined}>
-          {head.lead}{' '}
-          <T role={current ? 'display' : 'h2'} tone="brass" italic>
-            {head.emphasis}
-          </T>
-        </T>
-      ) : null}
-      {look.weather || look.rationale ? (
-        <T role="bodySm" tone="muted" style={styles.rationale}>
-          {look.weather ? (
-            <T role="bodySm" tone="brass" style={styles.weather}>
-              {`${temp(look.weather.temperatureC)} · ${look.weather.description}   `}
+    <Animated.View entering={rise(index)} style={[styles.act, first ? styles.first : { borderTopColor: alpha(t.ink, 0.1) }, { gap: first ? space.xxl : space.xl }]}>
+      <View style={{ gap: first ? space.lg : space.sm }}>
+        <View style={styles.head}>
+          {(!first || !current) && <Eyebrow look={look} />}
+          {head ? (
+            <T role={role} accessibilityRole="header">
+              {head.lead}{' '}
+              <T role={role} tone="brass" italic>
+                {head.emphasis}
+              </T>
             </T>
           ) : null}
-          <T role="lede" tone="muted" style={styles.rationaleText}>
+        </View>
+        {look.weather || look.rationale ? (
+          <T role="lede" tone="muted">
+            {look.weather ? (
+              <T role="bodySm" tone="brass" style={styles.semi}>
+                {`${temp(look.weather.temperatureC)} · ${look.weather.description}   `}
+              </T>
+            ) : null}
             {look.rationale}
           </T>
-        </T>
-      ) : null}
-
-      <View style={{ alignSelf: 'flex-start', marginTop: space.md }}>
-        <LookBoard items={shown} width={boardWidth} sweep={current} />
+        ) : null}
       </View>
 
-      {current ? (
-        <View style={styles.grid}>
-          {shown.map((item) => (
-            <GarmentTile
-              key={item.id}
-              width={tile}
-              imageUrl={item.imageUrl}
-              label={itemLabel(item)}
-              sublabel={itemSublabel(item)}
-              onLongPress={onReconsider ? () => onReconsider(item) : undefined}
-              onPress={onReconsider ? () => onReconsider(item) : undefined}
-              accessibilityLabel={onReconsider ? `${itemLabel(item)}. Reconsider it` : itemLabel(item)}
-            />
-          ))}
+      <View style={styles.boards}>
+        <View style={{ alignSelf: 'flex-start' }}>
+          <LookBoard items={shown} width={boardWidth} sweep={current} />
         </View>
-      ) : null}
+        {current ? (
+          <View style={styles.grid}>
+            {shown.map((item) => (
+              <GarmentTile
+                key={item.id}
+                width={tile}
+                imageUrl={item.imageUrl}
+                label={itemLabel(item)}
+                sublabel={itemSublabel(item)}
+                onLongPress={onReconsider ? () => onReconsider(item) : undefined}
+                onPress={onReconsider ? () => onReconsider(item) : undefined}
+                accessibilityLabel={onReconsider ? `${itemLabel(item)}. Reconsider it` : itemLabel(item)}
+              />
+            ))}
+          </View>
+        ) : null}
+      </View>
 
       {look.wornLook ? (
         <View style={[styles.record, { borderTopColor: alpha(t.ink, 0.1) }]}>
           <T role="bodySm" tone="muted">
-            <T role="bodySm">What you wore, from your photo.</T> {look.wornLook.instead ? 'The stylist had laid out these; they stay on record.' : 'Laid out that morning:'}
+            <T role="bodySm" style={styles.semi}>
+              What you wore, from your photo.
+            </T>{' '}
+            {look.wornLook.instead ? 'The stylist had laid out these; they stay on record.' : 'Laid out that morning:'}
           </T>
-          <Thumbs items={look.items} width={56} />
+          <Thumbs items={look.items} width={64} gap={space.md} />
         </View>
       ) : null}
 
-      <View style={styles.actions}>
-        {!planning && !current && !look.worn && onWear ? <Button label="Wearing it" variant="ghost" size="sm" loading={wearing} disabled={busy} onPress={() => onWear(look)} /> : null}
-        {!current ? <Button label="See it on me" variant="quiet" size="sm" onPress={seeOnMe} /> : null}
-        {!first && !look.worn && onRemove ? (
-          <Button label="Remove" variant="quiet" size="sm" loading={removing} disabled={busy} onPress={() => onRemove(look)} style={{ marginLeft: 'auto' }} />
-        ) : null}
-      </View>
+      {showActions ? (
+        <View style={styles.actions}>
+          {!planning && look.worn ? <LoggedPill label={first ? 'Logged for today' : `Logged for ${title.toLowerCase()}`} /> : null}
+          {!planning && !current && !look.worn && onWear ? <Button label="Wearing it" variant="ghost" size="sm" loading={wearing} disabled={busy} onPress={() => onWear(look)} /> : null}
+          {!current ? <Button label="See it on you" variant="quiet" size="sm" onPress={seeOnYou} /> : null}
+          {!first && !look.worn && onRemove ? (
+            <Button label="Remove" variant="quiet" size="sm" loading={removing} disabled={busy} onPress={() => onRemove(look)} style={styles.right} />
+          ) : null}
+        </View>
+      ) : null}
     </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
-  act: { borderTopWidth: hairline, paddingTop: space.xl, gap: space.sm },
-  first: { borderTopWidth: 0, paddingTop: space.xs },
+  // `border-t border-ink/10 pt-6`; the parent keeps acts 32 apart.
+  act: { borderTopWidth: hairline, paddingTop: space.xl, gap: space.xl },
+  first: { borderTopWidth: 0, paddingTop: 0 },
+  head: { gap: space.xs },
   eyebrow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md },
-  display: { marginTop: 2 },
-  rationale: { marginTop: 2 },
-  weather: { fontFamily: 'Archivo_600SemiBold' },
-  rationaleText: { fontSize: 16, lineHeight: 22 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: space.md },
-  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tracked: { letterSpacing: 2.8 },
+  semi: { fontFamily: fonts.sansSemi },
+  boards: { gap: space.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  thumbs: { flexDirection: 'row', flexWrap: 'wrap' },
   pastRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
-  record: { borderTopWidth: hairline, paddingTop: space.md, marginTop: space.sm, gap: space.md },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm, marginTop: space.xs },
+  pastText: { flex: 1, gap: space.xs },
+  pastOpen: { gap: space.md, paddingTop: space.md },
+  // `mt-5 border-t border-ink/10 pt-4`, thumbs `mt-3 gap-3`.
+  record: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.md },
+  // `action-row`: gap-x-4 gap-y-2.
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.lg, rowGap: space.sm },
+  right: { marginLeft: 'auto' },
+  pill: { height: height.secondary, justifyContent: 'center', paddingHorizontal: space.lg, borderWidth: hairline },
 })

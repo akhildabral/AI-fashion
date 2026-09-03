@@ -18,8 +18,9 @@ export default function AddPieceSheet() {
   const closetQ = useCloset()
   const onRail = new Set(rail.map((r) => r.id))
   const pieces = (closetQ.data ?? []).filter((p) => !onRail.has(p.id))
+  // Three across, 12 between, as the web's `grid-cols-3 gap-3`.
   const cellW = (sw - gutter * 2) / 3
-  const tileW = Math.floor(cellW - 8)
+  const tileW = Math.floor((sw - gutter * 2 - 24) / 3)
 
   return (
     <Screen edges={['bottom']}>
@@ -65,5 +66,5 @@ export default function AddPieceSheet() {
 
 const styles = StyleSheet.create({
   title: { paddingTop: 24, paddingBottom: 16 },
-  cell: { marginBottom: 14 },
+  cell: { marginBottom: 12 },
 })

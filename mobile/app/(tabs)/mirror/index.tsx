@@ -1,15 +1,18 @@
-// The Mirror, as a fitting room. The glass at the top; under it the rail,
-// the pieces on you, each a switch; the lens switch; then every render on
-// the glass so far. "See it on me" lives in the thumb bar with the meter.
+// The Mirror, as a fitting room. The glass at the top, with the latest render
+// on it; under it the lens switch, the rail (the pieces on you, each a
+// switch), your reflections, then every render on the glass so far. "See it
+// on me" lives in the thumb bar with the meter. The spacing is the web's
+// MirrorPage, value for value.
 // Deep links: /mirror?items=a,b,c stages pieces on the rail, &lens=closet|inspiration picks the lens.
 import { FlashList } from '@shopify/flash-list'
+import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import type { InspirationLook } from '@zauq/shared/looks'
 import type { TryOn } from '@zauq/shared/types'
 import { tryOnWardrobeOutfit } from '@zauq/shared/wardrobe'
-import { EmptyState, LoadError, SectionHead } from '@/src/components/Bits'
+import { EmptyState, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { ACTION_BAR_HEIGHT, ActionBar, RoomHeader } from '@/src/components/Room'
@@ -21,20 +24,23 @@ import { useFlash } from '@/src/components/Toast'
 import { useJobs } from '@/src/context/JobsProvider'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { gutter } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { ClosetRail } from '@/src/features/mirror/ClosetRail'
-import { isLive, pieceLabel, renderLabel, useCloset, useInvalidateMirror, useLookbooks, useReflections, useTryOns, useUsage } from '@/src/features/mirror/data'
+import { isLive, isReady, pieceLabel, renderLabel, useCloset, useInvalidateMirror, useLookbooks, useReflections, useTryOns, useUsage } from '@/src/features/mirror/data'
 import { useInspiration } from '@/src/features/mirror/inspiration'
 import { InspirationLens } from '@/src/features/mirror/InspirationLens'
-import { Reflection } from '@/src/features/mirror/Reflection'
+import { CompareGlass, Reflection } from '@/src/features/mirror/Reflection'
 import { MAX_COMPARE, mirror, useMirrorStore, type Lens } from '@/src/features/mirror/store'
+import { resolveImageUrl } from '@/src/lib/api'
 
 const LENSES: { key: Lens; label: string }[] = [
   { key: 'closet', label: 'Your closet' },
   { key: 'inspiration', label: 'Inspiration' },
 ]
 const LETTERS = ['A', 'B', 'C', 'D']
+/** The render grid: two columns like the closet, 12 between. */
+const GRID_GAP = 12
 
 export default function MirrorRoom() {
   const { t } = useTheme()
@@ -95,6 +101,7 @@ export default function MirrorRoom() {
   const meter = usageQ.data?.usage.tryons
   const left = meter ? Math.max(0, meter.limit - meter.used) : null
   const out = left === 0
+  const lifetime = !!usageQ.data?.lifetime
 
   const openReflections = () => router.push('/sheets/mirror-reflection')
   const inspiration = useInspiration({ hasPhoto: !!photoUrl, onNeedPhoto: openReflections })
@@ -140,14 +147,19 @@ export default function MirrorRoom() {
     setRefreshing(false)
   }
 
+  // ---- the glass: the latest render that did not fail (the web's `current`) ----
+  const contentW = sw - gutter * 2
+  const current = useMemo(() => tryOns.find((x) => x.status !== 'failed') ?? null, [tryOns])
+  const developing = activeRenders.length > 0 || isLive(current)
+  const onGlass = !developing && !!photoUrl && isReady(current) && !!current?.imageUrl
+  const compared = useMemo(() => (compareMode ? compare.map((id) => tryOns.find((x) => x.id === id)).filter((x): x is TryOn => !!x) : []), [compareMode, compare, tryOns])
+  const comparing = compared.length >= 2
+
   // ---- the renders ----
   const activeBook = book ? lookbooks.find((b) => b.id === book) : null
   const renders = activeBook ? tryOns.filter((x) => activeBook.tryOnIds.includes(x.id)) : tryOns
-  const cellW = (sw - gutter * 2) / 2
-  const tileW = cellW - 6
-  // The glass spans the room, gutter to gutter, as on the web.
-  const frameW = sw - gutter * 2
-  const developing = activeRenders.length > 0
+  const cellW = contentW / 2
+  const tileW = Math.floor((contentW - GRID_GAP) / 2)
 
   const pressRender = (item: TryOn) => {
     if (compareMode) {
@@ -166,76 +178,129 @@ export default function MirrorRoom() {
     mirror.toggleCompare(item.id)
   }
 
-  const eyebrow = compareMode ? 'Which one?' : developing ? 'Dressing you' : 'Show yourself'
+  const eyebrow = comparing ? 'Which one?' : developing ? 'Dressing you' : 'Show yourself'
+  const title: [string, string] = comparing ? (compared.length === 2 ? ['A,', 'or B.'] : ['A, B,', 'or C.']) : onGlass ? ['There', 'you are.'] : ['The', 'Mirror.']
 
   const header = (
-    <View style={styles.header}>
-      <RoomHeader eyebrow={eyebrow} eyebrowVoice="italic" title={compareMode ? 'A, B,' : 'The'} emphasis={compareMode ? 'or C.' : 'Mirror.'} />
+    <View>
+      <RoomHeader eyebrow={eyebrow} eyebrowVoice="italic" title={title[0]} emphasis={title[1]} />
 
-      <Reflection
-        width={frameW}
-        checked={photoChecked}
-        photoUrl={photoUrl}
-        developing={developing}
-        onAdd={openReflections}
-        onOpenDeveloping={developing ? () => router.push(`/reveal/${activeRenders[0].id}`) : undefined}
-      />
+      <View style={styles.glass}>
+        {comparing ? (
+          <CompareGlass width={contentW} renders={compared} />
+        ) : (
+          <Reflection
+            width={contentW}
+            checked={photoChecked}
+            photoUrl={photoUrl}
+            current={current}
+            developing={developing}
+            chosen={chosen.length > 0}
+            onAdd={openReflections}
+            onOpen={(id) => {
+              const target = developing && activeRenders[0] ? activeRenders[0].id : id
+              if (target) router.push(`/reveal/${target}`)
+            }}
+          />
+        )}
+      </View>
+
+      <View style={styles.tabs}>
+        <Tabs items={LENSES} value={lens} onChange={mirror.setLens} />
+      </View>
+
+      <View style={styles.lens}>
+        {lens === 'closet' ? (
+          <ClosetRail
+            width={contentW}
+            rail={rail}
+            byId={byId}
+            closet={closet}
+            closetLoaded={closetQ.data !== undefined}
+            onToggle={mirror.toggle}
+            onSwap={(piece) =>
+              router.push(
+                `/sheets/mirror-swap?itemId=${piece.id}&slot=${encodeURIComponent(piece.category)}&label=${encodeURIComponent(pieceLabel(piece))}&exclude=${rail.map((r) => r.id).join(',')}`,
+              )
+            }
+            onAdd={() => router.push('/sheets/mirror-add')}
+            onPick={(id) => mirror.add([id])}
+            onClear={() => {
+              haptics.tap()
+              mirror.clear()
+            }}
+          />
+        ) : (
+          <InspirationLens
+            width={contentW}
+            inspiration={{ ...inspiration, seeOnMe: async (look) => (await seeLookOnMe(look), null) }}
+            onCloset={(look) => router.push(`/sheets/mirror-recreate?lookId=${look.id}&title=${encodeURIComponent(look.outfit.title ?? look.occasion)}`)}
+          />
+        )}
+      </View>
+
+      {/* your reflections: up to three, one dressed */}
       {photoChecked && (photos.length > 0 || photoUrl) ? (
-        <View style={styles.reflectionRow}>
-          <Button label={`Your reflections · ${Math.max(photos.length, 1)} of ${photoMax}`} variant="quiet" size="sm" onPress={openReflections} />
+        <View style={[styles.section, styles.sectionReflections, { borderTopColor: alpha(t.ink, 0.1) }]}>
+          <T role="micro" tone="faint">
+            Your reflections
+          </T>
+          <View style={styles.thumbs}>
+            {photos.map((p) => (
+              <Pressable
+                key={p.id}
+                accessibilityRole="button"
+                accessibilityLabel={p.active ? 'The one the Mirror dresses' : 'Dress this one'}
+                accessibilityState={{ selected: p.active }}
+                onPress={openReflections}
+                pressRetentionOffset={12}
+                style={[styles.thumb, { borderRadius: radius, borderColor: p.active ? t.brass : alpha(t.ink, 0.15), opacity: p.active ? 1 : 0.7 }]}
+              >
+                <Image source={{ uri: resolveImageUrl(p.url) }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" accessible={false} />
+              </Pressable>
+            ))}
+            {photos.length < photoMax ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add a photo"
+                onPress={openReflections}
+                pressRetentionOffset={12}
+                style={[styles.thumb, styles.thumbAdd, { borderRadius: radius, borderColor: alpha(t.ink, 0.25) }]}
+              >
+                <T role="body" tone="faint">
+                  +
+                </T>
+              </Pressable>
+            ) : null}
+          </View>
+          <T role="caption" tone="faint" style={styles.hint}>
+            {photos.length < photoMax ? 'Add one for winter, a haircut, a new length. The brass one is the one the Mirror dresses.' : 'Three at most. The brass one is the one the Mirror dresses.'}
+          </T>
         </View>
       ) : null}
 
-      <Tabs items={LENSES} value={lens} onChange={mirror.setLens} />
-
-      {lens === 'closet' ? (
-        <ClosetRail
-          rail={rail}
-          byId={byId}
-          closet={closet}
-          closetLoaded={closetQ.data !== undefined}
-          onToggle={mirror.toggle}
-          onSwap={(piece) =>
-            router.push(
-              `/sheets/mirror-swap?itemId=${piece.id}&slot=${encodeURIComponent(piece.category)}&label=${encodeURIComponent(pieceLabel(piece))}&exclude=${rail.map((r) => r.id).join(',')}`,
-            )
-          }
-          onAdd={() => router.push('/sheets/mirror-add')}
-          onPick={(id) => mirror.add([id])}
-          onClear={() => {
-            haptics.tap()
-            mirror.clear()
-          }}
-        />
-      ) : (
-        <InspirationLens
-          width={sw - gutter * 2}
-          inspiration={{ ...inspiration, seeOnMe: async (look) => (await seeLookOnMe(look), null) }}
-          onCloset={(look) => router.push(`/sheets/mirror-recreate?lookId=${look.id}&title=${encodeURIComponent(look.outfit.title ?? look.occasion)}`)}
-        />
-      )}
-
+      {/* the renders: the label row, the filters on their own row, then the grid */}
       {tryOns.length > 0 ? (
-        <View style={styles.rendersHead}>
-          <SectionHead
-            title="Renders"
-            action={
-              tryOns.length >= 2 ? (
-                <Button
-                  label={compareMode ? 'Done' : 'Compare'}
-                  variant={compareMode ? 'quiet' : 'ghost'}
-                  size="sm"
-                  onPress={() => {
-                    haptics.select()
-                    mirror.setCompareMode(!compareMode)
-                  }}
-                />
-              ) : null
-            }
-          />
+        <View style={[styles.section, styles.sectionRenders, { borderTopColor: alpha(t.ink, 0.1) }]}>
+          <View style={styles.headRow}>
+            <T role="micro" tone="faint">
+              Renders
+            </T>
+            {tryOns.length >= 2 && !compareMode ? (
+              <Button
+                label="Which one?"
+                variant="ghost"
+                size="sm"
+                onPress={() => {
+                  haptics.select()
+                  mirror.setCompareMode(true)
+                }}
+              />
+            ) : null}
+          </View>
           {compareMode ? (
-            <T role="bodySm" tone="muted">
-              {compare.length < 2 ? `Pick two to ${MAX_COMPARE} renders. Still torn? Put it to the circle.` : 'Side by side. Still torn? Put it to the circle.'}
+            <T role="bodySm" tone="muted" style={styles.compareLine}>
+              {compare.length < 2 ? 'Pick two renders below.' : 'Side by side. Still torn? Put it to the circle.'}
             </T>
           ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -249,7 +314,11 @@ export default function MirrorRoom() {
       ) : null}
 
       {tryOnsQ.isError && tryOns.length === 0 ? <LoadError onRetry={() => void tryOnsQ.refetch()} /> : null}
-      {tryOnsQ.isPending && tryOns.length === 0 ? <ArchSkeleton width={sw - gutter * 2} count={2} /> : null}
+      {tryOnsQ.isPending && tryOns.length === 0 ? (
+        <View style={styles.skeleton}>
+          <ArchSkeleton width={contentW} count={2} />
+        </View>
+      ) : null}
       {tryOnsQ.data && tryOns.length === 0 && photoUrl ? <EmptyState title="Nothing on the glass yet." line="Put pieces on the rail and tap See it on me." /> : null}
       {activeBook && renders.length === 0 ? <EmptyState title="An empty lookbook." line="Open a render and add it here." /> : null}
     </View>
@@ -268,7 +337,7 @@ export default function MirrorRoom() {
           const live = isLive(item)
           const failed = item.status === 'failed'
           return (
-            <View style={[styles.cell, { width: cellW, paddingLeft: index % 2 ? 6 : 0, paddingRight: index % 2 ? 0 : 6 }]}>
+            <View style={[styles.cell, { width: cellW, alignItems: index % 2 ? 'flex-end' : 'flex-start' }]}>
               <GarmentTile
                 photo
                 width={tileW}
@@ -277,7 +346,7 @@ export default function MirrorRoom() {
                 label={renderLabel(item)}
                 sublabel={failed ? 'didn’t take' : item.reportedAt ? 'reported' : undefined}
                 badge={idx >= 0 ? LETTERS[idx] : undefined}
-                selected={idx >= 0}
+                selected={idx >= 0 || (!compareMode && current?.id === item.id)}
                 processing={live}
                 accessibilityLabel={`${renderLabel(item)}${idx >= 0 ? `, ${LETTERS[idx]}` : ''}`}
                 onPress={() => pressRender(item)}
@@ -310,23 +379,25 @@ export default function MirrorRoom() {
                 <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
                   {Math.max(0, usageQ.data.usage.looks.limit - usageQ.data.usage.looks.used)} of {usageQ.data.usage.looks.limit}
                 </T>
-                {usageQ.data.lifetime ? '' : ' this month'}
+                {` left${lifetime ? '' : ' this month'}`}
               </T>
             ) : null}
           </>
-        ) : photoChecked && !photoUrl ? (
-          <View style={styles.grow}>
-            <Button label="Add your reflection" block onPress={openReflections} />
-          </View>
         ) : (
           <>
             <View style={styles.grow}>
-              <Button label={busy ? 'Starting…' : 'See it on me'} block loading={busy} disabled={chosen.length === 0 || out || !photoChecked} onPress={() => void seeItOnMe()} />
+              <Button
+                label={busy ? 'Starting…' : developing ? 'Rendering…' : `See it on me${left != null && !out ? ' · 1 render' : ''}`}
+                block
+                loading={busy}
+                disabled={chosen.length === 0 || developing || out || !photoChecked}
+                onPress={() => void seeItOnMe()}
+              />
             </View>
             {meter ? (
               out ? (
-                <View style={styles.meter}>
-                  <T role="caption" numberOfLines={1}>
+                <View style={styles.meterOut}>
+                  <T role="caption" numberOfLines={1} style={{ fontFamily: fonts.sansSemi }}>
                     No renders left
                   </T>
                   <Button label="See plans" variant="quiet" size="sm" onPress={() => router.navigate('/you')} />
@@ -336,7 +407,7 @@ export default function MirrorRoom() {
                   <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
                     {left} of {meter.limit}
                   </T>
-                  {usageQ.data?.lifetime ? '' : ' this month'}
+                  {` left${lifetime ? '' : ' this month'}`}
                 </T>
               )
             ) : null}
@@ -348,11 +419,27 @@ export default function MirrorRoom() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: 20, paddingBottom: 8 },
-  reflectionRow: { alignItems: 'center', marginTop: -8 },
-  rendersHead: { gap: 12 },
-  filters: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
-  cell: { marginBottom: 16 },
+  // The header's own 16 below the title plus 8: the web's `mt-6` to the glass.
+  glass: { marginTop: 8 },
+  // `mt-10` to the lens tabs, `mb-6` under them.
+  tabs: { marginTop: 40 },
+  lens: { marginTop: 24 },
+  section: { borderTopWidth: hairline },
+  // `mt-8 border-t pt-6`.
+  sectionReflections: { marginTop: 32, paddingTop: 24 },
+  // `mt-10 border-t pt-6`, and the grid's `mt-4`.
+  sectionRenders: { marginTop: 40, paddingTop: 24, paddingBottom: 16 },
+  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 32 },
+  compareLine: { marginTop: 4 },
+  filters: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8, paddingBottom: 2 },
+  thumbs: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 12 },
+  // The web's `w-12 aspect-[3/4]`.
+  thumb: { width: 48, height: 64, borderWidth: hairline, overflow: 'hidden' },
+  thumbAdd: { borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  hint: { marginTop: 8 },
+  skeleton: { marginTop: 40 },
+  cell: { marginBottom: GRID_GAP },
   grow: { flex: 1 },
-  meter: { maxWidth: 120, alignItems: 'flex-start', gap: 2 },
+  meter: { maxWidth: 120 },
+  meterOut: { maxWidth: 120, alignItems: 'flex-start', gap: 2 },
 })

@@ -6,6 +6,7 @@ import Animated from 'react-native-reanimated'
 import { Plaque } from '@/src/components/Bits'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
+import { space } from '@/src/design/tokens'
 import { labelOf, useBasket, useWishlist } from './data'
 
 interface Note {
@@ -30,11 +31,13 @@ export function ClosetNotes({ riseFrom = 2 }: { riseFrom?: number }) {
           <Pressable accessibilityRole="link" pressRetentionOffset={12} onPress={() => router.navigate(n.to)}>
             <Plaque style={styles.plaque}>
               <View style={styles.row}>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <T role="label" tone="faint">
+                <View style={styles.text}>
+                  <T role="micro" tone="faint" style={styles.eyebrow}>
                     {n.eyebrow}
                   </T>
-                  <T role="lede">{n.line}</T>
+                  <T role="lede" style={styles.line}>
+                    {n.line}
+                  </T>
                 </View>
                 <T role="body" tone="brass">
                   →
@@ -49,7 +52,13 @@ export function ClosetNotes({ riseFrom = 2 }: { riseFrom?: number }) {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 8 },
+  // mt-4 flex-col gap-2
+  list: { marginTop: space.lg, gap: space.sm },
+  // plaque p-3.5 pl-5 gap-4 items-center
   plaque: { padding: 14, paddingLeft: 20 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  text: { flex: 1 },
+  // text-[10px] tracking-[0.2em]
+  eyebrow: { letterSpacing: 2 },
+  line: { marginTop: 2 },
 })

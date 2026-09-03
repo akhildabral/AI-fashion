@@ -12,15 +12,14 @@ import { followUser, getSocialMe, getStyleTwins } from '@zauq/shared/social'
 import { LoadError } from '@/src/components/Bits'
 import { RoomHeader } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
-import { ArchSkeleton, SkeletonBlock } from '@/src/components/Skeleton'
 import { Filter, Tabs } from '@/src/components/Tabs'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { gutter } from '@/src/design/tokens'
+import { alpha, gutter, space } from '@/src/design/tokens'
 import { qk } from '@/src/lib/query'
-import { IconButton } from '@/src/features/circle/atoms'
-import { PostCard, useCardWidth } from '@/src/features/circle/cards'
+import { CARD_GAP, IconButton } from '@/src/features/circle/atoms'
+import { CardSkeleton, PostCard } from '@/src/features/circle/cards'
 import { useCardActions, useFeed, useSocialInvalidate, useUnread, type ExploreOpts } from '@/src/features/circle/hooks'
 import { ck, RAIL_DISMISS_KEY } from '@/src/features/circle/keys'
 import { EmptyFeed, HandleNudge, SuggestedRail, TodayRail, YouInCircle } from '@/src/features/circle/rails'
@@ -46,7 +45,6 @@ export default function CircleRoom() {
   const { t } = useTheme()
   const flash = useFlash()
   const queryClient = useQueryClient()
-  const cardWidth = useCardWidth()
   const [lens, setLens] = useState<Lens>('foryou')
   const [explore, setExplore] = useState<ExploreOpts>({ occasion: null, kindred: false })
   const feed = useFeed(lens, explore)
@@ -105,6 +103,8 @@ export default function CircleRoom() {
   const openPeople = (tab: string) => router.push({ pathname: '/(tabs)/circle/people', params: { tab } })
   const openInvite = () => router.push('/sheets/circle-invite')
 
+  // The web's column, top to bottom: the today rail, the compose door, the
+  // lenses (`mt-6`), the explore filters (`mt-3`), then the feed (`mt-5`).
   const header = (
     <View style={styles.header}>
       <TodayRail today={today.data?.entries ?? null} onShare={openShare} />
@@ -114,18 +114,18 @@ export default function CircleRoom() {
         <Tabs items={LENSES} value={lens} onChange={setLens} />
       </View>
       {lens === 'explore' ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRail} contentContainerStyle={styles.filters}>
           {OCCASIONS.map(([k, l]) => (
             <Filter key={l} label={l} on={explore.occasion === k} onPress={() => setExplore((e) => ({ ...e, occasion: k }))} />
           ))}
-          <View style={styles.sep} />
+          <View style={[styles.sep, { backgroundColor: alpha(t.ink, 0.15) }]} />
           <Filter label="Kindred taste" on={explore.kindred} onPress={() => setExplore((e) => ({ ...e, kindred: !e.kindred }))} />
         </ScrollView>
       ) : null}
       {feed.loading && !feed.posts ? (
         <View style={styles.skeleton}>
-          <SkeletonBlock width={160} height={36} />
-          <ArchSkeleton count={1} width={cardWidth} columns={1} />
+          <CardSkeleton />
+          <CardSkeleton />
         </View>
       ) : null}
       {feed.error && !feed.posts ? <LoadError message={feed.error instanceof Error ? feed.error.message : 'Could not load your circle.'} onRetry={() => void feed.refetch()} /> : null}
@@ -140,10 +140,11 @@ export default function CircleRoom() {
           eyebrow="The Circle"
           title="Circle"
           right={
-            <>
+            // Two 36 squares (the web's `btn-icon`), their feet on the title's baseline.
+            <View style={styles.headActions}>
               <IconButton icon="add" label="Post to your circle" onPress={() => router.push('/sheets/circle-compose')} />
               <IconButton icon="notifications-none" label="What happened" badge={unread.data?.unread ?? 0} onPress={() => router.push('/(tabs)/circle/notifications')} />
-            </>
+            </View>
           }
         />
       </View>
@@ -174,17 +175,24 @@ export default function CircleRoom() {
   )
 }
 
+/** Between cards: the web's `space-y-3`. */
 function Gap() {
-  return <View style={{ height: 14 }} />
+  return <View style={{ height: CARD_GAP }} />
 }
 
 const styles = StyleSheet.create({
   room: { paddingHorizontal: gutter },
-  header: { gap: 14, paddingBottom: 14 },
-  lenses: { paddingHorizontal: gutter },
-  filters: { flexDirection: 'row', gap: 6, paddingHorizontal: gutter, alignItems: 'center' },
-  sep: { width: 1, height: 20, marginHorizontal: 4, backgroundColor: 'rgba(128,128,128,0.25)' },
-  skeleton: { marginHorizontal: gutter, gap: 12 },
+  // The bell and the plus: RoomHeader sets them 4 down; 8 more puts a 36 square's foot on the h1's baseline.
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8 },
+  header: { gap: 16, paddingBottom: 20 },
+  // `mt-6` above the lenses, less the column's own 16
+  lenses: { paddingHorizontal: gutter, marginTop: 8 },
+  // `mt-3 gap-1`, with the `filter-sep` (`mx-1 h-4 w-px bg-ink/15`)
+  filterRail: { marginTop: -4 },
+  filters: { flexDirection: 'row', gap: 4, paddingHorizontal: gutter, alignItems: 'center' },
+  sep: { width: 1, height: 16, marginHorizontal: 4 },
+  // `mt-5` above the feed, less the column's own 16
+  skeleton: { marginHorizontal: gutter, gap: CARD_GAP, marginTop: 4 },
   row: { paddingHorizontal: gutter },
-  footer: { paddingVertical: 24, alignItems: 'center', minHeight: 48 },
+  footer: { paddingTop: space.xl, paddingBottom: space.xxxl, alignItems: 'center', minHeight: 48 },
 })

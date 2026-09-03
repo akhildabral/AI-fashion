@@ -6,9 +6,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Image } from 'expo-image'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated'
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg'
 import { currencySymbol, money } from '@zauq/shared/money'
 import type { WardrobeItem } from '@zauq/shared/types'
 import { addCandidate, deleteWardrobeItem, updateWardrobeItem } from '@zauq/shared/wardrobe'
@@ -20,14 +21,12 @@ import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
 import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
-import { SkeletonBlock } from '@/src/components/Skeleton'
-import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { EASE_IN_OUT, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, space } from '@/src/design/tokens'
+import { alpha, dark, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { pickImages, type PickedImage } from '@/src/lib/upload'
 import { CountUp } from '@/src/features/closet/CountUp'
@@ -38,15 +37,36 @@ type Stage = 'viewfinder' | 'reading' | 'verdict' | 'kept' | 'bought' | 'failed'
 const READING_LINES = ['Cutting it out…', 'Reading the colour and cut…', 'Checking it against your closet…']
 const READ_TIMEOUT_MS = 100_000
 
-/** The brass filament that scans the frame while the piece is read. */
+/** The web's frames: the viewfinder at max-w-[240px], the reading arch at max-w-[320px], both 3/4. */
+const VIEWFINDER_MAX = 240
+const READING_MAX = 320
+const FRAME_ASPECT = 3 / 4
+/** The piece and its outfits: grid-cols-[96px_1fr], boards at w-[220px]. */
+const PIECE_W = 96
+const BOARD_W = 220
+
+/** The brass filament down the middle of the frame while the piece is read: the web's `animate-filament`. */
 function Filament({ width, height }: { width: number; height: number }) {
   const { t } = useTheme()
-  const x = useSharedValue(0)
+  const opacity = useSharedValue(0.25)
   useEffect(() => {
-    x.set(withRepeat(withTiming(1, { duration: 1800, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.System }), -1, true))
-  }, [x])
-  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() * (width - 2) }] }))
-  return <Animated.View pointerEvents="none" style={[styles.filament, { height, backgroundColor: alpha(t.brass, 0.7) }, style]} />
+    opacity.set(withRepeat(withTiming(0.5, { duration: 2750, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.System }), -1, true))
+  }, [opacity])
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get() }))
+  return (
+    <Animated.View pointerEvents="none" style={[styles.filament, { left: Math.round(width / 2), height }, style]}>
+      <Svg width={1} height={height}>
+        <Defs>
+          <LinearGradient id="filament" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={t.brass} stopOpacity={0} />
+            <Stop offset="0.5" stopColor={t.brass} stopOpacity={0.7} />
+            <Stop offset="1" stopColor={t.brass} stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect width={1} height={height} fill="url(#filament)" />
+      </Svg>
+    </Animated.View>
+  )
 }
 
 /** The viewfinder's corner brackets: the piece, in the frame. */
@@ -65,6 +85,7 @@ function Brackets() {
 
 export default function Store() {
   const { item: itemParam } = useLocalSearchParams<{ item?: string }>()
+  const { t } = useTheme()
   const { width } = useWindowDimensions()
   const flash = useFlash()
   const qc = useQueryClient()
@@ -198,8 +219,8 @@ export default function Store() {
 
   const label = piece ? labelOf(piece) : 'this piece'
   const v = verdict.data?.status === 'ready' ? verdict.data : null
-  const frameW = Math.min(width - gutter * 2, 340)
-  const frameH = Math.round(frameW / (3 / 4))
+  const viewfinderW = Math.min(width - gutter * 2, VIEWFINDER_MAX)
+  const readingW = Math.min(width - gutter * 2, READING_MAX)
   const pad = { paddingBottom: ACTION_BAR_HEIGHT + space.xl }
 
   return (
@@ -210,17 +231,20 @@ export default function Store() {
         <>
           <ScrollView contentContainerStyle={[styles.content, pad]}>
             <Animated.View entering={rise(0)}>
-              <RoomHeader eyebrow="In the store" title="Hold it" emphasis="up." lead="One clear shot of the piece; the label can wait. Your closet answers in a moment." />
+              <RoomHeader eyebrow="In the store" title="Hold it" emphasis="up." />
+              <T role="lede" tone="muted" style={styles.lead}>
+                One clear shot of the piece; the label can wait. Your closet answers in a moment.
+              </T>
             </Animated.View>
-            <Animated.View entering={rise(1)} style={styles.frameWrap}>
-              <Arch width={frameW} height={frameH} variant="mirror">
+            <Animated.View entering={rise(1)} style={styles.frame}>
+              <Arch width={viewfinderW} height={Math.round(viewfinderW / FRAME_ASPECT)} variant="mirror">
                 <Brackets />
-                <T role="lede" align="center" style={[styles.frameCaption, { color: alpha('#ECE5D8', 0.7) }]}>
+                <T role="lede" align="center" style={[styles.frameCaption, { color: alpha(dark.ink, 0.7) }]}>
                   the piece, in the frame
                 </T>
               </Arch>
             </Animated.View>
-            <Animated.View entering={rise(2)} style={styles.steps}>
+            <Animated.View entering={rise(2)} style={[styles.steps, { borderTopColor: alpha(t.ink, 0.1) }]}>
               {[
                 ['One shot.', 'The same reading that catalogues your closet reads the piece: colour, cut, warmth.'],
                 ['The closet answers.', 'How many outfits it unlocks, what it goes with, and what each wear would cost.'],
@@ -231,7 +255,7 @@ export default function Store() {
                     {i + 1}
                   </T>
                   <T role="bodySm" tone="muted" style={{ flex: 1 }}>
-                    <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                    <T role="bodySm" style={styles.semi}>
                       {head}
                     </T>{' '}
                     {body}
@@ -250,22 +274,17 @@ export default function Store() {
       {stage === 'reading' ? (
         <ScrollView contentContainerStyle={[styles.content, pad]}>
           <Animated.View entering={rise(0)}>
-            <RoomHeader eyebrow="In the store" title="Reading the piece…" lead={READING_LINES[line]} />
+            <RoomHeader eyebrow="In the store" title="Reading the piece…" />
+            <T role="lede" tone="muted" style={styles.lead} accessibilityLiveRegion="polite">
+              {READING_LINES[line]}
+            </T>
           </Animated.View>
-          <Animated.View entering={rise(1)} style={styles.frameWrap}>
-            <Arch width={frameW} height={frameH} variant="photo">
-              {preview ? <Image source={{ uri: preview }} contentFit="cover" style={[StyleSheet.absoluteFill, { opacity: 0.6 }]} accessible={false} /> : null}
-              <Filament width={frameW} height={frameH} />
+          <Animated.View entering={rise(1)} style={styles.reading}>
+            <Arch width={readingW} height={Math.round(readingW / FRAME_ASPECT)} variant="photo">
+              {preview ? <Image source={{ uri: preview }} contentFit="cover" blurRadius={1} style={[StyleSheet.absoluteFill, { opacity: 0.6 }]} accessible={false} /> : null}
+              <Filament width={readingW} height={Math.round(readingW / FRAME_ASPECT)} />
             </Arch>
           </Animated.View>
-          <View style={styles.stack} accessibilityLabel="Reading the label" aria-busy>
-            <T role="label" tone="faint">
-              reading the label
-            </T>
-            <SkeletonBlock width="70%" height={28} />
-            <SkeletonBlock width="45%" height={16} />
-            <SkeletonBlock width="85%" height={16} />
-          </View>
         </ScrollView>
       ) : null}
 
@@ -273,7 +292,10 @@ export default function Store() {
         <>
           <ScrollView contentContainerStyle={[styles.content, pad]}>
             <Animated.View entering={rise(0)}>
-              <RoomHeader eyebrow="In the store" title="That one didn’t read." lead="Try a shot with the whole piece in frame, on a plain background if you can." />
+              <RoomHeader eyebrow="In the store" title="That one didn’t read." />
+              <T role="lede" tone="muted" style={styles.lead}>
+                Try a shot with the whole piece in frame, on a plain background if you can.
+              </T>
             </Animated.View>
           </ScrollView>
           <ActionBar>
@@ -292,16 +314,16 @@ export default function Store() {
                 emphasis={v.verdict.outfits >= 3 ? 'earns its place.' : v.verdict.outfits > 0 ? 'could work.' : 'yet.'}
               />
             </Animated.View>
-            <Animated.View entering={rise(1)} style={styles.stack}>
+            <Animated.View entering={rise(1)}>
               <View style={styles.count}>
                 <CountUp to={v.verdict.outfits} />
-                <T role="label" tone="muted" style={{ paddingBottom: 10, flexShrink: 1 }}>
+                <T role="label" tone="faint" style={styles.countLabel}>
                   outfit{v.verdict.outfits === 1 ? '' : 's'} with what you own
                 </T>
               </View>
-              <T role="bodySm" tone="muted">
+              <T role="bodySm" tone="muted" style={styles.pairs}>
                 Pairs with{' '}
-                <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                <T role="bodySm" style={styles.semi}>
                   {v.verdict.pairs} of your {v.verdict.closetSize}
                 </T>{' '}
                 pieces.{v.verdict.outfits === 0 && v.verdict.closetSize > 0 ? ' The closet needs a bottom or shoes that meet it halfway.' : ''}
@@ -310,10 +332,10 @@ export default function Store() {
 
             {/* The piece and its outfits */}
             <Animated.View entering={rise(2)} style={styles.verdictRow}>
-              <GarmentTile imageUrl={piece.imageUrl} width={96} accessibilityLabel={label} />
+              <GarmentTile imageUrl={piece.imageUrl} width={PIECE_W} accessibilityLabel={label} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={{ flex: 1 }}>
                 {v.outfits.map((o, i) => (
-                  <LookBoard key={i} items={[...o.items, piece]} width={200} />
+                  <LookBoard key={i} items={[...o.items, piece]} width={BOARD_W} />
                 ))}
                 {v.outfits.length === 0 ? (
                   <T role="lede" tone="faint" style={{ alignSelf: 'center' }}>
@@ -324,12 +346,12 @@ export default function Store() {
             </Animated.View>
 
             {v.closest ? (
-              <Animated.View entering={rise(3)}>
+              <Animated.View entering={rise(3)} style={styles.plaqueFirst}>
                 <Plaque style={styles.plaque}>
-                  <T role="label" tone="faint">
+                  <T role="micro" tone="faint" style={styles.eyebrow}>
                     Worth knowing
                   </T>
-                  <T role="bodySm">
+                  <T role="bodySm" style={styles.plaqueLine}>
                     Closest thing you own: the {labelOf(v.closest.item)}
                     {v.closest.wears > 0 ? `, worn ${v.closest.wears}×` : ', never worn'}.{' '}
                     <T role="bodySm" tone="muted">
@@ -340,30 +362,51 @@ export default function Store() {
               </Animated.View>
             ) : null}
             {v.unlockLine ? (
-              <Animated.View entering={rise(3)}>
+              <Animated.View entering={rise(3)} style={v.closest ? styles.plaqueNext : styles.plaqueFirst}>
                 <Plaque style={styles.plaque}>
-                  <T role="label" tone="faint">
+                  <T role="micro" tone="faint" style={styles.eyebrow}>
                     It would unlock more
                   </T>
-                  <T role="bodySm">{v.unlockLine}</T>
+                  <T role="bodySm" style={styles.plaqueLine}>
+                    {v.unlockLine}
+                  </T>
                 </Plaque>
               </Animated.View>
             ) : null}
 
             {/* Where and how much: optional, one line */}
-            <Animated.View entering={rise(4)} style={styles.stack}>
+            <Animated.View entering={rise(4)}>
               <View style={styles.fields}>
                 <View style={{ flex: 1 }}>
                   <Field value={store} onChangeText={setStore} placeholder="Where you saw it (optional)" autoCapitalize="words" accessibilityLabel="Where you saw it" />
                 </View>
-                <View style={{ width: 120 }}>
+                <View style={styles.priceField}>
                   <Field value={price} onChangeText={(s) => setPrice(s.replace(/[^\d]/g, ''))} keyboardType="number-pad" placeholder={`${currencySymbol()} price`} accessibilityLabel="Price" />
                 </View>
               </View>
-              <View style={styles.chips}>
-                <Chip label="Nudge me in two weeks if it’s still on my mind" on={nudge} onPress={() => setNudge((n) => !n)} />
-              </View>
-              <Button label="I’m buying it" variant="quiet" disabled={busy} onPress={() => void bought()} />
+              <Button label="I’m buying it" variant="quiet" disabled={busy} style={styles.buying} onPress={() => void bought()} />
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: nudge }}
+                hitSlop={8}
+                pressRetentionOffset={12}
+                onPress={() => {
+                  haptics.tap()
+                  setNudge((n) => !n)
+                }}
+                style={styles.nudge}
+              >
+                <View style={[styles.box, { borderRadius: radius, borderColor: nudge ? t.brass : alpha(t.ink, 0.35), backgroundColor: nudge ? t.brass : 'transparent' }]}>
+                  {nudge ? (
+                    <Svg width={10} height={10} viewBox="0 0 12 12">
+                      <Path d="M2 6.5l2.6 2.6L10 3.5" stroke={t.onBrass} strokeWidth={1.8} fill="none" />
+                    </Svg>
+                  ) : null}
+                </View>
+                <T role="caption" tone="faint" style={{ flexShrink: 1 }}>
+                  Nudge me in two weeks if it’s still on my mind
+                </T>
+              </Pressable>
             </Animated.View>
           </KeyboardAwareScrollView>
           <ActionBar>
@@ -377,12 +420,11 @@ export default function Store() {
         <>
           <ScrollView contentContainerStyle={[styles.content, pad]}>
             <Animated.View entering={rise(0)}>
-              <RoomHeader
-                eyebrow="Wishlist"
-                title="Kept"
-                emphasis="in mind."
-                lead={`The ${label} is in your wishlist with its verdict${price ? `, ${money(Number(price))}` : ''}${store.trim() ? `, seen at ${store.trim()}` : ''}. The stylist reads it too: if the brief is ever one piece short, it says which.`}
-              />
+              <RoomHeader eyebrow="Wishlist" title="Kept" emphasis="in mind." />
+              <T role="lede" tone="muted" style={styles.lead}>
+                The {label} is in your wishlist with its verdict{price ? `, ${money(Number(price))}` : ''}
+                {store.trim() ? `, seen at ${store.trim()}` : ''}. The stylist reads it too: if the brief is ever one piece short, it says which.
+              </T>
             </Animated.View>
           </ScrollView>
           <ActionBar>
@@ -396,10 +438,13 @@ export default function Store() {
         <>
           <ScrollView contentContainerStyle={[styles.content, pad]}>
             <Animated.View entering={rise(0)}>
-              <RoomHeader eyebrow="Closet · Pieces" title="In the" emphasis="closet." lead={`The ${label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.`} />
+              <RoomHeader eyebrow="Closet · Pieces" title="In the" emphasis="closet." />
+              <T role="lede" tone="muted" style={styles.lead}>
+                The {label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.
+              </T>
             </Animated.View>
             <Animated.View entering={rise(1)}>
-              <Button label="Point at another" variant="quiet" onPress={reset} />
+              <Button label="Point at another" variant="quiet" style={styles.another} onPress={reset} />
             </Animated.View>
           </ScrollView>
           <ActionBar>
@@ -413,24 +458,48 @@ export default function Store() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm, gap: space.xl },
-  stack: { gap: space.md },
-  frameWrap: { alignItems: 'center' },
-  frameCaption: { position: 'absolute', left: 0, right: 0, bottom: 24, fontSize: 15 },
+  content: { paddingHorizontal: gutter, paddingTop: space.sm },
+  semi: { fontFamily: fonts.sansSemi },
+  // The web's lead is mt-4 Bodoni italic; the title's pb-4 gives the 16.
+  lead: { maxWidth: 448 },
+  // The viewfinder's gap-8, on the gutter
+  frame: { paddingTop: space.xxl, alignItems: 'flex-start' },
+  // bottom-6 font-display text-sm italic
+  frameCaption: { position: 'absolute', left: 0, right: 0, bottom: space.xl, fontSize: 14, lineHeight: 20 },
   brackets: { position: 'absolute', left: '14%', right: '14%', top: '16%', bottom: '24%' },
   bracket: { position: 'absolute', width: 20, height: 20 },
   tl: { left: 0, top: 0, borderLeftWidth: 2, borderTopWidth: 2 },
   tr: { right: 0, top: 0, borderRightWidth: 2, borderTopWidth: 2 },
   bl: { left: 0, bottom: 0, borderLeftWidth: 2, borderBottomWidth: 2 },
   br: { right: 0, bottom: 0, borderRightWidth: 2, borderBottomWidth: 2 },
-  filament: { position: 'absolute', left: 0, top: 0, width: 2 },
-  steps: { gap: 12, borderTopWidth: 1, borderTopColor: 'transparent', paddingTop: 4 },
-  step: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  // gap-8, then border-t pt-6 space-y-3 max-w-md
+  steps: { marginTop: space.xxl, paddingTop: space.xl, borderTopWidth: hairline, gap: space.md, maxWidth: 448 },
+  step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   stepNo: { width: 20 },
-  count: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
-  verdictRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
-  rail: { flexDirection: 'row', gap: 12, paddingVertical: 4 },
-  plaque: { padding: 14, paddingLeft: 20, gap: 4 },
-  fields: { flexDirection: 'row', gap: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // mt-8 for the reading arch
+  reading: { paddingTop: space.xxl, alignItems: 'flex-start' },
+  filament: { position: 'absolute', top: 0, width: 1 },
+  // mt-5 items-end gap-3; the label pb-2 text-xs tracking-[0.16em]
+  count: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginTop: 20 },
+  countLabel: { paddingBottom: space.sm, flexShrink: 1, letterSpacing: 1.92 },
+  pairs: { marginTop: space.sm },
+  // mt-6 grid-cols-[96px_1fr] gap-4; the rail gap-3 pb-1
+  verdictRow: { flexDirection: 'row', gap: space.lg, alignItems: 'flex-start', marginTop: space.xl },
+  rail: { flexDirection: 'row', gap: space.md, paddingBottom: space.xs },
+  // plaque mt-5 p-4 pl-5, the next mt-3
+  plaqueFirst: { marginTop: 20 },
+  plaqueNext: { marginTop: space.md },
+  plaque: { padding: space.lg, paddingLeft: 20 },
+  // text-[10px] tracking-[0.2em]
+  eyebrow: { letterSpacing: 2 },
+  plaqueLine: { marginTop: space.xs },
+  // mt-5 grid-cols-[1fr_120px] gap-2
+  fields: { flexDirection: 'row', gap: space.sm, marginTop: 20 },
+  priceField: { width: 120 },
+  // The action row's mt-5, then the checkbox mt-3
+  buying: { marginTop: 20 },
+  nudge: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, minHeight: 44 },
+  // h-3.5 w-3.5 accent-iris
+  box: { width: 14, height: 14, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
+  another: { marginTop: space.xl },
 })

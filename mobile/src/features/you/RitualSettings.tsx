@@ -1,6 +1,9 @@
 // The morning ritual and the nudges: one switch and an hour for this device,
 // the evening layout, and the event pushes. Talks to the server through
-// `push.ts`; reads its state from the `push` query.
+// `push.ts`; reads its state from the `push` query. Laid out as the web's
+// RitualSettings: one plaque, the switch beside the heading, the hour row 16
+// below, the evening 20 below behind a hairline; the event pushes (native
+// only) in a second plaque.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
@@ -10,15 +13,17 @@ import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
-import { space } from '@/src/design/tokens'
+import { useTheme } from '@/src/design/theme'
+import { alpha, hairline, space } from '@/src/design/tokens'
 import { qk, queryClient } from '@/src/lib/query'
-import { TextLink, ToggleRow, Wrap } from './Furniture'
+import { BrassSwitch, TextLink, ToggleRow } from './Furniture'
 import { disableRitual, enableRitual, getPushStatus, hourLabel, pushAvailable, RITUAL_HOURS, sendTestPush, subscribedHere, updatePushSettings, type PushStatus } from './push'
 
 const FALLBACK: PushStatus = { devices: 0, hour: 7, timezone: null, eveningPush: false, events: { circle: true, renders: true }, subscriptions: [] }
 
 export function RitualSettings() {
   const flash = useFlash()
+  const { t } = useTheme()
   const available = pushAvailable()
   const { data, isPending, isError } = useQuery({ queryKey: qk.push, queryFn: getPushStatus })
   const status = data ?? (isError ? FALLBACK : null)
@@ -85,7 +90,6 @@ export function RitualSettings() {
       {
         onSuccess: () => flash(next ? 'Tomorrow will be laid out at 8pm, and you will hear about it.' : 'The evening nudge is off; tomorrow is still laid out quietly.'),
         onError: () => {
-          setEvents((e) => e)
           setEvening(!next)
           flash('Could not change that.')
         },
@@ -116,8 +120,8 @@ export function RitualSettings() {
     return (
       <Plaque>
         <SkeletonBlock width={140} height={12} />
-        <SkeletonBlock height={28} style={{ marginTop: 10 }} />
-        <SkeletonBlock width="80%" style={{ marginTop: 10 }} />
+        <SkeletonBlock height={30} style={styles.mt1} />
+        <SkeletonBlock width="80%" height={20} style={styles.mt1} />
       </Plaque>
     )
   }
@@ -134,36 +138,44 @@ export function RitualSettings() {
   return (
     <View style={styles.wrap}>
       <Plaque>
-        <T role="micro" tone="faint">
-          The morning ritual
-        </T>
-        <T role="h2" style={{ marginTop: 4 }}>
-          Your look, waiting when you wake.
-        </T>
-        <T role="bodySm" tone="muted" style={{ marginTop: 6 }}>
-          {line}
-        </T>
-        <ToggleRow label="On this device" value={onHere} disabled={!canAct} onChange={(next) => (next ? turnOn() : toggle.mutate(false))} />
-        <T role="label" tone="faint" style={{ marginTop: space.sm, marginBottom: space.sm }}>
-          At
-        </T>
-        <Wrap>
+        <View style={styles.head}>
+          <View style={styles.grow}>
+            <T role="micro" tone="faint">
+              The morning ritual
+            </T>
+            <T role="h2" style={styles.mt1} accessibilityRole="header">
+              Your look, waiting when you wake.
+            </T>
+            <T role="bodySm" tone="muted" style={styles.line}>
+              {line}
+            </T>
+          </View>
+          <BrassSwitch value={onHere} disabled={!canAct} onChange={(next) => (next ? turnOn() : toggle.mutate(false))} label={onHere ? 'Turn the morning ritual off on this device' : 'Turn the morning ritual on for this device'} />
+        </View>
+        <View style={styles.hours} accessibilityRole="radiogroup" accessibilityLabel="Wake me at">
+          <T role="label" tone="faint" style={styles.at}>
+            At
+          </T>
           {RITUAL_HOURS.map((h) => (
             <Chip key={h} label={hourLabel(h)} on={hour === h} onPress={() => available && changeHour(h)} />
           ))}
-        </Wrap>
+        </View>
         {onHere ? (
-          <View style={{ marginTop: space.md }}>
+          <View style={styles.mt4}>
             <TextLink label="Send a test to this device" onPress={test} />
           </View>
         ) : null}
-      </Plaque>
-
-      <Plaque>
-        <T role="micro" tone="faint">
-          The evening
-        </T>
-        <ToggleRow first label="Nudge me when tomorrow is laid out" line="Tomorrow is laid out at 8pm either way." value={evening} disabled={!available || s.devices === 0} onChange={toggleEvening} />
+        <View style={[styles.evening, { borderTopColor: alpha(t.ink, 0.1) }]}>
+          <View style={styles.grow}>
+            <T role="micro" tone="faint">
+              The evening
+            </T>
+            <T role="bodySm" tone="muted" style={styles.mt1}>
+              Tomorrow is laid out at 8pm either way. Want a nudge when it is?
+            </T>
+          </View>
+          <BrassSwitch value={evening} disabled={!available || s.devices === 0} onChange={toggleEvening} label="Nudge me when tomorrow is laid out" />
+        </View>
       </Plaque>
 
       <Plaque>
@@ -178,5 +190,13 @@ export function RitualSettings() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.lg },
+  wrap: { gap: 20 },
+  grow: { flex: 1 },
+  mt1: { marginTop: space.xs },
+  mt4: { marginTop: space.lg },
+  line: { marginTop: 6 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg },
+  hours: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm, marginTop: space.lg },
+  at: { marginRight: space.xs },
+  evening: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg, marginTop: 20, paddingTop: space.lg, borderTopWidth: hairline },
 })

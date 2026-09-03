@@ -2,13 +2,13 @@
 // piece that's here; a swipe, or one tap, brings it back.
 import { router, Stack } from 'expo-router'
 import { useRef, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable'
 import Animated from 'react-native-reanimated'
 import type { WardrobeItem } from '@zauq/shared/types'
 import { basketClean, updateWardrobeItem } from '@zauq/shared/wardrobe'
 import { Arch } from '@/src/components/Arch'
-import { EmptyState, LoadError, Plaque, SectionHead } from '@/src/components/Bits'
+import { LoadError, Plaque, SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
@@ -20,7 +20,6 @@ import * as haptics from '@/src/design/haptics'
 import { fadeOut, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
 import { daysAgo, nameOf, title, useBasket, useInvalidateCloset } from '@/src/features/closet/data'
 import { RoomTabs } from '@/src/features/closet/RoomTabs'
 
@@ -62,7 +61,7 @@ function Row({ item, state, busy, onBack }: { item: WardrobeItem; state: BasketS
             <T role="body" numberOfLines={1}>
               {title(nameOf(item))}
             </T>
-            <T role="caption" tone="faint" numberOfLines={1}>
+            <T role="caption" tone="brass" numberOfLines={1}>
               {sub}
             </T>
           </View>
@@ -75,6 +74,7 @@ function Row({ item, state, busy, onBack }: { item: WardrobeItem; state: BasketS
 
 export default function BasketRoom() {
   const { t } = useTheme()
+  const { width } = useWindowDimensions()
   const flash = useFlash()
   const invalidate = useInvalidateCloset()
   const basket = useBasket()
@@ -132,25 +132,30 @@ export default function BasketRoom() {
         <Animated.View entering={rise(0)}>
           <RoomHeader eyebrow="The collection" title="The basket" lead={data ? `${data.items.length} out of rotation · last wash ${daysAgo(data.lastWashedAt)}` : undefined} />
         </Animated.View>
-        <Animated.View entering={rise(1)}>
+        <Animated.View entering={rise(1)} style={styles.rooms}>
           <RoomTabs current="basket" />
         </Animated.View>
 
-        {basket.isPending ? <ArchSkeleton count={4} width={280} /> : null}
+        {basket.isPending ? (
+          <View style={styles.block}>
+            <ArchSkeleton count={4} width={width - gutter * 2} />
+          </View>
+        ) : null}
         {basket.isError && !data ? <LoadError message="Couldn’t open the basket. Check your connection and try again." onRetry={() => void basket.refetch()} /> : null}
 
         {data ? (
           <>
-            <Animated.View entering={rise(2)}>
-              <Plaque style={styles.plaque}>
-                <T role="label" tone="faint">
+            {/* The plaque: is it worth a load? */}
+            <Animated.View entering={rise(2)} style={styles.block}>
+              <Plaque>
+                <T role="micro" tone="faint" style={styles.eyebrow}>
                   Laundry
                 </T>
-                <T role="lede">
+                <T role="h2" italic style={styles.line}>
                   {inWash === 0 ? 'Nothing in the wash. Everything is yours to wear.' : data.worthALoad ? `${inWash} pieces in the wash. Worth a load.` : `${inWash} in the wash. A load is worth it at ${data.loadWorth}.`}
                 </T>
                 {data.oneMoreWear.length > 0 ? (
-                  <T role="bodySm" tone="muted">
+                  <T role="bodySm" tone="muted" style={styles.line}>
                     One more wear and {data.oneMoreWear.length === 1 ? `the ${nameOf(data.oneMoreWear[0])} joins` : `${data.oneMoreWear.length} more pieces join`} it.
                   </T>
                 ) : null}
@@ -159,14 +164,16 @@ export default function BasketRoom() {
 
             {groups.length === 0 ? (
               <Animated.View entering={rise(3)} style={styles.empty}>
-                <Arch width={140} variant="plain">
+                <Arch width={160} variant="plain">
                   <View style={styles.emptyArch}>
-                    <T role="micro" tone="faint">
+                    <T role="micro" tone="faint" style={styles.eyebrow}>
                       Empty
                     </T>
                   </View>
                 </Arch>
-                <EmptyState title="The basket fills itself." line="Log a wear, and pieces come here when they’ve had their turn." />
+                <T role="h3" italic tone="muted" align="center" style={styles.emptyLine}>
+                  The basket fills itself. Log a wear, and pieces come here when they’ve had their turn.
+                </T>
               </Animated.View>
             ) : null}
 
@@ -180,9 +187,6 @@ export default function BasketRoom() {
                     </T>
                   }
                 />
-                <T role="caption" tone="faint">
-                  Swipe a row left to bring it back.
-                </T>
                 <View style={[styles.rows, { borderTopColor: alpha(t.ink, 0.1) }]}>
                   {g.items.map((it) => (
                     <Row key={it.id} item={it} state={g.state} busy={busy === it.id} onBack={() => void back(it)} />
@@ -204,15 +208,23 @@ export default function BasketRoom() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm, gap: space.lg },
-  plaque: { padding: 16, paddingLeft: 22, gap: 6 },
-  empty: { alignItems: 'center', gap: space.sm, paddingTop: space.md },
+  content: { paddingHorizontal: gutter, paddingTop: space.sm },
+  // The mantel's pb-7 above the rooms' hairline; the title carries 16 already.
+  rooms: { paddingTop: space.md },
+  // mt-8 under the rooms
+  block: { paddingTop: space.xxl },
+  // text-[10px] tracking-[0.2em]
+  eyebrow: { letterSpacing: 2 },
+  line: { marginTop: space.xs },
+  // mt-10, the arch at w-40, the line mt-5
+  empty: { alignItems: 'center', paddingTop: 40 },
   emptyArch: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  group: { gap: 8, paddingTop: space.sm },
-  rows: { borderTopWidth: hairline, marginTop: 4 },
+  emptyLine: { marginTop: 20, maxWidth: 320 },
+  // mt-10 per group, the rows mt-4 under the head
+  group: { paddingTop: 40, gap: space.lg },
+  rows: { borderTopWidth: hairline },
   swipe: { overflow: 'hidden' },
-  swipeAction: { width: 140, alignItems: 'center', justifyContent: 'center', marginVertical: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: hairline },
+  swipeAction: { width: 140, alignItems: 'center', justifyContent: 'center', marginVertical: space.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, borderBottomWidth: hairline },
   rowText: { flex: 1, gap: 2, minWidth: 0 },
-  label: { fontFamily: fonts.sansSemi },
 })

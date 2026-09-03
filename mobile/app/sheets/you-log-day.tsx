@@ -22,7 +22,7 @@ import { alpha, gutter, radius, space } from '@/src/design/tokens'
 import { resolveImageUrl } from '@/src/lib/api'
 import { qk, queryClient } from '@/src/lib/query'
 import { atNoon, dayKey, formatDay, isDayKey, OCCASIONS, occasionLabel } from '@/src/features/you/dates'
-import { RowLabel, Wrap } from '@/src/features/you/Furniture'
+import { FieldLabel, Wrap } from '@/src/features/you/Furniture'
 import { routes } from '@/src/features/you/nav'
 import { PieceGrid } from '@/src/features/you/Pieces'
 import { SheetShell } from '@/src/features/you/SheetShell'
@@ -86,8 +86,8 @@ export default function LogDaySheet() {
     >
       <Field label="The day" value={day} onChangeText={setDay} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" autoCorrect={false} error={dayError} />
       <View>
-        <RowLabel first>The kind of day</RowLabel>
-        <Wrap style={{ marginTop: space.sm }}>
+        <FieldLabel>The kind of day</FieldLabel>
+        <Wrap>
           {OCCASIONS.map((o) => (
             <Chip key={o.key} label={o.label} on={occasion === o.key} onPress={() => setOccasion(o.key)} />
           ))}
@@ -141,7 +141,7 @@ export default function LogDaySheet() {
                       ))}
                     </View>
                   </Arch>
-                  <T role="micro" tone="muted" numberOfLines={1} style={{ marginTop: 6 }}>
+                  <T role="micro" tone="muted" numberOfLines={1} style={styles.outfitLabel}>
                     {occasionLabel(o.eventType)} · {o.items.length} pieces
                   </T>
                 </Pressable>
@@ -157,7 +157,7 @@ export default function LogDaySheet() {
         ) : pieces.length === 0 ? (
           <Empty line="Nothing in the closet yet." />
         ) : (
-          <PieceGrid items={pieces} selected={picked} ordered max={12} onToggle={(id) => setPicked((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))} />
+          <PieceGrid items={pieces} selected={picked} columns={4} gap={space.sm} ordered max={12} onToggle={(id) => setPicked((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))} />
         )
       ) : null}
       {source !== 'photo' ? (
@@ -192,7 +192,9 @@ function Empty({ line }: { line: string }) {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  // The web's `grid-cols-3 gap-3` of kept outfits, the label `mt-1` beneath each.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  outfitLabel: { marginTop: space.xs },
   four: { position: 'absolute', left: '8%', right: '8%', top: '9%', bottom: '7%', flexDirection: 'row', flexWrap: 'wrap' },
   quarter: { width: '50%', height: '50%' },
   empty: { borderWidth: 1, borderStyle: 'dashed', padding: space.xl },

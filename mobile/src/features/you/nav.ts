@@ -28,6 +28,10 @@ export const routes = {
   mirror: href('/mirror'),
   today: href('/today'),
   closet: href('/closet'),
+  store: href('/closet/store'),
+  fitting: href('/(fitting)'),
+  /** Someone's public room, your own included. */
+  room: (handle: string) => href(`/u/${handle}`),
   // Sheets.
   signOut: href('/sheets/you-sign-out'),
   deleteAccount: href('/sheets/you-delete-account'),

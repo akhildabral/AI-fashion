@@ -164,8 +164,9 @@ export function useInvalidateCloset() {
   )
 }
 
-/** Column geometry for every garment grid: two tiles across, 12px between. */
+/** Column geometry for every garment grid: two tiles across, 12px between (the web's gap-3), 20px between rows (gap-y-5). */
 export const GRID_GAP = 12
+export const GRID_ROW_GAP = 20
 export function tileWidth(screenWidth: number, gutter: number, columns = 2): number {
   return Math.floor((screenWidth - gutter * 2 - GRID_GAP * (columns - 1)) / columns)
 }

@@ -2,6 +2,9 @@
 // The card follows the finger with a slight tilt; releasing past a distance
 // or a velocity flings it off on a spring that keeps the gesture's speed,
 // otherwise it springs back. The two choices are buttons too.
+//
+// FittingPage.tsx: the pair is a `1fr auto 1fr` row 16 apart, the arches
+// 3:4 with an 11px tracked label 8 beneath, "or" in Bodoni italic 24 at ink/35.
 import { Image } from 'expo-image'
 import { useCallback, useRef } from 'react'
 import { StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native'
@@ -30,9 +33,9 @@ import type { Answer } from './draft'
 const COMMIT_FRACTION = 0.35
 /** Or past this speed, in points per second. */
 const COMMIT_VELOCITY = 800
-const CARD_PAD = 14
-const OR_WIDTH = 24
-const SIDE_GAP = 10
+const CARD_PAD = space.lg
+const OR_WIDTH = 32
+const SIDE_GAP = space.lg
 
 interface DeckProps {
   pair: QuizPair
@@ -176,7 +179,7 @@ function Face({
         <Animated.View style={[styles.side, leftStyle]}>
           <SidePhoto side={pair.left} width={archW} />
         </Animated.View>
-        <T role="h3" italic tone="faint" style={{ width: OR_WIDTH, textAlign: 'center' }}>
+        <T role="h2" italic align="center" style={[styles.or, { color: alpha(t.ink, 0.35) }]}>
           or
         </T>
         <Animated.View style={[styles.side, rightStyle]}>
@@ -207,6 +210,7 @@ const styles = StyleSheet.create({
   card: { padding: CARD_PAD, gap: space.md, borderWidth: hairline },
   sides: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIDE_GAP },
   side: { alignItems: 'center', gap: space.sm },
+  or: { width: OR_WIDTH },
   choices: { flexDirection: 'row', gap: space.sm },
   choice: { flex: 1 },
   center: { alignSelf: 'center' },

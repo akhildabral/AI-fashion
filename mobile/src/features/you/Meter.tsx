@@ -1,6 +1,8 @@
 // A usage meter: label, "used / limit", and a bar that fills to the share.
-// The fill is a childless absolute View scaled from its left edge on the UI
-// thread, so nothing lays out per frame.
+// The web's MeterBar: a text-sm baseline row, a 2px-radius track 4 below,
+// 8 tall, and a warning line when the cycle is nearly spent. The fill is a
+// childless absolute View scaled from its left edge on the UI thread, so
+// nothing lays out per frame.
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
@@ -8,6 +10,7 @@ import { T } from '@/src/components/Text'
 import { EASE_OUT } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 
 export interface MeterValue {
   used: number
@@ -27,10 +30,10 @@ export function Meter({ label, meter, per }: { label: string; meter: MeterValue;
   const fill = useAnimatedStyle(() => ({ transform: [{ scaleX: scale.get() }] }))
 
   return (
-    <View style={styles.wrap} accessible accessibilityRole="progressbar" accessibilityLabel={`${label}: ${meter.used} of ${meter.limit}${per ? ` ${per}` : ''}`} accessibilityValue={{ min: 0, max: meter.limit, now: Math.min(meter.used, meter.limit) }}>
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={`${label}: ${meter.used} of ${meter.limit}${per ? ` ${per}` : ''}`} accessibilityValue={{ min: 0, max: meter.limit, now: Math.min(meter.used, meter.limit) }}>
       <View style={styles.head}>
         <T role="bodySm">{label}</T>
-        <T role="caption" tone={full ? 'danger' : 'muted'} style={{ fontVariant: ['tabular-nums'] }}>
+        <T role="bodySm" tone={full || near ? 'ink' : 'muted'} style={[styles.value, (full || near) && { color: colour, fontFamily: fonts.sansMedium }]}>
           {meter.used} / {meter.limit}
           {per ? ` ${per}` : ''}
         </T>
@@ -39,7 +42,7 @@ export function Meter({ label, meter, per }: { label: string; meter: MeterValue;
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colour, borderRadius: radius, transformOrigin: 'left' }, fill]} />
       </View>
       {near ? (
-        <T role="caption" style={{ color: t.warning }}>
+        <T role="caption" style={[styles.note, { color: t.warning }]}>
           Almost out for this cycle.
         </T>
       ) : null}
@@ -48,7 +51,8 @@ export function Meter({ label, meter, per }: { label: string; meter: MeterValue;
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.xs },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.md },
-  track: { height: 8, overflow: 'hidden' },
+  value: { fontVariant: ['tabular-nums'] },
+  track: { height: 8, overflow: 'hidden', marginTop: space.xs },
+  note: { marginTop: space.xs },
 })

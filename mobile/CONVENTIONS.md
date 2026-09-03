@@ -104,8 +104,11 @@ writing). Native `Alert` is fine for a one-line permission nudge.
 ## Copy
 
 The web's voice, verbatim where the web already has the line: "Wearing it",
-"See it on me", "developing", "Let go", "Ask the circle", "Style a friend",
-"Reconsider". Rooms, not pages. No em dashes: use a comma, a colon, or a
+"developing", "Let go", "Ask the circle", "Style a friend", "Reconsider".
+Rooms, not pages. The web says "See it on you" where it addresses the member
+about a laid-out look (Today, the day view, the Circle pages) and "See it on
+me" where the member speaks (the Mirror, a piece, an outfit, compose, the
+cards); each screen keeps its own page's phrasing. No em dashes: use a comma, a colon, or a
 full stop. Active-voice controls that say what happens. Errors say what to
 do next. Numbers set in Bodoni (`role="stat"`), money through `money()`
 from `@zauq/shared/money`, temperatures through `temp()` from

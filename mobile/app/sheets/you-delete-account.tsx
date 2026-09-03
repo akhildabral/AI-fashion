@@ -1,12 +1,14 @@
 // The way out, with the email typed to be sure.
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
+import { StyleSheet, View } from 'react-native'
 import { deleteAccount } from '@zauq/shared/fitting'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { T } from '@/src/components/Text'
 import { useAuth } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
+import { space } from '@/src/design/tokens'
 import { SheetShell } from '@/src/features/you/SheetShell'
 
 export default function DeleteAccountSheet() {
@@ -46,7 +48,14 @@ export default function DeleteAccountSheet() {
       <T role="bodySm" tone="muted">
         This removes your account, your closet, the record, your circle and every photo. There is no way back.
       </T>
-      <Field label="Type your email to confirm" value={typed} onChangeText={setTyped} placeholder={email} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" error={error} returnKeyType="done" onSubmitEditing={() => void go()} />
+      {/* The web's `label mt-5`: 20 from the line above. */}
+      <View style={styles.field}>
+        <Field label="Type your email to confirm" value={typed} onChangeText={setTyped} placeholder={email} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" error={error} returnKeyType="done" onSubmitEditing={() => void go()} />
+      </View>
     </SheetShell>
   )
 }
+
+const styles = StyleSheet.create({
+  field: { marginTop: space.xs },
+})

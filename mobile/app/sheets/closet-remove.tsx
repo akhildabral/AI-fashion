@@ -13,6 +13,9 @@ import * as haptics from '@/src/design/haptics'
 import { gutter, space } from '@/src/design/tokens'
 import { nameOf, title, useInvalidateCloset, usePiece } from '@/src/features/closet/data'
 
+/** The piece beside the question, at the web's w-16 thumb and 4/5. */
+const THUMB_W = 64
+
 export default function RemovePieceSheet() {
   const { id = '' } = useLocalSearchParams<{ id: string }>()
   const flash = useFlash()
@@ -46,8 +49,8 @@ export default function RemovePieceSheet() {
           Remove the {item ? nameOf(item) : 'piece'}?
         </T>
         <View style={styles.row}>
-          {item ? <GarmentTile imageUrl={item.imageUrl} width={72} aspect={4 / 5} /> : null}
-          <T role="body" tone="muted" style={{ flex: 1 }}>
+          {item ? <GarmentTile imageUrl={item.imageUrl} width={THUMB_W} aspect={4 / 5} /> : null}
+          <T role="bodySm" tone="muted" style={styles.line}>
             Its record goes with it: every wear, every outfit it was part of. There is no way back. To keep the ledger and lose the rotation, let it go instead.
           </T>
         </View>
@@ -61,7 +64,9 @@ export default function RemovePieceSheet() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.xl, paddingBottom: space.lg, gap: space.lg },
-  row: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
-  actions: { gap: 8 },
+  content: { paddingHorizontal: gutter, paddingTop: space.xl, paddingBottom: space.lg },
+  // The modal's p-5 under its title; the plaque's gap-3
+  row: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginTop: 20 },
+  line: { flex: 1, minWidth: 0 },
+  actions: { gap: space.sm, marginTop: space.xl },
 })

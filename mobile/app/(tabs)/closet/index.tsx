@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import Animated from 'react-native-reanimated'
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { money } from '@zauq/shared/money'
 import type { WardrobeItem, WardrobeListResponse } from '@zauq/shared/types'
 import { deleteWardrobeItem } from '@zauq/shared/wardrobe'
@@ -24,11 +25,11 @@ import { useFlash } from '@/src/components/Toast'
 import { useJobs } from '@/src/context/JobsProvider'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
 import { ClosetNotes } from '@/src/features/closet/ClosetNotes'
-import { cpwLabel, GRID_GAP, isNew, nameOf, tileWidth, title, useGaps, useInsights, useInvalidateCloset, useRitual, useWardrobe, type Insights } from '@/src/features/closet/data'
+import { cpwLabel, GRID_GAP, GRID_ROW_GAP, isNew, nameOf, tileWidth, title, useGaps, useInsights, useInvalidateCloset, useRitual, useWardrobe, type Insights } from '@/src/features/closet/data'
 import { Menu, type MenuItem } from '@/src/features/closet/Menu'
 import { RoomTabs } from '@/src/features/closet/RoomTabs'
 import { shareCard } from '@/src/features/closet/share'
@@ -45,7 +46,11 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'twins', label: 'Possible twins' },
 ]
 
-/** The starter state: four empty niches and the one thing to do. */
+/** The web's `w-44 h-1.5` rotation meter: brass-hi to brass, left to right. */
+const METER_W = 176
+const METER_H = 6
+
+/** The starter state: four empty niches on the grid, and the one thing to do. */
 function Starter({ width }: { width: number }) {
   const w = tileWidth(width, gutter)
   return (
@@ -55,7 +60,7 @@ function Starter({ width }: { width: number }) {
           <Arch key={i} width={w} variant="plain">
             {i === 0 ? (
               <View style={styles.starterLabel}>
-                <T role="micro" tone="faint">
+                <T role="label" tone="faint">
                   Your first piece
                 </T>
               </View>
@@ -180,6 +185,7 @@ export default function ClosetRoom() {
 
   const tileW = tileWidth(width, gutter)
   const showLedger = stats && (stats.wornThisQuarter > 0 || stats.streak > 0 || idleCapital > 0)
+  const hasPieces = list.length > 0
 
   const menuItems: MenuItem[] = menuFor
     ? [
@@ -196,19 +202,22 @@ export default function ClosetRoom() {
       ]
     : []
 
+  // The web's rhythm, top to bottom: the mantel (title, search, valuation)
+  // closed by a hairline at pb-7; the rooms at mt-6; the ledger at mt-6; the
+  // notes at mt-4; the collections at mt-8; the categories beneath; the twin
+  // plaque and the grid at mt-6.
   const header = (
     <View style={styles.header}>
       <Animated.View entering={rise(0)}>
-        <RoomHeader eyebrow="The collection" title="Closet" lead={list.length > 0 ? `${list.length} pieces${stats ? ` · ${rotationPct}% in rotation this quarter` : ''}` : undefined} />
+        <RoomHeader eyebrow="The collection" title="Closet" lead={hasPieces ? `${list.length} pieces${stats ? ` · ${rotationPct}% in rotation this quarter` : ''}` : undefined} />
       </Animated.View>
 
-      {list.length > 0 ? (
-        <Animated.View entering={rise(1)} style={styles.stack}>
+      {hasPieces ? (
+        <Animated.View entering={rise(1)} style={styles.mantel}>
           <Field
             value={search}
             onChangeText={setSearch}
             placeholder="Search"
-            compact
             returnKeyType="search"
             clearButtonMode="while-editing"
             autoCorrect={false}
@@ -218,33 +227,39 @@ export default function ClosetRoom() {
           {/* The valuation plate: the owned brass moment */}
           <Pressable accessibilityRole="button" accessibilityLabel="Price your pieces" pressRetentionOffset={12} onPress={() => router.push('/sheets/closet-price')}>
             <Plaque>
-              <T role="label" tone="faint">
+              <T role="micro" tone="faint" style={styles.estateLabel}>
                 Estate value
               </T>
               {totalValue > 0 ? (
                 <>
-                  <T role="stat" tone="brass">
+                  <T role="stat" tone="brass" style={styles.estateValue}>
                     {money(totalValue)}
                   </T>
-                  <View style={[styles.meter, { backgroundColor: alpha(t.ink, 0.1), borderRadius: 2 }]}>
-                    <View style={[styles.meterFill, { width: `${Math.min(100, rotationPct)}%`, backgroundColor: t.brass, borderRadius: 2 }]} />
+                  <View style={[styles.meter, { backgroundColor: alpha(t.ink, 0.1) }]}>
+                    <Svg width={METER_W} height={METER_H}>
+                      <Defs>
+                        <LinearGradient id="estate-meter" x1="0" y1="0" x2="1" y2="0">
+                          <Stop offset="0" stopColor={t.brassHi} />
+                          <Stop offset="1" stopColor={t.brass} />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect width={(METER_W * Math.min(100, Math.max(0, rotationPct))) / 100} height={METER_H} rx={2} fill="url(#estate-meter)" />
+                    </Svg>
                   </View>
-                  <T role="caption" tone="faint">
-                    <T role="caption" tone="muted" style={{ fontFamily: fonts.sansSemi }}>
+                  <T role="caption" tone="faint" style={styles.estateLine}>
+                    <T role="caption" tone="muted" style={styles.semi}>
                       {rotationPct}%
                     </T>{' '}
                     worn this quarter{idleCapital > 0 ? ` · ${money(idleCapital)} idle` : ''}
-                    {unpriced > 0 ? (
-                      <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>{` · ${unpriced} unpriced`}</T>
-                    ) : null}
+                    {unpriced > 0 ? <T role="caption" tone="brass" style={styles.semi}>{` · ${unpriced} unpriced`}</T> : null}
                   </T>
                 </>
               ) : (
                 <>
-                  <T role="h3" tone="muted">
+                  <T role="h2" tone="muted">
                     Add prices to see it
                   </T>
-                  <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                  <T role="caption" tone="brass" style={[styles.semi, styles.estatePrice]}>
                     Price {list.length} piece{list.length === 1 ? '' : 's'} →
                   </T>
                 </>
@@ -254,33 +269,31 @@ export default function ClosetRoom() {
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={rise(2)}>
+      <Animated.View entering={rise(2)} style={hasPieces ? styles.roomsAfterMantel : styles.roomsAfterTitle}>
         <RoomTabs current="pieces" />
       </Animated.View>
 
-      {list.length > 0 ? (
+      {hasPieces ? (
         <>
           {showLedger ? (
-            <Animated.View entering={rise(3)}>
+            <Animated.View entering={rise(3)} style={styles.ledgerWrap}>
               <Plaque style={styles.ledger}>
-                <View style={styles.ledgerRow}>
-                  {[
-                    { v: `${rotationPct}%`, l: 'in rotation' },
-                    { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
-                    { v: stats.monthlyPayback > 0 ? money(stats.monthlyPayback) : '–', l: 'earned this month' },
-                    { v: String(stats.streak), l: 'day streak' },
-                  ].map((s) => (
-                    <View key={s.l} style={styles.ledgerStat} accessible accessibilityLabel={`${s.v} ${s.l}`}>
-                      <T role="statSm">{s.v}</T>
-                      <T role="micro" tone="faint">
-                        {s.l}
-                      </T>
-                    </View>
-                  ))}
-                </View>
+                {[
+                  { v: `${rotationPct}%`, l: 'in rotation' },
+                  { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
+                  { v: stats.monthlyPayback > 0 ? money(stats.monthlyPayback) : '–', l: 'earned this month' },
+                  { v: String(stats.streak), l: 'day streak' },
+                ].map((s) => (
+                  <View key={s.l} style={styles.ledgerStat} accessible accessibilityLabel={`${s.v} ${s.l}`}>
+                    <T role="statSm">{s.v}</T>
+                    <T role="micro" tone="faint" style={styles.ledgerLabel}>
+                      {s.l}
+                    </T>
+                  </View>
+                ))}
                 {idleCapital > 0 ? (
-                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setCollection('orphans')} style={{ alignSelf: 'flex-start' }}>
-                    <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setCollection('orphans')} style={styles.ledgerIdle}>
+                    <T role="caption" tone="brass" style={styles.semi}>
                       {money(idleCapital)} sitting idle →
                     </T>
                   </Pressable>
@@ -292,14 +305,14 @@ export default function ClosetRoom() {
           <ClosetNotes riseFrom={4} />
 
           {/* Collections: the wardrobe cut different ways */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={styles.filterRail}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={[styles.filterRail, styles.collections]}>
             {COLLECTIONS.map((c) => (
               <Filter key={c.id} label={c.label} on={collection === c.id} count={collectionCounts[c.id] > 0 ? collectionCounts[c.id] : undefined} onPress={() => setCollection(c.id)} />
             ))}
           </ScrollView>
 
           {/* Categories: narrow the collection by kind */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={styles.filterRail}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={[styles.filterRail, styles.categories]}>
             <Filter label="All" on={category === null} count={list.length} onPress={() => setCategory(null)} />
             {categories.map(([cat, count]) => (
               <Filter key={cat} label={title(cat)} on={category === cat} count={count} onPress={() => setCategory((prev) => (prev === cat ? null : cat))} />
@@ -307,16 +320,16 @@ export default function ClosetRoom() {
           </ScrollView>
 
           {twins > 0 && collection !== 'twins' ? (
-            <Pressable accessibilityRole="button" pressRetentionOffset={12} onPress={() => setCollection('twins')}>
+            <Pressable accessibilityRole="button" pressRetentionOffset={12} onPress={() => setCollection('twins')} style={styles.twinWrap}>
               <Plaque style={styles.twinPlaque}>
                 <View style={styles.twinRow}>
                   <T role="bodySm" tone="muted" style={{ flex: 1 }}>
-                    <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                    <T role="bodySm" style={styles.semi}>
                       {twins} {twins === 1 ? 'piece looks' : 'pieces look'} like {twins === 1 ? 'one' : 'ones'} you already have.
                     </T>{' '}
                     Decide on each: the same piece, or different.
                   </T>
-                  <T role="label" tone="brass">
+                  <T role="micro" tone="brass" style={styles.twinReview}>
                     Review →
                   </T>
                 </View>
@@ -328,25 +341,22 @@ export default function ClosetRoom() {
     </View>
   )
 
-  const footer = (
-    <View style={styles.footer}>
-      {list.length > 0 && gaps.data && gaps.data.length > 0 ? (
-        <Animated.View entering={rise(5)} style={styles.gaps}>
-          <SectionHead title="What the closet is missing" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gapRail}>
-            {gaps.data.map((g) => (
-              <View key={g.category} style={[styles.gapCard, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
-                <T role="h3">{title(g.wanted)}</T>
-                <T role="bodySm" tone="muted">
-                  Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
-                </T>
-              </View>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      ) : null}
-    </View>
-  )
+  const footer =
+    hasPieces && gaps.data && gaps.data.length > 0 ? (
+      <Animated.View entering={rise(5)} style={styles.gaps}>
+        <SectionHead title="What the closet is missing" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gapRail} contentContainerStyle={styles.gapRow}>
+          {gaps.data.map((g) => (
+            <View key={g.category} style={[styles.gapCard, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
+              <T role="h3">{title(g.wanted)}</T>
+              <T role="bodySm" tone="muted">
+                Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
+              </T>
+            </View>
+          ))}
+        </ScrollView>
+      </Animated.View>
+    ) : null
 
   const loading = wardrobe.isPending
   const failed = wardrobe.isError && !wardrobe.data
@@ -368,15 +378,15 @@ export default function ClosetRoom() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={t.brass} />}
           contentContainerStyle={{ paddingHorizontal: gutter - GRID_GAP / 2, paddingBottom: ACTION_BAR_HEIGHT + space.xl }}
           ListHeaderComponent={header}
-          ListHeaderComponentStyle={{ paddingHorizontal: GRID_GAP / 2 }}
+          ListHeaderComponentStyle={styles.gridInset}
           ListFooterComponent={footer}
-          ListFooterComponentStyle={{ paddingHorizontal: GRID_GAP / 2 }}
+          ListFooterComponentStyle={styles.gridInset}
           ListEmptyComponent={
             loading ? (
-              <View style={{ paddingHorizontal: GRID_GAP / 2 }}>
+              <View style={styles.gridInset}>
                 <ArchSkeleton count={6} width={width - gutter * 2} />
               </View>
-            ) : list.length === 0 ? (
+            ) : !hasPieces ? (
               <Starter width={width} />
             ) : (
               <T role="bodySm" tone="faint" align="center" style={styles.nothing}>
@@ -405,7 +415,7 @@ export default function ClosetRoom() {
 
       <ActionBar>
         <Button
-          label={list.length === 0 ? 'Add your first piece' : jobs.upload.active ? `Adding ${Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left` : 'Add pieces'}
+          label={!hasPieces ? 'Add your first piece' : jobs.upload.active ? `${Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…` : 'Add pieces'}
           block
           onPress={() => router.push('/sheets/closet-add')}
         />
@@ -418,24 +428,51 @@ export default function ClosetRoom() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: space.lg, paddingBottom: space.lg },
-  stack: { gap: space.md },
-  meter: { height: 6, width: 176, overflow: 'hidden', marginTop: 10 },
-  meterFill: { height: '100%' },
-  ledger: { padding: 14, paddingLeft: 20, gap: 10 },
-  ledgerRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 24, rowGap: 8 },
-  ledgerStat: { gap: 2 },
+  // The grid's mt-6 sits under everything in the header.
+  header: { paddingBottom: space.xl },
+  // The mantel's column: search and valuation at gap-6; the title's own
+  // pb-4 already sits above.
+  mantel: { paddingTop: space.sm, gap: space.xl },
+  // The mantel closes at pb-7 (28) above the hairline the rooms draw.
+  roomsAfterMantel: { paddingTop: 28 },
+  roomsAfterTitle: { paddingTop: space.md },
+  semi: { fontFamily: fonts.sansSemi },
+  // text-[10px] tracking-[0.22em]
+  estateLabel: { letterSpacing: 2.2 },
+  estateValue: { marginTop: space.xs },
+  estateLine: { marginTop: 6 },
+  estatePrice: { marginTop: space.xs },
+  meter: { height: METER_H, width: METER_W, overflow: 'hidden', marginTop: space.sm, borderRadius: 2 },
+  // plaque mt-6 flex-wrap items-center gap-x-8 gap-y-2 p-4 pl-5
+  ledgerWrap: { paddingTop: space.xl },
+  ledger: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.xxl, rowGap: space.sm, padding: space.lg, paddingLeft: 20 },
+  ledgerStat: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm },
+  // text-[10px] tracking-[0.08em]
+  ledgerLabel: { letterSpacing: 0.8 },
+  ledgerIdle: { marginLeft: 'auto' },
+  // The filter rows bleed to the screen edge; the tokens start on the gutter.
   filterRail: { marginHorizontal: -gutter },
-  filters: { flexDirection: 'row', gap: 6, paddingHorizontal: gutter },
-  twinPlaque: { padding: 12, paddingLeft: 18 },
-  twinRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  cell: { paddingHorizontal: GRID_GAP / 2, paddingBottom: space.lg },
-  nothing: { paddingVertical: 40 },
-  footer: { paddingTop: space.md },
-  gaps: { gap: space.md },
-  gapRail: { flexDirection: 'row', gap: 10, paddingVertical: 4 },
-  gapCard: { width: 220, padding: 16, gap: 6, borderWidth: 1 },
-  starter: { paddingTop: space.md, gap: space.md },
-  starterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP, justifyContent: 'center' },
+  collections: { marginTop: space.xxl },
+  categories: { marginTop: space.sm },
+  filters: { flexDirection: 'row', gap: space.sm, paddingHorizontal: gutter },
+  // plaque mt-6 p-3 pl-4 gap-3
+  twinWrap: { paddingTop: space.xl },
+  twinPlaque: { padding: space.md, paddingLeft: space.lg },
+  twinRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  // text-[10px] tracking-[0.18em]
+  twinReview: { letterSpacing: 1.8, flexShrink: 0 },
+  gridInset: { paddingHorizontal: GRID_GAP / 2 },
+  // gap-3 across, gap-y-5 down
+  cell: { paddingHorizontal: GRID_GAP / 2, paddingBottom: GRID_ROW_GAP },
+  // mt-12 under the filters: the header already gives 24.
+  nothing: { paddingTop: space.xl, paddingBottom: space.xl },
+  // mt-14 above the section, less the last row's gap-y-5.
+  gaps: { paddingTop: 56 - GRID_ROW_GAP, gap: space.lg },
+  gapRail: { marginHorizontal: -gutter },
+  gapRow: { flexDirection: 'row', gap: space.lg, paddingHorizontal: gutter },
+  gapCard: { width: 220, padding: 20, gap: 6, borderWidth: hairline },
+  // mt-12 under the rooms: the header already gives 24. Aligned to the grid.
+  starter: { paddingTop: space.xl, paddingHorizontal: GRID_GAP / 2 },
+  starterGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: GRID_GAP, rowGap: GRID_ROW_GAP },
   starterLabel: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 })

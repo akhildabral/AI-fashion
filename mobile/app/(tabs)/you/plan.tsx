@@ -1,5 +1,7 @@
 // Plan & usage, read-only on the phone: the plan's name and the meters. The
-// plan itself is managed from the web account (store policy, plan §1).
+// plan itself is managed from the web account (store policy, plan §1). The
+// web's BillingPage top half: h1, the `p-6` card 24 below, meters 24 below
+// the plan line and 16 apart.
 import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
@@ -42,52 +44,50 @@ export default function Plan() {
           {q.isError && !summary ? (
             <LoadError message="Could not load your plan." onRetry={() => void q.refetch()} />
           ) : !summary ? (
-            <Card style={styles.card}>
-              <SkeletonBlock width={90} height={10} />
-              <SkeletonBlock width={160} height={26} style={{ marginTop: 8 }} />
-              <View style={{ marginTop: space.xl, gap: space.lg }}>
+            <Card padding={24} style={styles.card}>
+              <SkeletonBlock width={96} height={16} />
+              <SkeletonBlock width={160} height={28} style={styles.mt2} />
+              <View style={styles.meters}>
                 {[0, 1, 2].map((i) => (
-                  <View key={i} style={{ gap: 6 }}>
-                    <SkeletonBlock height={14} />
-                    <SkeletonBlock height={8} />
+                  <View key={i}>
+                    <SkeletonBlock height={16} />
+                    <SkeletonBlock height={8} style={styles.mt2} />
                   </View>
                 ))}
               </View>
             </Card>
           ) : (
             <>
-              <Card style={styles.card}>
+              <Card padding={24} style={styles.card}>
                 <T role="micro" tone="faint">
                   Current plan
                 </T>
-                <T role="h2" style={{ marginTop: 4 }}>
-                  {summary.label}
-                </T>
+                <T role="h2">{summary.label}</T>
                 {summary.planStatus === 'grace' ? (
-                  <T role="bodySm" style={{ color: t.warning, marginTop: 4 }}>
-                    A payment failed. Update the payment method on the web, or the plan will lapse.
+                  <T role="bodySm" style={[styles.mt1, { color: t.warning }]}>
+                    A payment failed. Update your payment method, or your plan will lapse.
                   </T>
                 ) : summary.planStatus === 'cancelled' && periodEnd ? (
-                  <T role="bodySm" tone="muted" style={{ marginTop: 4 }}>
+                  <T role="bodySm" tone="muted" style={styles.mt1}>
                     Cancelled. Active until {periodEnd}.
                   </T>
                 ) : summary.planStatus === 'active' && periodEnd ? (
-                  <T role="bodySm" tone="muted" style={{ marginTop: 4 }}>
+                  <T role="bodySm" tone="muted" style={styles.mt1}>
                     Renews {periodEnd}.
                   </T>
                 ) : null}
                 {summary.plan === 'founder' ? (
-                  <T role="bodySm" tone="muted" style={{ marginTop: 4 }}>
+                  <T role="bodySm" tone="muted" style={styles.mt1}>
                     Founder access. Pro-level limits, on the house. Thank you for being early.
                   </T>
                 ) : null}
                 <View style={styles.meters}>
                   <Meter label="Wardrobe items" meter={summary.usage.items} />
                   <Meter label="Generated looks" meter={summary.usage.looks} per={per} />
-                  <Meter label="Reflections rendered" meter={summary.usage.tryons} per={per} />
+                  <Meter label="Virtual try-ons" meter={summary.usage.tryons} per={per} />
                 </View>
               </Card>
-              <T role="bodySm" tone="muted">
+              <T role="bodySm" tone="muted" style={styles.note}>
                 Your plan is managed from your web account. Changes made there show here within a moment.
               </T>
             </>
@@ -99,7 +99,10 @@ export default function Plan() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.xl },
-  card: { paddingVertical: space.xl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  card: { marginTop: space.xl },
+  mt1: { marginTop: space.xs },
+  mt2: { marginTop: space.sm },
   meters: { marginTop: space.xl, gap: space.lg },
+  note: { marginTop: space.lg },
 })

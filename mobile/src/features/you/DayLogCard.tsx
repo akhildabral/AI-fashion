@@ -1,14 +1,17 @@
 // One day in the record: the look on its board (and the photo, if there is
-// one), the rating as five brass marks, and the small actions beside it.
+// one), "Again?" as the web's two filter tokens, and the small actions
+// beside it. The web's DayCard: `card p-4`, head on the baseline, the board
+// 12 below, a hairline foot 12 below that with the actions 4 apart.
 import { Image } from 'expo-image'
 import { useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { clearLookPhoto, shareLook, unshareLook } from '@zauq/shared/circle'
 import type { WearLogEntry } from '@zauq/shared/types'
 import { temp } from '@zauq/shared/units'
 import { rateWearLog } from '@zauq/shared/wearlog'
 import { Arch } from '@/src/components/Arch'
 import { LookBoard, type FlatLayItem } from '@/src/components/LookBoard'
+import { Filter } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
@@ -18,35 +21,9 @@ import { imageForm, PermissionDenied, pickImages } from '@/src/lib/upload'
 import { formatDay, occasionLabel, timeOfDay } from './dates'
 import { Card, TextLink } from './Furniture'
 
+/** The web's `w-24` photo and `p-4` card. */
 const PHOTO_W = 96
-
-/** The five marks: filled up to the rating. The server keeps 5 (again) and 1 (not this one). */
-function RatingMarks({ rating, busy, onRate }: { rating: number | null; busy: boolean; onRate: (v: 1 | 5) => void }) {
-  const { t } = useTheme()
-  return (
-    <View style={styles.marks} accessible accessibilityRole="adjustable" accessibilityLabel="Again?" accessibilityValue={{ text: rating === 5 ? 'Yes' : rating === 1 ? 'Not this one' : 'Unrated' }}>
-      <T role="micro" tone="faint" style={{ marginRight: 4 }}>
-        Again?
-      </T>
-      {[1, 2, 3, 4, 5].map((n) => {
-        const on = rating != null && n <= rating
-        return (
-          <Pressable
-            key={n}
-            accessibilityRole="button"
-            accessibilityLabel={n <= 2 ? 'Not this one' : 'Yes, again'}
-            disabled={busy}
-            hitSlop={6}
-            onPress={() => onRate(n <= 2 ? 1 : 5)}
-            style={styles.markHit}
-          >
-            <View style={[styles.mark, { backgroundColor: on ? t.brass : 'transparent', borderColor: on ? t.brass : alpha(t.ink, 0.3) }]} />
-          </Pressable>
-        )
-      })}
-    </View>
-  )
-}
+const PAD = space.lg
 
 export function DayLogCard({
   log,
@@ -65,11 +42,12 @@ export function DayLogCard({
   const { width: screen } = useWindowDimensions()
   const [busy, setBusy] = useState<string | null>(null)
   const shared = Boolean(log.sharedAt)
-  const inner = screen - gutter * 2 - space.lg * 2
-  const boardW = log.photoUrl ? inner - PHOTO_W - space.md : inner
+  const inner = screen - gutter * 2 - PAD * 2
+  const boardW = log.photoUrl ? inner - PHOTO_W - space.lg : inner
   const boardItems: (FlatLayItem & { id: string })[] = log.items.filter((i) => !!i.imageUrl).map((i) => ({ id: i.id, category: i.category, subtype: i.subtype, imageUrl: i.imageUrl }))
 
   async function rate(v: 1 | 5) {
+    if (busy) return
     const next = log.rating === v ? null : v
     setBusy('rate')
     haptics.tap()
@@ -128,7 +106,7 @@ export function DayLogCard({
   }
 
   return (
-    <Card>
+    <Card padding={PAD}>
       <View style={styles.head}>
         <T role="label" tone="brass">
           {heading === 'time' ? timeOfDay(log.wornOn) : formatDay(log.wornOn)}
@@ -154,11 +132,19 @@ export function DayLogCard({
         )}
       </View>
       <View style={[styles.foot, { borderTopColor: alpha(t.ink, 0.1) }]}>
-        <RatingMarks rating={log.rating} busy={busy === 'rate'} onRate={(v) => void rate(v)} />
-        <View style={styles.actions}>
-          {log.photoUrl ? <TextLink label="Remove the photo" tone="muted" disabled={busy === 'photo'} onPress={() => void removePhoto()} /> : <TextLink label={busy === 'photo' ? 'Adding…' : 'Add a photo'} tone="muted" disabled={busy === 'photo'} onPress={() => void addPhoto()} />}
-          <TextLink label={busy === 'share' ? '…' : shared ? 'On the circle ✓' : 'Share to the circle'} tone={shared ? 'brass' : 'muted'} disabled={busy === 'share'} onPress={() => void toggleShare()} />
-          <View style={{ flex: 1 }} />
+        <T role="micro" tone="faint" style={styles.again} accessibilityRole="header">
+          Again?
+        </T>
+        <Filter label="Yes" on={log.rating === 5} onPress={() => void rate(5)} />
+        <Filter label="Not this one" on={log.rating === 1} onPress={() => void rate(1)} />
+        <View style={[styles.sep, { backgroundColor: alpha(t.ink, 0.15) }]} />
+        {log.photoUrl ? (
+          <TextLink label="Remove the photo" tone="muted" disabled={busy === 'photo'} onPress={() => void removePhoto()} />
+        ) : (
+          <TextLink label={busy === 'photo' ? 'Adding…' : 'Add a photo'} tone="muted" disabled={busy === 'photo'} onPress={() => void addPhoto()} />
+        )}
+        <TextLink label={busy === 'share' ? '…' : shared ? 'On the circle ✓' : 'Share to the circle'} tone={shared ? 'brass' : 'muted'} disabled={busy === 'share'} onPress={() => void toggleShare()} />
+        <View style={styles.remove}>
           <TextLink label="Remove" tone="muted" onPress={() => onRemove(log)} />
         </View>
       </View>
@@ -167,11 +153,11 @@ export function DayLogCard({
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md, paddingTop: space.xs },
-  body: { flexDirection: 'row', gap: space.md, marginTop: space.md },
-  foot: { marginTop: space.md, paddingTop: space.sm, borderTopWidth: hairline, gap: space.xs },
-  marks: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32 },
-  markHit: { width: 22, height: 32, alignItems: 'center', justifyContent: 'center' },
-  mark: { width: 10, height: 10, borderWidth: 1, transform: [{ rotate: '45deg' }] },
-  actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: space.lg },
+  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.lg },
+  body: { flexDirection: 'row', gap: space.lg, marginTop: space.md },
+  foot: { marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.xs },
+  again: { marginRight: space.xs },
+  // The web's `.filter-sep`: a 1 x 16 hairline with 4 either side.
+  sep: { width: 1, height: 16, marginHorizontal: space.xs },
+  remove: { marginLeft: 'auto' },
 })

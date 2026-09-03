@@ -1,14 +1,16 @@
-// The reveal: one render, full screen, in the tall mirror frame. Opened from
-// a render in the grid, the tray's "ready" card, or a push, sometimes before
-// the job has landed: then the glass shows the filament while it polls, and
-// the mirror-reveal (a crossfade from a still, blurred copy; scale 1.04 to 1)
-// runs the moment the picture is in. Under the glass, the decisions.
+// The reveal: one render, full screen, in the mirror frame at the content
+// width on the night ground. Opened from a render in the grid, the tray's
+// "ready" card, or a push, sometimes before the job has landed: then the
+// glass shows the filament while it polls, and the mirror-reveal (a crossfade
+// from a still, blurred copy; scale 1.04 to 1) runs the moment the picture
+// is in. Under the glass, the decisions in a panel, grouped as on the web:
+// Wearing it; Keep the outfit and Wear tomorrow; the rest behind the ··· menu.
 import { useQueryClient } from '@tanstack/react-query'
 import { Image } from 'expo-image'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler'
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { planDay, shiftKey, todayKey } from '@zauq/shared/brief'
@@ -29,23 +31,25 @@ import { duration, EASE_OUT, fadeIn, fadeOut, rise, spring } from '@/src/design/
 import { useTheme } from '@/src/design/theme'
 import { alpha, dark, gutter, hairline, radius } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
+import { Menu, type MenuItem } from '@/src/features/closet/Menu'
 import { DRESSING_LINES, isLive, isReady, renderLabel, useInvalidateMirror, useReflections, useTryOnQuery } from '@/src/features/mirror/data'
 import { Filament } from '@/src/features/mirror/Filament'
 import { shareRender } from '@/src/features/mirror/share'
-import { Sheetlet } from '@/src/features/mirror/Sheetlet'
 import { resolveImageUrl } from '@/src/lib/api'
 import { qk } from '@/src/lib/query'
 
+/** The reveal is the night room in both themes: the ground and the words on it come from the dark palette. */
+const GROUND = dark.bone
 const GLASS_INK = dark.ink
-/** What shows of the panel before it is pulled up: handle, the primary, one row. */
-const PEEK = 150
+/** The web's `max-w-[28ch]` at 14px Archivo. */
+const CH_28 = 224
 
 export default function RevealScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>()
   const id = String(rawId ?? '')
   const { t } = useTheme()
   const insets = useSafeAreaInsets()
-  const { width: sw, height: sh } = useWindowDimensions()
+  const { width: sw } = useWindowDimensions()
   const flash = useFlash()
   const qc = useQueryClient()
   const invalidate = useInvalidateMirror()
@@ -136,15 +140,15 @@ export default function RevealScreen() {
     transform: [{ translateX: tx.get() }, { translateY: ty.get() }, { scale: sc.get() * zoom.get() }],
   }))
 
-  // ---- geometry: the frame takes what the top row and the panel's peek leave ----
-  const peek = PEEK + Math.max(insets.bottom, 12)
-  const frameH = Math.min(Math.round(((sw - 32) * 4) / 3), sh - insets.top - 72 - peek - 20)
-  const frameW = Math.round((frameH * 3) / 4)
+  // ---- geometry: the glass is the web's, content width and 3:4 ----
+  const frameW = sw - gutter * 2
+  const frameH = Math.round((frameW * 4) / 3)
 
   // ---- decisions ----
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<Record<string, string>>({})
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const ids = tryOn?.itemIds ?? []
 
   async function run(key: string, fn: () => Promise<void>) {
@@ -238,33 +242,59 @@ export default function RevealScreen() {
     else router.navigate('/mirror')
   }
 
+  // The fixes, and the rest, behind one door so the three real choices stay front and centre.
+  const menuItems: MenuItem[] = tryOn
+    ? [
+        !tryOn.retryOf
+          ? { label: 'Not right? Try again, free once', onPress: () => void tryAgain() }
+          : { label: 'Render fresh, 1 render', onPress: () => void renderFresh(), disabled: ids.length === 0 },
+        ...(!tryOn.reportedAt ? [{ label: 'Not my clothes', onPress: () => void notMine(), danger: true }] : []),
+        { label: 'Share', onPress: () => void share(), section: true },
+        { label: 'Add to lookbook', onPress: () => router.push(`/sheets/mirror-lookbook?tryOnId=${id}`) },
+        { label: 'Delete', onPress: () => setConfirmDelete(true), danger: true, section: true },
+      ]
+    : []
+
   const blurUri = ready && tryOn?.imageUrl ? resolveImageUrl(tryOn.imageUrl) : reflQ.data?.photoUrl ? resolveImageUrl(reflQ.data.photoUrl) : null
   const eyebrow = failed ? 'Nothing was charged' : live ? 'Dressing you' : tryOn?.lookId ? 'An inspiration look, on you' : 'Fresh from the stylist'
   const pieces = tryOn && (tryOn.items?.length ?? 0) > 0 ? renderLabel(tryOn) : null
+  const panelStyle = [styles.panel, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.12), borderRadius: radius }]
 
   return (
-    <Screen plain edges={['top']}>
-      <View style={styles.top}>
-        <Button variant="icon" accessibilityLabel="Close" onPress={close} icon={<T role="h3">×</T>} />
-        <View style={styles.titles}>
-          <T role="label" tone="faint" numberOfLines={1}>
-            {eyebrow}
-          </T>
-          <T role="h3" numberOfLines={1}>
-            {failed ? 'That one didn’t take.' : live ? 'A moment.' : 'There '}
-            {!failed && !live ? (
-              <T role="h3" tone="brass" italic>
-                you are.
+    <Screen plain edges={['top']} style={{ backgroundColor: GROUND }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 12) + 12 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.top}>
+          <Button
+            variant="icon"
+            accessibilityLabel="Close"
+            onPress={close}
+            icon={
+              <T role="h3" style={{ color: GLASS_INK }}>
+                ×
               </T>
-            ) : null}
-          </T>
+            }
+            style={{ borderColor: alpha(GLASS_INK, 0.25) }}
+          />
+          <View style={styles.titles}>
+            <T role="label" numberOfLines={1} style={{ color: alpha(GLASS_INK, 0.45) }}>
+              {eyebrow}
+            </T>
+            <T role="h3" numberOfLines={1} style={{ color: GLASS_INK }}>
+              {failed ? 'That one didn’t take.' : live ? 'A moment.' : 'There '}
+              {!failed && !live ? (
+                <T role="h3" italic style={{ color: t.brass }}>
+                  you are.
+                </T>
+              ) : null}
+            </T>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.stage}>
-        <Animated.View entering={rise(0)}>
+        <Animated.View entering={rise(0)} style={styles.stage}>
           <Arch width={frameW} height={frameH} variant="mirror">
-            {blurUri ? <Image source={{ uri: blurUri }} blurRadius={ready ? 18 : 3} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0.3 }]} contentFit="cover" cachePolicy="disk" accessible={false} /> : null}
+            {blurUri ? (
+              <Image source={{ uri: blurUri }} blurRadius={ready ? 12 : 2} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0.25 }]} contentFit="cover" cachePolicy="disk" accessible={false} />
+            ) : null}
 
             {ready && tryOn?.imageUrl ? (
               <GestureDetector gesture={zoomGesture}>
@@ -282,12 +312,12 @@ export default function RevealScreen() {
             ) : null}
 
             {live || (!tryOn && q.isPending) ? (
-              <View style={[StyleSheet.absoluteFill, styles.center]}>
+              <View style={[StyleSheet.absoluteFill, styles.developing]}>
                 <Filament height={frameH} />
                 {live ? (
                   <>
                     <Animated.View key={line} entering={fadeIn} exiting={fadeOut}>
-                      <T role="lede" align="center" style={{ color: alpha(GLASS_INK, 0.85), fontFamily: fonts.serifItalic }}>
+                      <T role="lede" align="center" style={{ color: alpha(GLASS_INK, 0.8) }}>
                         {DRESSING_LINES[line]}
                       </T>
                     </Animated.View>
@@ -300,18 +330,18 @@ export default function RevealScreen() {
             ) : null}
 
             {failed ? (
-              <View style={[StyleSheet.absoluteFill, styles.center]}>
+              <View style={[StyleSheet.absoluteFill, styles.failed]}>
                 <T role="h3" align="center" style={{ color: GLASS_INK }}>
                   That one didn’t take.
                 </T>
-                <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: 240 }}>
+                <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: CH_28 }}>
                   {tryOn?.error ?? 'Nothing was charged. Try again, or change a piece on the rail.'}
                 </T>
               </View>
             ) : null}
 
             {q.isError && !tryOn ? (
-              <View style={[StyleSheet.absoluteFill, styles.center]}>
+              <View style={[StyleSheet.absoluteFill, styles.failed]}>
                 <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.7) }}>
                   The stylist is out for a moment.
                 </T>
@@ -320,74 +350,72 @@ export default function RevealScreen() {
             ) : null}
           </Arch>
         </Animated.View>
-        {pieces ? (
-          <T role="caption" tone="faint" align="center" numberOfLines={2} style={styles.pieces}>
-            {pieces}
-          </T>
-        ) : null}
-      </View>
 
-      {ready && tryOn ? (
-        <Sheetlet peek={peek}>
-          {done.wear ? (
-            <View style={[styles.logged, { borderColor: alpha(t.brass, 0.4), backgroundColor: t.brassSoft, borderRadius: radius }]}>
-              <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
-                {done.wear}
+        {ready && tryOn ? (
+          <View style={panelStyle}>
+            {pieces ? (
+              <T role="caption" style={{ color: alpha(t.ink, 0.5) }}>
+                This render: {pieces}
               </T>
+            ) : null}
+            <View style={styles.row}>
+              <View style={styles.grow}>
+                {done.wear ? (
+                  <View style={[styles.logged, { borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft, borderRadius: radius }]}>
+                    <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                      {done.wear}
+                    </T>
+                  </View>
+                ) : (
+                  <Button label={busy === 'wear' ? 'Logging…' : 'Wearing it'} block loading={busy === 'wear'} disabled={busy !== null || ids.length === 0} onPress={() => void wearIt()} />
+                )}
+              </View>
+              <Button
+                variant="icon"
+                accessibilityLabel="More for this render"
+                disabled={busy !== null}
+                onPress={() => setMenuOpen(true)}
+                icon={
+                  <T role="bodySm" tone="ink" style={{ fontFamily: fonts.sansSemi, letterSpacing: -0.5 }}>
+                    ···
+                  </T>
+                }
+              />
             </View>
-          ) : (
-            <Button label={busy === 'wear' ? 'Logging…' : 'Wearing it'} block loading={busy === 'wear'} disabled={busy !== null || ids.length === 0} onPress={() => void wearIt()} />
-          )}
-          <View style={styles.row}>
-            <View style={styles.grow}>
-              <Button label={done.keep ?? 'Keep the outfit'} variant="ghost" size="sm" block loading={busy === 'keep'} disabled={busy !== null || !!done.keep || ids.length === 0} onPress={() => void keepOutfit()} />
-            </View>
-            <View style={styles.grow}>
-              <Button label={done.tomorrow ?? 'Wear tomorrow'} variant="ghost" size="sm" block loading={busy === 'tomorrow'} disabled={busy !== null || !!done.tomorrow || ids.length === 0} onPress={() => void tomorrow()} />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.grow}>
-              <Button label={busy === 'share' ? 'Preparing…' : 'Share'} variant="ghost" size="sm" block loading={busy === 'share'} disabled={busy !== null} onPress={() => void share()} />
-            </View>
-            <View style={styles.grow}>
-              <Button label="Add to lookbook" variant="ghost" size="sm" block disabled={busy !== null} onPress={() => router.push(`/sheets/mirror-lookbook?tryOnId=${id}`)} />
-            </View>
-          </View>
-          <View style={[styles.rule, { backgroundColor: alpha(t.ink, 0.12) }]} />
-          {confirmDelete ? (
-            <View style={styles.confirm}>
-              <T role="bodySm" tone="muted">
-                Delete this render? It’s gone for good.
-              </T>
-              <View style={styles.row}>
-                <Button label="Keep it" variant="quiet" size="sm" onPress={() => setConfirmDelete(false)} />
-                <Button label="Delete" variant="danger" size="sm" loading={busy === 'delete'} disabled={busy !== null} onPress={() => void remove()} />
+            <View style={styles.row}>
+              <View style={styles.grow}>
+                <Button label={done.keep ?? 'Keep the outfit'} variant="ghost" size="sm" block loading={busy === 'keep'} disabled={busy !== null || !!done.keep || ids.length === 0} onPress={() => void keepOutfit()} />
+              </View>
+              <View style={styles.grow}>
+                <Button label={done.tomorrow ?? 'Wear tomorrow'} variant="ghost" size="sm" block loading={busy === 'tomorrow'} disabled={busy !== null || !!done.tomorrow || ids.length === 0} onPress={() => void tomorrow()} />
               </View>
             </View>
-          ) : (
-            <View style={styles.row}>
-              {!tryOn.retryOf ? (
-                <Button label="Try again, free once" variant="quiet" size="sm" loading={busy === 'retry'} disabled={busy !== null} onPress={() => void tryAgain()} />
-              ) : (
-                <Button label="Render fresh, 1 render" variant="quiet" size="sm" loading={busy === 'fresh'} disabled={busy !== null || ids.length === 0} onPress={() => void renderFresh()} />
-              )}
-              {!tryOn.reportedAt ? <Button label="Not my clothes" variant="quiet" size="sm" loading={busy === 'report'} disabled={busy !== null} onPress={() => void notMine()} /> : null}
-              <Button label="Delete" variant="quiet" size="sm" disabled={busy !== null} onPress={() => setConfirmDelete(true)} />
-            </View>
-          )}
-        </Sheetlet>
-      ) : null}
-
-      {failed ? (
-        <View style={[styles.panel, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.12), paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <Button label="Try again" block loading={busy === 'retry'} disabled={busy !== null} onPress={() => void tryAgain()} />
-          <View style={styles.row}>
-            <Button label="Back to the Mirror" variant="quiet" size="sm" onPress={close} />
-            <Button label="Delete" variant="quiet" size="sm" loading={busy === 'delete'} disabled={busy !== null} onPress={() => void remove()} />
+            {confirmDelete ? (
+              <View style={styles.confirm}>
+                <T role="bodySm" tone="muted">
+                  Delete this render? It’s gone for good.
+                </T>
+                <View style={styles.row}>
+                  <Button label="Keep it" variant="quiet" size="sm" onPress={() => setConfirmDelete(false)} />
+                  <Button label="Delete" variant="danger" size="sm" loading={busy === 'delete'} disabled={busy !== null} onPress={() => void remove()} />
+                </View>
+              </View>
+            ) : null}
           </View>
-        </View>
-      ) : null}
+        ) : null}
+
+        {failed ? (
+          <View style={panelStyle}>
+            <Button label="Try again" block loading={busy === 'retry'} disabled={busy !== null} onPress={() => void tryAgain()} />
+            <View style={styles.row}>
+              <Button label="Back to the Mirror" variant="quiet" size="sm" onPress={close} />
+              <Button label="Delete" variant="quiet" size="sm" loading={busy === 'delete'} disabled={busy !== null} onPress={() => void remove()} />
+            </View>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <Menu open={menuOpen} title="More for this render" items={menuItems} onClose={() => setMenuOpen(false)} />
     </Screen>
   )
 }
@@ -395,13 +423,13 @@ export default function RevealScreen() {
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingVertical: 12, minHeight: 72 },
   titles: { flex: 1, gap: 2 },
-  stage: { flex: 1, alignItems: 'center', gap: 10 },
-  center: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 },
-  pieces: { paddingHorizontal: gutter },
-  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  stage: { paddingHorizontal: gutter },
+  // The web's `gap-5 p-8` while dressing, `gap-3 p-8` when it failed.
+  developing: { alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 },
+  failed: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  panel: { marginTop: 12, marginHorizontal: gutter, padding: 16, gap: 12, borderWidth: hairline },
+  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   grow: { flex: 1 },
-  rule: { height: hairline, marginVertical: 2 },
   confirm: { gap: 8 },
   logged: { height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: hairline },
-  panel: { paddingHorizontal: gutter, paddingTop: 16, gap: 12, borderTopWidth: hairline },
 })

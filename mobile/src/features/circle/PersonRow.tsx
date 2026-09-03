@@ -73,8 +73,9 @@ export function PersonRow({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, minHeight: 56 },
+  // The web's `flex items-center gap-3 border-t py-3`
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   person: { flex: 1 },
   personInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  text: { flex: 1, gap: 2 },
+  text: { flex: 1 },
 })

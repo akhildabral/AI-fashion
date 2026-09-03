@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { getQuiz } from '@zauq/shared/quiz'
 import { LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
-import { space } from '@/src/design/tokens'
+import { gutter, height, space } from '@/src/design/tokens'
 import { type Answer } from '@/src/features/fitting/draft'
 import { useFitting } from '@/src/features/fitting/FittingProvider'
 import { Frame } from '@/src/features/fitting/Frame'
@@ -18,6 +18,7 @@ import { TasteDeck } from '@/src/features/fitting/TasteDeck'
 /** Step 2, taste: this or that, eight times, by swipe. The peak. */
 export default function Taste() {
   const router = useRouter()
+  const { width: screenW } = useWindowDimensions()
   const { draft, patch } = useFitting()
   const quiz = useQuery({ queryKey: fk.quiz, queryFn: getQuiz, staleTime: Infinity })
   const [answers, setAnswers] = useState(draft.answers)
@@ -50,6 +51,8 @@ export default function Taste() {
   }
 
   const who = pair ? `Taste · ${index + 1} of ${pairs.length}` : 'Taste'
+  // The deck's shape while the pairs arrive: a card of two 3:4 arches, the two choices beneath.
+  const cardH = Math.round(((screenW - gutter * 2 - 96) / 2) * (4 / 3)) + 96
 
   return (
     <Frame
@@ -61,7 +64,7 @@ export default function Taste() {
           This, <T role="h1" tone="brass" italic>or that?</T>
         </>
       }
-      lead={answered === 0 ? 'No wrong answers. Swipe toward the one you would reach for.' : 'Keep going, the stylist is taking notes.'}
+      lead={answered === 0 ? 'No wrong answers. Tap the one you’d reach for.' : 'Keep going, the stylist is taking notes.'}
       actions={
         <View style={styles.row}>
           {answered > 0 && pairs.length > 0 ? <Button label="Previous pair" variant="quiet" size="sm" onPress={undo} /> : <View />}
@@ -71,8 +74,11 @@ export default function Taste() {
     >
       {quiz.isPending ? (
         <View style={styles.loading}>
-          <SkeletonBlock height={280} />
-          <SkeletonBlock height={44} />
+          <SkeletonBlock height={cardH} />
+          <View style={styles.choices}>
+            <SkeletonBlock height={height.action} style={styles.choice} />
+            <SkeletonBlock height={height.action} style={styles.choice} />
+          </View>
         </View>
       ) : quiz.isError ? (
         <View style={styles.loading}>
@@ -102,6 +108,8 @@ export default function Taste() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  loading: { gap: space.lg, paddingTop: space.md },
+  loading: { gap: space.lg },
+  choices: { flexDirection: 'row', gap: space.sm },
+  choice: { flex: 1, width: undefined },
   center: { alignSelf: 'center' },
 })

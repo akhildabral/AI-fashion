@@ -45,6 +45,7 @@ export function PieceGrid({
   selected,
   onToggle,
   columns = 3,
+  gap = 12,
   ordered = false,
   max,
   width,
@@ -54,6 +55,8 @@ export function PieceGrid({
   selected: string[]
   onToggle: (id: string) => void
   columns?: number
+  /** Between tiles, both ways: the web's `gap-3` (12) or `gap-2` (8). */
+  gap?: number
   /** Show the pick order as a badge. */
   ordered?: boolean
   max?: number
@@ -63,7 +66,6 @@ export function PieceGrid({
 }) {
   const { t } = useTheme()
   const { width: screen } = useWindowDimensions()
-  const gap = 12
   const w = width ?? screen - gutter * 2
   const tile = Math.floor((w - gap * (columns - 1)) / columns)
   return (

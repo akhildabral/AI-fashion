@@ -11,7 +11,7 @@ import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { duration, EASE_OUT } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { gutter, space } from '@/src/design/tokens'
+import { gutter } from '@/src/design/tokens'
 import { qk, queryClient } from '@/src/lib/query'
 import { Frame } from '@/src/features/fitting/Frame'
 import { fk } from '@/src/features/fitting/keys'
@@ -89,9 +89,10 @@ export default function Reveal() {
 
   const comeIn = () => router.push(hrefOf('push'))
 
+  // FittingPage.tsx's reveal: the headline and the lead by state.
   const ask = look ? (
     <>
-      Today, <T role="h1" tone="brass" italic>wear this.</T>
+      Tomorrow, <T role="h1" tone="brass" italic>wear this.</T>
     </>
   ) : gaveUp ? (
     <>
@@ -99,14 +100,14 @@ export default function Reveal() {
     </>
   ) : (
     <>
-      Laying out <T role="h1" tone="brass" italic>your first look.</T>
+      Composing <T role="h1" tone="brass" italic>your first look.</T>
     </>
   )
   const lead = look
     ? look.rationale
     : gaveUp
       ? readyCount < PIECES_WANTED
-        ? `${PIECES_WANTED} pieces make a look. Add ${readyCount === 0 ? 'a few' : 'one more'} and it hangs here.`
+        ? 'Your stylist has your measure. Four pieces in the closet, and the first look hangs here.'
         : 'The stylist could not settle a look from these yet. Come in; it will be waiting on Today.'
       : processing
         ? 'Developing your pieces…'
@@ -115,7 +116,7 @@ export default function Reveal() {
   return (
     <Frame
       step="reveal"
-      who={look ? 'Composed' : 'The first look'}
+      who="Composed"
       ask={ask}
       lead={lead}
       actions={
@@ -123,7 +124,7 @@ export default function Reveal() {
           <Button label="Come in" block onPress={comeIn} />
         ) : gaveUp ? (
           <>
-            {readyCount < PIECES_WANTED ? <Button label="Add a piece" block onPress={() => router.back()} /> : <Button label="Come in" block onPress={comeIn} />}
+            {readyCount < PIECES_WANTED ? <Button label="Add the missing pieces" block onPress={() => router.back()} /> : <Button label="Come in" block onPress={comeIn} />}
             {readyCount < PIECES_WANTED ? <Button label="Come in anyway" variant="quiet" size="sm" style={styles.center} onPress={comeIn} /> : null}
           </>
         ) : null
@@ -156,7 +157,7 @@ function Filament() {
 }
 
 const styles = StyleSheet.create({
-  board: { alignItems: 'center', paddingTop: space.sm },
+  board: { alignItems: 'center' },
   filament: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1 },
   center: { alignSelf: 'center' },
 })

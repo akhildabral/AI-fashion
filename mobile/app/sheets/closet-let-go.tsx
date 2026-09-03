@@ -26,6 +26,7 @@ interface Draft {
   price?: string
 }
 
+/** A way out: the web's `card card-hover p-4`, a Bodoni line over a quiet one. */
 function Way({ title, line, busy, disabled, onPress }: { title: string; line: string; busy?: boolean; disabled?: boolean; onPress: () => void }) {
   const { t } = useTheme()
   return (
@@ -36,7 +37,7 @@ function Way({ title, line, busy, disabled, onPress }: { title: string; line: st
       disabled={disabled}
       pressRetentionOffset={12}
       onPress={onPress}
-      style={({ pressed }) => [styles.way, { backgroundColor: t.surface, borderColor: pressed ? t.brass : alpha(t.ink, 0.1), borderRadius: radius, opacity: disabled && !busy ? 0.5 : 1 }]}
+      style={({ pressed }) => [styles.way, { backgroundColor: t.surface, borderColor: pressed ? alpha(t.brass, 0.5) : alpha(t.ink, 0.1), borderRadius: radius, opacity: disabled && !busy ? 0.5 : 1 }]}
     >
       <T role="h3">{busy ? 'Drafting…' : title}</T>
       <T role="caption" tone="muted">
@@ -103,10 +104,10 @@ export default function LetGoSheet() {
         </T>
         {piece.isError && !item ? <LoadError message="Could not open the piece." onRetry={() => void piece.refetch()} /> : null}
         {piece.isPending ? (
-          <View style={{ gap: 10 }}>
-            <SkeletonBlock height={72} />
-            <SkeletonBlock height={72} />
-            <SkeletonBlock height={72} />
+          <View style={styles.ways} accessibilityLabel="Loading" aria-busy>
+            <SkeletonBlock height={74} />
+            <SkeletonBlock height={74} />
+            <SkeletonBlock height={74} />
           </View>
         ) : null}
 
@@ -123,16 +124,18 @@ export default function LetGoSheet() {
 
         {draft ? (
           <Animated.View entering={fadeIn} style={styles.draft}>
-            <T role="label" tone="faint">
+            <T role="micro" tone="faint" style={styles.eyebrow}>
               Listing draft
             </T>
-            <T role="h3">{draft.title}</T>
+            <T role="h3" style={styles.line}>
+              {draft.title}
+            </T>
             {draft.price ? (
-              <T role="bodySm" tone="brass">
+              <T role="bodySm" tone="brass" style={styles.line}>
                 Ask {money(Number(draft.price) || 0)}
               </T>
             ) : null}
-            <T role="bodySm" tone="muted" selectable>
+            <T role="bodySm" tone="muted" style={styles.body} selectable>
               {draft.body}
             </T>
             <View style={styles.actions}>
@@ -147,9 +150,15 @@ export default function LetGoSheet() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.xl, paddingBottom: space.xxl, gap: space.md },
-  ways: { gap: 10 },
-  way: { padding: 16, gap: 4, borderWidth: hairline },
-  draft: { gap: 8 },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  content: { paddingHorizontal: gutter, paddingTop: space.xl, paddingBottom: space.xxl },
+  // The modal's p-5 under its title; the ways at gap-3
+  ways: { gap: space.md, marginTop: 20 },
+  way: { padding: space.lg, gap: space.xs, borderWidth: hairline },
+  draft: { marginTop: 20 },
+  // text-[10px] tracking-[0.2em]
+  eyebrow: { letterSpacing: 2 },
+  line: { marginTop: space.xs },
+  body: { marginTop: space.sm },
+  // mt-4 flex gap-2
+  actions: { flexDirection: 'row', gap: space.sm, marginTop: space.lg },
 })

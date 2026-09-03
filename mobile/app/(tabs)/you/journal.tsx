@@ -1,6 +1,8 @@
 // The record: what was actually worn, day by day, with the holes showing.
 // The dataset every brief learns from, so it reads like a ledger you can
-// fill in, not a feed.
+// fill in, not a feed. The web's JournalPage, block by block: header, the
+// plaque 32 below, the month 32 below, the filters 24, the days 16, the
+// two piece sections 48 apart.
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -12,7 +14,7 @@ import { deleteWearLog, getWearInsights, getWearLog } from '@zauq/shared/wearlog
 import { EmptyState, LoadError, Plaque, SectionHead, Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT } from '@/src/components/Room'
+import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Filter } from '@/src/components/Tabs'
@@ -20,11 +22,12 @@ import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { qk, queryClient } from '@/src/lib/query'
 import { dayKey, formatDay, formatMonth, monthKey, OCCASIONS } from '@/src/features/you/dates'
 import { DayLogCard } from '@/src/features/you/DayLogCard'
-import { TextLink } from '@/src/features/you/Furniture'
+import { Card, TextLink } from '@/src/features/you/Furniture'
 import { MonthStrip } from '@/src/features/you/MonthStrip'
 import { routes } from '@/src/features/you/nav'
 import { UndoBar } from '@/src/features/you/UndoBar'
@@ -156,91 +159,104 @@ export default function Journal() {
             />
           }
         >
-          <View style={styles.head}>
-            <T role="label" tone="brass">
-              The record
-            </T>
-            <T role="h1" accessibilityRole="header">
-              What you <T role="h1" tone="brass" italic>{`actually wore.`}</T>
-            </T>
-            <T role="bodySm" tone="muted">
-              Every brief learns from this. Fill the days, and tell the stylist what to bring back.
-            </T>
-          </View>
+          <RoomHeader eyebrow="The record" title="What you" emphasis="actually wore." lead="Every brief learns from this. Fill the days, and tell the stylist what to bring back." style={styles.header} />
 
           {ritual || insights ? (
-            <Plaque>
+            <Plaque style={styles.plaque}>
               <View style={styles.stats}>
-                {ritual ? <Stat value={ritual.streak} label="day streak" /> : null}
-                {ritual ? <Stat value={`${ritual.rotationPct}%`} label="in rotation" /> : null}
-                {ritual ? <Stat value={money(ritual.monthlyPayback)} label="back this month" /> : null}
+                {ritual ? <Stat small value={ritual.streak} label="day streak" /> : null}
+                {ritual ? <Stat small value={`${ritual.rotationPct}%`} label="in rotation" /> : null}
+                {ritual ? <Stat small value={money(ritual.monthlyPayback)} label="back this month" /> : null}
               </View>
               {insights ? (
-                <View style={[styles.totals, { borderTopColor: alpha(t.ink, 0.1) }]}>
-                  <T role="caption" tone="muted">
-                    {insights.totals.logged} {insights.totals.logged === 1 ? 'day' : 'days'} logged · {insights.totals.items} pieces · {insights.totals.orphans} idle 90+ days
+                <T role="caption" tone="muted" style={[styles.totals, { borderTopColor: alpha(t.ink, 0.1) }]}>
+                  {insights.totals.logged} {insights.totals.logged === 1 ? 'day' : 'days'} logged · {insights.totals.items} pieces · {insights.totals.orphans} idle 90+ days ·{' '}
+                  <T role="caption" tone="brass" style={styles.inlineLink} accessibilityRole="link" onPress={() => router.push(routes.closet)}>
+                    the ledger, in your Closet
                   </T>
-                  <TextLink label="The ledger, in your Closet →" onPress={() => router.push(routes.closet)} />
-                </View>
+                </T>
               ) : null}
             </Plaque>
           ) : null}
 
-          <MonthStrip month={month} days={days} onMonth={setMonth} onPick={pickDay} />
-
-          <View style={styles.filters}>
-            <Filter label="All days" on={occasion === null} onPress={() => setOccasion(null)} />
-            {OCCASIONS.slice(0, 4).map((o) => (
-              <Filter key={o.key} label={o.label} on={occasion === o.key} onPress={() => setOccasion((cur) => (cur === o.key ? null : o.key))} />
-            ))}
-            {itemFilter ? <Filter label={`${filteredItem ? `The ${filteredItem.subtype ?? filteredItem.category}` : 'One piece'} ×`} on onPress={clearItem} /> : null}
+          <View style={styles.strip}>
+            <MonthStrip month={month} days={days} onMonth={setMonth} onPick={pickDay} />
           </View>
 
-          {logsQ.isError && !logs ? (
-            <LoadError message="Could not load your record." onRetry={() => void logsQ.refetch()} />
-          ) : logs === null ? (
-            <View style={styles.list} accessibilityLabel="Loading your record">
-              {[0, 1, 2].map((i) => (
-                <View key={i} style={styles.skeleton}>
-                  <SkeletonBlock width={160} height={12} />
-                  <SkeletonBlock height={120} style={{ marginTop: 12 }} />
-                </View>
+          <View style={styles.days}>
+            <View style={styles.filters}>
+              <Filter label="All days" on={occasion === null} onPress={() => setOccasion(null)} />
+              {OCCASIONS.slice(0, 4).map((o) => (
+                <Filter key={o.key} label={o.label} on={occasion === o.key} onPress={() => setOccasion((cur) => (cur === o.key ? null : o.key))} />
               ))}
+              {itemFilter ? (
+                <>
+                  <View style={[styles.sep, { backgroundColor: alpha(t.ink, 0.15) }]} />
+                  <Filter label={`${filteredItem ? `The ${filteredItem.subtype ?? filteredItem.category}` : 'One piece'} ×`} on onPress={clearItem} />
+                </>
+              ) : null}
             </View>
-          ) : logs.length === 0 ? (
-            <EmptyState
-              title={filtered ? 'Nothing here' : `Nothing logged in ${formatMonth(month)}`}
-              line={filtered ? 'No day matches that. Clear the filter, or log one.' : 'Tap a day above, or "Wearing it" on today’s brief, and the record starts here.'}
-              action={filtered ? <Button label="Show every day" variant="ghost" size="sm" onPress={() => { setOccasion(null); clearItem() }} /> : <Button label="Open today’s brief" variant="ghost" size="sm" onPress={() => router.push(routes.today)} />}
-            />
-          ) : (
-            <View style={styles.list}>
-              {groupByDay(logs).map(([dayK, dayLogs]) => (
-                <View
-                  key={dayK}
-                  onLayout={(e) => {
-                    dayY.current[dayK] = e.nativeEvent.layout.y
-                  }}
-                  style={styles.group}
-                >
-                  {dayLogs.length > 1 ? (
-                    <>
-                      <T role="label" tone="brass">
-                        {formatDay(dayLogs[0].wornOn)} <T role="label" tone="faint">{`· ${dayLogs.length} looks`}</T>
-                      </T>
-                      <View style={[styles.multi, { borderLeftColor: alpha(t.brass, 0.25) }]}>
-                        {dayLogs.map((log) => (
-                          <DayLogCard key={log.id} log={log} heading="time" onChange={upsert} onRemove={remove} onNote={flash} />
-                        ))}
-                      </View>
-                    </>
+
+            {logsQ.isError && !logs ? (
+              <LoadError message="Could not load your record." onRetry={() => void logsQ.refetch()} />
+            ) : logs === null ? (
+              <View style={styles.list} accessibilityLabel="Loading your record">
+                {[0, 1, 2].map((i) => (
+                  <Card key={i} padding={space.lg}>
+                    <SkeletonBlock width={160} height={16} />
+                    <SkeletonBlock height={96} style={{ marginTop: space.md }} />
+                  </Card>
+                ))}
+              </View>
+            ) : logs.length === 0 ? (
+              <EmptyState
+                title={filtered ? 'Nothing here' : `Nothing logged in ${formatMonth(month)}`}
+                line={filtered ? 'No day matches that. Clear the filter, or log one.' : 'Wearing it on Today writes the first page.'}
+                action={
+                  filtered ? (
+                    <Button
+                      label="Show every day"
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => {
+                        setOccasion(null)
+                        clearItem()
+                      }}
+                    />
                   ) : (
-                    <DayLogCard log={dayLogs[0]} onChange={upsert} onRemove={remove} onNote={flash} />
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
+                    <Button label="Open today’s brief" variant="ghost" size="sm" onPress={() => router.push(routes.today)} />
+                  )
+                }
+              />
+            ) : (
+              <View style={styles.list}>
+                {groupByDay(logs).map(([dayK, dayLogs]) => (
+                  <View
+                    key={dayK}
+                    onLayout={(e) => {
+                      dayY.current[dayK] = e.nativeEvent.layout.y
+                    }}
+                    style={styles.group}
+                  >
+                    {dayLogs.length > 1 ? (
+                      <>
+                        <T role="label" tone="brass">
+                          {formatDay(dayLogs[0].wornOn)} <T role="label" tone="faint">{`· ${dayLogs.length} looks`}</T>
+                        </T>
+                        <View style={[styles.multi, { borderLeftColor: alpha(t.brass, 0.25) }]}>
+                          {dayLogs.map((log) => (
+                            <DayLogCard key={log.id} log={log} heading="time" onChange={upsert} onRemove={remove} onNote={flash} />
+                          ))}
+                        </View>
+                      </>
+                    ) : (
+                      <DayLogCard log={dayLogs[0]} onChange={upsert} onRemove={remove} onNote={flash} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
 
           {mostWorn.length > 0 ? (
             <View style={styles.section}>
@@ -268,13 +284,13 @@ export default function Journal() {
             <View style={styles.section}>
               <SectionHead title="Sitting idle" />
               <T role="bodySm" tone="muted">
-                Not worn in over ninety days. Let one go and draft the listing.
+                Not worn in over ninety days. Ask for a look built around one, or let it go and draft the listing.
               </T>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railBody}>
                 {orphans.map((item) => (
-                  <View key={item.itemId} style={{ width: TILE, opacity: 0.85 }}>
+                  <View key={item.itemId} style={styles.idle}>
                     <GarmentTile width={TILE} imageUrl={item.imageUrl} label={item.subtype ?? item.category} />
-                    <TextLink label="Draft a listing" onPress={() => router.push(routes.resale(item.itemId))} />
+                    <TextLink label="Draft a listing" align="center" onPress={() => router.push(routes.resale(item.itemId))} />
                   </View>
                 ))}
               </ScrollView>
@@ -282,7 +298,7 @@ export default function Journal() {
           ) : null}
         </ScrollView>
 
-        {pending ? <UndoBar message={`${formatDay(pending.log.wornOn)} removed.`} onUndo={undo} bottom={ACTION_BAR_HEIGHT + 12} /> : null}
+        {pending ? <UndoBar message={`${formatDay(pending.log.wornOn)} removed.`} onUndo={undo} bottom={ACTION_BAR_HEIGHT + space.md} /> : null}
         <ActionBar>
           <Button label="Log a day" block onPress={() => router.push(routes.logDay(dayKey(new Date())))} />
         </ActionBar>
@@ -292,16 +308,22 @@ export default function Journal() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: ACTION_BAR_HEIGHT + space.xl, gap: space.xl },
-  head: { gap: space.sm },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xl },
-  totals: { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, gap: 2 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: ACTION_BAR_HEIGHT + space.xl },
+  // The blocks below carry the web's `mt-*` themselves.
+  header: { paddingBottom: 0 },
+  plaque: { marginTop: space.xxl },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xxl },
+  totals: { marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline },
+  inlineLink: { fontFamily: fonts.sansSemi },
+  strip: { marginTop: space.xxl },
+  days: { marginTop: space.xl, gap: space.lg },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.xs },
+  sep: { width: 1, height: 16, marginHorizontal: space.xs },
   list: { gap: space.md },
   group: { gap: space.sm },
-  multi: { gap: space.sm, borderLeftWidth: 1, paddingLeft: space.md },
-  skeleton: { padding: space.lg },
-  section: { gap: space.sm },
-  rail: { marginHorizontal: -gutter },
-  railBody: { paddingHorizontal: gutter, gap: space.md, paddingTop: space.xs },
+  multi: { gap: space.sm, borderLeftWidth: hairline, paddingLeft: space.lg },
+  section: { marginTop: space.xxxl, gap: space.xs },
+  rail: { marginHorizontal: -gutter, marginTop: space.md },
+  railBody: { paddingHorizontal: gutter, gap: space.lg, paddingTop: space.xs },
+  idle: { width: TILE, opacity: 0.8, gap: space.xs, alignItems: 'center' },
 })

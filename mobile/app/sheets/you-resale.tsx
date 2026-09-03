@@ -50,7 +50,7 @@ export default function ResaleSheet() {
           <SkeletonBlock width="50%" />
         </View>
       ) : (
-        <View style={{ gap: space.lg }}>
+        <View style={styles.stack}>
           <View style={styles.top}>
             <Arch width={80} aspect={4 / 5}>
               <Image source={{ uri: resolveImageUrl(result.imageUrl) }} contentFit="contain" cachePolicy="disk" style={styles.image} accessible={false} />
@@ -65,8 +65,8 @@ export default function ResaleSheet() {
           <T role="bodySm" tone="muted">
             {result.draft.description}
           </T>
-          <View style={{ gap: 4 }}>
-            <T role="micro" tone="brass">
+          <View style={styles.checks}>
+            <T role="micro" tone="brass" style={styles.checksLabel}>
               Before you list
             </T>
             {result.draft.conditionChecklist.map((c) => (
@@ -82,6 +82,10 @@ export default function ResaleSheet() {
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', gap: space.lg, alignItems: 'center' },
+  // The web's `space-y-5`, the top row `flex gap-4`, the checklist `mb-2` under its label and `space-y-1`.
+  stack: { gap: 20 },
+  top: { flexDirection: 'row', gap: space.lg, alignItems: 'flex-start' },
+  checks: { gap: space.xs },
+  checksLabel: { marginBottom: space.xs },
   image: { position: 'absolute', left: '8%', right: '8%', top: '9%', bottom: '7%' },
 })

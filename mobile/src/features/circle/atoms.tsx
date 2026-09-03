@@ -24,26 +24,30 @@ export function initialsOf(name?: string | null, handle?: string | null): string
   return (handle ?? '?').slice(0, 2).toUpperCase()
 }
 
-/** A person as a brass square with their initials. */
+/**
+ * A person as a brass square with their initials. At the web's 36px the
+ * letters are `text-[11px] font-semibold tracking-[0.14em]`; other sizes
+ * scale from that (64 gives the profile's `!text-xl`, 24 the note's 9px).
+ */
 export function Initials({ handle, name, size = 36, dim }: { handle: string | null; name?: string | null; size?: number; dim?: boolean }) {
   const { t } = useTheme()
-  const fontSize = Math.max(10, Math.round(size * 0.32))
+  const fontSize = Math.max(9, Math.round((size * 11) / 36))
   return (
     <View
       accessible={false}
       style={{ width: size, height: size, borderRadius: radius, backgroundColor: t.brass, alignItems: 'center', justifyContent: 'center', opacity: dim ? 0.6 : 1 }}
     >
-      <T style={{ fontFamily: fonts.sansBold, fontSize, lineHeight: fontSize + 2, color: t.onBrass, letterSpacing: 0.5 }} maxFontSizeMultiplier={1.2}>
+      <T style={{ fontFamily: fonts.sansSemi, fontSize, lineHeight: Math.round(fontSize * 1.3), color: t.onBrass, letterSpacing: Math.round(fontSize * 0.14 * 100) / 100 }} maxFontSizeMultiplier={1.2}>
         {initialsOf(name, handle)}
       </T>
     </View>
   )
 }
 
-/** The tracked brass micro-label: "Look", "Verdict", "For you". */
+/** The kicker: the web's `text-[10px] tracking-[0.2em] text-brass` ("Look", "Verdict", "For you"). */
 export function Plate({ children }: { children: string }) {
   return (
-    <T role="micro" tone="brass">
+    <T role="micro" tone="brass" style={styles.plate}>
       {children}
     </T>
   )
@@ -102,14 +106,17 @@ export function Press({ children, style, onPressIn, onPressOut, ...rest }: Press
 
 export type IconName = React.ComponentProps<typeof MaterialIcons>['name']
 
-/** A reaction or a verb on a card's foot: an icon, a word, a count. Brass when on. */
+/**
+ * A reaction or a verb on a card's foot: the web's `ActionButton`, an icon,
+ * a word in `text-xs font-semibold`, a count; `px-2 gap-1.5`, brass when on.
+ */
 export function ActionChip({ icon, iconOn, label, count, on = false, onPress, accessibilityLabel }: { icon: IconName; iconOn?: IconName; label?: string; count?: number; on?: boolean; onPress: () => void; accessibilityLabel: string }) {
   const { t } = useTheme()
-  const color = on ? t.brass : alpha(t.ink, 0.6)
+  const color = on ? t.brass : alpha(t.ink, 0.55)
   return (
-    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: on }} onPress={onPress} hitSlop={6}>
+    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: on }} onPress={onPress} hitSlop={4}>
       <View style={styles.chip}>
-        <MaterialIcons name={on && iconOn ? iconOn : icon} size={16} color={color} />
+        <MaterialIcons name={on && iconOn ? iconOn : icon} size={15} color={color} />
         {label ? (
           <T role="caption" style={{ color, fontFamily: fonts.sansSemi }}>
             {label}
@@ -121,16 +128,16 @@ export function ActionChip({ icon, iconOn, label, count, on = false, onPress, ac
   )
 }
 
-/** A bordered 36px icon control with an optional count badge: the bell, the plus. */
+/** The web's `btn-icon`: a bordered 36 square, with the bell's count badge when there is one. */
 export function IconButton({ icon, label, onPress, badge }: { icon: IconName; label: string; onPress: () => void; badge?: number }) {
   const { t } = useTheme()
   return (
     <Press accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} unread` : label} onPress={onPress} hitSlop={4}>
-      <View style={[styles.iconButton, { borderColor: alpha(t.ink, 0.18), borderRadius: radius }]}>
-        <MaterialIcons name={icon} size={20} color={alpha(t.ink, 0.8)} />
+      <View style={[styles.iconButton, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }]}>
+        <MaterialIcons name={icon} size={18} color={alpha(t.ink, 0.6)} />
         {badge ? (
           <View style={[styles.badge, { backgroundColor: t.brass, borderRadius: radius }]} accessible={false}>
-            <T style={{ fontFamily: fonts.sansBold, fontSize: 9, lineHeight: 11, color: t.onBrass }} maxFontSizeMultiplier={1}>
+            <T style={{ fontFamily: fonts.sansBold, fontSize: 9, lineHeight: 12, color: t.onBrass }} maxFontSizeMultiplier={1}>
               {badge > 9 ? '9+' : String(badge)}
             </T>
           </View>
@@ -140,7 +147,7 @@ export function IconButton({ icon, label, onPress, badge }: { icon: IconName; la
   )
 }
 
-/** A card: surface on bone, a hairline, square corners. Brass edge for the featured and the picks for you. */
+/** The web's `.card`: surface, a hairline of ink/10, 3px corners. A brass edge for the featured and the week; a brass wash for a pick for you. */
 export function Card({ children, tone = 'plain', style }: { children: ReactNode; tone?: 'plain' | 'brass' | 'soft'; style?: ViewStyle }) {
   const { t } = useTheme()
   return (
@@ -148,7 +155,7 @@ export function Card({ children, tone = 'plain', style }: { children: ReactNode;
       style={[
         styles.card,
         {
-          backgroundColor: tone === 'soft' ? alpha(t.brassSoft, 0.55) : t.surface,
+          backgroundColor: tone === 'soft' ? alpha(t.brassSoft, 0.4) : t.surface,
           borderColor: tone === 'plain' ? alpha(t.ink, 0.1) : alpha(t.brass, tone === 'brass' ? 0.45 : 0.35),
           borderRadius: radius,
         },
@@ -160,7 +167,7 @@ export function Card({ children, tone = 'plain', style }: { children: ReactNode;
   )
 }
 
-/** The dashed empty panel a room shows when a list has nothing in it. */
+/** The web's dashed panel (`border-dashed border-ink/20 p-6`) a room shows when a list has nothing in it. */
 export function Dashed({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const { t } = useTheme()
   return <View style={[styles.dashed, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }, style]}>{children}</View>
@@ -178,14 +185,18 @@ export function InlineError({ message }: { message: string }) {
   )
 }
 
-export const CARD_PAD = 14
+/** The web's card padding on a phone: `p-4`. */
+export const CARD_PAD = 16
+/** Between cards: `space-y-3`. */
+export const CARD_GAP = 12
 
 const styles = StyleSheet.create({
   garment: { position: 'absolute', left: '10%', right: '10%', top: '10%', bottom: '10%' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 36, paddingHorizontal: 6 },
+  plate: { letterSpacing: 2 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 8 },
   iconButton: { width: 36, height: 36, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: hairline, overflow: 'hidden' },
-  dashed: { borderWidth: hairline, borderStyle: 'dashed', paddingVertical: 28, paddingHorizontal: 20, alignItems: 'center', gap: 8 },
-  error: { borderWidth: hairline, paddingHorizontal: 12, paddingVertical: 10 },
+  dashed: { borderWidth: hairline, borderStyle: 'dashed', padding: 24, alignItems: 'center', gap: 8 },
+  error: { borderWidth: hairline, paddingHorizontal: 16, paddingVertical: 10 },
 })

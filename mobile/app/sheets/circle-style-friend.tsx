@@ -243,8 +243,12 @@ export default function StyleFriendSheet() {
 }
 
 const styles = StyleSheet.create({
+  // `mt-2 flex flex-wrap gap-2`
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // `mt-3 grid-cols-4 gap-2`
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  suggestions: { flexDirection: 'row', gap: 10, paddingBottom: 4 },
-  preview: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 4 },
+  // `mt-2 flex gap-3 pb-1`, each `w-24`
+  suggestions: { flexDirection: 'row', gap: 12, paddingBottom: 4 },
+  // `mt-4 flex items-center gap-3`, the board `w-20`
+  preview: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
 })

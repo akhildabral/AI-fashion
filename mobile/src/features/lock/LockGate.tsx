@@ -117,7 +117,7 @@ export function LockGate({ active, children }: LockGateProps) {
         <View style={StyleSheet.absoluteFill} accessibilityViewIsModal testID="lock-gate">
           <Screen edges={['top', 'bottom']} padded>
             <View style={styles.body}>
-              <ArchMark size={56} script />
+              <ArchMark size={56} variant="script" />
               <Wordmark />
               {enabled ? (
                 <>

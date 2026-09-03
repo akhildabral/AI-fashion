@@ -1,5 +1,6 @@
 // The admin desk: who is waiting, who is in, and what has been reported.
-// Only for admins; anyone else is sent back to the room.
+// Only for admins; anyone else is sent back to the room. The web's tables
+// become cards: each `px-4 py-3` cell block is a card of the same padding.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -16,6 +17,7 @@ import { useFlash } from '@/src/components/Toast'
 import { useAuth } from '@/src/context/AuthProvider'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { apiFetch } from '@/src/lib/api'
 import { queryClient } from '@/src/lib/query'
 import { displayName, PLAN_IDS, REASON_LABEL, WAITING, type AdminReport, type AdminUser } from '@/src/features/you/admin'
@@ -25,22 +27,24 @@ import { routes } from '@/src/features/you/nav'
 
 type Tab = 'waitlist' | 'members' | 'reports'
 
+/** The web's `px-2.5 py-1 text-xs` status: a tinted pill in the status's colour. */
 function StatusPill({ status }: { status: string }) {
   const { t } = useTheme()
   const tone = status === 'approved' ? t.success : status === 'suspended' ? t.danger : status === 'invited' ? t.brass : t.warning
   return (
-    <View style={[styles.pill, { borderColor: alpha(tone, 0.5), borderRadius: radius }]}>
-      <T role="micro" style={{ color: tone }}>
+    <View style={[styles.pill, { backgroundColor: alpha(tone, 0.12), borderRadius: radius }]}>
+      <T role="caption" style={{ color: tone, fontFamily: fonts.sansMedium }}>
         {status}
       </T>
     </View>
   )
 }
 
+/** The web's small `bg-ink/10 text-[10px] uppercase` tag: google, admin. */
 function Tag({ label }: { label: string }) {
   const { t } = useTheme()
   return (
-    <View style={[styles.pill, { backgroundColor: alpha(t.ink, 0.08), borderColor: 'transparent', borderRadius: radius }]}>
+    <View style={[styles.tag, { backgroundColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
       <T role="micro" tone="muted">
         {label}
       </T>
@@ -126,106 +130,127 @@ export default function Admin() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.body}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl tintColor={t.brass} refreshing={(usersQ.isFetching || reportsQ.isFetching) && !!users} onRefresh={() => { void usersQ.refetch(); void reportsQ.refetch() }} />}
+          refreshControl={
+            <RefreshControl
+              tintColor={t.brass}
+              refreshing={(usersQ.isFetching || reportsQ.isFetching) && !!users}
+              onRefresh={() => {
+                void usersQ.refetch()
+                void reportsQ.refetch()
+              }}
+            />
+          }
         >
-          <View style={styles.head}>
+          <View>
             <T role="h1" accessibilityRole="header">
               Admin
             </T>
-            <T role="bodySm" tone="muted">
+            <T role="bodySm" tone="muted" style={styles.mt1}>
               {members.length} members · {waiting.length} waiting
             </T>
           </View>
-          <Tabs<Tab>
-            items={[
-              { key: 'waitlist', label: 'Waitlist', count: waiting.length },
-              { key: 'members', label: 'Members', count: members.length },
-              { key: 'reports', label: 'Reports', count: openReports },
-            ]}
-            value={tab}
-            onChange={setTab}
-          />
+          <View style={styles.mt6}>
+            <Tabs<Tab>
+              items={[
+                { key: 'waitlist', label: 'Waitlist', count: waiting.length },
+                { key: 'members', label: 'Members', count: members.length },
+                { key: 'reports', label: 'Reports', count: openReports },
+              ]}
+              value={tab}
+              onChange={setTab}
+            />
+          </View>
 
           {usersQ.isError && !users ? <LoadError message="Could not load the members." onRetry={() => void usersQ.refetch()} /> : null}
 
           {tab === 'waitlist' ? (
-            <View style={styles.list}>
-              <Card style={styles.inviteCard}>
-                <Field label="Invite someone by email" value={inviteEmail} onChangeText={setInviteEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="send" onSubmitEditing={() => inviteEmail.trim() && invite.mutate(inviteEmail.trim())} />
+            <View style={styles.mt6}>
+              <View style={styles.inviteRow}>
+                <View style={styles.grow}>
+                  <Field compact value={inviteEmail} onChangeText={setInviteEmail} placeholder="Invite someone by email…" accessibilityLabel="Invite someone by email" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="send" onSubmitEditing={() => inviteEmail.trim() && invite.mutate(inviteEmail.trim())} />
+                </View>
                 <Button label="Invite" size="sm" loading={invite.isPending} disabled={!inviteEmail.trim()} onPress={() => invite.mutate(inviteEmail.trim())} />
-              </Card>
+              </View>
               {!users ? (
-                <Skeletons />
+                <View style={styles.mt6}>
+                  <Skeletons />
+                </View>
               ) : waiting.length === 0 ? (
-                <EmptyState title="Nobody is waiting right now." />
+                <View style={styles.mt8}>
+                  <EmptyState title="Nobody is waiting right now." />
+                </View>
               ) : (
-                waiting.map((u) => (
-                  <Card key={u.id}>
-                    <View style={styles.person}>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <T role="body">{displayName(u)}</T>
+                <View style={[styles.list, styles.mt6]}>
+                  {waiting.map((u) => (
+                    <Card key={u.id} padding="none" style={styles.cell}>
+                      <T role="bodySm" style={styles.strong}>
+                        {displayName(u)}
+                      </T>
+                      <T role="caption" tone="muted">
+                        {u.email}
+                      </T>
+                      <View style={styles.tags}>
+                        <StatusPill status={u.status} />
+                        {u.viaGoogle ? <Tag label="google" /> : null}
                         <T role="caption" tone="muted">
-                          {u.email}
+                          Joined {new Date(u.createdAt).toLocaleDateString()}
                         </T>
-                        <View style={styles.tags}>
-                          <StatusPill status={u.status} />
-                          {u.viaGoogle ? <Tag label="google" /> : null}
-                          <T role="caption" tone="faint">
-                            joined {new Date(u.createdAt).toLocaleDateString()}
-                          </T>
-                        </View>
                       </View>
-                    </View>
-                    <View style={styles.rowActions}>
-                      <Button size="sm" label={u.status === 'invited' ? 'New invite link' : u.viaGoogle ? 'Approve' : 'Approve & invite'} loading={busyId === u.id} disabled={busyId !== null} onPress={() => approve.mutate(u)} />
-                    </View>
-                  </Card>
-                ))
+                      <View style={styles.rowActions}>
+                        <Button size="sm" label={u.status === 'invited' ? 'New invite link' : u.viaGoogle ? 'Approve' : 'Approve & invite'} loading={busyId === u.id} disabled={busyId !== null} onPress={() => approve.mutate(u)} />
+                      </View>
+                    </Card>
+                  ))}
+                </View>
               )}
             </View>
           ) : null}
 
           {tab === 'members' ? (
-            <View style={styles.list}>
+            <View style={[styles.list, styles.mt6]}>
               {!users ? (
                 <Skeletons />
               ) : (
                 members.map((u) => {
                   const busy = busyId === u.id
+                  const canReset = (u.role !== 'admin' || u.id === me?.id) && !u.viaGoogle
+                  const canSuspend = u.status === 'approved' && u.role !== 'admin' && u.id !== me?.id
                   return (
-                    <Card key={u.id}>
-                      <View style={{ gap: 2 }}>
-                        <T role="body">{displayName(u)}</T>
-                        <T role="caption" tone="muted">
-                          {u.email}
-                          {u.handle ? ` · @${u.handle}` : ''}
-                        </T>
-                        <View style={styles.tags}>
-                          <StatusPill status={u.status} />
-                          {u.role === 'admin' ? <Tag label="admin" /> : null}
-                          {u.viaGoogle ? <Tag label="google" /> : null}
-                        </View>
+                    <Card key={u.id} padding="none" style={styles.cell}>
+                      <T role="bodySm" style={styles.strong}>
+                        {displayName(u)}
+                      </T>
+                      <T role="caption" tone="muted">
+                        {u.email}
+                        {u.handle ? ` · @${u.handle}` : ''}
+                      </T>
+                      <View style={styles.tags}>
+                        <StatusPill status={u.status} />
+                        {u.role === 'admin' ? <Tag label="admin" /> : null}
+                        {u.viaGoogle ? <Tag label="google" /> : null}
                       </View>
                       <View style={[styles.plans, { borderTopColor: alpha(t.ink, 0.1) }]}>
                         {PLAN_IDS.map((p) => (
                           <Filter key={p} label={p} on={u.plan === p} onPress={() => u.plan !== p && !busy && act.mutate({ id: u.id, path: `/admin/users/${u.id}/plan`, body: { plan: p } })} />
                         ))}
                       </View>
-                      <T role="caption" tone="muted">
+                      <T role="caption" tone="muted" style={styles.mt3}>
                         {u.items} items · {u.wears} wears · {u.aiCalls7d} AI calls / 7d
                       </T>
                       <View style={styles.invites}>
-                        <T role="caption" tone="faint" style={{ flexShrink: 1 }}>
+                        <T role="caption" tone="faint" style={styles.shrink}>
                           {u.role === 'admin' ? 'Invites: unlimited' : `Invites: ${u.invitesLeft} left`} · brought in {u.invited}
                           {u.invitedBy ? ` · came in via ${u.invitedBy}` : ''}
                         </T>
                         {u.role !== 'admin' ? <TextLink label="+5" disabled={busy} onPress={() => act.mutate({ id: u.id, path: `/admin/users/${u.id}/invites`, body: { invitesLeft: u.invitesLeft + 5 } })} /> : null}
                       </View>
-                      <View style={styles.rowActions}>
-                        {(u.role !== 'admin' || u.id === me?.id) && !u.viaGoogle ? <Button size="sm" variant="ghost" label="Reset password" disabled={busy} onPress={() => router.push(routes.adminReset(u.id, u.email))} /> : null}
-                        {u.status === 'approved' && u.role !== 'admin' && u.id !== me?.id ? <Button size="sm" variant="danger" label="Suspend" loading={busy} disabled={busyId !== null} onPress={() => act.mutate({ id: u.id, path: `/admin/users/${u.id}/suspend` })} /> : null}
-                        {u.status === 'suspended' ? <Button size="sm" label="Reinstate" loading={busy} disabled={busyId !== null} onPress={() => act.mutate({ id: u.id, path: `/admin/users/${u.id}/approve` })} /> : null}
-                      </View>
+                      {canReset || canSuspend || u.status === 'suspended' ? (
+                        <View style={styles.rowActions}>
+                          {canReset ? <Button size="sm" variant="ghost" label="Reset password" disabled={busy} onPress={() => router.push(routes.adminReset(u.id, u.email))} /> : null}
+                          {canSuspend ? <Button size="sm" variant="danger" label="Suspend" loading={busy} disabled={busyId !== null} onPress={() => act.mutate({ id: u.id, path: `/admin/users/${u.id}/suspend` })} /> : null}
+                          {u.status === 'suspended' ? <Button size="sm" label="Reinstate" loading={busy} disabled={busyId !== null} onPress={() => act.mutate({ id: u.id, path: `/admin/users/${u.id}/approve` })} /> : null}
+                        </View>
+                      ) : null}
                     </Card>
                   )
                 })
@@ -234,7 +259,7 @@ export default function Admin() {
           ) : null}
 
           {tab === 'reports' ? (
-            <View style={styles.list}>
+            <View style={[styles.list, styles.mt6]}>
               {reportsQ.isError && !reports ? (
                 <LoadError message="Couldn’t load reports." onRetry={() => void reportsQ.refetch()} />
               ) : !reports ? (
@@ -243,18 +268,18 @@ export default function Admin() {
                 <EmptyState title="Nothing reported." line="Good." />
               ) : (
                 reports.map((r) => (
-                  <Card key={r.id} style={{ opacity: r.resolvedAt ? 0.5 : 1 }}>
-                    <View style={{ gap: 2 }}>
-                      <T role="body">{r.targetType === 'user' ? `@${r.target}` : `${r.targetType} ${r.target.slice(0, 8)}…`}</T>
-                      <T role="caption" tone="muted">
-                        {REASON_LABEL[r.reason] ?? r.reason} · from {r.reporter} · {new Date(r.createdAt).toLocaleDateString()}
+                  <Card key={r.id} padding="none" style={[styles.cell, r.resolvedAt ? styles.resolved : null]}>
+                    <T role="bodySm" style={styles.strong}>
+                      {r.targetType === 'user' ? `@${r.target}` : `${r.targetType} ${r.target.slice(0, 8)}…`}
+                    </T>
+                    {r.detail ? (
+                      <T role="caption" tone="muted" style={styles.detail}>
+                        {r.detail}
                       </T>
-                      {r.detail ? (
-                        <T role="bodySm" tone="muted">
-                          {r.detail}
-                        </T>
-                      ) : null}
-                    </View>
+                    ) : null}
+                    <T role="caption" tone="muted" style={styles.mt1}>
+                      {REASON_LABEL[r.reason] ?? r.reason} · from {r.reporter} · {new Date(r.createdAt).toLocaleDateString()}
+                    </T>
                     <View style={styles.rowActions}>
                       {r.resolvedAt ? (
                         <T role="caption" tone="faint">
@@ -279,9 +304,9 @@ function Skeletons() {
   return (
     <View style={styles.list} accessibilityLabel="Loading">
       {[0, 1, 2].map((i) => (
-        <Card key={i}>
-          <SkeletonBlock width={140} height={14} />
-          <SkeletonBlock width="70%" height={10} style={{ marginTop: 8 }} />
+        <Card key={i} padding="none" style={styles.cell}>
+          <SkeletonBlock width={144} height={16} />
+          <SkeletonBlock width="70%" height={12} style={styles.mt2} />
         </Card>
       ))}
     </View>
@@ -289,14 +314,25 @@ function Skeletons() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.lg },
-  head: { gap: 4 },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  mt1: { marginTop: space.xs },
+  mt2: { marginTop: space.sm },
+  mt3: { marginTop: space.md },
+  mt6: { marginTop: space.xl },
+  mt8: { marginTop: space.xxl },
+  grow: { flex: 1 },
+  shrink: { flexShrink: 1 },
+  strong: { fontFamily: fonts.sansMedium },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   list: { gap: space.md },
-  inviteCard: { gap: space.md, paddingVertical: space.lg, alignItems: 'flex-start' },
-  person: { flexDirection: 'row', gap: space.md },
-  tags: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm, marginTop: 4 },
-  pill: { paddingHorizontal: 8, paddingVertical: 3, borderWidth: hairline },
-  plans: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline, marginBottom: space.sm },
-  invites: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: 2 },
+  // The web's `px-4 py-3` table cell.
+  cell: { paddingHorizontal: space.lg, paddingVertical: space.md },
+  resolved: { opacity: 0.5 },
+  tags: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm },
+  pill: { paddingHorizontal: 10, paddingVertical: 4 },
+  tag: { paddingHorizontal: 6, paddingVertical: 2 },
+  plans: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline },
+  invites: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
+  detail: { marginTop: 2 },
   rowActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md },
 })

@@ -1,7 +1,8 @@
 // The closet, in the morning: one line when the basket is worth a load, one
 // when a wishlist piece is still on your mind. Quiet when there's nothing.
+// ClosetNotes.tsx on the web: plaques 14 / 20 inside, 8 apart, a brass arrow.
 import { useQuery } from '@tanstack/react-query'
-import { Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { getBasket, getWishlist } from '@zauq/shared/wardrobe'
 import { Plaque } from '@/src/components/Bits'
@@ -40,11 +41,14 @@ export function ClosetNotes({ index = 2 }: { index?: number }) {
       {notes.map((n) => (
         <Pressable key={n.to} accessibilityRole="button" accessibilityLabel={`${n.eyebrow}. ${n.line}`} pressRetentionOffset={12} onPress={() => go(n.to)}>
           <Plaque style={styles.plaque}>
-            <T role="micro" tone="faint">
-              {n.eyebrow}
-            </T>
-            <T role="lede" style={styles.line}>
-              {n.line}
+            <View style={styles.text}>
+              <T role="micro" tone="faint" style={styles.eyebrow}>
+                {n.eyebrow}
+              </T>
+              <T role="lede">{n.line}</T>
+            </View>
+            <T role="body" tone="brass" accessible={false}>
+              →
             </T>
           </Plaque>
         </Pressable>
@@ -55,6 +59,8 @@ export function ClosetNotes({ index = 2 }: { index?: number }) {
 
 const styles = StyleSheet.create({
   list: { gap: space.sm },
-  plaque: { paddingVertical: 14, paddingRight: space.lg, paddingLeft: 20, gap: 4 },
-  line: { fontSize: 16, lineHeight: 22 },
+  // `p-3.5 pl-5`, `flex items-center justify-between gap-4`.
+  plaque: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.lg, paddingVertical: 14, paddingRight: 14, paddingLeft: 20 },
+  text: { flex: 1, gap: 2 },
+  eyebrow: { letterSpacing: 2 },
 })

@@ -21,7 +21,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
 import { formatDay, nameOf, title, useInvalidateCloset, usePiece, useStory } from '@/src/features/closet/data'
@@ -34,6 +34,9 @@ import { shareCard } from '@/src/features/closet/share'
 import { TwinBanner } from '@/src/features/closet/TwinBanner'
 
 type Tab = 'facts' | 'story' | 'goes'
+
+/** The web's hero: `max-w-[260px]`, centred, at 4/5. */
+const HERO_MAX = 260
 
 export default function Piece() {
   const { id = '', fact: openFrom } = useLocalSearchParams<{ id: string; fact?: string }>()
@@ -102,7 +105,7 @@ export default function Piece() {
     setRefreshing(false)
   }
 
-  const heroW = Math.min(width - gutter * 2, 360)
+  const heroW = Math.min(width - gutter * 2, HERO_MAX)
   const name = item ? title(nameOf(item)) : 'A piece'
 
   if (piece.isError && !item) {
@@ -120,13 +123,19 @@ export default function Piece() {
       <Screen edges={[]} padded>
         <Stack.Screen options={{ headerShown: true, title: '' }} />
         <View style={styles.skeleton} accessibilityLabel="Loading the piece" aria-busy>
-          <ArchSkeleton count={1} width={heroW} columns={1} />
-          <SkeletonBlock width={96} height={14} />
-          <SkeletonBlock width="75%" height={36} />
-          <SkeletonBlock width="55%" height={20} />
-          {[0, 1, 2, 3].map((i) => (
-            <SkeletonBlock key={i} height={16} />
-          ))}
+          <View style={styles.hero}>
+            <ArchSkeleton count={1} width={heroW} columns={1} />
+          </View>
+          <View style={styles.skeletonText}>
+            <SkeletonBlock width={96} height={16} />
+            <SkeletonBlock width="75%" height={48} />
+            <SkeletonBlock width={160} height={36} />
+            <View style={[styles.skeletonRows, { borderTopColor: alpha(t.ink, 0.1) }]}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <SkeletonBlock key={i} height={16} />
+              ))}
+            </View>
+          </View>
         </View>
       </Screen>
     )
@@ -164,11 +173,16 @@ export default function Piece() {
           headerShown: true,
           title: name,
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="More" hitSlop={12} onPress={() => setMenu(true)}>
-              <T role="h3" tone="brass">
-                ···
-              </T>
-            </Pressable>
+            <Button
+              variant="icon"
+              accessibilityLabel="More"
+              icon={
+                <T role="body" tone="muted" style={styles.dots}>
+                  ···
+                </T>
+              }
+              onPress={() => setMenu(true)}
+            />
           ),
         }}
       />
@@ -191,15 +205,15 @@ export default function Piece() {
             accessibilityLabel={name}
           />
           {hasOriginal ? (
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOriginal((v) => !v)}>
-              <T role="caption" tone="brass" align="center" style={{ fontFamily: fonts.sansSemi }}>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOriginal((v) => !v)} style={styles.original}>
+              <T role="caption" tone="brass" align="center" style={styles.semi}>
                 {original ? 'The cut-out' : 'The original photo'}
               </T>
             </Pressable>
           ) : null}
         </Animated.View>
 
-        <Animated.View entering={rise(1)} style={styles.stack}>
+        <Animated.View entering={rise(1)} style={styles.dossier}>
           <View style={styles.chips}>
             <Chip label={title(item.category)} on={false} onPress={() => { setTab('facts'); setOpenFact('category') }} />
             {cut ? (
@@ -216,22 +230,26 @@ export default function Piece() {
             <Chip label={item.visibility === 'public' ? 'Public' : 'Private'} on={false} onPress={() => void save({ visibility: item.visibility === 'public' ? 'private' : 'public' })} />
             {item.suppressed ? <Chip label="Not suggested" on={false} onPress={() => void save({ suppressed: false })} /> : null}
           </View>
-          <T role="h1" accessibilityRole="header">
+          <T role="h1" accessibilityRole="header" style={styles.title}>
             {item.primaryColor ? `${title(item.primaryColor)} ` : ''}
             <T role="h1" tone="brass" italic>
               {`${name.toLowerCase()}.`}
             </T>
           </T>
-          {item.description ? <T role="lede" tone="muted">{item.description}</T> : null}
+          {item.description ? (
+            <T role="lede" tone="muted" style={styles.description}>
+              {item.description}
+            </T>
+          ) : null}
           {dark ? (
-            <T role="caption" tone="faint">
+            <T role="caption" tone="faint" style={styles.description}>
               Out of rotation: the stylist works around it until it’s back.
             </T>
           ) : null}
         </Animated.View>
 
         {item.twinOfId ? (
-          <Animated.View entering={rise(2)}>
+          <Animated.View entering={rise(2)} style={styles.section}>
             <TwinBanner
               item={item}
               onNote={flash}
@@ -244,25 +262,25 @@ export default function Piece() {
         ) : null}
 
         {/* The record, in three figures */}
-        <Animated.View entering={rise(2)}>
+        <Animated.View entering={rise(2)} style={styles.section}>
           <Plaque style={styles.record}>
             <View style={styles.recordCol} accessible accessibilityLabel={`${s ? s.wearCount : 'unknown'} wears`}>
               <T role="statSm">{s ? String(s.wearCount) : '–'}</T>
-              <T role="micro" tone="faint">
+              <T role="micro" tone="faint" style={styles.recordLabel}>
                 wears
               </T>
             </View>
             <View style={styles.recordCol} accessible accessibilityLabel={`last worn ${s?.lastWorn ? formatDay(s.lastWorn) : 'never'}`}>
-              <T role="statSm" numberOfLines={1} adjustsFontSizeToFit>
+              <T role="statSm" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
                 {s ? (s.lastWorn ? formatDay(s.lastWorn) : 'never') : '–'}
               </T>
-              <T role="micro" tone="faint">
+              <T role="micro" tone="faint" style={styles.recordLabel}>
                 last worn
               </T>
             </View>
             <View style={styles.recordCol}>
               {s?.costPerWear != null ? (
-                <T role="statSm" numberOfLines={1} adjustsFontSizeToFit>
+                <T role="statSm" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
                   {money(s.costPerWear)}
                 </T>
               ) : (
@@ -274,19 +292,19 @@ export default function Piece() {
                     setOpenFact('price')
                   }}
                 >
-                  <T role="lede" tone="brass" numberOfLines={1} adjustsFontSizeToFit>
+                  <T role="lede" tone="brass" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
                     Add what it cost
                   </T>
                 </Pressable>
               )}
-              <T role="micro" tone="faint">
+              <T role="micro" tone="faint" style={styles.recordLabel}>
                 a wear
               </T>
             </View>
           </Plaque>
         </Animated.View>
 
-        <Animated.View entering={rise(3)}>
+        <Animated.View entering={rise(3)} style={styles.tabs}>
           <Tabs<Tab>
             value={tab}
             onChange={setTab}
@@ -299,41 +317,43 @@ export default function Piece() {
         </Animated.View>
 
         {tab === 'facts' ? (
-          <Animated.View key="facts" entering={fadeIn} style={styles.stack}>
+          <Animated.View key="facts" entering={fadeIn} style={styles.panel}>
             {unsure > 0 ? (
-              <T role="caption" tone="faint">
+              <T role="caption" tone="faint" style={styles.unsure}>
                 {unsure} {unsure === 1 ? 'fact' : 'facts'} the photo couldn’t settle. Tap one to answer it; the stylist works either way.
               </T>
             ) : null}
-            {GROUPS.map((g) => {
-              const rows = facts.filter((f) => f.group === g)
-              if (rows.length === 0) return null
-              return (
-                <View key={g} style={styles.group}>
-                  <T role="label" tone="brass">
-                    {g}
-                  </T>
-                  <View style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
-                    {rows.map((f, i) => (
-                      <FactRow key={f.key} item={item} fact={f} first={i === 0} open={openFact === f.key} onOpen={() => setOpenFact((cur) => (cur === f.key ? null : f.key))} onSave={(v) => saveFact(f, v)} />
-                    ))}
+            <View style={styles.groups}>
+              {GROUPS.map((g) => {
+                const rows = facts.filter((f) => f.group === g)
+                if (rows.length === 0) return null
+                return (
+                  <View key={g}>
+                    <T role="micro" tone="brass" style={styles.groupLabel}>
+                      {g}
+                    </T>
+                    <View style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
+                      {rows.map((f, i) => (
+                        <FactRow key={f.key} item={item} fact={f} first={i === 0} open={openFact === f.key} onOpen={() => setOpenFact((cur) => (cur === f.key ? null : f.key))} onSave={(v) => saveFact(f, v)} />
+                      ))}
+                    </View>
                   </View>
-                </View>
-              )
-            })}
+                )
+              })}
+            </View>
           </Animated.View>
         ) : null}
 
         {tab === 'story' ? (
-          <Animated.View key="story" entering={fadeIn}>
+          <Animated.View key="story" entering={fadeIn} style={styles.panel}>
             <PieceStory itemId={item.id} />
           </Animated.View>
         ) : null}
 
         {tab === 'goes' ? (
-          <Animated.View key="goes" entering={fadeIn} style={styles.stack}>
+          <Animated.View key="goes" entering={fadeIn} style={styles.goes}>
             <GoesWith itemId={item.id} />
-            <T role="caption" tone="faint">
+            <T role="caption" tone="faint" style={styles.goesNote}>
               Only pieces on the same side of the line: {cut ? `cut for ${cut.toLowerCase()}` : 'yours'}, or for anyone.
             </T>
           </Animated.View>
@@ -351,13 +371,37 @@ export default function Piece() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.lg, gap: space.xl },
-  skeleton: { paddingTop: space.lg, gap: space.md },
-  hero: { alignItems: 'center', gap: 10 },
-  stack: { gap: space.md },
+  content: { paddingHorizontal: gutter, paddingTop: space.lg },
+  skeleton: { paddingTop: space.lg },
+  skeletonText: { marginTop: space.xxl, gap: space.lg },
+  // mt-4 border-t pt-5 gap-3
+  skeletonRows: { marginTop: space.lg, paddingTop: 20, borderTopWidth: hairline, gap: space.md },
+  // The web's ··· trigger: text-lg leading-none tracking-tight.
+  dots: { letterSpacing: -1 },
+  semi: { fontFamily: fonts.sansSemi },
+  hero: { alignItems: 'center' },
+  original: { marginTop: space.sm },
+  // The grid's gap-8 under the hero
+  dossier: { paddingTop: space.xxl },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  record: { flexDirection: 'row', gap: 12, padding: 14, paddingLeft: 20 },
-  recordCol: { flex: 1, gap: 2, minWidth: 0 },
-  group: { gap: 6 },
-  card: { paddingHorizontal: 16, borderWidth: 1 },
+  title: { marginTop: space.md },
+  description: { marginTop: space.md },
+  // mt-6 for the twin banner and the record
+  section: { paddingTop: space.xl },
+  // plaque grid-cols-3 gap-3 p-4 pl-5
+  record: { flexDirection: 'row', gap: space.md, padding: space.lg, paddingLeft: 20 },
+  recordCol: { flex: 1, minWidth: 0 },
+  recordLabel: { marginTop: 2 },
+  // mt-8 for the tabs, mt-4 for what they show
+  tabs: { paddingTop: space.xxl },
+  panel: { paddingTop: space.lg },
+  unsure: { marginBottom: space.md },
+  // each group mb-6
+  groups: { gap: space.xl },
+  // mb-1 text-[10px] tracking-[0.2em]
+  groupLabel: { letterSpacing: 2, marginBottom: space.xs },
+  card: { paddingHorizontal: space.lg, borderWidth: hairline },
+  // mt-2, then GoesWith's own mt-5 and the note mt-3
+  goes: { paddingTop: space.sm },
+  goesNote: { marginTop: space.md },
 })
