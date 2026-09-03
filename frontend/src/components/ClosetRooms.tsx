@@ -1,26 +1,34 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getWishlist } from "../lib/wardrobe";
+import { getBasket, getWishlist } from "../lib/wardrobe";
 
 // The Closet's rooms: one row that says where you are and what's waiting in
-// the others. Three doors — Pieces, the outfits they make, and the wishlist.
+// the others. Pieces, the outfits they make, the basket (what's out of
+// rotation — in the wash, packed, or lent), and the wishlist.
 
-export type Room = "pieces" | "outfits" | "wishlist";
+export type Room = "pieces" | "outfits" | "basket" | "wishlist";
 
 const ROOMS: { key: Room; to: string; label: string }[] = [
   { key: "pieces", to: "/closet", label: "Pieces" },
   { key: "outfits", to: "/closet/outfits", label: "Outfits" },
+  { key: "basket", to: "/closet/basket", label: "The basket" },
   { key: "wishlist", to: "/closet/wishlist", label: "Wishlist" },
 ];
 
 export function ClosetRooms({ current }: { current: Room }) {
-  const [wishlistCount, setWishlistCount] = useState(0);
+  const [counts, setCounts] = useState({ basket: 0, wishlist: 0 });
 
   useEffect(() => {
     let alive = true;
-    getWishlist()
-      .then((w) => alive && setWishlistCount(w ? w.items.length : 0))
-      .catch(() => undefined);
+    Promise.all([getBasket().catch(() => null), getWishlist().catch(() => null)]).then(
+      ([b, w]) => {
+        if (!alive) return;
+        setCounts({
+          basket: b ? b.counts.inWash + b.counts.packed + b.counts.lentOut : 0,
+          wishlist: w ? w.items.length : 0,
+        });
+      },
+    );
     return () => {
       alive = false;
     };
@@ -30,7 +38,7 @@ export function ClosetRooms({ current }: { current: Room }) {
     <div className="mt-6 flex animate-rise-1 items-end justify-between gap-x-4 border-b border-ink/10">
       <nav aria-label="Closet rooms" className="tabs min-w-0 !border-b-0">
         {ROOMS.map((r) => {
-          const badge = r.key === "wishlist" ? wishlistCount : 0;
+          const badge = r.key === "basket" ? counts.basket : r.key === "wishlist" ? counts.wishlist : 0;
           return (
             <NavLink
               key={r.key}

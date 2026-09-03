@@ -22,9 +22,7 @@ interface InsightItem {
   costPerWear: number | null
 }
 
-type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins' | 'basket'
-
-const BASKET_STATES = ['in-wash', 'packed', 'lent-out']
+type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins'
 
 const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'all', label: 'Everything' },
@@ -32,7 +30,6 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'never-worn', label: 'Never worn' },
   { id: 'orphans', label: 'Sitting idle' },
   { id: 'new', label: 'New this month' },
-  { id: 'basket', label: 'In the basket' },
   { id: 'twins', label: 'Possible twins' },
 ]
 
@@ -162,7 +159,6 @@ export function ClosetPage() {
     if (collection === 'orphans' && !ins?.orphan) return false
     if (collection === 'new' && new Date(it.createdAt ?? 0).getTime() < monthAgo) return false
     if (collection === 'twins' && !it.twinOfId) return false
-    if (collection === 'basket' && !BASKET_STATES.includes(it.state ?? '')) return false
     if (search) {
       const hay = `${it.subtype ?? ''} ${it.category} ${it.primaryColor ?? ''} ${it.description ?? ''}`.toLowerCase()
       if (!hay.includes(search.toLowerCase())) return false

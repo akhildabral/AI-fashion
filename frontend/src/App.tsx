@@ -20,6 +20,7 @@ import { PrivacyPage, TermsPage } from './pages/LegalPage'
 import { TodayPage } from './pages/TodayPage'
 import { ClosetPage } from './pages/ClosetPage'
 import { PiecePage } from './pages/PiecePage'
+import { BasketRoom } from './pages/BasketRoom'
 import { OutfitsRoom } from './pages/OutfitsRoom'
 import { ComposePage } from './pages/ComposePage'
 import { StorePage } from './pages/StorePage'
@@ -93,7 +94,7 @@ export default function App() {
                 <Route path="/" element={guarded(<TodayPage />)} />
                 <Route path="/closet" element={guarded(<ClosetPage />)} />
                 <Route path="/closet/piece/:id" element={guarded(<PiecePage />)} />
-                <Route path="/closet/basket" element={<Navigate to="/closet" replace />} />
+                <Route path="/closet/basket" element={guarded(<BasketRoom />)} />
                 <Route path="/closet/outfits" element={guarded(<OutfitsRoom />)} />
                 <Route path="/closet/compose" element={guarded(<ComposePage />)} />
                 <Route path="/closet/store" element={guarded(<StorePage />)} />
