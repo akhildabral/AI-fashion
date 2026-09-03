@@ -642,13 +642,13 @@ function EmptyFeed({
       body:
         circleSize === 0
           ? 'Bring in someone whose taste you trust. Their looks, verdicts and picks gather here.'
-          : 'Your circle hasn’t shared anything lately. Share yours to start the conversation.',
+          : 'Your circle’s gone quiet. Share yours and get it going.',
     },
     following: {
       title: 'Nothing new from your people',
       body: 'When they share a look or ask a verdict, it lands here in order.',
     },
-    explore: { title: 'Nothing hung yet', body: 'When people share their outfit of the day, the finest land here.' },
+    explore: { title: 'Nothing hung yet', body: 'When people post their outfit of the day, the best of it lands here.' },
     saved: { title: 'Your board is empty', body: 'Tap Save on any look you’d wear. It waits here for when you need the idea.' },
   }
   const c = copy[lens]

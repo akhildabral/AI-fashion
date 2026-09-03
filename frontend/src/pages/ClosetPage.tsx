@@ -514,7 +514,7 @@ export function ClosetPage() {
                 </div>
               ) : (
                 <p className="rounded-[3px] border border-dashed border-ink/15 p-5 text-sm text-ink/45">
-                  Log a few wears and the pieces you&rsquo;re neglecting will surface here.
+                  Log a few wears and the pieces you&rsquo;re neglecting turn up here.
                 </p>
               )}
             </section>

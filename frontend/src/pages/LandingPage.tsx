@@ -188,7 +188,7 @@ export function LandingPage() {
       </Room>
 
       {/* ---- the store ---- */}
-      <Room flip k="The store" title={<>Point your camera <em className="text-brass">at it.</em></>} line="Does it go with what you own? The closet answers before you buy.">
+      <Room flip k="The store" title={<>Point your camera <em className="text-brass">at it.</em></>} line="Does it go with what you own? Your closet answers before you pay.">
         <Photo name="store" alt="A phone held up to a coat in a boutique">
           <div className="card absolute inset-x-4 bottom-4 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">In the store</p>

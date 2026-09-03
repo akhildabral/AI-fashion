@@ -226,7 +226,7 @@ export function MirrorPage() {
     setBusy('report')
     try {
       await reportTryOn(current.id)
-      flash('Noted, and the render is given back to you.')
+      flash('Noted. That render’s back on the house.')
       getUsage().then(setUsage).catch(() => undefined)
     } finally {
       setBusy(null)
@@ -242,8 +242,8 @@ export function MirrorPage() {
       const { log } = await logWear({ itemIds: ids })
       await setLookPhotoFromRender(log.id, current.id).catch(() => undefined)
       if (shareFor) setShareFor(null)
-      setDecided((d) => ({ ...d, wear: 'Logged for today, with this as the photo.' }))
-      flash('Logged for today. Today knows.')
+      setDecided((d) => ({ ...d, wear: 'Logged for today, with this as your photo.' }))
+      flash('Logged. It’s on today’s page.')
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Could not log that.')
     } finally {
@@ -687,7 +687,7 @@ export function MirrorPage() {
                 </button>
               )}
               </div>
-              <p className="mt-2 text-xs text-ink/45">{photos.length < photoMax ? 'Another for winter, a haircut, a different length. The brass one is the one the Mirror dresses.' : 'Three at most. The brass one is the one the Mirror dresses.'}</p>
+              <p className="mt-2 text-xs text-ink/45">{photos.length < photoMax ? 'Add one for winter, a haircut, a new length. The brass one is the one the Mirror dresses.' : 'Three at most. The brass one is the one the Mirror dresses.'}</p>
             </section>
           )}
 
@@ -757,7 +757,7 @@ export function MirrorPage() {
               <div className="action-row mt-2">
                 {!current.retryOf ? (
                   <button type="button" disabled={busy !== null} onClick={() => void tryAgain()} className="btn-quiet btn-quiet-sm">
-                    {busy === 'retry' ? 'Starting…' : 'Not right? Try again · free once'}
+                    {busy === 'retry' ? 'Starting…' : 'Not right? Try again, free once'}
                   </button>
                 ) : (
                   <button type="button" disabled={busy !== null} onClick={() => void fire(true)} className="btn-quiet btn-quiet-sm">
@@ -777,7 +777,7 @@ export function MirrorPage() {
           {compareMode && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Which one?</p>
-              <p className="mt-1 text-sm text-ink/55">{compared.length < 2 ? 'Pick two renders below.' : 'Side by side. Still torn? Ask the circle.'}</p>
+              <p className="mt-1 text-sm text-ink/55">{compared.length < 2 ? 'Pick two renders below.' : 'Side by side. Still torn? Put it to the circle.'}</p>
               <div className="action-row mt-3">
                 {compared.length === 2 && (
                   <>
