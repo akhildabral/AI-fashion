@@ -29,6 +29,9 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
   const past = date < today
   const [day, setDay] = useState<WeekDay | null>(null)
   const [brief, setBrief] = useState<BriefResponse | null>(null)
+  const [pastLoading, setPastLoading] = useState(false)
+  const [pastFailed, setPastFailed] = useState(false)
+  const [nonce, setNonce] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
   const [occasion, setOccasion] = useState('')
   const tomorrow = date === new Date(new Date(`${today}T12:00:00`).getTime() + 86_400_000).toISOString().slice(0, 10)
@@ -38,9 +41,19 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
     setDay(null)
     setBrief(null)
     if (past) {
+      setPastLoading(true)
+      setPastFailed(false)
       getWeek(date)
-        .then((r) => alive && setDay(r.days.find((d) => d.date === date) ?? null))
-        .catch(() => alive && setDay(null))
+        .then((r) => {
+          if (!alive) return
+          setDay(r.days.find((d) => d.date === date) ?? null)
+          setPastLoading(false)
+        })
+        .catch(() => {
+          if (!alive) return
+          setPastFailed(true)
+          setPastLoading(false)
+        })
     } else {
       getBrief({ date, peek: !laidOut })
         .then((r) => alive && setBrief(r))
@@ -49,7 +62,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
     return () => {
       alive = false
     }
-  }, [date, past, laidOut])
+  }, [date, past, laidOut, nonce])
 
   async function plan(body: { eventType?: string; occasion?: string; rest?: boolean }) {
     setBusy(body.rest ? 'rest' : body.eventType ?? 'occasion')
@@ -73,10 +86,22 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
       <div className="animate-rise lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{eyebrow}</p>
-        {day === null && (
+        {pastLoading && (
           <div className="mt-6 text-ink/45">
             <Spinner className="h-5 w-5" />
           </div>
+        )}
+        {!pastLoading && pastFailed && (
+          <div className="mt-6">
+            <p className="text-sm text-ink/60">Couldn’t load that day.</p>
+            <button type="button" onClick={() => setNonce((n) => n + 1)} className="btn-ghost btn-sm mt-3">Try again</button>
+          </div>
+        )}
+        {!pastLoading && !pastFailed && !day && (
+          <>
+            <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">Nothing on record.</h1>
+            <p className="mt-3 font-display text-lg italic text-ink/55">No look was worn or logged that day.</p>
+          </>
         )}
         {day && !day.worn && (
           <>

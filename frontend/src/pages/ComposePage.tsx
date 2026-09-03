@@ -11,7 +11,7 @@ import {
 } from "../lib/outfits";
 import { logWear } from "../lib/wearlog";
 import { RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash } from "../components/ui";
+import { PageShell, Toast, useFlash, ArchSkeleton } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
@@ -81,6 +81,7 @@ export function ComposePage() {
   const [params] = useSearchParams();
   const { toast, flash } = useFlash();
   const [closet, setCloset] = useState<WardrobeItem[] | null>(null);
+  const [closetFailed, setClosetFailed] = useState(false);
   const [chosen, setChosen] = useState<string[]>([]);
   const [slot, setSlot] = useState<string>("top");
   const [eventType, setEventType] = useState("work");
@@ -91,10 +92,11 @@ export function ComposePage() {
   // Load the closet, and whatever we're composing from: a pinned piece or a saved outfit.
   useEffect(() => {
     getWardrobe()
-      .then((r) =>
-        setCloset(r.items.filter((i) => i.status === "ready" && !i.suppressed)),
-      )
-      .catch(() => setCloset([]));
+      .then((r) => {
+        setCloset(r.items.filter((i) => i.status === "ready" && !i.suppressed));
+        setClosetFailed(false);
+      })
+      .catch(() => setClosetFailed(true));
     const pin = params.get("pin");
     const from = params.get("from");
     if (pin) setChosen([pin]);
@@ -311,9 +313,13 @@ export function ComposePage() {
               );
             })}
           </div>
-          {closet === null && (
-            <div className="mt-8 text-ink/45">
-              <Spinner className="h-5 w-5" />
+          {closet === null && !closetFailed && (
+            <ArchSkeleton count={10} className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5" />
+          )}
+          {closetFailed && (
+            <div className="mt-8">
+              <p className="text-sm text-ink/60">Couldn’t load your closet. Check your connection.</p>
+              <button type="button" onClick={() => { setClosetFailed(false); getWardrobe().then((r) => { setCloset(r.items.filter((i) => i.status === 'ready' && !i.suppressed)) }).catch(() => setClosetFailed(true)) }} className="btn-ghost btn-sm mt-3">Try again</button>
             </div>
           )}
           {closet && (

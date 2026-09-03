@@ -12,7 +12,7 @@ import {
 } from "../lib/outfits";
 import { logWear } from "../lib/wearlog";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash } from "../components/ui";
+import { PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
@@ -59,14 +59,16 @@ export function OutfitsRoom() {
   const [occasion, setOccasion] = useState<string | null>(null);
   const [suggested, setSuggested] = useState<Suggested[] | null>(null);
   const [asking, setAsking] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await getOutfits();
       setOutfits(r.outfits.filter((o) => o.items.length > 0));
+      setFailed(false);
     } catch {
-      setOutfits([]);
+      setFailed(true);
     }
   }, []);
   useEffect(() => {
@@ -257,12 +259,13 @@ export function OutfitsRoom() {
         <h2 className="mt-1 font-display text-3xl font-medium text-ink">
           Kept and worn
         </h2>
-        {outfits === null && (
-          <div className="mt-6 text-ink/45">
-            <Spinner className="h-5 w-5" />
-          </div>
+        {outfits === null && !failed && (
+          <ArchSkeleton count={3} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aspect="aspect-[4/3]" />
         )}
-        {outfits && outfits.length === 0 && (
+        {failed && !outfits && (
+          <LoadError className="min-h-[24vh]" message="Couldn’t load your outfits. Check your connection and try again." onRetry={() => { setFailed(false); void load() }} />
+        )}
+        {!failed && outfits && outfits.length === 0 && (
           <div className="mt-6 max-w-lg">
             <p className="font-display text-lg italic text-ink/60">
               Nothing kept yet. Wear a brief, keep a suggestion, or compose one

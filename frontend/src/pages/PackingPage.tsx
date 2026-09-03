@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Arch, GarmentTile, PageShell, Tabs } from '../components/ui'
+import { Arch, GarmentTile, PageShell, Tabs, SkeletonBlock, LoadError } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { packForTrip } from '../lib/wardrobe'
 import { createTrip, getTrips, type Trip } from '../lib/brief'
@@ -62,15 +62,25 @@ export function PackingPage() {
   const [past, setPast] = useState<Trip[]>([])
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [savingTrip, setSavingTrip] = useState(false)
+  const [tripsLoaded, setTripsLoaded] = useState(false)
+  const [tripsFailed, setTripsFailed] = useState(false)
 
-  useEffect(() => {
+  const loadTrips = useCallback(() => {
+    setTripsFailed(false)
     getTrips()
       .then((r) => {
         setTrips(r.trips)
         setPast(r.past)
+        setTripsLoaded(true)
       })
-      .catch(() => undefined)
+      .catch(() => {
+        setTripsFailed(true)
+        setTripsLoaded(true)
+      })
   }, [])
+  useEffect(() => {
+    loadTrips()
+  }, [loadTrips])
 
   const planText = [...plans, activities.trim()].filter(Boolean).join(', ')
 
@@ -124,7 +134,29 @@ export function PackingPage() {
         <p className="mt-3 max-w-xl animate-rise-1 text-sm text-ink/55">Where and when. Your stylist builds the capsule from clothes you own, plans each day, and lists the rest. Save it, and the trip keeps.</p>
       </header>
 
-      {(trips.length > 0 || past.length > 0) && (
+      {!tripsLoaded && (
+        <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading your trips">
+          {[0, 1].map((i) => (
+            <div key={i} className="plaque p-5">
+              <SkeletonBlock className="h-5 w-2/3" />
+              <SkeletonBlock className="mt-3 h-4 w-1/2" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tripsLoaded && tripsFailed && (
+        <LoadError className="min-h-[24vh]" message="Couldn’t load your trips. Check your connection and try again." onRetry={loadTrips} />
+      )}
+
+      {tripsLoaded && !tripsFailed && trips.length === 0 && past.length === 0 && (
+        <div className="mt-8 max-w-lg animate-rise-2">
+          <p className="font-display text-2xl italic text-ink/70">No trips yet.</p>
+          <p className="mt-2 text-sm text-ink/55">Name a destination and dates below, and your stylist packs a capsule from your own closet.</p>
+        </div>
+      )}
+
+      {tripsLoaded && !tripsFailed && (trips.length > 0 || past.length > 0) && (
         <section className="mt-8 animate-rise-2">
           <Tabs
             label="Trips"

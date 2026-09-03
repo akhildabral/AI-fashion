@@ -4,8 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { deleteWardrobeItem, getWishlist, updateWardrobeItem } from '../lib/wardrobe'
 import { ClosetRooms, RoomMantel } from '../components/ClosetRooms'
-import { PageShell, Toast, useFlash } from '../components/ui'
-import { Spinner } from '../components/Spinner'
+import { PageShell, Toast, useFlash, SkeletonBlock, LoadError } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
 import type { WardrobeItem } from '../lib/types'
 
@@ -33,6 +32,7 @@ export function WishlistRoom() {
   const navigate = useNavigate()
   const { toast, flash } = useFlash()
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -41,8 +41,9 @@ export function WishlistRoom() {
       const withV = r.items.map((i) => ({ ...i, v: (i as WardrobeItem & { verdict?: Verdict | null }).verdict ?? null }))
       withV.sort((a, b) => (b.v?.outfits ?? -1) - (a.v?.outfits ?? -1))
       setItems(withV)
+      setFailed(false)
     } catch {
-      setItems([])
+      setFailed(true)
     }
   }, [])
   useEffect(() => {
@@ -86,13 +87,24 @@ export function WishlistRoom() {
         </div>
       )}
 
-      {items === null && (
-        <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
+      {failed && !items && <LoadError message="Couldn’t load your wishlist. Check your connection and try again." onRetry={() => { setFailed(false); void load() }} />}
+
+      {items === null && !failed && (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="card grid grid-cols-[96px_1fr] gap-4 p-4">
+              <SkeletonBlock className="aspect-[5/6]" />
+              <div className="flex flex-col gap-2">
+                <SkeletonBlock className="h-5 w-3/4" />
+                <SkeletonBlock className="h-4 w-1/2" />
+                <SkeletonBlock className="mt-auto h-8 w-24" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {items && items.length === 0 && (
+      {!failed && items && items.length === 0 && (
         <div className="mt-10 max-w-lg animate-rise-1">
           <p className="font-display text-2xl italic text-ink/70">Nothing in mind yet.</p>
           <p className="mt-2 text-sm text-ink/55">Next time you’re holding something in a shop, point the camera at it. The closet says how many outfits it makes before you pay for it, and “keep in mind” lands here.</p>

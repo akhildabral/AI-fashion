@@ -475,9 +475,15 @@ export function AdminPage() {
 
       {tab === 'reports' && (
         <div className="mt-6">
-          {!reports && (
+          {!reports && !error && (
             <div className="flex justify-center py-10 text-ink/50">
               <Spinner className="h-6 w-6" />
+            </div>
+          )}
+          {!reports && error && (
+            <div className="py-10 text-center">
+              <p className="text-sm text-ink/60">Couldn’t load reports.</p>
+              <button type="button" onClick={() => { setError(null); void loadReports() }} className="btn-ghost btn-sm mt-3">Try again</button>
             </div>
           )}
           {reports && reports.length === 0 && (

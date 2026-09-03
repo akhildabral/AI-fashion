@@ -7,8 +7,7 @@ import {
   type BasketResponse,
 } from "../lib/wardrobe";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { GarmentTile, PageShell, Toast, useFlash } from "../components/ui";
-import { Spinner } from "../components/Spinner";
+import { GarmentTile, PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../components/ui";
 import { resolveImageUrl } from "../lib/api";
 import type { WardrobeItem } from "../lib/types";
 
@@ -32,11 +31,15 @@ export function BasketRoom() {
   const { toast, flash } = useFlash();
   const [data, setData] = useState<BasketResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setData(await getBasket());
+      setFailed(false);
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -93,13 +96,13 @@ export function BasketRoom() {
       />
       <ClosetRooms current="basket" />
 
-      {loading && (
-        <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
-        </div>
+      {loading && <ArchSkeleton count={4} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6" />}
+
+      {!loading && failed && (
+        <LoadError message="Couldn’t open the basket. Check your connection and try again." onRetry={() => { setLoading(true); void load() }} />
       )}
 
-      {!loading && data && (
+      {!loading && !failed && data && (
         <>
           {/* The plaque: is it worth a load? */}
           <div className="plaque mt-8 flex animate-rise-1 flex-col gap-4 p-5 pl-6 sm:flex-row sm:items-center sm:justify-between">
