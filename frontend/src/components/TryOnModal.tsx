@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { createTryOn, getPhoto } from '../lib/tryon'
+import { createTryOn, getPhoto, getTryOn } from '../lib/tryon'
 import { tryOnWardrobeOutfit } from '../lib/wardrobe'
 import type { TryOn } from '../lib/types'
+import { useJobs } from '../context/useJobs'
 import { Spinner } from './Spinner'
 
 type Phase = 'checking' | 'no-photo' | 'rendering' | 'done' | 'error'
@@ -29,6 +30,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
   const [tryOn, setTryOn] = useState<TryOn | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryNonce, setRetryNonce] = useState(0)
+  const { trackRender } = useJobs()
 
   const lookId = 'lookId' in target ? target.lookId : undefined
   const itemIds = 'itemIds' in target ? target.itemIds : undefined
@@ -56,13 +58,35 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
           return
         }
         setPhase('rendering')
-        const { tryOn: result } =
+        const { tryOn: first } =
           lookId !== undefined
             ? await createTryOn(lookId)
             : await tryOnWardrobeOutfit(itemIds ?? [])
         if (cancelled) return
-        setTryOn(result)
-        setPhase('done')
+        // The render is a job, not a synchronous result: the row comes back
+        // queued/rendering. Hand it to the app-level tray (so closing this
+        // modal doesn't drop it) and poll until it actually lands.
+        if (first.status === 'ready' || !first.status) {
+          setTryOn(first)
+          setPhase('done')
+          return
+        }
+        trackRender(first)
+        for (;;) {
+          await new Promise((r) => setTimeout(r, 2500))
+          if (cancelled) return
+          const { tryOn: t } = await getTryOn(first.id)
+          if (t.status === 'ready') {
+            setTryOn(t)
+            setPhase('done')
+            return
+          }
+          if (t.status === 'failed') {
+            setError(t.error ?? 'The render failed. Nothing was charged.')
+            setPhase('error')
+            return
+          }
+        }
       } catch (err) {
         if (cancelled) return
         setError(err instanceof Error ? err.message : 'Something went wrong.')

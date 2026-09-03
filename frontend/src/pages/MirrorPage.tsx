@@ -12,6 +12,7 @@ import { saveOutfit } from '../lib/outfits'
 import type { Reflection, TryOn, WardrobeItem } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { MirrorFrame, Modal, Tabs, Toast, useFlash, MoreMenu, MenuItem } from '../components/ui'
+import { useJobs } from '../context/useJobs'
 import { InspirationLens } from '../components/InspirationLens'
 
 // The Mirror, as a fitting room. The glass in the centre; under it the rail —
@@ -34,6 +35,7 @@ export function MirrorPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const { toast, flash } = useFlash()
+  const jobs = useJobs()
 
   // ---- the lens: your closet on you, or looks you don't own ----
   const [lens, setLens] = useState<'closet' | 'inspiration'>(params.get('lens') === 'inspiration' ? 'inspiration' : 'closet')
@@ -127,10 +129,12 @@ export function MirrorPage() {
     }
   }, [itemsParam, renderParam, params, setParams])
 
-  // The latest render is staged when you come back with nothing in hand.
+  // The latest render is staged when you come back with nothing in hand —
+  // including one that's still rendering, so its progress resumes on the page
+  // instead of finishing invisibly.
   useEffect(() => {
     if (current || itemsParam || renderParam || !tryOns || tryOns.length === 0) return
-    const last = tryOns.find((t) => !t.status || t.status === 'ready')
+    const last = tryOns.find((t) => t.status !== 'failed')
     if (last) {
       setCurrent(last)
       if (rail.length === 0 && last.itemIds?.length) setRail(last.itemIds.map((id) => ({ id, on: true })))
@@ -196,6 +200,10 @@ export function MirrorPage() {
       if (r.cached) {
         flash('Same pieces, same photo: from the cache, free.')
         setTryOns((prev) => [r.tryOn, ...(prev ?? []).filter((t) => t.id !== r.tryOn.id)])
+      } else {
+        // Hand the render to the app-level jobs layer so it keeps reporting in
+        // the tray and finishes even if the user leaves the Mirror.
+        jobs.trackRender(r.tryOn)
       }
       getUsage().then(setUsage).catch(() => undefined)
     } catch (err) {

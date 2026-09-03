@@ -6,6 +6,8 @@ import { useEffect } from 'react'
 import { setCurrentCurrency } from './lib/money'
 import { setCurrentUnits } from './lib/units'
 import { Header } from './components/Header'
+import { JobsProvider } from './context/JobsProvider'
+import { JobTray } from './components/JobTray'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RequireProfile } from './components/RequireProfile'
 import { RequireAdmin } from './components/RequireAdmin'
@@ -58,6 +60,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ProfileProvider>
+         <JobsProvider>
           <div className="relative min-h-screen">
             <div
               aria-hidden
@@ -77,6 +80,7 @@ export default function App() {
             />
             <CurrencySync />
             <Header />
+            <JobTray />
             <main>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
@@ -129,6 +133,7 @@ export default function App() {
               </Routes>
             </main>
           </div>
+         </JobsProvider>
         </ProfileProvider>
       </AuthProvider>
     </BrowserRouter>

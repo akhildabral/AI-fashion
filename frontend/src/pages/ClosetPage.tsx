@@ -2,18 +2,17 @@ import { money } from '../lib/money'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type CSSProperties } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate } from 'react-router-dom'
-import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
-import { apiFetch, pinFile } from '../lib/api'
+import { getWardrobe } from '../lib/wardrobe'
+import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
 import { GarmentTile, PageShell, Modal, Filter, LoadError } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
+import { useJobs } from '../context/useJobs'
 import { LetGoModal } from '../components/LetGo'
 import { PriceDrawer } from '../components/PriceDrawer'
 import { Spinner } from '../components/Spinner'
 
-const MAX_BYTES = 12 * 1024 * 1024
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
 
 interface InsightItem {
   itemId: string
@@ -38,6 +37,7 @@ const inr = (n: number) => money(n)
 export function ClosetPage() {
   usePageTitle('Closet')
   const navigate = useNavigate()
+  const jobs = useJobs()
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
@@ -45,7 +45,6 @@ export function ClosetPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(0)
   const [dragActive, setDragActive] = useState(false)
   const [lettingGo, setLettingGo] = useState<WardrobeItem | null>(null)
   const [category, setCategory] = useState<string | null>(null)
@@ -79,6 +78,18 @@ export function ClosetPage() {
     getClosetGaps().then((g) => setGaps(g.suggestions)).catch(() => undefined)
   }, [loadInsights, loadWardrobe])
 
+  // Tiles created by the app-level upload queue land here the moment they
+  // return — whether the upload was started on this page or before we arrived.
+  useEffect(() => {
+    if (jobs.addedItems.length === 0) return
+    setItems((prev) => {
+      const have = new Set((prev ?? []).map((i) => i.id))
+      const fresh = jobs.addedItems.filter((i) => !have.has(i.id))
+      return fresh.length ? [...fresh, ...(prev ?? [])] : prev
+    })
+    jobs.consumeAddedItems()
+  }, [jobs])
+
   const hasProcessing = items?.some((it) => it.status === 'processing') ?? false
   useEffect(() => {
     if (!hasProcessing) return
@@ -90,34 +101,11 @@ export function ClosetPage() {
     return () => clearInterval(timer)
   }, [hasProcessing])
 
-  async function uploadFiles(files: File[]) {
-    // Pin every photo into memory now: a phone can drop the picker's file
-    // handle before a queued upload reaches it.
-    files = (await Promise.all(files.map((f) => pinFile(f).catch(() => null)))).filter((f): f is File => f !== null)
-    const valid = files.filter((f) => (ACCEPTED.includes(f.type) || /\.hei[cf]$/i.test(f.name)) && f.size <= MAX_BYTES)
-    if (valid.length === 0) {
-      setUploadError('Use JPG, PNG, WebP or HEIC photos up to 12MB.')
-      return
-    }
-    setUploadError(null)
-    setUploading(valid.length)
-    // Three at a time: a first closet of forty photos develops as a board,
-    // not a queue, and each tile appears the moment its upload lands.
-    const queue = [...valid]
-    const worker = async () => {
-      for (let file = queue.shift(); file; file = queue.shift()) {
-        try {
-          const res = await addWardrobeItem(file)
-          const added = res.items ?? [res.item]
-          setItems((prev) => (prev ? [...added, ...prev] : added))
-        } catch (err) {
-          setUploadError(err instanceof Error ? err.message : 'An upload failed.')
-        } finally {
-          setUploading((n) => n - 1)
-        }
-      }
-    }
-    await Promise.all(Array.from({ length: Math.min(3, valid.length) }, worker))
+  // Uploads run in the app-level jobs layer so the queue and its progress
+  // survive navigation and tab switches. The tiles they create arrive back
+  // through jobs.addedItems (merged below).
+  function uploadFiles(files: File[]) {
+    jobs.enqueueUploads(files)
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -281,12 +269,11 @@ export function ClosetPage() {
             <button
               type="button"
               onClick={() => setAddChooserOpen(true)}
-              disabled={uploading > 0}
               className="btn-primary whitespace-nowrap !px-5"
             >
-              {uploading > 0 ? (
+              {jobs.upload.active ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" /> {uploading} left…
+                  <Spinner className="mr-2 h-4 w-4" /> {Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…
                 </>
               ) : (
                 'Add'
