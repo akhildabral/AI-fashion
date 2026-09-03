@@ -231,7 +231,10 @@ export function StyleFriendModal({
             </div>
           )}
 
-          <div className="action-row mt-5">
+          {selected.length < 2 && (
+            <p className="mt-5 text-xs text-ink/50">Pick at least two pieces to send a look.</p>
+          )}
+          <div className={`action-row ${selected.length < 2 ? 'mt-2' : 'mt-5'}`}>
             <button type="button" disabled={selected.length < 2 || sending} onClick={() => void send()} className="btn-primary disabled:opacity-40">
               {sending ? 'Sending…' : `Send it to ${friend.name}`}
             </button>

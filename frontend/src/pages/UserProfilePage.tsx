@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
@@ -347,19 +347,18 @@ export function UserProfilePage() {
                 </div>
               ) : (
                 <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {profile.publicItems.map((item) => {
+                  {profile.publicItems.map((item, i) => {
                     return (
-                      <button
+                      <figure
                         key={item.id}
-                        type="button"
-                        disabled
-                        className="relative cursor-default text-left"
+                        className="rise-stagger relative m-0"
+                        style={{ '--i': i } as CSSProperties}
                       >
                         <Arch aspect="aspect-[5/6]">
                           <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[7%]" />
                         </Arch>
-                        <p className="mt-2 truncate text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">{item.subtype ?? item.category}</p>
-                      </button>
+                        <figcaption className="mt-2 truncate text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">{item.subtype ?? item.category}</figcaption>
+                      </figure>
                     )
                   })}
                 </div>

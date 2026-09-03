@@ -379,9 +379,19 @@ export function TodayPage() {
       </div>
 
       {loading && (
-        <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-ink/50">
-          <Spinner className="h-6 w-6" />
-          <p className="font-display text-sm italic">composing your look…</p>
+        <div className="mt-8" aria-busy="true" aria-label="Composing your look">
+          {/* A skeleton in the brief's own shape — the title, then the arches —
+              so the real look resolves in place with no jump. */}
+          <div className="h-11 w-72 max-w-[80%] animate-pulse rounded-[3px] bg-ink/10" />
+          <div className="mt-3 h-4 w-56 max-w-[60%] animate-pulse rounded-[3px] bg-ink/[0.07]" />
+          <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60" style={{ animationDelay: `${i * 90}ms` }}>
+                <div className="arch-niche h-full w-full" />
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 font-display text-sm italic text-ink/40">composing your look…</p>
         </div>
       )}
 

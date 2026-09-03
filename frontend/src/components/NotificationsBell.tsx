@@ -149,6 +149,9 @@ export function NotificationsBell() {
   const [place, setPlace] = useState<{ top: number; right: number } | null>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  // Mark-read waits until the panel closes, so the bold "new" rows stay
+  // visible the whole time it's open.
+  const hadUnreadRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -188,6 +191,19 @@ export function NotificationsBell() {
     setOpen(false)
   }, [pathname])
 
+  // When the panel closes, settle the "new" rows: clear the badge and tell
+  // the server, once, so the next open shows a clean slate.
+  useEffect(() => {
+    if (!open) return
+    return () => {
+      if (hadUnreadRef.current) {
+        hadUnreadRef.current = false
+        setUnread(0)
+        void markNotificationsRead().catch(() => undefined)
+      }
+    }
+  }, [open])
+
   function toggleBell() {
     if (open) {
       setOpen(false)
@@ -199,10 +215,7 @@ export function NotificationsBell() {
     void getNotifications()
       .then((r) => {
         setItems(r.items)
-        if (r.unread > 0) {
-          setUnread(0)
-          void markNotificationsRead().catch(() => undefined)
-        }
+        hadUnreadRef.current = r.unread > 0
       })
       .catch(() => setItems([]))
   }
