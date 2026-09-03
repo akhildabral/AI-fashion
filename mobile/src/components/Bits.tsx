@@ -1,6 +1,6 @@
 // Small furniture used on every screen: section heads, stats, plaques,
 // hairlines, the failed-fetch state.
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { StyleSheet, View, type ViewStyle } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { useTheme } from '@/src/design/theme'
@@ -41,9 +41,14 @@ export function Hairline({ style }: { style?: ViewStyle }) {
 /** A gradient panel with a 2px engraved brass left edge: the ROI figure, the estate value. */
 export function Plaque({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const { t } = useTheme()
+  // Percent sizes are unreliable on an absolutely placed Svg; measure instead.
+  const [size, setSize] = useState({ w: 0, h: 0 })
   return (
-    <View style={[styles.plaque, { borderRadius: radius, backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1) }, style]}>
-      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+    <View
+      onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      style={[styles.plaque, { borderRadius: radius, backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1) }, style]}
+    >
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={size.w} height={size.h}>
         <Defs>
           <LinearGradient id="plaque" x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={t.brassSoft} stopOpacity={0.9} />
@@ -54,8 +59,8 @@ export function Plaque({ children, style }: { children: ReactNode; style?: ViewS
             <Stop offset="1" stopColor={t.brassLo} />
           </LinearGradient>
         </Defs>
-        <Rect width="100%" height="100%" fill="url(#plaque)" />
-        <Rect width={2} height="100%" fill="url(#plaqueEdge)" />
+        <Rect width={size.w} height={size.h} fill="url(#plaque)" />
+        <Rect width={2} height={size.h} fill="url(#plaqueEdge)" />
       </Svg>
       {children}
     </View>
