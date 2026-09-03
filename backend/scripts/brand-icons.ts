@@ -26,10 +26,11 @@ async function inset(src: string, out: string, box: number, scale: number, groun
   console.log('•', path.relative(process.cwd(), out));
 }
 async function main() {
-  // Favicon — the solid gold arch, downsampled per size.
-  await resize(FAV, path.join(PUB, 'favicon-16.png'), 16);
-  await resize(FAV, path.join(PUB, 'favicon-32.png'), 32);
-  await resize(FAV, path.join(PUB, 'favicon-48.png'), 48);
+  // Favicon — the round-solid mark (circle + arch): a filled disc reads far
+  // better than a bare arch in a 16px browser tab.
+  await resize(ROUND, path.join(PUB, 'favicon-16.png'), 16);
+  await resize(ROUND, path.join(PUB, 'favicon-32.png'), 32);
+  await resize(ROUND, path.join(PUB, 'favicon-48.png'), 48);
   // Web app icons — the English icon on the dark ground.
   await resize(EN, path.join(PUB, 'icon-512.png'), 512);
   await resize(EN, path.join(PUB, 'icon-192.png'), 192);
@@ -40,7 +41,7 @@ async function main() {
   await resize(EN, path.join(MOB, 'icon.png'), 1024);
   await inset(EN, path.join(MOB, 'android-icon-foreground.png'), 1024, 0.66, null);
   await inset(EN, path.join(MOB, 'splash-icon.png'), 1024, 0.6, null);
-  await resize(FAV, path.join(MOB, 'favicon.png'), 48);
+  await resize(ROUND, path.join(MOB, 'favicon.png'), 48);
   console.log('done');
 }
 void main();
