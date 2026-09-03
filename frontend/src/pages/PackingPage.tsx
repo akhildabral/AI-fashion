@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState, type FormEvent, type CSSProperties } 
 import { Link, useNavigate } from 'react-router-dom'
 import { Arch, GarmentTile, PageShell, Tabs, SkeletonBlock, LoadError } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
-import { packForTrip, packLook } from '../lib/wardrobe'
-import { createTrip, getTrips, type Trip } from '../lib/brief'
-import type { PackingResponse, WardrobeItem } from '../lib/types'
+import { packForTrip, packLook } from '@zauq/shared/wardrobe'
+import { createTrip, getTrips, type Trip } from '@zauq/shared/brief'
+import type { PackingResponse, WardrobeItem } from '@zauq/shared/types'
 import { Spinner } from '../components/Spinner'
 import { resolveImageUrl } from '../lib/api'
-import { tempRange } from '../lib/units'
+import { tempRange } from '@zauq/shared/units'
 
 // Trips: a destination and dates become a capsule packed from the closet.
 // Save it and the trip becomes a page: the plan, a checklist that

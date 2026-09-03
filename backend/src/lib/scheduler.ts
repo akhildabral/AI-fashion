@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { sendWishlistNudges } from '../controllers/store.controller';
 import { notify } from './notify';
-import { localNow, pushEnabled, sendPush } from './push';
+import { expoPushEnabled, localNow, sendPush, webPushEnabled } from './push';
 import { ensureDailyBrief } from '../controllers/brief.controller';
 
 // Small in-process scheduler for things that happen on a clock rather than
@@ -47,7 +47,7 @@ export async function settleVerdicts(now = new Date()): Promise<number> {
 const RITUAL_EVERY_MS = 5 * 60_000;
 
 export async function sendMorningBriefs(now = new Date()): Promise<number> {
-  if (!pushEnabled) return 0;
+  if (!webPushEnabled && !expoPushEnabled) return 0;
   const subs = await prisma.pushSubscription.findMany({ take: 500 });
   const due = subs.filter((s) => {
     const { date, hour } = localNow(s.timezone, now);
@@ -74,7 +74,7 @@ export async function sendMorningBriefs(now = new Date()): Promise<number> {
       payload = { title: 'Your look is ready.', body: 'Open the app to see today’s outfit.' };
     }
     for (const d of devices) {
-      const ok = await sendPush(d, { ...payload, url: '/', tag: `ritual-${date}` });
+      const ok = await sendPush(d, { ...payload, url: '/', route: '/today', tag: `ritual-${date}` });
       await prisma.pushSubscription.update({ where: { id: d.id }, data: { lastSentOn: date } }).catch(() => undefined);
       if (ok) sent++;
     }
@@ -87,7 +87,7 @@ export async function sendMorningBriefs(now = new Date()): Promise<number> {
  * next day for everyone with a device, and tell the ones who asked.
  */
 export async function layOutTomorrow(now = new Date()): Promise<number> {
-  if (!pushEnabled) return 0;
+  if (!webPushEnabled && !expoPushEnabled) return 0;
   const subs = await prisma.pushSubscription.findMany({ take: 500 });
   const due = subs.filter((s) => {
     const { date, hour } = localNow(s.timezone, now);
@@ -109,7 +109,7 @@ export async function layOutTomorrow(now = new Date()): Promise<number> {
     }
     for (const d of devices) {
       if (d.eveningPush && brief && !brief.rest) {
-        const ok = await sendPush(d, { title: `Laid out for tomorrow: ${brief.payload.title}`, body: brief.payload.rationale || 'Change the day with a tap; the morning push will confirm.', url: '/', tag: `layout-${tKey}` });
+        const ok = await sendPush(d, { title: `Laid out for tomorrow: ${brief.payload.title}`, body: brief.payload.rationale || 'Change the day with a tap; the morning push will confirm.', url: '/', route: '/today', tag: `layout-${tKey}` });
         if (ok) sent++;
       }
       await prisma.pushSubscription.update({ where: { id: d.id }, data: { lastEveningOn: date } }).catch(() => undefined);

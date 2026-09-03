@@ -16,19 +16,19 @@ import { Arch, Toast, useFlash } from "../components/ui";
 import { FlatLay } from "../components/CircleCards";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
-import { getQuiz, submitQuiz } from "../lib/quiz";
-import { setHandle as claimHandle } from "../lib/social";
-import { uploadPhoto } from "../lib/tryon";
-import { addWardrobeItem, getWardrobe } from "../lib/wardrobe";
-import { getBrief, type BriefResponse } from "../lib/brief";
+import { getQuiz, submitQuiz } from "@zauq/shared/quiz";
+import { setHandle as claimHandle } from "@zauq/shared/social";
+import { uploadPhoto } from "@zauq/shared/tryon";
+import { addWardrobeItem, getWardrobe } from "@zauq/shared/wardrobe";
+import { getBrief, type BriefResponse } from "@zauq/shared/brief";
 import { enableRitual, pushSupported } from "../lib/push";
 import {
   checkHandle,
   saveFitting,
   weatherFor,
   type FittingPatch,
-} from "../lib/fitting";
-import type { QuizPair, WardrobeItem } from "../lib/types";
+} from "@zauq/shared/fitting";
+import type { QuizPair, WardrobeItem } from "@zauq/shared/types";
 
 // The fitting: first run as a sitting with your stylist. One decision per
 // screen in the stylist's voice; a thread that speaks instead of counting;

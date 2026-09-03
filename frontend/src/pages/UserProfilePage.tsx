@@ -7,7 +7,7 @@ import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
 import { StyleFriendModal } from '../components/StyleFriendModal'
 import { apiFetch, resolveImageUrl } from '../lib/api'
-import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
+import { recreateFromCloset, type RecreateResponse } from '@zauq/shared/brief'
 import {
   REPORT_REASONS,
   blockUser,
@@ -23,8 +23,8 @@ import {
   type OverlapResult,
   type PublicProfile,
   type ReportReason,
-} from '../lib/social'
-import { reactToPost, saveLook, unreactToPost, unsaveLook, type LookPost, type PostItem, type PostTarget, type ReactionKind } from '../lib/circle'
+} from '@zauq/shared/social'
+import { reactToPost, saveLook, unreactToPost, unsaveLook, type LookPost, type PostItem, type PostTarget, type ReactionKind } from '@zauq/shared/circle'
 import type { CardActions } from '../components/CircleCards'
 
 

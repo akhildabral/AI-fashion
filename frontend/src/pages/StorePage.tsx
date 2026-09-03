@@ -1,12 +1,12 @@
-import { money } from '../lib/money'
+import { money } from '@zauq/shared/money'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { addCandidate, deleteWardrobeItem, getVerdict, updateWardrobeItem, type VerdictResponse } from '../lib/wardrobe'
+import { addCandidate, deleteWardrobeItem, getVerdict, updateWardrobeItem, type VerdictResponse } from '@zauq/shared/wardrobe'
 import { PageShell, Toast, useFlash } from '../components/ui'
 import { LookBoard } from '../components/LookBoard'
 import { resolveImageUrl } from '../lib/api'
-import type { WardrobeItem } from '../lib/types'
+import type { WardrobeItem } from '@zauq/shared/types'
 
 // In the store: hold a piece up to the camera and the whole closet answers.
 // One frame, no form. The same extraction that catalogues your closet reads

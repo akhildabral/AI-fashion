@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { JobsContext, type UploadState } from './jobs-context'
 import { useAuth } from './useAuth'
-import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
-import { getTryOns, getTryOn } from '../lib/tryon'
+import { addWardrobeItem, getWardrobe } from '@zauq/shared/wardrobe'
+import { getTryOns, getTryOn } from '@zauq/shared/tryon'
 import { pinFile } from '../lib/api'
-import type { TryOn, WardrobeItem } from '../lib/types'
+import type { TryOn, WardrobeItem } from '@zauq/shared/types'
 
 const MAX_BYTES = 12 * 1024 * 1024
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']

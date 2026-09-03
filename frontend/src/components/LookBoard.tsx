@@ -1,5 +1,5 @@
 import { FlatLay } from './CircleCards'
-import type { WardrobeItem } from '../lib/types'
+import type { WardrobeItem } from '@zauq/shared/types'
 
 // A look on its board: the flat-lay inside the arch, the frame every
 // outfit in the product is shown in. Same engine as the Circle posts.

@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
-import type { User } from '../lib/types'
+import type { User } from '@zauq/shared/types'
 import { DoorShell, PasswordField } from '../components/DoorShell'
 
 // The invite landing: set a password, claim your name, step inside.

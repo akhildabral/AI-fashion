@@ -3,7 +3,7 @@ import QRCode from 'qrcode'
 import { Modal } from './ui'
 import { Spinner } from './Spinner'
 import { copyText } from '../lib/clipboard'
-import { getMyInvite, type MyInvite } from '../lib/invites'
+import { getMyInvite, type MyInvite } from '@zauq/shared/invites'
 
 // The door. Your standing invite link, a code to scan, who came in on it,
 // and the link that lets people already inside follow you in a tap.

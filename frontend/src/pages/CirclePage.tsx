@@ -9,16 +9,16 @@ import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDraw
 import { InviteSheet } from '../components/InviteSheet'
 import { ReportSheet } from '../components/ReportSheet'
 import { StyleFriendModal } from '../components/StyleFriendModal'
-import { thankPick, withdrawPick } from '../lib/social'
-import { setLookPhoto, type ExploreOccasion } from '../lib/circle'
+import { thankPick, withdrawPick } from '@zauq/shared/social'
+import { setLookPhoto, type ExploreOccasion } from '@zauq/shared/circle'
 import type { CardActions } from '../components/CircleCards'
 import { WeekCard } from '../components/CircleCards'
-import { deletePoll } from '../lib/polls'
-import { muteUser, type ReportTarget } from '../lib/social'
+import { deletePoll } from '@zauq/shared/polls'
+import { muteUser, type ReportTarget } from '@zauq/shared/social'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
 import { AskCircleModal, ShareLookModal } from '../components/ComposeModals'
-import { recreateFromCloset, type RecreateResponse } from '../lib/brief'
-import { followUser, getSocialMe, getStyleTwins, type SocialMe, type StyleTwin } from '../lib/social'
+import { recreateFromCloset, type RecreateResponse } from '@zauq/shared/brief'
+import { followUser, getSocialMe, getStyleTwins, type SocialMe, type StyleTwin } from '@zauq/shared/social'
 import {
   getCircleExplore,
   getCircleFeed,
@@ -38,7 +38,7 @@ import {
   unreactToPost,
   unshareLook,
   type PostTarget,
-} from '../lib/circle'
+} from '@zauq/shared/circle'
 
 // The Circle — a salon where friends dress each other. One ranked column
 // of posts; a rail of who wore what today; the people who make it live in

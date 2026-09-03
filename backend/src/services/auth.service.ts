@@ -1,16 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import type { SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { sendVerificationEmail } from '../lib/mailer';
+import { issueTokens, type ClientInfo } from '../lib/session';
 import { HttpError } from '../middleware/error';
 
 // Waitlist-gated auth: register → verify email → wait for admin approval →
 // log in. Tokens carry only the user id; every authed request re-checks the
 // account in the DB (see middleware/auth), so suspension takes effect
-// immediately — no long-lived token outlives revoked access.
+// immediately — no long-lived token outlives revoked access. The app also
+// gets a refresh token (lib/session) so it stays signed in between launches.
 
 export interface PublicUser {
   id: string;
@@ -27,13 +27,6 @@ const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 // A fixed bcrypt hash to compare against when no account exists, so the login
 // path takes the same time whether or not the email is real.
 const DUMMY_HASH = bcrypt.hashSync('timing-equalizer-not-a-real-password', 12);
-
-function signToken(userId: string, tokenVersion: number): string {
-  return jwt.sign({ sub: userId, tv: tokenVersion }, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
-    algorithm: 'HS256',
-  } as SignOptions);
-}
 
 function toPublic(user: {
   id: string;
@@ -145,7 +138,8 @@ export async function resendVerification(email: string, verifyUrlBase: string): 
 export async function loginUser(
   email: string,
   password: string,
-): Promise<{ user: PublicUser; token: string }> {
+  client: ClientInfo = {},
+): Promise<{ user: PublicUser; token: string; refreshToken?: string }> {
   const normalizedEmail = email.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -196,5 +190,5 @@ export async function loginUser(
     throw new HttpError(403, 'This account does not currently have access');
   }
 
-  return { user: toPublic(current), token: signToken(current.id, current.tokenVersion) };
+  return { user: toPublic(current), ...(await issueTokens(current, client)) };
 }

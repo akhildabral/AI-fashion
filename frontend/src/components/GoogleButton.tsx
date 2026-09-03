@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import type { User } from '../lib/types'
+import type { User } from '@zauq/shared/types'
 import { isDark } from '../lib/theme'
 
 declare global {

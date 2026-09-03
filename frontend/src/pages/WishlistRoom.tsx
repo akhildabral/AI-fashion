@@ -1,12 +1,12 @@
-import { money } from '../lib/money'
+import { money } from '@zauq/shared/money'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { deleteWardrobeItem, getWishlist, updateWardrobeItem } from '../lib/wardrobe'
+import { deleteWardrobeItem, getWishlist, updateWardrobeItem } from '@zauq/shared/wardrobe'
 import { ClosetRooms, RoomMantel } from '../components/ClosetRooms'
 import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
-import type { WardrobeItem } from '../lib/types'
+import type { WardrobeItem } from '@zauq/shared/types'
 
 // Wishlist: pieces you don't own yet, each carrying its verdict. Ranked by
 // what each one unlocks, not by when you added it.

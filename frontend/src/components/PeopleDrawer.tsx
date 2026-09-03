@@ -14,7 +14,7 @@ import {
   type Hidden,
   type NetworkEntry,
   type StyleTwin,
-} from '../lib/social'
+} from '@zauq/shared/social'
 
 // The people in your circle — a searchable drawer with tabs, never a wall
 // of chips. Rows, not badges, so it scales to hundreds.

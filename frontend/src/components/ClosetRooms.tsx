@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getBasket, getWishlist } from "../lib/wardrobe";
+import { getBasket, getWishlist } from "@zauq/shared/wardrobe";
 
 // The Closet's rooms: one row that says where you are and what's waiting in
 // the others. Pieces, the outfits they make, the basket (what's out of

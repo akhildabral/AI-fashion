@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { TryOn, WardrobeItem } from '../lib/types'
+import type { TryOn, WardrobeItem } from '@zauq/shared/types'
 
 /** Aggregate state of an in-flight batch of uploads. */
 export interface UploadState {

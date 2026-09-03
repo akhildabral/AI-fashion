@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getWeek, shiftKey, todayKey, type WeekDay } from '../lib/brief'
-import { EVENT_LABEL } from '../lib/outfits'
+import { getWeek, shiftKey, todayKey, type WeekDay } from '@zauq/shared/brief'
+import { EVENT_LABEL } from '@zauq/shared/outfits'
 
 // The week, as a timeline rather than a calendar: seven days on one hairline,
 // today underlined in brass. Past days carry a small mark when something was

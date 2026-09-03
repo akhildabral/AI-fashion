@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { mintInvite, publicOrigin } from './invite.controller';
 import { sendInviteEmail } from '../lib/mailer';
+import { revokeAllSessions } from '../lib/session';
 
 // Admin panel backend: the app is waitlist-gated, so a superuser reviews
 // accounts and grants (or revokes) access. Route-guarded by requireAdmin.
@@ -81,6 +82,9 @@ async function setStatus(req: Request, res: Response, status: 'approved' | 'susp
     data: { status, ...(status === 'suspended' ? { tokenVersion: { increment: 1 } } : {}) },
     select: { id: true, email: true, status: true, role: true, emailVerified: true },
   });
+  // Every device goes: the token version kills live access tokens, and the
+  // sessions going kills the app's way of minting new ones.
+  if (status === 'suspended') await revokeAllSessions(id);
   res.json({ user: updated });
 }
 
@@ -137,6 +141,7 @@ export async function resetPassword(req: Request, res: Response) {
     where: { id },
     data: { passwordHash: await bcrypt.hash(password, 12), tokenVersion: { increment: 1 } },
   });
+  await revokeAllSessions(id);
   res.json({ ok: true });
 }
 

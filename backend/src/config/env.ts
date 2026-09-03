@@ -9,9 +9,38 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  // Google sign-in. GOOGLE_CLIENT_IDS is the comma-separated list of every
+  // client id that may present an ID token (the web client first, then the
+  // iOS and Android apps); GOOGLE_CLIENT_ID is honoured as a single-value
+  // fallback for existing deployments.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_IDS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  // Sign in with Apple: the bundle ids the identity token may be issued for.
+  APPLE_BUNDLE_IDS: z
+    .string()
+    .default('com.myzauq.app')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  // Expo push (native devices). Optional: sending needs no key, but an access
+  // token is required once the Expo project enables push security.
+  EXPO_ACCESS_TOKEN: z.string().optional(),
+  // The oldest mobile app version the API still serves; the app compares
+  // against it on launch and asks for an update below it.
+  MIN_SUPPORTED_CLIENT: z.string().regex(/^\d+\.\d+\.\d+$/, 'MIN_SUPPORTED_CLIENT must be semver, e.g. 1.0.0').default('1.0.0'),
   // Razorpay (billing). All optional — billing endpoints return 503 until
   // the keys and plan IDs are configured.
-  GOOGLE_CLIENT_ID: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
@@ -157,7 +186,11 @@ const envSchema = z.object({
       message: 'AI_BASE_URL is required when AI_PROVIDER=custom',
     });
   }
-});
+}).transform((cfg) => ({
+  ...cfg,
+  // One list everywhere: the explicit list wins, else the legacy single id.
+  GOOGLE_CLIENT_IDS: cfg.GOOGLE_CLIENT_IDS.length > 0 ? cfg.GOOGLE_CLIENT_IDS : cfg.GOOGLE_CLIENT_ID ? [cfg.GOOGLE_CLIENT_ID] : [],
+}));
 
 const parsed = envSchema.safeParse(process.env);
 

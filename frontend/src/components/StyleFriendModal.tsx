@@ -4,7 +4,7 @@ import { Spinner } from './Spinner'
 import { Initials } from './PeopleDrawer'
 import { FlatLay } from './CircleCards'
 import { resolveImageUrl } from '../lib/api'
-import { dressSuggest, getNetwork, sendPick, type DressSuggestion, type NetworkEntry } from '../lib/social'
+import { dressSuggest, getNetwork, sendPick, type DressSuggestion, type NetworkEntry } from '@zauq/shared/social'
 
 // Dressing a friend, as a flow: who → which day → their pieces, with the
 // stylist pairing alongside → a note → send. Their closet stays theirs: only

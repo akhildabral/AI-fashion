@@ -1,13 +1,13 @@
-import { temp } from '../lib/units'
+import { temp } from '@zauq/shared/units'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay } from '../lib/brief'
+import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay } from '@zauq/shared/brief'
 import { LookBoard } from './LookBoard'
 import { LookAct, AddLook } from './LookAct'
 import { ShareButton } from './ShareButton'
 import { Spinner } from './Spinner'
 import { resolveImageUrl } from '../lib/api'
-import { EVENT_LABEL } from '../lib/outfits'
+import { EVENT_LABEL } from '@zauq/shared/outfits'
 
 // A day that isn't today. Past: what you wore, the recap, share it. Future:
 // name the day and the look is composed now; or rest it.

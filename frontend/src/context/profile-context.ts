@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { StyleProfile } from '../lib/types'
+import type { StyleProfile } from '@zauq/shared/types'
 
 export interface ProfileContextValue {
   /** The user's saved style profile, or null if they haven't created one yet. */

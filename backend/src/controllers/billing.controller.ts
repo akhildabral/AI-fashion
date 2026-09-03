@@ -12,22 +12,27 @@ import {
 } from '../services/billing.service';
 import { usageSummary } from '../services/entitlements.service';
 
-/** Plan, status, and usage meters for the billing page. */
-export async function summary(req: Request, res: Response) {
-  if (!req.user) throw new HttpError(401, 'Not authenticated');
-  await reconcilePlan(req.user.id);
+/** Plan, status, and usage meters, as GET /billing/summary returns them. */
+export async function billingSummaryFor(userId: string) {
+  await reconcilePlan(userId);
 
   const user = await prisma.user.findUniqueOrThrow({
-    where: { id: req.user.id },
+    where: { id: userId },
     select: { plan: true, planStatus: true, currentPeriodEnd: true },
   });
-  const usage = await usageSummary(req.user.id, user.plan);
-  res.json({
+  const usage = await usageSummary(userId, user.plan);
+  return {
     ...usage,
     planStatus: user.planStatus,
     currentPeriodEnd: user.currentPeriodEnd,
     billingConfigured: billingConfigured(),
-  });
+  };
+}
+
+/** Plan, status, and usage meters for the billing page. */
+export async function summary(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  res.json(await billingSummaryFor(req.user.id));
 }
 
 const checkoutSchema = z.object({ plan: z.enum(['plus', 'pro', 'premium']) });

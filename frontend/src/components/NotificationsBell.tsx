@@ -9,7 +9,7 @@ import {
   markNotificationsRead,
   timeAgo,
   type Notification,
-} from '../lib/circle'
+} from '@zauq/shared/circle'
 
 // Things that happened to you live here, behind the bell — never as feed
 // cards. Polled gently; opening the bell marks everything read.

@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
-import { generateLooks, getLooks, recreateLook, setLookVerdict, tryOnLook, type InspirationLook, type RecreateLookResponse } from '../lib/looks'
-import type { TryOn } from '../lib/types'
+import { generateLooks, getLooks, recreateLook, setLookVerdict, tryOnLook, type InspirationLook, type RecreateLookResponse } from '@zauq/shared/looks'
+import type { TryOn } from '@zauq/shared/types'
 import { Arch, Modal } from './ui'
 import { Spinner } from './Spinner'
 

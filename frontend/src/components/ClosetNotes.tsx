@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getBasket, getWishlist } from '../lib/wardrobe'
+import { getBasket, getWishlist } from '@zauq/shared/wardrobe'
 
 // The closet, in the morning: one line when the basket is worth a load, one
 // when a wishlist piece is still on your mind. Quiet when there's nothing.

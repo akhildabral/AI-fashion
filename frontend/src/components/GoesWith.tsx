@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getPairs, type PairsResponse } from "../lib/outfits";
+import { getPairs, type PairsResponse } from "@zauq/shared/outfits";
 import { resolveImageUrl } from "../lib/api";
 import { Spinner } from "./Spinner";
 

@@ -1,14 +1,14 @@
-import { temp } from '../lib/units'
-import { money } from '../lib/money'
+import { temp } from '@zauq/shared/units'
+import { money } from '@zauq/shared/money'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
-import { setLookPhoto } from '../lib/circle'
+import { setLookPhoto } from '@zauq/shared/circle'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { useProfile } from '../context/useProfile'
 import { apiFetch } from '../lib/api'
-import { getWardrobe, sendItemFeedback } from '../lib/wardrobe'
-import type { FeedbackSignal, WardrobeItem } from '../lib/types'
+import { getWardrobe, sendItemFeedback } from '@zauq/shared/wardrobe'
+import type { FeedbackSignal, WardrobeItem } from '@zauq/shared/types'
 import { resolveImageUrl } from '../lib/api'
 import {
   getTrips,
@@ -29,8 +29,8 @@ import {
   type FeedCard,
   type RitualStats,
   type Trip,
-} from '../lib/brief'
-import type { GenerateResponse, Look } from '../lib/types'
+} from '@zauq/shared/brief'
+import type { GenerateResponse, Look } from '@zauq/shared/types'
 import { LookCard } from '../components/LookCard'
 import { GarmentTile, Modal, PageShell, Toast, useFlash, MoreMenu, MenuItem } from '../components/ui'
 import { WorePhotoPanel } from '../components/WorePhotoPanel'
@@ -40,7 +40,7 @@ import { ClosetNotes } from '../components/ClosetNotes'
 import { WeekStrip } from '../components/WeekStrip'
 import { DayView } from '../components/DayView'
 import { LookAct, AddLook } from '../components/LookAct'
-import { EVENT_LABEL } from '../lib/outfits'
+import { EVENT_LABEL } from '@zauq/shared/outfits'
 
 
 // Spoken-language complaints → the real learning-loop signals. Tapping one

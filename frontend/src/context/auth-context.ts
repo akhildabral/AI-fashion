@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { User } from '../lib/types'
+import type { User } from '@zauq/shared/types'
 
 export interface AuthContextValue {
   user: User | null

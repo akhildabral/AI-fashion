@@ -26,11 +26,10 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
 
+  # The web app and the shared package live in the pnpm workspace at the
+  # repo root (the mobile app too, but it is not built here).
   frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -40,9 +39,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter ai-fashion-frontend...
+      - run: pnpm --filter @zauq/shared typecheck
+      - run: pnpm --filter ai-fashion-frontend build
 
   # Deploys to the VPS after tests pass on main. Skips cleanly until the
   # repository secrets exist: VPS_HOST, VPS_USER, VPS_SSH_KEY (private key

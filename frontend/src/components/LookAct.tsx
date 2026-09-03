@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { wearBrief, removeLook, composeLook, type LookSlot, type LookSlotKind } from '../lib/brief'
+import { wearBrief, removeLook, composeLook, type LookSlot, type LookSlotKind } from '@zauq/shared/brief'
 import { LookBoard } from './LookBoard'
 import { Spinner } from './Spinner'
 

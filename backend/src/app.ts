@@ -20,9 +20,24 @@ import { briefRouter } from './routes/brief.routes';
 import { circleRouter } from './routes/circle.routes';
 import { pushRouter } from './routes/push.routes';
 import { shareRouter } from './routes/share.routes';
+import { bootstrap } from './controllers/bootstrap.controller';
 import path from 'node:path';
+import fs from 'node:fs';
 import { isLocalStorage, UPLOADS_DIR } from './lib/storage';
+import { userOrIpKey } from './lib/rate-keys';
+import { requireAuth } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/error';
+
+// The API's own version, from package.json (next to src/ in dev, dist/ in prod).
+function apiVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+const VERSION = apiVersion();
 
 export function createApp() {
   const app = express();
@@ -53,14 +68,18 @@ export function createApp() {
   //    stay on a tight ceiling.
   // Credential routes (auth) and the public share/vote pages carry their own
   // stricter limiters on top; AI generation is additionally capped by quota.
+  // Both are counted per signed-in account (a genuine bearer token names
+  // one), else per address, so a shared address never shares a ceiling.
   const isRead = (req: express.Request) =>
     req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+  const limiterKey = userOrIpKey(env.JWT_SECRET);
   const readLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 3000,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Too many requests — slow down a little' },
+    keyGenerator: limiterKey,
     skip: (req) => !isRead(req),
   });
   const writeLimiter = rateLimit({
@@ -69,13 +88,18 @@ export function createApp() {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Too many requests — slow down a little' },
+    keyGenerator: limiterKey,
     skip: (req) => isRead(req),
   });
   app.use('/api', readLimiter, writeLimiter);
 
+  // Liveness, plus what the app checks on launch: the API version and the
+  // oldest app version still served.
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', version: VERSION, minSupportedClient: env.MIN_SUPPORTED_CLIENT });
   });
+  // The app's first call: the home screen in one round trip.
+  app.get('/api/bootstrap', requireAuth, bootstrap);
 
   // Serve uploaded photos and generated images (local storage driver only;
   // with S3 the browser loads images straight from the bucket/CDN).

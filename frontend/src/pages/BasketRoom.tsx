@@ -5,11 +5,11 @@ import {
   updateWardrobeItem,
   getBasket,
   type BasketResponse,
-} from "../lib/wardrobe";
+} from "@zauq/shared/wardrobe";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
 import { GarmentTile, PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../components/ui";
 import { resolveImageUrl } from "../lib/api";
-import type { WardrobeItem } from "../lib/types";
+import type { WardrobeItem } from "@zauq/shared/types";
 
 // The basket: what's out of rotation and why. The stylist never proposes a
 // piece that's here; one tap brings it back.

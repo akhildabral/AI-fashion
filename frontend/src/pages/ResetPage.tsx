@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
 import { DoorShell, PasswordField, SignInLink } from '../components/DoorShell'
-import type { User } from '../lib/types'
+import type { User } from '@zauq/shared/types'
 
 // From the emailed link: choose a new password, then straight in.
 

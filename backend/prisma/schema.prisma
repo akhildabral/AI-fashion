@@ -16,6 +16,8 @@ model User {
   // Null for waitlist entries and Google-only accounts.
   passwordHash String?
   googleId     String?       @unique
+  // Sign in with Apple: the stable per-app user id from the identity token.
+  appleSub     String?       @unique
   firstName    String?
   lastName     String?
   // Invite-only onboarding: token emailed/copied by an admin.
@@ -78,6 +80,7 @@ model User {
   comments          Comment[]
   savedLooks        SavedLook[]
   pushSubscriptions PushSubscription[]
+  sessions          Session[]
   photos       UserPhoto[]
   invitedBy    User?         @relation("invitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
   invitees     User[]        @relation("invitedBy")
@@ -138,16 +141,43 @@ model PushSubscription {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // web (browser, VAPID) | ios | android (Expo push). Native rows keep
+  // endpoint = "expo:" + expoToken so the unique key and every existing
+  // code path keep working; p256dh/auth are web-only.
+  platform  String   @default("web")
   endpoint  String   @unique
-  p256dh    String
-  auth      String
+  expoToken String?  @unique
+  p256dh    String?
+  auth      String?
   timezone  String   @default("UTC")
   hour      Int      @default(7)
   // "Laid out for tomorrow" at eight in the evening, if wanted.
   eveningPush Boolean @default(false)
+  // Event pushes (native only): circle activity, and renders finishing.
+  eventsCircle  Boolean @default(true)
+  eventsRenders Boolean @default(true)
   lastEveningOn String?
   lastSentOn String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A signed-in device. The refresh token is opaque and stored hashed; each
+// use rotates it (the old row is revoked, a new one written), so a stolen
+// token that gets replayed is caught. Logging out one device revokes its
+// row only; a password reset or suspension revokes them all.
+model Session {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  platform   String    @default("mobile")
+  deviceName String?
+  expiresAt  DateTime
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([userId])
 }

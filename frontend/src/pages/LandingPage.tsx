@@ -4,7 +4,7 @@ import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { Arch } from '../components/ui'
-import { money } from '../lib/money'
+import { money } from '@zauq/shared/money'
 
 // The front door. A walk through the rooms — the morning, the mirror, the
 // ledger, the store, the circle — with two doors: the waitlist, and a

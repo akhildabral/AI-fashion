@@ -1,0 +1,11 @@
+{
+  "name": "ai-fashion",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "web": "pnpm --filter ai-fashion-frontend dev",
+    "web:build": "pnpm --filter ai-fashion-frontend build",
+    "mobile": "pnpm --filter mobile start"
+  }
+}

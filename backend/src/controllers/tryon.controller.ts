@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
-import { sendPush } from '../lib/push';
+import { sendNativeEvent, sendPush } from '../lib/push';
 import { defaultTryOnMode, generateOutfitTryOn, generateTryOn } from '../services/tryon.service';
 import { HttpError } from '../middleware/error';
 
@@ -50,11 +50,22 @@ function withItems<T extends { itemIds: string[] }>(row: T, byId: Map<string, { 
   return { ...row, items: row.itemIds.map((i) => byId.get(i)).filter(Boolean) };
 }
 
+/** What the render is of, for a push: the look's name or its pieces. */
+function describeRender(lookTitle: string | null, items: { subtype: string | null; category: string }[]): string {
+  if (lookTitle) return lookTitle;
+  const names = items.map((i) => i.subtype ?? i.category).filter(Boolean);
+  if (names.length === 0) return 'your outfit';
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+}
+
 /** Run the render for a queued job; never throws. */
 async function runJob(tryOnId: string) {
   const job = await prisma.tryOn.findUnique({ where: { id: tryOnId } });
   if (!job || job.status !== 'queued') return;
   await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'rendering' } });
+  const route = `/mirror/render/${tryOnId}`;
+  let subject = 'your outfit';
   try {
     const [user, items] = await Promise.all([
       prisma.user.findUnique({ where: { id: job.userId }, select: { photoPath: true, id: true } }),
@@ -63,23 +74,32 @@ async function runJob(tryOnId: string) {
     if (!user?.photoPath) throw new HttpError(400, 'Upload a photo before trying on an outfit');
     if (job.lookId) {
       // An inspiration look: dressed from its pieces' rendering lines.
-      const look = await prisma.look.findUnique({ where: { id: job.lookId }, select: { outfit: true } });
+      const look = await prisma.look.findUnique({ where: { id: job.lookId }, select: { outfit: true, occasion: true } });
       if (!look) throw new HttpError(404, 'Look not found');
+      subject = describeRender((look.outfit as { title?: string } | null)?.title ?? `the ${look.occasion} look`, []);
       const url = await generateTryOn(user.photoPath, look.outfit);
       await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: url, error: null } });
     } else {
       const ordered = job.itemIds.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => !!i);
+      subject = describeRender(null, ordered);
       const r = await generateOutfitTryOn(user.photoPath, ordered, (job.mode as 'references' | 'text') ?? defaultTryOnMode());
       await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null } });
     }
-    // Tell them, if they left.
-    const subs = await prisma.pushSubscription.findMany({ where: { userId: job.userId }, take: 5 });
-    for (const d of subs) void sendPush(d, { title: 'Your render is ready', body: 'The Mirror has you dressed. Tap to look.', url: `/mirror?render=${tryOnId}`, tag: `render-${tryOnId}` }).catch(() => undefined);
+    // Tell them, if they left. Browsers get the legacy nudge; phones get the
+    // event push, which they can switch off.
+    const subs = await prisma.pushSubscription.findMany({ where: { userId: job.userId, platform: 'web' }, take: 5 });
+    for (const d of subs) void sendPush(d, { title: 'Your render is ready', body: 'The Mirror has you dressed. Tap to look.', url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` }).catch(() => undefined);
+    void sendNativeEvent(job.userId, 'renders', { title: 'Your reflection is ready', body: `${capitalize(subject)}, on you. Tap to look.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Render failed';
     await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'failed', error: message } }).catch(() => undefined);
     await refund(job.usageEventId, tryOnId);
+    void sendNativeEvent(job.userId, 'renders', { title: 'That render did not come out', body: `${capitalize(subject)} could not be rendered. Nothing was spent; try it again.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` });
   }
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export async function createTryOn(req: Request, res: Response) {

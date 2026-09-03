@@ -1,8 +1,6 @@
 import type { Request, Response } from 'express';
 import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import type { SignOptions } from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { env } from '../config/env';
@@ -10,19 +8,16 @@ import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
 import { sendPasswordResetEmail } from '../lib/mailer';
 import { displayName, ensureHandle } from '../lib/people';
+import { clientSchema, issueTokens, revokeAllSessions, type ClientInfo } from '../lib/session';
+import { verifyAppleIdentityToken } from '../lib/apple';
 
 // Invite-only onboarding: nobody self-creates an account. Joining the
 // waitlist logs an email; an admin approval mints an invite link; the link
-// sets a password and activates. Google SSO lands on the same waitlist.
+// sets a password and activates. Google and Apple SSO land on the same
+// waitlist. Every endpoint that signs someone in also takes `client:
+// 'mobile'` (+ `deviceName`) and then returns a refresh token too.
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function signToken(userId: string, tokenVersion: number): string {
-  return jwt.sign({ sub: userId, tv: tokenVersion }, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
-    algorithm: 'HS256',
-  } as SignOptions);
-}
 
 export function publicOrigin(req: Request): string {
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0];
@@ -31,7 +26,25 @@ export function publicOrigin(req: Request): string {
 
 /** Frontend bootstrap config (public). */
 export function authConfig(_req: Request, res: Response) {
-  res.json({ googleClientId: env.GOOGLE_CLIENT_ID ?? null });
+  res.json({
+    // The first id is the web client's; the apps find their own in the list.
+    googleClientId: env.GOOGLE_CLIENT_IDS[0] ?? null,
+    googleClientIds: env.GOOGLE_CLIENT_IDS,
+    appleBundleIds: env.APPLE_BUNDLE_IDS,
+  });
+}
+
+/** The signed-in shape every door returns. */
+async function signedIn(
+  user: { id: string; email: string; role: string; status: string; firstName: string | null; tokenVersion: number },
+  client: ClientInfo,
+) {
+  const { token, refreshToken } = await issueTokens(user, client);
+  return {
+    token,
+    ...(refreshToken ? { refreshToken } : {}),
+    user: { id: user.id, email: user.email, role: user.role, status: user.status, firstName: user.firstName },
+  };
 }
 
 const waitlistSchema = z.object({ email: z.string().email() });
@@ -92,6 +105,7 @@ const acceptSchema = z.object({
 /** Public: accept an invite — set password, activate, sign in. */
 export async function acceptInvite(req: Request, res: Response) {
   const data = acceptSchema.parse(req.body);
+  const client = clientSchema.parse(req.body);
   const user = await findByInviteToken(data.token);
 
   const updated = await prisma.user.update({
@@ -107,16 +121,7 @@ export async function acceptInvite(req: Request, res: Response) {
     },
   });
   await ensureHandle(updated.id);
-  res.json({
-    token: signToken(updated.id, updated.tokenVersion),
-    user: {
-      id: updated.id,
-      email: updated.email,
-      role: updated.role,
-      status: updated.status,
-      firstName: updated.firstName,
-    },
-  });
+  res.json(await signedIn(updated, client));
 }
 
 interface GoogleTokenInfo {
@@ -152,9 +157,11 @@ const resetSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
-// POST /auth/reset — set the new password and sign in.
+// POST /auth/reset — set the new password and sign in. Every other device
+// is signed out: the token version moves and the app sessions are revoked.
 export async function resetPassword(req: Request, res: Response) {
   const { token, password } = resetSchema.parse(req.body);
+  const client = clientSchema.parse(req.body);
   const user = await prisma.user.findUnique({ where: { resetToken: token } });
   if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
     throw new HttpError(400, 'This link has expired — ask for a fresh one');
@@ -164,15 +171,13 @@ export async function resetPassword(req: Request, res: Response) {
     where: { id: user.id },
     data: { passwordHash: await bcrypt.hash(password, 12), resetToken: null, resetTokenExpires: null, emailVerified: true, tokenVersion: { increment: 1 } },
   });
+  await revokeAllSessions(updated.id);
   if (updated.status !== 'approved') {
     // Password changed, but the door is still closed for them.
     res.json({ token: null, user: null, message: 'Your password is set. Your spot opens with your invite.' });
     return;
   }
-  res.json({
-    token: signToken(updated.id, updated.tokenVersion),
-    user: { id: updated.id, email: updated.email, role: updated.role, status: updated.status, firstName: updated.firstName },
-  });
+  res.json(await signedIn(updated, client));
 }
 
 // ---- The door: members invite their friends ------------------------------
@@ -295,6 +300,7 @@ export async function joinWithCode(req: Request, res: Response) {
   const inviter = await inviterByCode(String(req.params.code));
   if (!invitesOpen(inviter)) throw new HttpError(410, 'This invite has been used up');
   const data = joinSchema.parse(req.body);
+  const client = clientSchema.parse(req.body);
   const email = data.email.trim().toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -320,10 +326,48 @@ export async function joinWithCode(req: Request, res: Response) {
   await redeemInvite(inviter, user.id);
 
   res.status(201).json({
-    token: signToken(user.id, user.tokenVersion),
-    user: { id: user.id, email: user.email, role: user.role, status: 'approved', firstName: user.firstName },
+    ...(await signedIn({ ...user, status: 'approved' }, client)),
     inviter: { handle: inviter.handle },
   });
+}
+
+// ---- SSO: Google and Apple, through the same gate ---------------------------
+
+type SsoUser = NonNullable<Awaited<ReturnType<typeof prisma.user.findFirst>>>;
+
+/**
+ * The part of SSO that is the same whichever provider vouched for them:
+ * bootstrap admins come straight in, the suspended stay out, a friend's
+ * code opens the door, and everyone else waits on the list.
+ */
+async function finishSso(res: Response, user: SsoUser, joinCode: string | undefined, client: ClientInfo) {
+  // Bootstrap admins ride straight through, like password login.
+  if (env.ADMIN_EMAILS.includes(user.email) && user.status !== 'approved') {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { status: 'approved', role: 'admin', emailVerified: true },
+    });
+  }
+
+  if (user.status === 'suspended') throw new HttpError(403, 'This account is suspended');
+
+  // Arrived through a friend's door: that lets them in.
+  if (user.status !== 'approved' && joinCode) {
+    const inviter = await inviterByCode(joinCode);
+    if (!invitesOpen(inviter)) throw new HttpError(410, 'This invite has been used up');
+    await redeemInvite(inviter, user.id);
+    user = { ...user, status: 'approved' };
+  }
+
+  if (user.status === 'approved') await ensureHandle(user.id);
+  if (user.status !== 'approved') {
+    return res.status(403).json({
+      error: "You're on the waitlist — we'll email you when your spot opens.",
+      waitlisted: true,
+    });
+  }
+
+  res.json(await signedIn(user, client));
 }
 
 const googleSchema = z.object({
@@ -333,19 +377,21 @@ const googleSchema = z.object({
 });
 
 /**
- * Google SSO. Verifies the ID token against Google's tokeninfo endpoint.
+ * Google SSO. Verifies the ID token against Google's tokeninfo endpoint; the
+ * token may be issued for any of our client ids (web, iOS, Android).
  * Unknown emails land on the waitlist — SSO never bypasses invite-only.
  */
 export async function googleAuth(req: Request, res: Response) {
-  if (!env.GOOGLE_CLIENT_ID) throw new HttpError(503, 'Google sign-in is not configured');
+  if (env.GOOGLE_CLIENT_IDS.length === 0) throw new HttpError(503, 'Google sign-in is not configured');
   const { credential, joinCode } = googleSchema.parse(req.body);
+  const client = clientSchema.parse(req.body);
 
   const resp = await fetch(
     `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
   );
   if (!resp.ok) throw new HttpError(401, 'Google sign-in failed — try again');
   const info = (await resp.json()) as GoogleTokenInfo;
-  if (info.aud !== env.GOOGLE_CLIENT_ID) throw new HttpError(401, 'Google token mismatch');
+  if (!info.aud || !env.GOOGLE_CLIENT_IDS.includes(info.aud)) throw new HttpError(401, 'Google token mismatch');
   const verified = info.email_verified === true || info.email_verified === 'true';
   if (!info.email || !verified || !info.sub) {
     throw new HttpError(401, 'Google account has no verified email');
@@ -379,40 +425,59 @@ export async function googleAuth(req: Request, res: Response) {
     });
   }
 
-  // Bootstrap admins ride straight through, like password login.
-  if (env.ADMIN_EMAILS.includes(email) && user.status !== 'approved') {
+  return finishSso(res, user, joinCode, client);
+}
+
+const appleSchema = z.object({
+  identityToken: z.string().min(20),
+  // Apple hands the name to the app once, on the first sign-in, never to us.
+  fullName: z
+    .object({ givenName: z.string().max(60).nullish(), familyName: z.string().max(60).nullish() })
+    .nullish(),
+  joinCode: z.string().min(4).max(40).optional(),
+});
+
+/**
+ * Sign in with Apple. Verifies the identity token against Apple's keys and
+ * our bundle ids, then takes the same path as Google: matched by Apple id
+ * or by email, created on the waitlist when unknown.
+ */
+export async function appleAuth(req: Request, res: Response) {
+  const { identityToken, fullName, joinCode } = appleSchema.parse(req.body);
+  const client = clientSchema.parse(req.body);
+  const identity = await verifyAppleIdentityToken(identityToken);
+
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ appleSub: identity.sub }, ...(identity.email ? [{ email: identity.email }] : [])] },
+  });
+
+  const givenName = fullName?.givenName?.trim() || null;
+  const familyName = fullName?.familyName?.trim() || null;
+
+  if (!user) {
+    // A returning Apple id always carries the email; a brand-new one must too.
+    if (!identity.email || !identity.emailVerified) throw new HttpError(401, 'Apple account has no verified email');
+    user = await prisma.user.create({
+      data: {
+        email: identity.email,
+        appleSub: identity.sub,
+        firstName: givenName,
+        lastName: familyName,
+        status: 'waitlist',
+        emailVerified: true,
+      },
+    });
+  } else if (!user.appleSub || (!user.firstName && givenName)) {
     user = await prisma.user.update({
       where: { id: user.id },
-      data: { status: 'approved', role: 'admin', emailVerified: true },
+      data: {
+        appleSub: identity.sub,
+        emailVerified: true,
+        firstName: user.firstName ?? givenName,
+        lastName: user.lastName ?? familyName,
+      },
     });
   }
 
-  if (user.status === 'suspended') throw new HttpError(403, 'This account is suspended');
-
-  // Arrived through a friend's door: that lets them in.
-  if (user.status !== 'approved' && joinCode) {
-    const inviter = await inviterByCode(joinCode);
-    if (!invitesOpen(inviter)) throw new HttpError(410, 'This invite has been used up');
-    await redeemInvite(inviter, user.id);
-    user = { ...user, status: 'approved' };
-  }
-
-  if (user.status === 'approved') await ensureHandle(user.id);
-  if (user.status !== 'approved') {
-    return res.status(403).json({
-      error: "You're on the waitlist — we'll email you when your spot opens.",
-      waitlisted: true,
-    });
-  }
-
-  res.json({
-    token: signToken(user.id, user.tokenVersion),
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      firstName: user.firstName,
-    },
-  });
+  return finishSso(res, user, joinCode, client);
 }

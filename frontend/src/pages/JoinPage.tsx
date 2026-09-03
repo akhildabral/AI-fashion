@@ -5,7 +5,7 @@ import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
 import { GoogleButton } from '../components/GoogleButton'
 import { DoorShell, Or, PasswordField, SignInLink } from '../components/DoorShell'
-import { getJoinInfo, joinWithCode, type JoinInfo } from '../lib/invites'
+import { getJoinInfo, joinWithCode, type JoinInfo } from '@zauq/shared/invites'
 
 // A friend's door. Their link brought you here: no waitlist, and you land
 // following each other.

@@ -3,11 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { usePageTitle } from '../lib/usePageTitle'
-import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, setTripLookItems, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
-import { getWardrobe } from '../lib/wardrobe'
-import type { WardrobeItem } from '../lib/types'
+import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, setTripLookItems, swapTripItem, updateTrip, type TripPage as TripPageData } from '@zauq/shared/brief'
+import { getWardrobe } from '@zauq/shared/wardrobe'
+import type { WardrobeItem } from '@zauq/shared/types'
 import { resolveImageUrl } from '../lib/api'
-import { tempRange } from '../lib/units'
+import { tempRange } from '@zauq/shared/units'
 
 // A trip is a page. Open it on packing day; look back on it after.
 

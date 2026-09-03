@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { pinFile, resolveImageUrl } from '../lib/api'
-import type { EventType } from '../lib/types'
-import { confirmWearPhoto, getWearPhoto, readWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '../lib/wear-photo'
+import type { EventType } from '@zauq/shared/types'
+import { confirmWearPhoto, getWearPhoto, readWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '@zauq/shared/wear-photo'
 import { Spinner } from './Spinner'
 import { Arch } from './ui'
 

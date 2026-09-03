@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal } from './ui'
-import { REPORT_REASONS, report, type ReportReason, type ReportTarget } from '../lib/social'
+import { REPORT_REASONS, report, type ReportReason, type ReportTarget } from '@zauq/shared/social'
 
 // "Report" from any card or profile: a reason, an optional line, one send.
 // The person reported never learns who sent it.

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { createTryOn, getPhoto, getTryOn } from '../lib/tryon'
-import { tryOnWardrobeOutfit } from '../lib/wardrobe'
-import type { TryOn } from '../lib/types'
+import { createTryOn, getPhoto, getTryOn } from '@zauq/shared/tryon'
+import { tryOnWardrobeOutfit } from '@zauq/shared/wardrobe'
+import type { TryOn } from '@zauq/shared/types'
 import { useJobs } from '../context/useJobs'
 import { Spinner } from './Spinner'
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthContextValue } from './auth-context'
-import { ApiError, AUTH_EXPIRED_EVENT, apiFetch, clearToken, getToken, setToken } from '../lib/api'
-import type { AuthResponse, MeResponse, RegisterResponse, User } from '../lib/types'
+import { ApiError, apiFetch, clearToken, getToken, onAuthExpired, setToken } from '../lib/api'
+import type { AuthResponse, MeResponse, RegisterResponse, User } from '@zauq/shared/types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -37,13 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // A 401 on any authenticated request means the session died mid-use —
-  // api.ts clears the token and broadcasts; we drop the user so routing
-  // falls back to the landing page instead of pages rendering raw errors.
-  useEffect(() => {
-    const onExpired = () => setUser(null)
-    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired)
-    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired)
-  }, [])
+  // the API client clears the token and broadcasts; we drop the user so
+  // routing falls back to the landing page instead of pages rendering raw errors.
+  useEffect(() => onAuthExpired(() => setUser(null)), [])
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiFetch<AuthResponse>('/auth/login', {

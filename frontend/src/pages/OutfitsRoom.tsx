@@ -9,8 +9,8 @@ import {
   EVENT_LABEL,
   type Outfit,
   type Suggested,
-} from "../lib/outfits";
-import { logWear } from "../lib/wearlog";
+} from "@zauq/shared/outfits";
+import { logWear } from "@zauq/shared/wearlog";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
 import { PageShell, Toast, useFlash, ArchSkeleton, LoadError, UndoBar } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
@@ -18,7 +18,7 @@ import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
 import { TryOnModal } from "../components/TryOnModal";
 import { AskCircleModal } from "../components/ComposeModals";
-import type { WardrobeItem } from "../lib/types";
+import type { WardrobeItem } from "@zauq/shared/types";
 
 // The Outfits room: every look the closet can make. Suggested by the engine
 // for the day you name, saved by you, worn and counted. Composing by hand

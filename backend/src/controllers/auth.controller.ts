@@ -11,6 +11,7 @@ import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { displayName, ensureHandle } from '../lib/people';
 import { deleteFile } from '../lib/storage';
+import { clientSchema, refreshSession, revokeSession } from '../lib/session';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -41,12 +42,30 @@ const nameSchema = z.object({
   lastName: z.string().max(60).nullish(),
 });
 
-// POST /auth/logout — end the session server-side by rotating the token
-// version, so the bearer token can't be reused (on any device) after sign-out.
+const logoutSchema = z.object({ refreshToken: z.string().min(16).max(256).optional() });
+
+// POST /auth/logout — end the session server-side. With a refresh token in
+// the body (the app), just that device's session is revoked and other
+// devices stay signed in. Without one (the web), the token version rotates
+// so the bearer token can't be reused on any device after sign-out.
 export async function logout(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  await prisma.user.update({ where: { id: req.user.id }, data: { tokenVersion: { increment: 1 } } });
+  const { refreshToken } = logoutSchema.parse(req.body ?? {});
+  if (refreshToken) {
+    await revokeSession(req.user.id, refreshToken);
+  } else {
+    await prisma.user.update({ where: { id: req.user.id }, data: { tokenVersion: { increment: 1 } } });
+  }
   res.status(204).end();
+}
+
+const refreshSchema = z.object({ refreshToken: z.string().min(16).max(256) });
+
+// POST /auth/refresh — a new access token and a new refresh token for the
+// one presented, which is spent by this call.
+export async function refresh(req: Request, res: Response) {
+  const { refreshToken } = refreshSchema.parse(req.body);
+  res.json(await refreshSession(refreshToken));
 }
 
 export async function updateMe(req: Request, res: Response) {
@@ -62,8 +81,9 @@ export async function updateMe(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   const { email, password } = credentialsSchema.parse(req.body);
-  const { user, token } = await loginUser(email, password);
-  res.status(200).json({ token, user });
+  const client = clientSchema.parse(req.body);
+  const { user, token, refreshToken } = await loginUser(email, password, client);
+  res.status(200).json({ token, ...(refreshToken ? { refreshToken } : {}), user });
 }
 
 const verifySchema = z.object({ token: z.string().min(16).max(128) });
@@ -89,20 +109,25 @@ export async function resend(req: Request, res: Response) {
   res.json({ message: 'If that account needs verification, a fresh link is on its way.' });
 }
 
-export async function me(req: Request, res: Response) {
-  if (!req.user) {
-    throw new HttpError(401, 'Not authenticated');
-  }
+/** The signed-in person, as GET /auth/me returns them. */
+export async function loadMe(userId: string) {
   const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    select: { id: true, email: true, role: true, status: true, handle: true, firstName: true, lastName: true, emailVerified: true, plan: true, planStatus: true, googleId: true, passwordHash: true, createdAt: true },
+    where: { id: userId },
+    select: { id: true, email: true, role: true, status: true, handle: true, firstName: true, lastName: true, emailVerified: true, plan: true, planStatus: true, googleId: true, appleSub: true, passwordHash: true, createdAt: true },
   });
   if (!user) {
     throw new HttpError(404, 'User not found');
   }
   if (!user.handle && user.status === 'approved') user.handle = await ensureHandle(user.id);
-  const { googleId, passwordHash, ...rest } = user;
-  res.json({ user: { ...rest, name: displayName(user), hasPassword: Boolean(passwordHash), hasGoogle: Boolean(googleId) } });
+  const { googleId, appleSub, passwordHash, ...rest } = user;
+  return { ...rest, name: displayName(user), hasPassword: Boolean(passwordHash), hasGoogle: Boolean(googleId), hasApple: Boolean(appleSub) };
+}
+
+export async function me(req: Request, res: Response) {
+  if (!req.user) {
+    throw new HttpError(401, 'Not authenticated');
+  }
+  res.json({ user: await loadMe(req.user.id) });
 }
 
 // The way out. Typed confirmation, then everything goes: the account (and

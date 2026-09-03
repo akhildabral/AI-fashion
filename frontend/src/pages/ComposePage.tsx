@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "../lib/usePageTitle";
-import { getWardrobe } from "../lib/wardrobe";
+import { getWardrobe } from "@zauq/shared/wardrobe";
 import {
   getOutfits,
   saveOutfit,
   validateOutfit,
   EVENT_LABEL,
   type Validation,
-} from "../lib/outfits";
-import { logWear } from "../lib/wearlog";
+} from "@zauq/shared/outfits";
+import { logWear } from "@zauq/shared/wearlog";
 import { RoomMantel } from "../components/ClosetRooms";
 import { PageShell, Toast, useFlash, ArchSkeleton } from "../components/ui";
 import { TryOnModal } from "../components/TryOnModal";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
-import type { WardrobeItem } from "../lib/types";
+import type { WardrobeItem } from "@zauq/shared/types";
 
 // Compose: build an outfit by hand. The board on the left fills as you tap
 // pieces on the right; the validator scores it as you go, in words, not a

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import type { FavoriteResponse, Look } from '../lib/types'
+import type { FavoriteResponse, Look } from '@zauq/shared/types'
 import { Spinner } from './Spinner'
 import { TryOnModal } from './TryOnModal'
 import { ZoomableImage } from './ImageLightbox'

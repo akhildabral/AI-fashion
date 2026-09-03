@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { composeEvening, wearBrief, type BriefResponse } from '../lib/brief'
+import { composeEvening, wearBrief, type BriefResponse } from '@zauq/shared/brief'
 import { LookBoard } from './LookBoard'
 import { Spinner } from './Spinner'
 

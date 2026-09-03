@@ -1,9 +1,9 @@
-import { currencySymbol } from '../lib/money'
+import { currencySymbol } from '@zauq/shared/money'
 import { useState } from 'react'
 import { Arch, Modal } from './ui'
 import { resolveImageUrl } from '../lib/api'
-import { updateWardrobeItem } from '../lib/wardrobe'
-import type { WardrobeItem } from '../lib/types'
+import { updateWardrobeItem } from '@zauq/shared/wardrobe'
+import type { WardrobeItem } from '@zauq/shared/types'
 
 // Pricing the closet: a quick pass over pieces without a price, so the
 // estate value and cost-per-wear can exist. Save as you go; skip anything.

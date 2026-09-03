@@ -295,9 +295,16 @@ async function saveDay(userId: string, date: string, payload: BriefPayload, extr
   });
 }
 
-async function respondDay(res: Response, userId: string, row: { payload: Prisma.JsonValue; wornLogId: string | null; rest: boolean; plannedAt: Date | null } | null) {
-  if (!row) return res.json({ mode: 'starter' as const });
-  if (row.rest) return res.json({ mode: 'rest' as const, worn: false });
+type DayRow = { payload: Prisma.JsonValue; wornLogId: string | null; rest: boolean; plannedAt: Date | null } | null;
+
+async function respondDay(res: Response, userId: string, row: DayRow) {
+  return res.json(await dayResponse(userId, row));
+}
+
+/** The day as the page reads it: the body of GET /brief. */
+async function dayResponse(userId: string, row: DayRow) {
+  if (!row) return { mode: 'starter' as const };
+  if (row.rest) return { mode: 'rest' as const, worn: false };
   const payload = row.payload as unknown as BriefPayload;
   const looks = looksOf(payload, row.wornLogId);
 
@@ -340,7 +347,7 @@ async function respondDay(res: Response, userId: string, row: { payload: Prisma.
   // Backward-compat: `brief` = the first look shaped like the old single brief;
   // `evening` = the evening-slot look, if any. The new client reads `looks`.
   const eveningOut = looksOut.find((l) => l.slot === 'evening') ?? null;
-  return res.json({
+  return {
     mode: 'brief' as const,
     brief: {
       ...payload, alternates: undefined, evening: undefined, looks: undefined,
@@ -359,7 +366,7 @@ async function respondDay(res: Response, userId: string, row: { payload: Prisma.
     plannedAt: row.plannedAt,
     worn: first?.worn ?? false,
     wornLook: first?.wornLook ?? null,
-  });
+  };
 }
 
 const briefQuerySchema = z.object({
@@ -378,26 +385,31 @@ const briefQuerySchema = z.object({
  */
 export async function getBrief(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { date, occasion, eventType, refresh, peek } = briefQuerySchema.parse(req.query);
-  const userId = req.user.id;
+  const query = briefQuerySchema.parse(req.query);
+  res.json(await briefFor(req.user.id, query));
+}
+
+/** The body of GET /brief for a person and a day; shared with /bootstrap. */
+export async function briefFor(userId: string, query: z.infer<typeof briefQuerySchema>) {
+  const { date, occasion, eventType, refresh, peek } = query;
 
   const existing = await readDay(userId, date);
   const recompose = Boolean(occasion) || Boolean(eventType) || Boolean(refresh);
-  if (existing && !recompose) return respondDay(res, userId, existing);
-  if (!existing && peek) return res.json({ mode: 'unplanned' as const });
+  if (existing && !recompose) return dayResponse(userId, existing);
+  if (!existing && peek) return { mode: 'unplanned' as const };
   if (existing?.wornLogId && recompose) throw new HttpError(400, 'Today is already worn — tomorrow is open.');
 
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });
   const prev = existing?.payload as unknown as BriefPayload | undefined;
   const event = resolveEventType(profile, date, eventType ?? (occasion ? (prev?.eventType ?? null) : null));
   const payload = await composeOutfit(userId, event, occasion ?? null, date);
-  if (!payload) return res.json({ mode: 'starter' as const });
+  if (!payload) return { mode: 'starter' as const };
   // Composing is slow; if the day changed underneath us (a home day, a wear), keep that.
   const fresh = await readDay(userId, date);
-  if (fresh && (fresh.updatedAt.getTime() !== (existing?.updatedAt.getTime() ?? 0)) && (fresh.rest || fresh.wornLogId)) return respondDay(res, userId, fresh);
+  if (fresh && (fresh.updatedAt.getTime() !== (existing?.updatedAt.getTime() ?? 0)) && (fresh.rest || fresh.wornLogId)) return dayResponse(userId, fresh);
   if (prev && !existing?.rest) payload.alternates = [{ ...prev, alternates: undefined }, ...(prev.alternates ?? [])].slice(0, 5);
   const saved = await saveDay(userId, date, payload, { rest: false, plannedAt: existing?.plannedAt ?? null });
-  return respondDay(res, userId, saved);
+  return dayResponse(userId, saved);
 }
 
 /** Shared by the page, the fitting's reveal and the pushes. */

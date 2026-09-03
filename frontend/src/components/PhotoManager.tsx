@@ -1,6 +1,6 @@
 import { Modal } from './ui'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { deletePhoto, getPhoto, uploadPhoto } from '../lib/tryon'
+import { deletePhoto, getPhoto, uploadPhoto } from '@zauq/shared/tryon'
 import { Spinner } from './Spinner'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10MB

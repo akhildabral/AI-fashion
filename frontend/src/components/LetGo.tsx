@@ -1,9 +1,9 @@
-import { money } from '../lib/money'
+import { money } from '@zauq/shared/money'
 import { useState } from 'react'
 import { Modal } from './ui'
-import { updateWardrobeItem, getResaleDraft } from '../lib/wardrobe'
+import { updateWardrobeItem, getResaleDraft } from '@zauq/shared/wardrobe'
 import { copyText } from '../lib/clipboard'
-import type { WardrobeItem } from '../lib/types'
+import type { WardrobeItem } from '@zauq/shared/types'
 
 // Let it go: an idle piece gets a decision, not a shelf. Lend it, retire it,
 // or draft the listing that sells it.

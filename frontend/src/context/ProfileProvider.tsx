@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ProfileContext, type ProfileContextValue } from './profile-context'
 import { apiFetch } from '../lib/api'
-import type { ProfileResponse, StyleProfile } from '../lib/types'
+import type { ProfileResponse, StyleProfile } from '@zauq/shared/types'
 import { useAuth } from './useAuth'
 
 /**

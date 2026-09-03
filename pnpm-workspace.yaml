@@ -1,0 +1,8 @@
+# The web app, the mobile app and the code they share. The backend keeps its
+# own lockfile and Docker build and stays outside the workspace on purpose.
+packages:
+  - frontend
+  - mobile
+  - packages/*
+allowBuilds:
+  esbuild: true

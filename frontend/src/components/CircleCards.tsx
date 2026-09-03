@@ -4,10 +4,10 @@ import { resolveImageUrl } from '../lib/api'
 import { Arch } from './ui'
 import { Spinner } from './Spinner'
 import { Initials } from './PeopleDrawer'
-import { dismissPick } from '../lib/social'
-import { logWear } from '../lib/wearlog'
+import { dismissPick } from '@zauq/shared/social'
+import { logWear } from '@zauq/shared/wearlog'
 import { copyText } from '../lib/clipboard'
-import { composeLook, dressingOrder } from '../lib/flatlay'
+import { composeLook, dressingOrder } from '@zauq/shared/flatlay'
 import {
   addComment,
   deleteComment,
@@ -24,7 +24,7 @@ import {
   type ReactionSummary,
   type VerdictPost,
   type WeekPost,
-} from '../lib/circle'
+} from '@zauq/shared/circle'
 
 // The Circle's cards — shared by the feed and by profiles, so a look reads
 // the same wherever it hangs. Every card asks something of you.

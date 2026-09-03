@@ -1,7 +1,7 @@
-import { money } from '../lib/money'
+import { money } from '@zauq/shared/money'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getStory, type StoryResponse } from '../lib/outfits'
+import { getStory, type StoryResponse } from '@zauq/shared/outfits'
 import { resolveImageUrl } from '../lib/api'
 
 // A piece's story: when it was last worn, what it's worn with, what it's
