@@ -338,6 +338,11 @@ export function UserProfilePage() {
                   <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">
                     {profile.isMe ? 'Share a look from the Circle and it hangs here.' : 'When they share a look, it hangs here.'}
                   </p>
+                  {profile.isMe && (
+                    <Link to="/circle" className="btn-primary mt-5 inline-flex">
+                      Share a look
+                    </Link>
+                  )}
                 </div>
               )}
               {profile.looks.map((p) => (
@@ -351,7 +356,14 @@ export function UserProfilePage() {
             <>
               {profile.publicItems.length === 0 ? (
                 <div className="mt-5 rounded-[3px] border border-dashed border-ink/20 py-14 text-center text-sm text-ink/55">
-                  Their public wardrobe is empty{profile.isMe ? '. Make pieces public from your Closet.' : '.'}
+                  {profile.isMe ? (
+                    <>
+                      <p>Your public wardrobe is empty. Make a piece public from its page in the Closet.</p>
+                      <Link to="/closet" className="btn-ghost btn-sm mt-4 inline-flex">Open the Closet</Link>
+                    </>
+                  ) : (
+                    'Their public wardrobe is empty.'
+                  )}
                 </div>
               ) : (
                 <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

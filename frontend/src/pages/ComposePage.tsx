@@ -324,7 +324,15 @@ export function ComposePage() {
               <button type="button" onClick={() => { setClosetFailed(false); getWardrobe().then((r) => { setCloset(r.items.filter((i) => i.status === 'ready' && !i.suppressed)) }).catch(() => setClosetFailed(true)) }} className="btn-ghost btn-sm mt-3">Try again</button>
             </div>
           )}
-          {closet && (
+          {closet && closet.length === 0 && (
+            <div className="mt-6 max-w-md">
+              <p className="font-display text-lg italic text-ink/60">Your closet is empty. Add a few pieces first, then style them by hand here.</p>
+              <button type="button" onClick={() => navigate('/closet')} className="btn-primary mt-4">
+                Add pieces
+              </button>
+            </div>
+          )}
+          {closet && closet.length > 0 && (
             <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
               {inSlot.map((i) => {
                 const on = chosen.includes(i.id);
