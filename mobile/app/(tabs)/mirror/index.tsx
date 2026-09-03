@@ -145,7 +145,8 @@ export default function MirrorRoom() {
   const renders = activeBook ? tryOns.filter((x) => activeBook.tryOnIds.includes(x.id)) : tryOns
   const cellW = (sw - gutter * 2) / 2
   const tileW = cellW - 6
-  const frameW = Math.round((sw - gutter * 2) * 0.64)
+  // The glass spans the room, gutter to gutter, as on the web.
+  const frameW = sw - gutter * 2
   const developing = activeRenders.length > 0
 
   const pressRender = (item: TryOn) => {
@@ -169,7 +170,7 @@ export default function MirrorRoom() {
 
   const header = (
     <View style={styles.header}>
-      <RoomHeader eyebrow={eyebrow} title={compareMode ? 'A, B,' : 'The'} emphasis={compareMode ? 'or C.' : 'Mirror.'} />
+      <RoomHeader eyebrow={eyebrow} eyebrowVoice="italic" title={compareMode ? 'A, B,' : 'The'} emphasis={compareMode ? 'or C.' : 'Mirror.'} />
 
       <Reflection
         width={frameW}

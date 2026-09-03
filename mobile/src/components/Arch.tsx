@@ -95,6 +95,9 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
   const uid = `${variant}-${Math.round(width)}-${Math.round(h)}`
   const edge = rgbaParts(t.nicheEdge)
   const sheen = rgbaParts(t.sheen)
+  // Under 120px the vitrine flattens (the web's container query): a loosely
+  // matted cut-out must not show its halo against a darkened edge.
+  const tiny = width < 120
   const nicheStops: [string, string][] =
     variant === 'mirror'
       ? [
@@ -102,11 +105,30 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
           ['0.84', t.mirror[1]],
           ['1', t.mirror[1]],
         ]
-      : [
-          ['0', t.niche[0]],
-          ['0.86', t.niche[1]],
-          ['1', t.niche[2]],
-        ]
+      : tiny
+        ? [
+            ['0', t.niche[0]],
+            ['1', t.niche[1]],
+          ]
+        : [
+            ['0', t.niche[0]],
+            ['0.86', t.niche[1]],
+            ['1', t.niche[2]],
+          ]
+  const mirror = variant === 'mirror'
+  // The web's bezels: 160deg brass-hi to brass-lo at 62%; the mirror's runs hi, brass at 45%, lo at 82%.
+  const bezelStops: [string, string][] = mirror
+    ? [
+        ['0', t.brassHi],
+        ['0.45', t.brassMid],
+        ['0.82', t.brassLo],
+        ['1', t.brassLo],
+      ]
+    : [
+        ['0', t.brassHi],
+        ['0.62', t.brassLo],
+        ['1', t.brassLo],
+      ]
 
   return (
     <View style={[{ width, height: h }, style]}>
@@ -121,7 +143,7 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
         {/* the niche: a lit vitrine (or the mirror's dark glass) */}
         <Svg width={width} height={h} style={StyleSheet.absoluteFill}>
           <Defs>
-            <RadialGradient id={`niche-${uid}`} cx="50%" cy="30%" rx="78%" ry="74%">
+            <RadialGradient id={`niche-${uid}`} cx="50%" cy="30%" rx={mirror ? '76%' : '78%'} ry={mirror ? '66%' : '74%'}>
               {nicheStops.map(([offset, color]) => (
                 <Stop key={offset} offset={offset} stopColor={color} />
               ))}
@@ -131,7 +153,20 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
         </Svg>
         <View style={StyleSheet.absoluteFill}>{children}</View>
         {/* the vignette ring and the vitrine's inset shadow; photos skip both */}
-        {variant === 'niche' && (
+        {mirror && (
+          /* a whisper of shine on the glass, the web's 123 degree band */
+          <Svg pointerEvents="none" width={width} height={h} style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id={`glass-${uid}`} x1="0" y1="0" x2="1" y2="0.65">
+                <Stop offset="0.48" stopColor="#ECE5D8" stopOpacity={0} />
+                <Stop offset="0.5" stopColor="#ECE5D8" stopOpacity={0.05} />
+                <Stop offset="0.52" stopColor="#ECE5D8" stopOpacity={0} />
+              </LinearGradient>
+            </Defs>
+            <Rect width={width} height={h} fill={`url(#glass-${uid})`} />
+          </Svg>
+        )}
+        {variant === 'niche' && !tiny && (
           <Svg pointerEvents="none" width={width} height={h} style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id={`vig-${uid}`} cx="50%" cy="50%" rx="62%" ry="58%">
@@ -161,9 +196,9 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
         <Svg pointerEvents="none" width={width} height={h} style={StyleSheet.absoluteFill}>
           <Defs>
             <LinearGradient id={`bezel-${uid}`} x1="0" y1="0" x2="0.64" y2="1">
-              <Stop offset="0" stopColor={t.brassHi} />
-              <Stop offset="0.62" stopColor={t.brassLo} />
-              <Stop offset="1" stopColor={t.brassLo} />
+              {bezelStops.map(([offset, color]) => (
+                <Stop key={offset} offset={offset} stopColor={color} />
+              ))}
             </LinearGradient>
           </Defs>
           <Path d={inner} fill="none" stroke={selected ? t.brass : `url(#bezel-${uid})`} strokeWidth={selected ? bezelWidth + 1 : bezelWidth} />

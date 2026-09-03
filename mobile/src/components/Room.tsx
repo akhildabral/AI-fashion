@@ -6,16 +6,34 @@ import { Platform, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { T } from './Text'
 
-export function RoomHeader({ eyebrow, title, emphasis, lead, right, style }: { eyebrow?: string; title: string; emphasis?: string; lead?: string; right?: ReactNode; style?: ViewStyle }) {
+export interface RoomHeaderProps {
+  eyebrow?: string
+  /** The web's two eyebrow voices: a tracked brass micro-label (Closet, Circle) or Bodoni italic in brass (Mirror). */
+  eyebrowVoice?: 'label' | 'italic'
+  title: string
+  emphasis?: string
+  lead?: string
+  right?: ReactNode
+  style?: ViewStyle
+}
+
+export function RoomHeader({ eyebrow, eyebrowVoice = 'label', title, emphasis, lead, right, style }: RoomHeaderProps) {
   return (
     <View style={[styles.header, style]}>
       <View style={styles.headText}>
         {eyebrow ? (
-          <T role="label" tone="faint">
-            {eyebrow}
-          </T>
+          eyebrowVoice === 'italic' ? (
+            <T role="bodySm" tone="brass" style={styles.eyebrowItalic}>
+              {eyebrow}
+            </T>
+          ) : (
+            <T role="micro" tone="brass" style={styles.eyebrowLabel}>
+              {eyebrow}
+            </T>
+          )
         ) : null}
         <T role="h1" accessibilityRole="header">
           {title}
@@ -65,6 +83,9 @@ export function ActionBar({ children, style }: { children: ReactNode; style?: Vi
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, paddingTop: 8, paddingBottom: 16 },
   headText: { flex: 1, gap: 6 },
+  // The web's `text-[10px] tracking-[0.28em]` and `font-display text-sm italic`.
+  eyebrowLabel: { letterSpacing: 2.8 },
+  eyebrowItalic: { fontFamily: fonts.serifItalic, fontSize: 14, lineHeight: 18 },
   headRight: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 4 },
   bar: {
     position: 'absolute',

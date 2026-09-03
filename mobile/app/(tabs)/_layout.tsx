@@ -28,8 +28,8 @@ export default function TabsLayout() {
     >
       {ROOMS.map((room) => (
         <NativeTabs.Trigger key={room.name} name={room.name}>
-          <Icon sf={{ default: room.sf, selected: room.sfOn }} androidSrc={<VectorIcon family={MaterialIcons} name={room.md} />} />
-          <Label>{room.label}</Label>
+          <Icon sf={{ default: room.sf, selected: room.sfOn }} androidSrc={<VectorIcon family={MaterialIcons} name={room.md} />} selectedColor={t.brass} />
+          <Label selectedStyle={{ color: t.brass }}>{room.label}</Label>
         </NativeTabs.Trigger>
       ))}
     </NativeTabs>

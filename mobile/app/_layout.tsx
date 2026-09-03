@@ -8,6 +8,7 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
+import { LogBox } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
@@ -33,6 +34,11 @@ Sentry.init({
 })
 
 configureNotifications()
+
+// A development build compiled without code signing has no keychain
+// entitlement, so expo-notifications logs this on every launch. Signed builds
+// never hit it; keep the simulator quiet.
+if (__DEV__) LogBox.ignoreLogs(['[expo-notifications] Error reading persisted'])
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined)
 SplashScreen.setOptions({ fade: true, duration: 350 })

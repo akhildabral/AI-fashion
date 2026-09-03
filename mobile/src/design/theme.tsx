@@ -20,7 +20,7 @@ interface ThemeValue {
 
 const ThemeContext = createContext<ThemeValue | null>(null)
 
-export function ThemeProvider({ children, initialMode = 'system' }: { children: ReactNode; initialMode?: ThemeMode }) {
+export function ThemeProvider({ children, initialMode = 'dark' }: { children: ReactNode; initialMode?: ThemeMode }) {
   const system = useColorScheme()
   const [mode, setModeState] = useState<ThemeMode>(initialMode)
 
@@ -50,12 +50,15 @@ export function useTheme(): ThemeValue {
   return v
 }
 
-/** Read the saved mode before the first render so the splash hands over without a flash. */
+/**
+ * Read the saved mode before the first render so the splash hands over
+ * without a flash. Like the web, the house default is the atelier by night.
+ */
 export async function readSavedThemeMode(): Promise<ThemeMode> {
   try {
     const saved = await AsyncStorage.getItem(KEY)
-    return saved === 'light' || saved === 'dark' ? saved : 'system'
+    return saved === 'light' || saved === 'system' ? saved : 'dark'
   } catch {
-    return 'system'
+    return 'dark'
   }
 }

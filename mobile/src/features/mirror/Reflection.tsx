@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import { Arch } from '@/src/components/Arch'
+import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { fadeIn, fadeOut } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
@@ -67,9 +68,7 @@ export function Reflection({ width, checked, photoUrl, developing, onAdd, onOpen
             <T role="bodySm" align="center" style={[styles.copy, { color: alpha(GLASS_INK, 0.6) }]}>
               One clear, full-length photo, and every outfit renders on you.
             </T>
-            <T role="label" tone="brass" style={styles.link}>
-              Add your reflection
-            </T>
+            <Button label="Add your photo" onPress={onAdd} style={styles.link} />
           </Pressable>
         ) : null}
 
@@ -101,5 +100,5 @@ const styles = StyleSheet.create({
   host: { alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 },
   copy: { maxWidth: 220 },
-  link: { marginTop: 4, minHeight: 44, textAlignVertical: 'center', lineHeight: 44 },
+  link: { marginTop: 4 },
 })
