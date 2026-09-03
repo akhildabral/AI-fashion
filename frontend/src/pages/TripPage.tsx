@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash } from '../components/ui'
+import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { usePageTitle } from '../lib/usePageTitle'
 import { deleteTrip, getTrip, replanTripDay, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
@@ -176,17 +176,29 @@ export function TripPage() {
         <p className="alert-error" role="alert">
           {error}
         </p>
-        <Link to="/trips" className="btn-ghost mt-6 inline-flex">
-          All trips
-        </Link>
+        <div className="mt-6 flex gap-3">
+          <button type="button" onClick={() => { setError(null); void load() }} className="btn-primary">
+            Try again
+          </button>
+          <Link to="/trips" className="btn-ghost inline-flex">
+            All trips
+          </Link>
+        </div>
       </PageShell>
     )
   }
   if (!data) {
     return (
       <PageShell>
-        <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
+        <div aria-busy="true" aria-label="Loading the trip">
+          <SkeletonBlock className="h-4 w-28" />
+          <SkeletonBlock className="mt-3 h-12 w-2/3" />
+          <SkeletonBlock className="mt-3 h-4 w-40" />
+          <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
+            ))}
+          </div>
         </div>
       </PageShell>
     )

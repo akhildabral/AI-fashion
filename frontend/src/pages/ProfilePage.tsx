@@ -8,10 +8,9 @@ import { apiFetch, getToken } from '../lib/api'
 import type { StyleProfile, User } from '../lib/types'
 import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
-import { Spinner } from '../components/Spinner'
 import { PhotoManager } from '../components/PhotoManager'
 import { RitualSettings } from '../components/RitualSettings'
-import { Modal, PageShell, Tabs, Toast, useFlash } from '../components/ui'
+import { Modal, PageShell, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
 
 // You: the fitting's answers, editable with the fitting's own controls and
 // saved as you change them; the ritual; and the account beside them.
@@ -154,9 +153,20 @@ export function ProfilePage() {
 
   if (profileLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-ink/50">
-        <Spinner className="h-6 w-6" />
-      </div>
+      <PageShell narrow>
+        <SkeletonBlock className="h-12 w-56" />
+        <div className="mt-6 flex gap-2">
+          {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-8 w-24" />)}
+        </div>
+        <div className="mt-8 flex flex-col gap-4" aria-busy="true" aria-label="Loading your profile">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-[3px] border border-ink/10 bg-surface p-5">
+              <SkeletonBlock className="h-4 w-32" />
+              <SkeletonBlock className="mt-3 h-8 w-full" />
+            </div>
+          ))}
+        </div>
+      </PageShell>
     )
   }
 

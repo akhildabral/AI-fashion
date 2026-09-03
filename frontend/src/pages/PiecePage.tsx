@@ -6,7 +6,7 @@ import { deleteWardrobeItem, getWardrobeItem, recatalogWardrobeItem, resolveTwin
 import { getStory, type StoryResponse } from '../lib/outfits'
 import type { WardrobeItem, WardrobeItemEdit } from '../lib/types'
 import { resolveImageUrl } from '../lib/api'
-import { Arch, PageShell, Tabs, Toast, useFlash } from '../components/ui'
+import { Arch, PageShell, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { ShareButton } from '../components/ShareButton'
 import { GoesWith } from '../components/GoesWith'
@@ -348,17 +348,30 @@ export function PiecePage() {
         <p className="alert-error" role="alert">
           {error}
         </p>
-        <Link to="/closet" className="btn-ghost mt-6 inline-flex">
-          The closet
-        </Link>
+        <div className="mt-6 flex gap-3">
+          <button type="button" onClick={() => { setError(null); void load() }} className="btn-primary">
+            Try again
+          </button>
+          <Link to="/closet" className="btn-ghost inline-flex">
+            The closet
+          </Link>
+        </div>
       </PageShell>
     )
   }
   if (!item) {
     return (
       <PageShell>
-        <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,420px)_1fr]" aria-busy="true" aria-label="Loading the piece">
+          <div className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
+          <div className="flex flex-col gap-4 pt-2">
+            <SkeletonBlock className="h-4 w-24" />
+            <SkeletonBlock className="h-12 w-3/4" />
+            <SkeletonBlock className="h-9 w-40" />
+            <div className="mt-4 flex flex-col gap-3 border-t border-ink/10 pt-5">
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonBlock key={i} className="h-4 w-full" />)}
+            </div>
+          </div>
         </div>
       </PageShell>
     )

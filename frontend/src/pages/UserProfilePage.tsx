@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { Arch, Modal, PageShell, Toast, useFlash, Tabs } from '../components/ui'
+import { Arch, Modal, PageShell, Toast, useFlash, Tabs, SkeletonBlock } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
@@ -207,8 +207,16 @@ export function UserProfilePage() {
     <PageShell wide>
       <Toast msg={toast} />
       {!profile && !error && (
-        <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
+        <div aria-busy="true" aria-label="Loading profile">
+          <SkeletonBlock className="h-14 w-64" />
+          <div className="mt-5 flex gap-6">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-10 w-16" />)}
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
+            ))}
+          </div>
         </div>
       )}
       {error && (

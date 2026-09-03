@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { PageShell, Modal } from '../components/ui'
+import { PageShell, Modal, SkeletonBlock } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
-import { Spinner } from '../components/Spinner'
 import { useAuth } from '../context/useAuth'
 
 interface Meter {
@@ -179,9 +178,21 @@ export function BillingPage() {
 
   if (!summary && !error) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-ink/60">
-        <Spinner className="h-6 w-6" />
-      </div>
+      <PageShell narrow>
+        <SkeletonBlock className="h-12 w-64" />
+        <div className="mt-6 rounded-[3px] border border-ink/10 bg-surface p-6" aria-busy="true" aria-label="Loading your plan">
+          <SkeletonBlock className="h-4 w-24" />
+          <SkeletonBlock className="mt-2 h-7 w-40" />
+          <div className="mt-6 flex flex-col gap-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                <SkeletonBlock className="h-4 w-full" />
+                <SkeletonBlock className="mt-2 h-2 w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </PageShell>
     )
   }
 
@@ -198,7 +209,10 @@ export function BillingPage() {
         <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
       )}
       {error && (
-        <p className="mt-4 alert-error !py-3">{error}</p>
+        <div className="mt-4 alert-error !py-3 flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <button type="button" onClick={() => { setError(null); void load() }} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
+        </div>
       )}
 
       {summary && (

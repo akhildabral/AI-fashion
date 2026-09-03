@@ -12,7 +12,7 @@ import type { EventType, ResaleDraftResponse, WardrobeItem, WearInsightsResponse
 import { Spinner } from '../components/Spinner'
 import { ShareButton } from '../components/ShareButton'
 import { clearLookPhoto, setLookPhoto, shareLook, unshareLook } from '../lib/circle'
-import { Arch, GarmentTile, Modal, PageShell, Stat, Toast, useFlash } from '../components/ui'
+import { Arch, GarmentTile, Modal, PageShell, Stat, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
 import { temp } from '../lib/units'
 
@@ -617,8 +617,13 @@ export function JournalPage() {
         </div>
 
         {loading && (
-          <div className="flex min-h-[20vh] items-center justify-center text-ink/50">
-            <Spinner className="h-6 w-6" />
+          <div className="mt-4 grid gap-3" aria-busy="true" aria-label="Loading your record">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="card p-4">
+                <SkeletonBlock className="h-4 w-40" />
+                <SkeletonBlock className="mt-3 h-24 w-full" />
+              </div>
+            ))}
           </div>
         )}
         {logs && logs.length === 0 && (
