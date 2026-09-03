@@ -105,9 +105,11 @@ export function PhotoManager() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : (
-        <div className="grid gap-8 sm:grid-cols-[auto_1fr] sm:items-start">
+        // flex-wrap so the controls drop below the photo whenever THIS card is
+        // too narrow (it lives in a column, so a viewport breakpoint lies).
+        <div className="flex flex-wrap items-start gap-6 sm:gap-8">
           {/* Preview */}
-          <div className="mx-auto w-40 sm:mx-0">
+          <div className="w-40 shrink-0">
             <div className="relative aspect-[3/4] w-40 overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-clay/20">
               {photoUrl ? (
                 <img
@@ -124,7 +126,7 @@ export function PhotoManager() {
           </div>
 
           {/* Controls */}
-          <div className="space-y-4">
+          <div className="min-w-[15rem] flex-1 space-y-4">
             {!photoUrl && (
               <label className="flex items-start gap-2.5 text-sm text-ink/70">
                 <input
@@ -132,7 +134,7 @@ export function PhotoManager() {
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   disabled={busy}
-                  className="mt-0.5 h-4 w-4 rounded border-ink/30 text-brass focus:ring-brass/30"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-ink/30 text-brass focus:ring-brass/30"
                 />
                 <span>
                   I consent to my photo being stored to generate try-on images.
