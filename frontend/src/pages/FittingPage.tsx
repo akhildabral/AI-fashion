@@ -973,14 +973,17 @@ export function FittingPage() {
                   onClick={() =>
                     void advance(
                       { heightCm: height, bodyType: build ?? undefined },
-                      6,
+                      // Straight to the photo. Sizes, tone, budget, city and
+                      // handle are refinements — offered after the first look,
+                      // not before it, so the reveal comes fast.
+                      11,
                     )
                   }
                   className="btn-primary"
                 >
                   Next
                 </button>
-                <Later onClick={() => void advance({}, 6)} />
+                <Later onClick={() => void advance({}, 11)} />
               </Actions>
             </>
           )}

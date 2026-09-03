@@ -396,6 +396,18 @@ export function TodayPage() {
         </Link>
       )}
 
+      {/* After the short-path fitting, the refinements it deferred: a quiet,
+          self-dismissing nudge that's gone the moment sizes are filled in. */}
+      {!loading && profile && profile.fittingCompletedAt && !profile.sizes?.top && !profile.sizes?.bottom && !profile.sizes?.shoe && (
+        <Link to="/profile" className="plaque press mt-4 flex animate-rise items-center justify-between gap-4 p-4 pl-5">
+          <span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">A finer fit</span>
+            <span className="mt-0.5 block font-display text-lg italic text-ink">Add your sizes and tone — looks land better when the Mirror knows them.</span>
+          </span>
+          <span className="btn-ghost btn-sm">Add details</span>
+        </Link>
+      )}
+
       {!loading && profile && <ClosetNotes />}
 
       {/* The week: what you wore, what's planned, where you are */}
