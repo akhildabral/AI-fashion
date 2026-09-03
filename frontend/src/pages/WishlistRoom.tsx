@@ -78,6 +78,14 @@ export function WishlistRoom() {
       <RoomMantel eyebrow="The collection" title="Wishlist" line={items ? `${items.length} piece${items.length === 1 ? '' : 's'} in mind${total > 0 ? ` · ${inr(total)} if you bought them all` : ''}` : undefined} />
       <ClosetRooms current="wishlist" />
 
+      {items && items.length > 0 && (
+        <div className="mt-6 flex animate-rise-1 justify-end">
+          <button type="button" onClick={() => navigate('/closet/store')} className="btn-ghost btn-sm !border-brass/50 !text-brass">
+            Point at a piece →
+          </button>
+        </div>
+      )}
+
       {items === null && (
         <div className="flex min-h-[40vh] items-center justify-center text-ink/50">
           <Spinner className="h-6 w-6" />
@@ -89,7 +97,7 @@ export function WishlistRoom() {
           <p className="font-display text-2xl italic text-ink/70">Nothing in mind yet.</p>
           <p className="mt-2 text-sm text-ink/55">Next time you’re holding something in a shop, point the camera at it. The closet says how many outfits it makes before you pay for it, and “keep in mind” lands here.</p>
           <button type="button" onClick={() => navigate('/closet/store')} className="btn-primary mt-5">
-            In the store
+            Point at a piece
           </button>
         </div>
       )}

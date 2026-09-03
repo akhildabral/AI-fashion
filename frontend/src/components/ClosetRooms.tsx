@@ -1,38 +1,26 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getBasket, getWishlist } from "../lib/wardrobe";
+import { getWishlist } from "../lib/wardrobe";
 
-// The Closet's rooms: one row that says where you are, what's waiting in the
-// other rooms, and the one door that opens from anywhere — the store.
+// The Closet's rooms: one row that says where you are and what's waiting in
+// the others. Three doors — Pieces, the outfits they make, and the wishlist.
 
-export type Room = "pieces" | "outfits" | "basket" | "wishlist";
+export type Room = "pieces" | "outfits" | "wishlist";
 
 const ROOMS: { key: Room; to: string; label: string }[] = [
   { key: "pieces", to: "/closet", label: "Pieces" },
   { key: "outfits", to: "/closet/outfits", label: "Outfits" },
-  { key: "basket", to: "/closet/basket", label: "The basket" },
   { key: "wishlist", to: "/closet/wishlist", label: "Wishlist" },
 ];
 
 export function ClosetRooms({ current }: { current: Room }) {
-  const navigate = useNavigate();
-  const [counts, setCounts] = useState<{ basket: number; wishlist: number }>({
-    basket: 0,
-    wishlist: 0,
-  });
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      getBasket().catch(() => null),
-      getWishlist().catch(() => null),
-    ]).then(([b, w]) => {
-      if (!alive) return;
-      setCounts({
-        basket: b ? b.counts.inWash + b.counts.packed + b.counts.lentOut : 0,
-        wishlist: w ? w.items.length : 0,
-      });
-    });
+    getWishlist()
+      .then((w) => alive && setWishlistCount(w ? w.items.length : 0))
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
@@ -42,12 +30,7 @@ export function ClosetRooms({ current }: { current: Room }) {
     <div className="mt-6 flex animate-rise-1 items-end justify-between gap-x-4 border-b border-ink/10">
       <nav aria-label="Closet rooms" className="tabs min-w-0 !border-b-0">
         {ROOMS.map((r) => {
-          const badge =
-            r.key === "basket"
-              ? counts.basket
-              : r.key === "wishlist"
-                ? counts.wishlist
-                : 0;
+          const badge = r.key === "wishlist" ? wishlistCount : 0;
           return (
             <NavLink
               key={r.key}
@@ -64,24 +47,6 @@ export function ClosetRooms({ current }: { current: Room }) {
           );
         })}
       </nav>
-      <button
-        type="button"
-        onClick={() => navigate("/closet/store")}
-        className="btn-ghost btn-sm mb-2 flex-none !border-brass/50 !text-brass hover:!bg-iris-soft/40"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="mr-2 h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          aria-hidden="true"
-        >
-          <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-          <circle cx="12" cy="13" r="3.2" />
-        </svg>
-        In the store
-      </button>
     </div>
   );
 }

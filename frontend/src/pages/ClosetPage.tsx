@@ -6,7 +6,7 @@ import { addWardrobeItem, getWardrobe } from '../lib/wardrobe'
 import { apiFetch, pinFile } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '../lib/brief'
 import type { WardrobeItem } from '../lib/types'
-import { GarmentTile, PageShell, Modal, Tabs, Filter } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Filter } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { LetGoModal } from '../components/LetGo'
 import { PriceDrawer } from '../components/PriceDrawer'
@@ -22,8 +22,9 @@ interface InsightItem {
   costPerWear: number | null
 }
 
-type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins'
-type Lens = 'gallery' | 'ledger'
+type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins' | 'basket'
+
+const BASKET_STATES = ['in-wash', 'packed', 'lent-out']
 
 const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'all', label: 'Everything' },
@@ -31,6 +32,7 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'never-worn', label: 'Never worn' },
   { id: 'orphans', label: 'Sitting idle' },
   { id: 'new', label: 'New this month' },
+  { id: 'basket', label: 'In the basket' },
   { id: 'twins', label: 'Possible twins' },
 ]
 
@@ -48,7 +50,6 @@ export function ClosetPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(0)
   const [dragActive, setDragActive] = useState(false)
-  const [lens, setLens] = useState<Lens>('gallery')
   const [lettingGo, setLettingGo] = useState<WardrobeItem | null>(null)
   const [category, setCategory] = useState<string | null>(null)
   const [collection, setCollection] = useState<Collection>('all')
@@ -161,6 +162,7 @@ export function ClosetPage() {
     if (collection === 'orphans' && !ins?.orphan) return false
     if (collection === 'new' && new Date(it.createdAt ?? 0).getTime() < monthAgo) return false
     if (collection === 'twins' && !it.twinOfId) return false
+    if (collection === 'basket' && !BASKET_STATES.includes(it.state ?? '')) return false
     if (search) {
       const hay = `${it.subtype ?? ''} ${it.category} ${it.primaryColor ?? ''} ${it.description ?? ''}`.toLowerCase()
       if (!hay.includes(search.toLowerCase())) return false
@@ -180,16 +182,6 @@ export function ClosetPage() {
   const rotationPct = stats?.rotationPct ?? 0
   const idleItems = list.filter((it) => insights.get(it.id)?.orphan)
   const idleCapital = idleItems.reduce((sum, it) => sum + (it.price ?? 0), 0)
-  const workhorses = [...list]
-    .filter((it) => (insights.get(it.id)?.wearCount ?? 0) > 0)
-    .sort((a, b) => (insights.get(b.id)?.wearCount ?? 0) - (insights.get(a.id)?.wearCount ?? 0))
-    .slice(0, 6)
-  const bestValueId =
-    workhorses
-      .filter((it) => insights.get(it.id)?.costPerWear != null)
-      .sort(
-        (a, b) => (insights.get(a.id)?.costPerWear ?? 1e9) - (insights.get(b.id)?.costPerWear ?? 1e9),
-      )[0]?.id ?? null
 
   function cpwLabel(it: WardrobeItem): string | undefined {
     if (it.state === 'in-wash') return 'in the wash'
@@ -309,20 +301,6 @@ export function ClosetPage() {
           </p>
         )}
 
-        {/* ---------------- Gallery / Ledger lens ---------------- */}
-        {!loading && !error && list.length > 0 && (
-          <Tabs
-            className="mt-6 animate-rise-1"
-            label="Closet view"
-            value={lens}
-            onChange={(l) => setLens(l)}
-            items={[
-              { key: 'gallery', label: 'Gallery' },
-              { key: 'ledger', label: 'Ledger' },
-            ]}
-          />
-        )}
-
         {/* ---------------- Loading / error / empty ---------------- */}
         {loading && (
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
@@ -345,15 +323,41 @@ export function ClosetPage() {
             </div>
             <h2 className="mt-6 font-display text-2xl font-medium text-ink">Your collection begins here.</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">
-              Drag a photo anywhere, or hit Add. Flat-lays and hangers work best. Each garment is
+              Drag a photo anywhere, or add a few. Flat-lays and hangers work best. Each garment is
               extracted and framed on its own.
             </p>
+            <button type="button" onClick={() => setAddChooserOpen(true)} className="btn-primary mt-6 !px-6">
+              Add your first piece
+            </button>
           </div>
         )}
 
         {/* ---------------- GALLERY ---------------- */}
-        {!loading && !error && list.length > 0 && lens === 'gallery' && (
+        {!loading && !error && list.length > 0 && (
           <>
+            {/* What the closet is doing — the ledger's truth, kept as a slim strip.
+                Only once there's real wear behind it; all-zeros is just noise. */}
+            {stats && (stats.wornThisQuarter > 0 || stats.streak > 0 || idleCapital > 0) && (
+              <div className="plaque mt-6 flex animate-rise-1 flex-wrap items-center gap-x-8 gap-y-2 p-4 pl-5">
+                {[
+                  { v: `${rotationPct}%`, l: 'in rotation' },
+                  { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
+                  { v: stats.monthlyPayback > 0 ? inr(stats.monthlyPayback) : '—', l: 'earned this month' },
+                  { v: String(stats.streak), l: 'day streak' },
+                ].map((s) => (
+                  <div key={s.l}>
+                    <span className="font-display text-xl font-semibold text-ink [font-variant-numeric:tabular-nums]">{s.v}</span>
+                    <span className="ml-2 text-[10px] uppercase tracking-[0.08em] text-ink/45">{s.l}</span>
+                  </div>
+                ))}
+                {idleCapital > 0 && (
+                  <button type="button" onClick={() => setCollection('orphans')} className="press ml-auto text-[11px] font-semibold text-brass hover:underline">
+                    {inr(idleCapital)} sitting idle →
+                  </button>
+                )}
+              </div>
+            )}
+
             {gaps.length > 0 && (
               <div className="mt-5 flex animate-rise-2 flex-wrap gap-2">
                 {gaps.map((g) => (
@@ -380,11 +384,18 @@ export function ClosetPage() {
                 </Filter>
               ))}
               <span className="filter-sep hidden sm:block" />
-              {COLLECTIONS.map((c) => (
-                <Filter key={c.id} on={collection === c.id} onClick={() => setCollection(c.id)}>
-                  {c.label}
-                </Filter>
-              ))}
+              <label className="relative inline-flex items-center">
+                <span className="sr-only">Show a collection</span>
+                <select
+                  value={collection}
+                  onChange={(e) => setCollection(e.target.value as Collection)}
+                  className={`field field-sm !w-auto !pr-8 ${collection !== 'all' ? '!border-brass !text-brass' : ''}`}
+                >
+                  {COLLECTIONS.map((c) => (
+                    <option key={c.id} value={c.id}>{c.id === 'all' ? 'Show: everything' : c.label}</option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             {/* The gallery wall */}
@@ -417,110 +428,6 @@ export function ClosetPage() {
               </>
             )}
           </>
-        )}
-
-        {/* ---------------- LEDGER (the absorbed wear-journal) ---------------- */}
-        {!loading && !error && list.length > 0 && lens === 'ledger' && (
-          <div className="animate-rise-2">
-            {/* The rotation truth */}
-            <div className="plaque mt-6 p-6 pl-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
-                What your closet is doing
-              </p>
-              <p className="mt-2 max-w-2xl font-display text-2xl font-medium leading-snug text-ink">
-                {idleCapital > 0 ? (
-                  <>
-                    <span className="text-brass">{inr(idleCapital)}</span> of your estate hasn&rsquo;t
-                    left the closet this quarter.
-                  </>
-                ) : (
-                  <>Every piece has earned its place this quarter.</>
-                )}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-x-10 gap-y-4 border-t border-ink/10 pt-4">
-                {[
-                  { v: stats ? inr(stats.monthlyPayback) : '—', l: 'earned this month' },
-                  { v: `${rotationPct}%`, l: 'in rotation' },
-                  { v: stats ? String(stats.wornThisQuarter) : '—', l: 'wears this quarter' },
-                  { v: stats ? String(stats.streak) : '—', l: 'day streak' },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <p className="font-display text-2xl font-semibold text-ink [font-variant-numeric:tabular-nums]">
-                      {s.v}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-[0.08em] text-ink/45">{s.l}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Workhorses — the pieces earning their keep */}
-            {workhorses.length > 0 && (
-              <section className="mt-10">
-                <div className="mb-4 flex items-baseline gap-3">
-                  <h2 className="font-display text-2xl font-medium text-ink">Workhorses</h2>
-                  <p className="text-sm text-ink/45">the pieces earning their keep</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                  {workhorses.map((item) => (
-                    <div key={item.id} className="relative">
-                      {item.id === bestValueId && (
-                        <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-[2px] bg-brass px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-on-brass">
-                          Best value
-                        </span>
-                      )}
-                      <GarmentTile
-                        imageUrl={item.imageUrl}
-                        label={item.subtype ?? item.category}
-                        sublabel={cpwLabel(item)}
-                        onClick={() => navigate(`/closet/piece/${item.id}`)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Sitting idle — the dark alcoves */}
-            <section className="mt-10">
-              <div className="mb-4 flex items-baseline gap-3">
-                <h2 className="font-display text-2xl font-medium text-ink">Sitting idle</h2>
-                <p className="text-sm text-ink/45">
-                  {idleItems.length > 0
-                    ? `${idleItems.length} piece${idleItems.length === 1 ? '' : 's'} in the dark`
-                    : 'nothing gathering dust'}
-                </p>
-              </div>
-              {idleItems.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                  {idleItems.slice(0, 12).map((item) => (
-                    <div key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/closet/piece/${item.id}`)}
-                        className="press group block w-full text-left opacity-70 grayscale-[0.25] transition hover:opacity-100 hover:grayscale-0"
-                      >
-                        <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel="idle" />
-                      </button>
-                      {/* A shelf is not a decision: style it, or let it go. */}
-                      <div className="mt-2 grid grid-cols-2 gap-1.5">
-                        <button type="button" onClick={() => navigate(`/closet/compose?pin=${item.id}`)} className="btn-ghost btn-sm !border-brass/50 !text-brass">
-                          Style it
-                        </button>
-                        <button type="button" onClick={() => setLettingGo(item)} className="btn-ghost btn-sm">
-                          Let it go
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-[3px] border border-dashed border-ink/15 p-5 text-sm text-ink/45">
-                  Log a few wears and the pieces you&rsquo;re neglecting turn up here.
-                </p>
-              )}
-            </section>
-          </div>
         )}
 
         {/* Add chooser */}
