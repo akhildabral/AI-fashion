@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
-import { Image, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native'
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context'
-import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg'
+import Svg, { Defs, Ellipse, Image as SvgImage, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { useTheme } from '@/src/design/theme'
 import { gutter } from '@/src/design/tokens'
 
@@ -10,8 +10,9 @@ const grain = require('../../assets/grain.png')
 /** The two ambient washes behind every screen (App.tsx on the web). */
 function Wash() {
   const { t } = useTheme()
+  const { width, height } = useWindowDimensions()
   return (
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={width} height={height}>
       <Defs>
         <RadialGradient id="washA" cx="82%" cy="-8%" rx="60%" ry="45%">
           <Stop offset="0" stopColor={t.washA} />
@@ -31,9 +32,17 @@ function Wash() {
 /** Film grain over the whole screen, like the web's fixed noise layer. */
 export function Grain() {
   const { t } = useTheme()
+  const { width, height } = useWindowDimensions()
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: t.grainOpacity, mixBlendMode: t.grainBlend }]}>
-      <Image source={grain} resizeMode="repeat" style={StyleSheet.absoluteFill} accessible={false} />
+      <Svg width={width} height={height}>
+        <Defs>
+          <Pattern id="grain" patternUnits="userSpaceOnUse" width={128} height={128}>
+            <SvgImage href={grain} width={128} height={128} preserveAspectRatio="none" />
+          </Pattern>
+        </Defs>
+        <Rect width={width} height={height} fill="url(#grain)" />
+      </Svg>
     </View>
   )
 }
