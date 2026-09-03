@@ -19,6 +19,8 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   block?: boolean
   /** An icon element for `variant="icon"` or a leading glyph. */
   icon?: ReactNode
+  /** An icon button that sits in an action bar beside 44pt actions takes their height. */
+  tall?: boolean
   style?: ViewStyle
 }
 
@@ -34,6 +36,7 @@ export function Button({
   loading = false,
   block = false,
   icon,
+  tall = false,
   disabled,
   style,
   accessibilityLabel,
@@ -42,7 +45,7 @@ export function Button({
   const { t } = useTheme()
   const scale = useSharedValue(1)
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
-  const h = variant === 'icon' ? height.secondary : size === 'sm' ? height.secondary : height.action
+  const h = variant === 'icon' ? (tall ? height.action : height.secondary) : size === 'sm' ? height.secondary : height.action
   const off = disabled || loading
 
   const fill =

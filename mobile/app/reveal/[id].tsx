@@ -22,6 +22,7 @@ import { tryOnWardrobeOutfit } from '@zauq/shared/wardrobe'
 import { logWear } from '@zauq/shared/wearlog'
 import { Arch } from '@/src/components/Arch'
 import { Button } from '@/src/components/Button'
+import { MoreGlyph } from '@/src/components/Glyphs'
 import { Screen } from '@/src/components/Screen'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
@@ -375,11 +376,8 @@ export default function RevealScreen() {
                 accessibilityLabel="More for this render"
                 disabled={busy !== null}
                 onPress={() => setMenuOpen(true)}
-                icon={
-                  <T role="bodySm" tone="ink" style={{ fontFamily: fonts.sansSemi, letterSpacing: -0.5 }}>
-                    ···
-                  </T>
-                }
+                tall
+                icon={<MoreGlyph />}
               />
             </View>
             <View style={styles.row}>

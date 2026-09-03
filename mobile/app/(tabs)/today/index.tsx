@@ -12,6 +12,7 @@ import { getRitualStats, getWeek, shiftKey, todayKey, weatherCheck, type BriefIt
 import { money } from '@zauq/shared/money'
 import { EmptyState, LoadError, Plaque, Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { MoreGlyph } from '@/src/components/Glyphs'
 import { ACTION_BAR_HEIGHT, ActionBar } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { T } from '@/src/components/Text'
@@ -132,7 +133,7 @@ export default function TodayRoom() {
   menuItems.push({ label: 'Add a look', onPress: () => go(paths.addLook(date)) })
   menuItems.push({ label: 'Plan tomorrow', onPress: () => go(paths.day(shiftKey(date, 1))) })
 
-  const more = <Button variant="icon" accessibilityLabel="Change today's look" icon={<T role="h3">···</T>} onPress={() => setMenu(true)} style={styles.right} />
+  const more = <Button variant="icon" accessibilityLabel="Change today's look" tall icon={<MoreGlyph />} onPress={() => setMenu(true)} style={styles.right} />
 
   const bar = () => {
     if (!data) return null

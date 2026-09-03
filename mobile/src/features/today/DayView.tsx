@@ -14,6 +14,7 @@ import { EVENT_LABEL } from '@zauq/shared/outfits'
 import { temp } from '@zauq/shared/units'
 import { LoadError, Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { MoreGlyph } from '@/src/components/Glyphs'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
@@ -151,7 +152,7 @@ function PastDay({ date }: { date: string }) {
         <ActionBar>
           <Button label="Share it" onPress={() => go(paths.share({ date, wearLogId: day.wearLogId }))} />
           <Button label="See it on you" variant="ghost" onPress={() => go(paths.mirror(day.itemIds))} />
-          <Button variant="icon" accessibilityLabel="More" icon={<T role="h3">···</T>} onPress={() => setMenu(true)} style={styles.right} />
+          <Button variant="icon" accessibilityLabel="More" tall icon={<MoreGlyph />} onPress={() => setMenu(true)} style={styles.right} />
         </ActionBar>
       ) : null}
       <MoreMenu
@@ -304,7 +305,7 @@ function FutureDay({ date, laidOut }: { date: string; laidOut: boolean }) {
         <ActionBar>
           <Button label="See it on you" onPress={() => go(paths.mirror(look.itemIds))} />
           <Button label="Another" variant="ghost" loading={busy && recompose.variables?.eventType === look.eventType} disabled={busy} onPress={() => plan({ eventType: look.eventType, occasion: look.occasion ?? undefined })} />
-          <Button variant="icon" accessibilityLabel="More" icon={<T role="h3">···</T>} onPress={() => setMenu(true)} style={styles.right} />
+          <Button variant="icon" accessibilityLabel="More" tall icon={<MoreGlyph />} onPress={() => setMenu(true)} style={styles.right} />
         </ActionBar>
       ) : null}
       <MoreMenu

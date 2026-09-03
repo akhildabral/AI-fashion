@@ -11,6 +11,7 @@ import type { WardrobeItem, WardrobeItemEdit, WardrobeItemResponse } from '@zauq
 import { recatalogWardrobeItem, updateWardrobeItem } from '@zauq/shared/wardrobe'
 import { LoadError, Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { MoreGlyph } from '@/src/components/Glyphs'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { ActionBar, ACTION_BAR_HEIGHT } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
@@ -176,11 +177,7 @@ export default function Piece() {
             <Button
               variant="icon"
               accessibilityLabel="More"
-              icon={
-                <T role="body" tone="muted" style={styles.dots}>
-                  ···
-                </T>
-              }
+              icon={<MoreGlyph />}
               onPress={() => setMenu(true)}
             />
           ),
