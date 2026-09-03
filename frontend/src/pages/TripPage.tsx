@@ -111,7 +111,7 @@ export function TripPage() {
       else next.add(key)
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
       saveTimer.current = window.setTimeout(() => {
-        updateTrip(id, { checked: [...next] }).catch(() => flash('Could not save the checklist — try again.'))
+        updateTrip(id, { checked: [...next] }).catch(() => flash('Couldn’t save the checklist. Try again.'))
       }, 500)
       return next
     })
@@ -166,7 +166,7 @@ export function TripPage() {
       await deleteTrip(id)
       navigate('/trips', { replace: true })
     } catch {
-      flash('Could not remove the trip — try again.')
+      flash('Couldn’t remove the trip. Try again.')
     }
   }
 
@@ -228,7 +228,7 @@ export function TripPage() {
           )}
           {confirmRemove ? (
             <>
-              <button type="button" onClick={() => void remove()} className="btn-ghost !border-[#D0524E]/60 !text-[#D0524E]">
+              <button type="button" onClick={() => void remove()} className="btn-ghost !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))]">
                 Yes, remove it
               </button>
               <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet">
@@ -360,7 +360,7 @@ export function TripPage() {
               const on = checked.has(key)
               return (
                 <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-ink/10 bg-surface px-4 py-2.5 text-sm">
-                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-[#B98C3B]" />
+                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
                   <span className={on ? 'capitalize text-ink/35 line-through' : 'capitalize text-ink/80'}>{name(item)}</span>
                 </label>
               )
@@ -370,7 +370,7 @@ export function TripPage() {
               const on = checked.has(key)
               return (
                 <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-dashed border-brass/40 bg-iris-soft/40 px-4 py-2.5 text-sm">
-                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-[#B98C3B]" />
+                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
                   <span className={on ? 'text-ink/35 line-through' : 'text-ink/80'}>{extra}</span>
                 </label>
               )

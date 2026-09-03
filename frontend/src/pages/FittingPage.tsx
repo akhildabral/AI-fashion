@@ -391,7 +391,7 @@ export function FittingPage() {
       );
       if (!w.ok)
         flash(
-          `Couldn’t find the weather for ${c} yet — the stylist will keep trying.`,
+          `Couldn’t find the weather for ${c} yet. The stylist keeps trying.`,
         );
     } catch {
       setWeather(null);
@@ -417,7 +417,7 @@ export function FittingPage() {
           setHandleState(
             r.available
               ? { ok: true, msg: `@${h} is free.` }
-              : { ok: false, msg: r.reason ?? `@${h} is taken — try another.` },
+              : { ok: false, msg: r.reason ?? `@${h} is taken. Try another.` },
           ),
         )
         .catch(() =>
@@ -617,8 +617,8 @@ export function FittingPage() {
       <Toast msg={toast} />
 
       {/* the thread */}
-      <div className="sticky top-0 z-20 bg-bone/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
+      <div className="sticky top-16 z-20 bg-bone/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
           <div className="relative h-0.5 flex-1 bg-ink/10">
             <div
               className="absolute left-0 top-0 h-full transition-[width] duration-700 ease-[cubic-bezier(.23,1,.32,1)]"
@@ -645,7 +645,7 @@ export function FittingPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
         <main className="min-h-[56dvh]" key={step}>
           {/* 0 threshold */}
           {name === "threshold" && (
@@ -1237,7 +1237,7 @@ export function FittingPage() {
               {claimed ? (
                 <p className="mt-6 animate-rise-2 text-sm text-ink/60">
                   You go by <b className="text-ink">{user?.name ?? user?.firstName ?? claimed}</b>
-                  {' '}— your address is <span className="text-ink/45">/u/{claimed}</span>.
+                  {'. '}Your address is <span className="text-ink/45">/u/{claimed}</span>.
                 </p>
               ) : (
                 <form
@@ -1352,7 +1352,7 @@ export function FittingPage() {
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#B98C3B]"
+                    className="mt-1 h-4 w-4 accent-iris"
                   />
                   <span>
                     I’m happy for this photo to be used to render outfits on me.

@@ -92,7 +92,7 @@ function BeforeAfter() {
         <img src={`${A}/mirror.webp`} alt="" width={1024} height={1024} className="absolute inset-0 z-[1] h-full w-full object-cover grayscale brightness-[0.55] blur-[1px]" />
         <img src={`${A}/mirror.webp`} alt="Dressed, in the Mirror" width={1024} height={1024} className="absolute inset-0 z-[2] h-full w-full object-cover" style={{ clipPath: `inset(0 0 0 ${cut}%)` }} />
         <div aria-hidden className="absolute inset-y-0 z-[3] w-0.5 bg-brass" style={{ left: `${cut}%`, transform: 'translateX(-1px)' }}>
-          <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[3px] bg-brass text-[11px] font-bold text-[rgb(26_21_9)]">⇔</span>
+          <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[3px] bg-brass text-[11px] font-bold text-on-brass">⇔</span>
         </div>
         <span className="absolute bottom-3 left-3 z-[3] text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/85">Before</span>
         <span className="absolute bottom-3 right-3 z-[3] text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/85">After</span>
@@ -142,7 +142,7 @@ export function LandingPage() {
         <div>
           <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">A personal stylist for the clothes you own</p>
           <h1 className="mt-4 animate-rise-1 font-display text-5xl font-medium leading-[0.98] tracking-[-0.01em] text-ink sm:text-6xl lg:text-7xl [text-wrap:balance]">
-            Every morning, an outfit — <em className="text-brass">already waiting.</em>
+            Every morning, an outfit. <em className="text-brass">Already waiting.</em>
           </h1>
           <p className="mt-5 max-w-lg animate-rise-2 font-display text-lg italic text-ink/60 sm:text-xl">It knows your closet. It lays out the look, shows it on you, and keeps score of what you wear.</p>
           <div className="mt-8 animate-rise-3">
@@ -151,14 +151,14 @@ export function LandingPage() {
         </div>
         <div className="mx-auto w-full max-w-sm animate-rise-2 md:max-w-none">
           <Arch aspect="aspect-[3/4]" className="arch-photo w-full">
-            <img src={`${A}/mirror.webp`} alt="A reflection in an arched brass mirror" width={1024} height={1024} fetchPriority="high" className="relative z-[1] h-full w-full object-cover" />
+            <img src={`${A}/mirror.webp`} alt="A reflection in an arched brass mirror" width={1024} height={1024} className="relative z-[1] h-full w-full object-cover" />
           </Arch>
         </div>
       </section>
 
       {/* ---- the morning ---- */}
       <Room k="The morning" title={<>Open the app. <em className="text-brass">It’s laid out.</em></>} line="For the day you have and the weather outside, from what’s clean.">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {OUTFIT.map(([n, label]) => (
             <div key={n}>
               <Arch aspect="aspect-[3/4]" className="w-full">
@@ -193,7 +193,7 @@ export function LandingPage() {
           <div className="card absolute inset-x-4 bottom-4 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">In the store</p>
             <p className="mt-1 font-display text-lg text-ink">
-              Goes with <em className="text-brass">7 of your pieces</em> — unlocks 4 outfits.
+              Goes with <em className="text-brass">7 of your pieces</em>. Unlocks 4 outfits.
             </p>
           </div>
         </Photo>

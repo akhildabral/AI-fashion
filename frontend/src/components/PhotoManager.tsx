@@ -95,7 +95,7 @@ export function PhotoManager() {
       <div className="mb-6 max-w-2xl">
         <h2 className="font-display text-2xl font-semibold text-ink">Your photo</h2>
         <p className="mt-2 text-sm text-ink/60">
-          Upload a clear, front-facing photo and we'll render your saved looks onto it —
+          Upload a clear, front-facing photo and we'll render your saved looks onto it,
           so you can see yourself in every outfit before you commit.
         </p>
       </div>

@@ -591,7 +591,7 @@ export function CirclePage() {
               </div>
             ) : (
               <p className="rounded-[3px] border border-dashed border-ink/20 p-4 text-sm text-ink/55">
-                Nothing in your closet matches this look yet{recreate.result.closetSize === 0 ? ' — it looks empty. Add some pieces first.' : '.'}
+                Nothing here matches this look yet{recreate.result.closetSize === 0 ? '. Your closet’s empty; add some pieces first.' : '.'}
               </p>
             )}
             {recreate.result.missing.length > 0 && (
@@ -599,7 +599,7 @@ export function CirclePage() {
                 <Plate>To complete the look</Plate>
                 <ul className="mt-2 space-y-1 text-sm text-ink/70">
                   {recreate.result.missing.map((m) => (
-                    <li key={m.source.id}>· {m.wanted || m.source.label} — not in your closet yet</li>
+                    <li key={m.source.id}>· {m.wanted || m.source.label}, not in your closet yet</li>
                   ))}
                 </ul>
               </div>
@@ -641,7 +641,7 @@ function EmptyFeed({
       title: 'The salon is quiet',
       body:
         circleSize === 0
-          ? 'Bring in someone whose taste you trust — their looks, verdicts and picks for you gather here.'
+          ? 'Bring in someone whose taste you trust. Their looks, verdicts and picks gather here.'
           : 'Your circle hasn’t shared anything lately. Share yours to start the conversation.',
     },
     following: {
@@ -649,7 +649,7 @@ function EmptyFeed({
       body: 'When they share a look or ask a verdict, it lands here in order.',
     },
     explore: { title: 'Nothing hung yet', body: 'When people share their outfit of the day, the finest land here.' },
-    saved: { title: 'Your board is empty', body: 'Tap Save on any look you’d wear — it keeps here for when you need the idea.' },
+    saved: { title: 'Your board is empty', body: 'Tap Save on any look you’d wear. It waits here for when you need the idea.' },
   }
   const c = copy[lens]
   return (

@@ -29,6 +29,11 @@
     --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
     --c-niche-edge: rgba(239, 231, 215, 0.85);
     --c-sheen: rgba(255, 255, 255, 0.16);
+    /* Semantic status + text-on-brass (one source of truth) */
+    --c-danger: 190 66 58; /* #BE423A */
+    --c-success: 78 122 84; /* #4E7A54 */
+    --c-warning: 154 110 42; /* antique amber */
+    --c-on-brass: 26 21 9; /* ink on a brass fill (both themes) */
     --grain-blend: multiply;
     --grain-op: 0.045;
   }
@@ -53,6 +58,9 @@
     --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
     --c-niche-edge: rgba(243, 237, 224, 0.9);
     --c-sheen: rgba(233, 217, 188, 0.07);
+    --c-danger: 216 108 100; /* #D86C64 reads on near-black */
+    --c-success: 138 184 148;
+    --c-warning: 200 164 94;
     --grain-blend: screen;
     --grain-op: 0.05;
   }
@@ -93,7 +101,7 @@
      Choice  = picks a value (a day type, a size): a bordered chip, brass fill when chosen.
      All of them sit on the same height scale (44 / 36 / 32) so rows align without effort. */
   .btn-primary {
-    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] bg-iris px-6 text-sm font-semibold text-[rgb(26_21_9)] transition-[background-color,transform] duration-150 hover:bg-iris-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] bg-iris px-6 text-sm font-semibold text-on-brass transition-[background-color,transform] duration-150 hover:bg-iris-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-ghost {
@@ -102,7 +110,19 @@
 
   /* A text action: sits in a row with buttons at the same height, reads as a link. */
   .btn-quiet {
-    @apply inline-flex h-11 items-center whitespace-nowrap px-1 text-sm font-medium text-ink/55 underline-offset-4 transition-colors duration-150 hover:text-ink hover:underline disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center whitespace-nowrap px-1 text-sm font-medium text-ink/55 underline-offset-4 transition-[color,transform] duration-150 hover:text-ink hover:underline active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* The common small tertiary action (was `btn-quiet btn-quiet-sm` at ~30 call sites). */
+  .btn-quiet-sm {
+    @apply !h-9 !text-xs;
+  }
+  /* A destructive action: same shape as primary, danger fill. */
+  .btn-danger {
+    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] border border-[rgb(var(--c-danger)/0.4)] px-5 text-sm font-medium text-[rgb(var(--c-danger))] transition-[background-color,border-color,transform,color] duration-150 hover:border-[rgb(var(--c-danger))] hover:bg-[rgb(var(--c-danger)/0.08)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* A square 36px icon button (the ··· overflow trigger). */
+  .btn-icon {
+    @apply press inline-flex h-9 w-9 items-center justify-center rounded-[3px] border border-ink/20 text-ink/60 transition-[background-color,border-color,color] duration-150 hover:border-iris hover:text-ink disabled:opacity-50;
   }
 
   /* Smaller actions inside cards and rails. */
@@ -170,10 +190,10 @@
   }
 
   .field {
-    @apply h-11 w-full rounded-[3px] border border-ink/15 bg-surface px-4 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-iris/70 focus:ring-2 focus:ring-iris/20;
+    @apply h-11 w-full rounded-[3px] border border-ink/15 bg-surface px-4 text-base text-ink outline-none transition placeholder:text-ink/35 focus:border-iris/70 focus:ring-2 focus:ring-iris/20 sm:text-sm;
   }
   .field-sm {
-    @apply !h-9 !px-3 !text-[13px];
+    @apply !h-9 !px-3 !text-base sm:!text-[13px];
   }
 
   .label {
@@ -181,7 +201,17 @@
   }
 
   .alert-error {
-    @apply rounded-[3px] bg-red-500/10 px-4 py-2.5 text-sm text-red-500 dark:bg-red-500/15 dark:text-red-300;
+    @apply rounded-[3px] bg-[rgb(var(--c-danger)/0.1)] px-4 py-2.5 text-sm text-[rgb(var(--c-danger))];
+  }
+  .alert-warning {
+    @apply rounded-[3px] bg-[rgb(var(--c-warning)/0.12)] px-4 py-2.5 text-sm text-[rgb(var(--c-warning))];
+  }
+  .alert-success {
+    @apply rounded-[3px] bg-[rgb(var(--c-success)/0.12)] px-4 py-2.5 text-sm text-[rgb(var(--c-success))];
+  }
+  /* Ink text on a brass fill (was the literal text-on-brass). */
+  .text-on-brass {
+    color: rgb(var(--c-on-brass));
   }
 
   .chip {
@@ -189,7 +219,7 @@
   }
 
   .chip-on {
-    @apply border-iris bg-iris text-[rgb(26_21_9)] hover:border-iris hover:text-[rgb(26_21_9)];
+    @apply border-iris bg-iris text-on-brass hover:border-iris hover:text-on-brass;
   }
 
   /* Cards rest flat; depth is bezels + grain, never a drop shadow. */
@@ -202,7 +232,7 @@
   }
 
   .badge-spark {
-    @apply inline-flex items-center rounded-[3px] bg-iris px-2.5 py-0.5 text-xs font-semibold text-[rgb(26_21_9)];
+    @apply inline-flex items-center rounded-[3px] bg-iris px-2.5 py-0.5 text-xs font-semibold text-on-brass;
   }
 
   /* ---- The arch: the one curved form. A brass-bezel aperture with a
@@ -381,6 +411,8 @@
   .press:active,
   .btn-primary:active,
   .btn-ghost:active,
+  .btn-quiet:active,
+  .btn-danger:active,
   .btn-dark:active {
     transform: none;
   }

@@ -445,7 +445,7 @@ export function MirrorPage() {
                 <div key={t.id}>
                   <MirrorFrame>
                     <img src={resolveImageUrl(t.imageUrl)} alt={i === 0 ? 'A' : 'B'} className="aspect-[3/4] w-full object-cover" />
-                    <span className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-[rgb(26_21_9)]">{i === 0 ? 'A' : 'B'}</span>
+                    <span className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-on-brass">{i === 0 ? 'A' : 'B'}</span>
                   </MirrorFrame>
                   <p className="mt-2 text-center text-xs text-ink/50">{(t.items ?? []).map(label).join(' · ') || new Date(t.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
                 </div>
@@ -585,7 +585,7 @@ export function MirrorPage() {
                   <button type="button" onClick={() => navigate('/')} className="btn-ghost btn-sm">
                     Today’s look
                   </button>
-                  <button type="button" onClick={() => navigate('/closet/outfits')} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" onClick={() => navigate('/closet/outfits')} className="btn-quiet btn-quiet-sm">
                     Outfits
                   </button>
                 </div>
@@ -749,23 +749,23 @@ export function MirrorPage() {
                   >
                     {busy === 'attach' ? 'Sharing…' : 'Share this to your circle'}
                   </button>
-                  <button type="button" onClick={() => setShareFor(null)} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" onClick={() => setShareFor(null)} className="btn-quiet btn-quiet-sm">
                     Keep the pieces only
                   </button>
                 </div>
               )}
               <div className="action-row mt-2">
                 {!current.retryOf ? (
-                  <button type="button" disabled={busy !== null} onClick={() => void tryAgain()} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" disabled={busy !== null} onClick={() => void tryAgain()} className="btn-quiet btn-quiet-sm">
                     {busy === 'retry' ? 'Starting…' : 'Not right? Try again · free once'}
                   </button>
                 ) : (
-                  <button type="button" disabled={busy !== null} onClick={() => void fire(true)} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" disabled={busy !== null} onClick={() => void fire(true)} className="btn-quiet btn-quiet-sm">
                     Render fresh · 1 render
                   </button>
                 )}
                 {!current.reportedAt && (
-                  <button type="button" disabled={busy !== null} onClick={() => void notMine()} className="btn-quiet !h-9 !text-xs !text-ink/40">
+                  <button type="button" disabled={busy !== null} onClick={() => void notMine()} className="btn-quiet btn-quiet-sm !text-ink/40">
                     Not my clothes
                   </button>
                 )}
@@ -803,7 +803,7 @@ export function MirrorPage() {
                     >
                       B
                     </button>
-                    <button type="button" disabled={pollBusy} onClick={() => void askCircle()} className="btn-quiet !h-9 !text-xs">
+                    <button type="button" disabled={pollBusy} onClick={() => void askCircle()} className="btn-quiet btn-quiet-sm">
                       {pollBusy ? 'Sending…' : 'Ask the circle'}
                     </button>
                   </>
@@ -814,7 +814,7 @@ export function MirrorPage() {
                     setCompareMode(false)
                     setCompare([])
                   }}
-                  className="btn-quiet !h-9 !text-xs !text-ink/40"
+                  className="btn-quiet btn-quiet-sm !text-ink/40"
                 >
                   Done
                 </button>
@@ -892,7 +892,7 @@ export function MirrorPage() {
                           <img src={resolveImageUrl(t.imageUrl)} alt="Try-on render" loading="lazy" className="aspect-[3/4] w-full object-cover" />
                         )}
                       </button>
-                      {idx >= 0 && <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-[rgb(26_21_9)]">{idx === 0 ? 'A' : 'B'}</span>}
+                      {idx >= 0 && <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-on-brass">{idx === 0 ? 'A' : 'B'}</span>}
                       {!compareMode && (
                         <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-90 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                           <button type="button" onClick={() => setPickerFor(t.id)} aria-label="Save to lookbook" className="flex h-7 w-7 items-center justify-center rounded-[3px] bg-ink/70 text-bone hover:bg-ink">
@@ -973,7 +973,7 @@ export function MirrorPage() {
       <Modal open={photoModal} onClose={() => setPhotoModal(false)} title="Add your photo">
         {chosen.length > 0 && <p className="mb-4 rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-3 font-display text-sm italic text-ink/80">The pieces stay on the rail. Once your photo’s in, See it on me is one tap.</p>}
         <label className="mb-4 flex cursor-pointer items-start gap-3 text-sm text-ink/70">
-          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[rgb(200,164,94)]" />
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-iris" />
           <span>I agree my photo is stored to generate try-on images. It’s used only for this, never shared, and I can delete it anytime.</span>
         </label>
         <div className={`space-y-3 ${consent ? '' : 'pointer-events-none opacity-40'}`}>
@@ -1017,7 +1017,7 @@ export function MirrorPage() {
               </div>
             )}
             <div className="mt-4 flex gap-2">
-              <input value={newBookName} onChange={(e) => setNewBookName(e.target.value)} placeholder="New lookbook — e.g. Wedding options" className="field field-sm" />
+              <input value={newBookName} onChange={(e) => setNewBookName(e.target.value)} placeholder="New lookbook, e.g. Wedding options" className="field field-sm" />
               <button type="button" onClick={() => void handleCreateBook()} className="btn-primary btn-sm">
                 Create
               </button>

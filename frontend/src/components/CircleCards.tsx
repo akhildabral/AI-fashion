@@ -275,7 +275,7 @@ async function sharePage(path: string, title: string, onDone: (msg: string) => v
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return
   }
-  onDone((await copyText(url)) ? 'Link copied — paste it anywhere.' : url)
+  onDone((await copyText(url)) ? 'Link copied. Paste it anywhere.' : url)
 }
 
 
@@ -365,7 +365,7 @@ export function CommentThread({
         </div>
       )}
       {comments && comments.length === 0 && (
-        <p className="pb-2 text-xs text-ink/45">No notes yet — say what works, or @mention a friend.</p>
+        <p className="pb-2 text-xs text-ink/45">No notes yet. Say what works, or @mention a friend.</p>
       )}
       {comments && comments.length > 0 && (
         <ul className="flex flex-col gap-2.5 pb-1">
@@ -725,7 +725,7 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
       onSelect: () =>
         void dismissPick(post.id)
           .then(() => actions.gone?.('pick', post.id))
-          .catch(() => actions.note('Could not dismiss that — try again.')),
+          .catch(() => actions.note('Couldn’t dismiss that. Try again.')),
     })
   const forLine = post.forDay ? ` · for ${post.forDay}` : ''
   const meta = byMe
@@ -734,8 +734,8 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
   // What's happened since, from either side.
   const state = post.wornAt
     ? byMe
-      ? `${post.name} wore it${photo ? '' : ' — the photo will land here'}.`
-      : 'Worn — they’ll know.'
+      ? `${post.name} wore it${photo ? '' : '. The photo will land here'}.`
+      : 'Worn. They’ll know.'
     : post.thanksAt
       ? byMe
         ? `${post.name} said thanks${post.reply ? `: “${post.reply}”` : '.'}`
@@ -790,7 +790,7 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
                 onClick={() =>
                   void logWear({ itemIds: post.items.map((i) => i.id), pickId: post.id })
                     .then((r) => setWorn(r.log?.id ?? 'worn'))
-                    .catch(() => actions.note('Could not log the wear — try again.'))
+                    .catch(() => actions.note('Couldn’t log the wear. Try again.'))
                 }
                 className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
               >
@@ -820,7 +820,7 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
                 </button>
               )}
               {!post.thanksAt && !thanking && actions.thank && (
-                <button type="button" onClick={() => setThanking(true)} className="btn-quiet !h-9 !text-xs">
+                <button type="button" onClick={() => setThanking(true)} className="btn-quiet btn-quiet-sm">
                   Say thanks
                 </button>
               )}

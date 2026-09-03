@@ -46,10 +46,10 @@ import { EveningAct } from '../components/EveningAct'
 // trains the stylist; the backend returns { adjusted } so we can tell the
 // user honestly whether anything actually moved.
 const FEEDBACK: { signal: FeedbackSignal; label: string; done: string }[] = [
-  { signal: 'too-formal', label: 'Too formal', done: "Noted — I'll read this one more casual." },
-  { signal: 'too-casual', label: 'Too casual', done: "Noted — I'll dress this up a little." },
-  { signal: 'too-warm', label: 'Runs warm', done: "Noted — I'll save it for cooler days." },
-  { signal: 'not-warm-enough', label: 'Not warm enough', done: "Noted — I'll lean on it when it's cold." },
+  { signal: 'too-formal', label: 'Too formal', done: "Got it. I'll read this one more casual." },
+  { signal: 'too-casual', label: 'Too casual', done: "Got it. I'll dress this up a little." },
+  { signal: 'too-warm', label: 'Runs warm', done: "Got it. I'll save it for cooler days." },
+  { signal: 'not-warm-enough', label: 'Not warm enough', done: "Got it. I'll lean on it when it's cold." },
   { signal: 'wrong-color', label: 'Wrong colour', done: "I'll stop trusting the colour on this one." },
   { signal: 'dont-suggest', label: 'Stop suggesting this', done: "Off the rail. I won't put it forward again." },
 ]
@@ -226,7 +226,7 @@ export function TodayPage() {
         flash(
           brk
             ? `Logged. Your ${brk.label} just broke ${money(brk.threshold)}/wear.`
-            : `Logged — ${fresh.streak} day${fresh.streak === 1 ? '' : 's'} styled in a row.`,
+            : `Logged. ${fresh.streak} day${fresh.streak === 1 ? '' : 's'} styled in a row.`,
         )
       } else {
         flash('Logged for today.')
@@ -278,9 +278,9 @@ export function TodayPage() {
         void load()
         return
       }
-      setFbNote(adjusted ? (spec?.done ?? 'Noted.') : 'Already how you set it — I’ll keep it that way.')
+      setFbNote(adjusted ? (spec?.done ?? 'Noted.') : 'That’s already how you set it. It stays.')
     } catch {
-      setFbNote('Couldn’t note that — try again.')
+      setFbNote('Couldn’t note that. Try again.')
     } finally {
       setBusy(null)
     }
@@ -349,7 +349,7 @@ export function TodayPage() {
                     {card.type === 'pick_received' &&
                       `${String(card.byName ?? card.byHandle ?? 'A friend')} picked an outfit for you`}
                     {card.type === 'poll_result' &&
-                      `"${String(card.question)}" — ${String(card.totalVotes)} votes in`}
+                      `"${String(card.question)}", ${String(card.totalVotes)} votes in`}
                     {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
                     {card.type === 'new_follower' && `${String(card.name ?? card.handle)} started following you`}
                     {card.type === 'style_a_friend' && 'Pick an outfit for a friend'}
@@ -372,7 +372,7 @@ export function TodayPage() {
           {greeting()}, <span className="text-brass">{name}</span>
           {stats && stats.streak > 1 && (
             <span className="ml-3 align-middle font-sans text-[11px] font-semibold not-italic uppercase tracking-[0.14em] text-ink/40">
-              — {stats.streak} days styled
+              {stats.streak} days styled
             </span>
           )}
         </p>
@@ -431,7 +431,7 @@ export function TodayPage() {
             Let&rsquo;s fill <em className="text-brass">your closet.</em>
           </h1>
           <p className="mt-4 max-w-xl animate-rise-2 font-display text-lg italic text-ink/60">
-            every morning starts with an outfit — composed from what you own, ready to wear
+            every morning starts with an outfit, composed from what you own and ready to wear
           </p>
           <div className="mt-7 flex animate-rise-2 flex-wrap gap-3">
             <Link to="/closet" className="btn-primary">
@@ -791,7 +791,7 @@ export function TodayPage() {
                 <GarmentTile imageUrl={reconsider.imageUrl} />
               </div>
               <p className="text-sm text-ink/60">
-                Swap it for another piece from your closet — or tell the stylist what&rsquo;s off, and
+                Swap it for another piece. Or tell the stylist what&rsquo;s off, and
                 it&rsquo;ll learn.
               </p>
             </div>
@@ -827,7 +827,7 @@ export function TodayPage() {
             )}
             {alternatives !== null && alternatives.length === 0 && (
               <p className="rounded-[3px] border border-dashed border-ink/20 p-4 text-sm text-ink/50">
-                No other {reconsider.category} pieces free right now — add more to your closet to
+                No other {reconsider.category} pieces free right now. Add more to your closet to
                 unlock swaps.
               </p>
             )}
@@ -886,7 +886,7 @@ function ShareSheet({
     setBusy('pieces')
     try {
       await share()
-      onDone("Shared — your circle can see today's look.")
+      onDone("Shared. Your circle can see today's look.")
     } catch {
       onError('Could not share right now.')
     } finally {
@@ -934,7 +934,7 @@ function ShareSheet({
         <button type="button" disabled={busy !== null} onClick={() => fileRef.current?.click()} className="btn-ghost btn-sm">
           {busy === 'photo' ? 'Uploading…' : 'With a photo of me'}
         </button>
-        <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-quiet !h-9 !text-xs">
+        <button type="button" disabled={busy !== null} onClick={() => void viaMirror()} className="btn-quiet btn-quiet-sm">
           {busy === 'mirror' ? 'Opening the Mirror…' : 'Render it on me first'}
         </button>
         <button
@@ -954,7 +954,7 @@ function ShareSheet({
               setBusy(null)
             }
           }}
-          className="btn-quiet !h-9 !text-xs"
+          className="btn-quiet btn-quiet-sm"
         >
           {busy === 'elsewhere' ? 'Preparing…' : 'Share elsewhere'}
         </button>

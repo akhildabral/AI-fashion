@@ -258,7 +258,7 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
                     <Arch aspect="aspect-[4/5]" bright={idx >= 0}>
                       <img src={resolveImageUrl(p.imageUrl)} alt="" loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
                     </Arch>
-                    {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-bold text-[rgb(26_21_9)]">{idx + 1}</span>}
+                    {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-bold text-on-brass">{idx + 1}</span>}
                   </button>
                 )
               })}
@@ -294,7 +294,7 @@ function DayCard({ log, onChange, onRemove, onNote }: { log: WearLogEntry; onCha
       await rateWearLog(log.id, next)
       onChange({ ...log, rating: next })
     } catch {
-      onNote('Could not save that — try again.')
+      onNote('Couldn’t save that. Try again.')
     } finally {
       setBusy(null)
     }
@@ -312,7 +312,7 @@ function DayCard({ log, onChange, onRemove, onNote }: { log: WearLogEntry; onCha
         onNote('On the circle.')
       }
     } catch {
-      onNote('Could not change that — try again.')
+      onNote('Couldn’t change that. Try again.')
     } finally {
       setBusy(null)
     }
@@ -521,7 +521,7 @@ export function JournalPage() {
       void deleteWearLog(log.id)
         .then(() => void load())
         .catch(() => {
-          flash('Could not remove that day — try again.')
+          flash('Couldn’t remove that day. Try again.')
           upsert(log)
         })
       setPending(null)

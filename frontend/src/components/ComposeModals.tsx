@@ -300,7 +300,7 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
   const empty: Record<Source, ReactNode> = {
     outfits: (
       <>
-        Save a couple of outfits first — from{' '}
+        Save a couple of outfits first, from{' '}
         <Link to="/closet/outfits" onClick={onClose} className="font-semibold text-brass hover:underline">
           the Closet
         </Link>
@@ -354,7 +354,7 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
                     <img src={resolveImageUrl(c.imageUrl ?? '')} alt={c.label} loading="lazy" className={`relative z-[1] h-full w-full ${source === 'pieces' ? 'object-contain p-[10%]' : 'object-cover'}`} />
                   </Arch>
                 )}
-                {idx >= 0 && <span className="absolute right-1.5 top-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)]">{'ABC'[idx]}</span>}
+                {idx >= 0 && <span className="absolute right-1.5 top-1.5 z-[3] flex h-6 w-6 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-on-brass">{'ABC'[idx]}</span>}
                 <p className="mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/55">{c.label}</p>
               </button>
             )

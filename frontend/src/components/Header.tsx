@@ -108,7 +108,7 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Account menu"
-                className="press flex h-9 w-9 items-center justify-center rounded-[3px] bg-iris text-xs font-bold text-[rgb(26_21_9)] transition-colors hover:bg-iris-deep"
+                className="press flex h-10 w-10 items-center justify-center rounded-[3px] bg-iris text-xs font-bold text-on-brass transition-colors hover:bg-iris-deep"
               >
                 {initials}
               </button>

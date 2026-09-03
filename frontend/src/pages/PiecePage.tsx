@@ -118,7 +118,7 @@ function TwinBanner({ item, onResolved, onNote }: { item: WardrobeItem; onResolv
     setBusy(resolution + (keepPhoto ? '-photo' : ''))
     try {
       const r = await resolveTwin(item.id, resolution, keepPhoto)
-      onNote(resolution === 'same' ? 'One piece, then. The count is right again.' : 'Two pieces. Noted, and not asked again.')
+      onNote(resolution === 'same' ? 'One piece, then. The count’s right again.' : 'Two pieces. Noted. I won’t ask again.')
       onResolved(resolution === 'same' ? r.kept : null)
     } catch (err) {
       onNote(err instanceof Error ? err.message : 'Could not save that.')
@@ -130,7 +130,7 @@ function TwinBanner({ item, onResolved, onNote }: { item: WardrobeItem; onResolv
     <section className="mt-6 rounded-[3px] border border-brass/50 p-4 sm:p-5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">A twin?</p>
       <p className="mt-1 text-sm text-ink/70">
-        This looks like a piece you already have{other ? `: the ${name(other).toLowerCase()}` : ''}.{item.twinScore != null ? (item.twinScore >= 13 ? ' The same type and colours, and the photo matches too.' : ' The same type and colours.') : ''} Nothing happens until you say.
+        This looks like a piece you already have{other ? `: the ${name(other).toLowerCase()}` : ''}.{item.twinScore != null ? (item.twinScore >= 13 ? ' Same type, same colours, and the photo matches.' : ' The same type and colours.') : ''} Nothing happens until you say.
       </p>
       <div className="mt-3 flex items-center gap-3">
         <div className="w-16 shrink-0">
@@ -154,7 +154,7 @@ function TwinBanner({ item, onResolved, onNote }: { item: WardrobeItem; onResolv
           <button type="button" disabled={busy !== null} onClick={() => void answer('same', true)} className="btn-ghost btn-sm">
             {busy === 'same-photo' ? '…' : 'Same, keep this photo'}
           </button>
-          <button type="button" disabled={busy !== null} onClick={() => void answer('different')} className="btn-quiet !h-9 !text-xs">
+          <button type="button" disabled={busy !== null} onClick={() => void answer('different')} className="btn-quiet btn-quiet-sm">
             {busy === 'different' ? '…' : 'Different'}
           </button>
         </div>
@@ -243,7 +243,7 @@ function FactRow({ item, fact, open, onOpen, onSave }: { item: WardrobeItem; fac
                 {busy ? '…' : 'Save'}
               </button>
               {value != null && (
-                <button type="button" disabled={busy} onClick={() => void commit(null)} className="btn-quiet !h-9 !text-xs">
+                <button type="button" disabled={busy} onClick={() => void commit(null)} className="btn-quiet btn-quiet-sm">
                   Clear
                 </button>
               )}
@@ -336,7 +336,7 @@ export function PiecePage() {
       await deleteWardrobeItem(item.id)
       navigate('/closet', { replace: true })
     } catch {
-      flash('Could not remove it — try again.')
+      flash('Couldn’t remove it. Try again.')
     }
   }
 
@@ -401,7 +401,7 @@ export function PiecePage() {
           <div className="flex flex-wrap gap-1.5">
             <span className="chip">{title(item.category)}</span>
             {cut && (
-              <button type="button" onClick={() => { setTab('facts'); setOpenFact('cutFor') }} className={`chip ${cutGuess ? '' : 'chip-on'}`} title={cutGuess ? 'A guess — tap to confirm' : 'Read from the photo'}>
+              <button type="button" onClick={() => { setTab('facts'); setOpenFact('cutFor') }} className={`chip ${cutGuess ? '' : 'chip-on'}`} title={cutGuess ? 'A guess. Tap to confirm' : 'Read from the photo'}>
                 Cut for {cut.toLowerCase()}{cutGuess ? ' ?' : ''}
               </button>
             )}
@@ -450,7 +450,7 @@ export function PiecePage() {
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); setLettingGo(true) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
                     Let it go
                   </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setConfirmRemove(true) }} className="block w-full px-4 py-2 text-left text-sm text-[#D0524E] hover:bg-bone">
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setConfirmRemove(true) }} className="block w-full px-4 py-2 text-left text-sm text-[rgb(var(--c-danger))] hover:bg-bone">
                     Remove from the closet
                   </button>
                 </div>
@@ -460,7 +460,7 @@ export function PiecePage() {
           {confirmRemove && (
             <div className="plaque mt-4 flex flex-wrap items-center gap-3 p-3 pl-4 text-sm">
               <span className="text-ink/70">Remove this piece and its record? There is no way back.</span>
-              <button type="button" onClick={() => void remove()} className="btn-ghost btn-sm !border-[#D0524E]/60 !text-[#D0524E]">
+              <button type="button" onClick={() => void remove()} className="btn-ghost btn-sm !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))]">
                 Yes, remove it
               </button>
               <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet !h-8 !text-xs">

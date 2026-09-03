@@ -115,7 +115,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
                   Rendering you in this look…
                 </p>
                 <p className="mt-2 text-sm text-ink/50">
-                  This can take up to a minute — hang tight.
+                  This can take up to a minute. Hang tight.
                 </p>
               </div>
             </div>

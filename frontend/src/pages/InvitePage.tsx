@@ -73,7 +73,7 @@ export function InvitePage() {
       <DoorShell
         eyebrow="The door"
         title={<>This invite <em className="text-brass">isn’t valid.</em></>}
-        lead="The link may have expired — invites last 7 days. Ask for a fresh one, or join the waitlist again."
+        lead="The link may have expired. Invites last 7 days. Ask for a fresh one, or join the waitlist again."
         foot={<Link to="/landing" className="font-semibold text-brass underline-offset-4 hover:underline">Back to the waitlist</Link>}
       />
     )

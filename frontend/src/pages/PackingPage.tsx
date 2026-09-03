@@ -39,7 +39,7 @@ function TripRow({ t, past }: { t: Trip; past?: boolean }) {
         <p className="text-xs text-ink/55">
           {formatDay(t.startDate)} to {formatDay(t.endDate)} · {t.packedItemIds.length} pieces packed
         </p>
-        <p className="mt-1 font-display text-xs italic text-ink/45">{past ? 'what you packed, and what you wore' : on ? 'on now — the brief dresses you from the capsule' : 'the plan, and a checklist that remembers'}</p>
+        <p className="mt-1 font-display text-xs italic text-ink/45">{past ? 'what you packed, and what you wore' : on ? 'on now, the brief dresses you from the capsule' : 'the plan, and a checklist that remembers'}</p>
       </div>
       <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Open →</span>
     </Link>

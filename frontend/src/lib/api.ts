@@ -172,7 +172,7 @@ export async function apiUpload<T>(
   try {
     body = await pinForm(formData)
   } catch {
-    throw new ApiError('That photo could not be read — pick it again.', 400)
+    throw new ApiError('That photo couldn’t be read. Pick it again.', 400)
   }
 
   // An upload cut short (a flaky connection, a backgrounded tab) is tried

@@ -237,7 +237,7 @@ export function OutfitsRoom() {
                           eventType: occasion ?? undefined,
                         })
                       }
-                      className="btn-quiet !h-9 !text-xs"
+                      className="btn-quiet btn-quiet-sm"
                     >
                       Wearing it today
                     </button>
@@ -298,17 +298,17 @@ export function OutfitsRoom() {
                   </button>
                   <Link
                     to={`/mirror?items=${o.itemIds.join(",")}`}
-                    className="btn-quiet !h-9 !text-xs"
+                    className="btn-quiet btn-quiet-sm"
                   >
                     See it on me
                   </Link>
-                  <button type="button" onClick={() => setAskingCircle(o.id)} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" onClick={() => setAskingCircle(o.id)} className="btn-quiet btn-quiet-sm">
                     Ask the circle
                   </button>
-                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="btn-quiet !h-9 !text-xs" />
+                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="btn-quiet btn-quiet-sm" />
                   <Link
                     to={`/closet/compose?from=${o.id}`}
-                    className="btn-quiet !h-9 !text-xs"
+                    className="btn-quiet btn-quiet-sm"
                   >
                     Adjust
                   </Link>
@@ -316,7 +316,7 @@ export function OutfitsRoom() {
                     type="button"
                     disabled={busy === `rm:${o.id}`}
                     onClick={() => void remove(o)}
-                    className="btn-quiet !h-9 !text-xs !text-ink/40"
+                    className="btn-quiet btn-quiet-sm !text-ink/40"
                   >
                     Let go
                   </button>

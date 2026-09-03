@@ -204,7 +204,7 @@ export function AdminPage() {
       // fall through
     }
     setCopied(false)
-    setNotice('Copy blocked by the browser — tap the link text to select it, then copy manually.')
+    setNotice('Copy blocked by the browser. Tap the link text to select it, then copy manually.')
   }
 
   function selectLinkText(e: React.MouseEvent<HTMLDivElement>) {
@@ -230,7 +230,7 @@ export function AdminPage() {
     <PageShell wide>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="animate-rise font-display text-4xl font-extrabold tracking-tight text-ink">
+          <h1 className="animate-rise font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
             Admin
           </h1>
           <p className="mt-1 animate-rise-1 text-sm text-ink/55">
@@ -535,15 +535,15 @@ export function AdminPage() {
             {inviteLink.viaGoogle ? (
               <p className="text-sm text-ink/70">
                 <span className="font-semibold text-ink">{inviteLink.email}</span> signed up with
-                Google, so they're approved directly — they can sign in with Google right now.
+                Google, so they’re approved directly. They can sign in with Google right now.
               </p>
             ) : (
               <>
                 <p className="text-sm text-ink/70">
-                  Invite for <span className="font-semibold text-ink">{inviteLink.email}</span> —{' '}
+                  Invite for <span className="font-semibold text-ink">{inviteLink.email}</span>:{' '}
                   {inviteLink.emailed
                     ? 'an invite email is on its way (tell them to check spam). You can also copy the link. Valid 7 days.'
-                    : 'the invite email could not be sent, so copy the link below and share it yourself. Valid 7 days.'}
+                    : 'the invite email couldn’t be sent, so copy the link below and share it yourself. Valid 7 days.'}
                 </p>
                 <div
                   onClick={selectLinkText}

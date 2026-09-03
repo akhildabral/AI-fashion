@@ -203,7 +203,7 @@ export function ComposePage() {
             )}
           </div>
           <p
-            className={`mt-4 font-display text-lg italic leading-snug ${line.tone === "warn" ? "text-[#D0524E]" : line.tone === "good" ? "text-ink" : "text-ink/50"}`}
+            className={`mt-4 font-display text-lg italic leading-snug ${line.tone === "warn" ? "text-[rgb(var(--c-danger))]" : line.tone === "good" ? "text-ink" : "text-ink/50"}`}
             aria-live="polite"
           >
             {validation === null && chosen.length > 0 ? (

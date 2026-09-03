@@ -27,7 +27,7 @@ function LinkRow({ url, label, onCopied }: { url: string; label: string; onCopie
   async function copy() {
     const ok = await copyText(url)
     setCopied(ok)
-    onCopied(ok ? 'Copied.' : 'Could not copy — select the link instead.')
+    onCopied(ok ? 'Copied.' : 'Couldn’t copy. Select the link instead.')
     window.setTimeout(() => setCopied(false), 1800)
   }
   return (
@@ -56,7 +56,7 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
   async function share() {
     if (!invite) return
     try {
-      await navigator.share({ title: 'Come dress with me', text: 'My invite to the stylist I use — it lets you skip the waitlist.', url: invite.url })
+      await navigator.share({ title: 'Come dress with me', text: 'My invite to the stylist I use. It skips the waitlist.', url: invite.url })
     } catch {
       /* dismissed */
     }

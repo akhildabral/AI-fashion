@@ -35,7 +35,7 @@ export function Initials({ handle, name, className = '' }: { handle: string | nu
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-[rgb(26_21_9)] ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-on-brass ${className}`}
     >
       {initialsOf(name, handle)}
     </span>
@@ -237,7 +237,7 @@ export function PeopleDrawer({
                 key={u.handle}
                 handle={u.handle}
                 name={u.name}
-                sub={u.isFriend ? 'Friends — you follow each other' : undefined}
+                sub={u.isFriend ? 'Friends, you follow each other' : undefined}
                 following={followingSet.has(u.handle)}
                 onToggle={() => toggle(u.handle)}
                 onNavigate={onClose}
@@ -268,7 +268,7 @@ export function PeopleDrawer({
               <Initials handle={b.handle} name={b.name} className="h-9 w-9 opacity-60" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-ink">{b.name}</span>
-                <span className="block truncate text-xs text-ink/50">Blocked — invisible both ways</span>
+                <span className="block truncate text-xs text-ink/50">Blocked. Invisible both ways</span>
               </span>
               <button type="button" onClick={() => void unhide('block', b.handle ?? '')} className="btn-ghost btn-sm shrink-0">
                 Unblock
@@ -280,14 +280,14 @@ export function PeopleDrawer({
 
       {tab === 'suggested' && (
         <div className="mt-2">
-          <p className="pb-2 text-xs text-ink/50">Matched by wardrobe and taste — not follower counts.</p>
+          <p className="pb-2 text-xs text-ink/50">Matched by wardrobe and taste, not follower counts.</p>
           {twins === null && (
             <div className="py-8 text-center text-ink/40">
               <Spinner className="h-5 w-5" />
             </div>
           )}
           {twins && twins.length === 0 && (
-            <p className="py-8 text-center text-sm text-ink/50">No matches yet — take the style quiz and fill your closet.</p>
+            <p className="py-8 text-center text-sm text-ink/50">No matches yet. Take the style quiz and fill your closet.</p>
           )}
           {twins?.map((t) => (
             <PersonRow

@@ -123,10 +123,10 @@ export function BillingPage() {
         name: 'ZAUQ',
         description: `${PLANS.find((p) => p.id === plan)?.name ?? plan} subscription`,
         prefill: { email: session.email },
-        theme: { color: '#D9481F' },
+        theme: { color: '#B98C3B' },
         handler: () => {
           setNotice(
-            'Payment received! Your plan activates as soon as the payment is confirmed — refresh in a few seconds.',
+            'Payment received! Your plan activates as soon as the payment is confirmed. Refresh in a few seconds.',
           )
           void load()
         },
@@ -168,7 +168,7 @@ export function BillingPage() {
 
   return (
     <PageShell narrow>
-      <h1 className="font-display text-4xl font-extrabold tracking-tight text-ink">Plan &amp; usage</h1>
+      <h1 className="font-display text-5xl font-medium leading-none text-ink sm:text-6xl">Plan &amp; usage</h1>
 
       {notice && (
         <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
@@ -183,21 +183,21 @@ export function BillingPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-ink/50">Current plan</p>
-                <p className="font-display text-2xl font-bold text-ink">{summary.label}</p>
+                <p className="font-display text-2xl font-medium text-ink">{summary.label}</p>
                 {summary.planStatus === 'grace' && (
                   <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                    A payment failed — update your payment method or your plan will lapse.
+                    A payment failed. Update your payment method, or your plan will lapse.
                   </p>
                 )}
                 {summary.planStatus === 'cancelled' && periodEnd && (
-                  <p className="mt-1 text-sm text-ink/60">Cancelled — active until {periodEnd}.</p>
+                  <p className="mt-1 text-sm text-ink/60">Cancelled. Active until {periodEnd}.</p>
                 )}
                 {summary.planStatus === 'active' && periodEnd && (
                   <p className="mt-1 text-sm text-ink/60">Renews {periodEnd}.</p>
                 )}
                 {summary.plan === 'founder' && (
                   <p className="mt-1 text-sm text-ink/60">
-                    Founder access — Pro-level limits, on the house. Thank you for being early.
+                    Founder access. Pro-level limits, on the house. Thank you for being early.
                   </p>
                 )}
               </div>
@@ -234,10 +234,10 @@ export function BillingPage() {
 
           {user?.role !== 'admin' && summary.plan !== 'premium' && summary.plan !== 'founder' && (
             <>
-              <h2 className="mt-10 font-display text-2xl font-bold text-ink">Upgrade</h2>
+              <h2 className="mt-10 font-display text-2xl font-medium text-ink">Upgrade</h2>
               {!summary.billingConfigured && (
                 <p className="mt-2 rounded-[3px] bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                  Payments aren't switched on yet — plans will be purchasable soon.
+                  Payments aren’t switched on yet. Plans will be purchasable soon.
                 </p>
               )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -247,7 +247,7 @@ export function BillingPage() {
                     key={p.id}
                     className="flex flex-col rounded-[3px] border border-ink/10 bg-surface p-6"
                   >
-                    <p className="font-display text-xl font-bold text-ink">{p.name}</p>
+                    <p className="font-display text-xl font-medium text-ink">{p.name}</p>
                     <p className="mt-1 text-2xl font-semibold text-ink">{p.price}</p>
                     <ul className="mt-3 flex-1 space-y-1 text-sm text-ink/70">
                       {p.perks.map((perk) => (

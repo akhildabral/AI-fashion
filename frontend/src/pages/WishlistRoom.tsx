@@ -125,10 +125,10 @@ export function WishlistRoom() {
                     <button type="button" disabled={busy === it.id} onClick={() => void bought(it)} className="btn-primary btn-sm">
                       Bought it
                     </button>
-                    <Link to={`/closet/store?item=${it.id}`} className="btn-quiet !h-9 !text-xs">
+                    <Link to={`/closet/store?item=${it.id}`} className="btn-quiet btn-quiet-sm">
                       The verdict
                     </Link>
-                    <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="btn-quiet !h-9 !text-xs !text-ink/40">
+                    <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="btn-quiet btn-quiet-sm !text-ink/40">
                       Let go
                     </button>
                   </div>

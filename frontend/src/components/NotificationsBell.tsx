@@ -34,7 +34,7 @@ function line(n: Notification): { text: string; to: string } {
     case 'new_follower':
       return { text: `${who} started following your closet.`, to: profile }
     case 'invite_joined':
-      return { text: `${who} came in on your invite — you follow each other now.`, to: profile }
+      return { text: `${who} came in on your invite. You follow each other now.`, to: profile }
     case 'pick_received':
       return { text: `${who} styled a look for you.`, to: landing(n, '/circle') }
     case 'pick_thanked': {
@@ -42,7 +42,7 @@ function line(n: Notification): { text: string; to: string } {
       return { text: `${who} said thanks for the look you picked${preview ? `: “${preview}”` : '.'}`, to: landing(n, '/circle') }
     }
     case 'pick_worn':
-      return { text: `${who} wore the look you picked — a good eye.`, to: landing(n, profile) }
+      return { text: `${who} wore the look you picked. Good eye.`, to: landing(n, profile) }
     case 'look_reacted': {
       const kind = String(n.payload.kind ?? '')
       const what = n.payload.target === 'verdict' ? 'your verdict' : n.payload.target === 'pick' ? 'the look you picked' : 'your look'
@@ -68,14 +68,14 @@ function line(n: Notification): { text: string; to: string } {
       const mine = !n.actorHandle
       return {
         text: mine
-          ? w ? `The verdict is in on “${q}”: ${w} won.` : `The verdict is in on “${q}” — a split. Your call.`
+          ? w ? `The verdict is in on “${q}”: ${w} won.` : `The verdict’s in on “${q}”: a dead split. Your call.`
           : w ? `${who}’s verdict settled: ${w} won.` : `${who}’s verdict settled in a split.`,
         to: landing(n, '/circle'),
       }
     }
     case 'laundry_due': {
       const n2 = Number(n.payload.count ?? 0)
-      return { text: `${n2} pieces in the wash — worth a load. The stylist is working around them.`, to: '/closet/basket' }
+      return { text: `${n2} pieces in the wash, worth a load. The stylist’s working around them.`, to: '/closet/basket' }
     }
     case 'wishlist_nudge': {
       const what = String(n.payload.label ?? 'that piece')
@@ -282,7 +282,7 @@ export function NotificationsBell() {
           <path d="M10 20a2 2 0 0 0 4 0" />
         </svg>
         {unread > 0 && (
-          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[9px] font-bold text-[rgb(26_21_9)]">
+          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[9px] font-bold text-on-brass">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

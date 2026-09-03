@@ -152,7 +152,7 @@ export function WorePhotoPanel({
         <button type="button" disabled={stage === 'saving' || kept === 0} onClick={() => void save()} className="btn-primary btn-sm">
           {stage === 'saving' ? 'Logging…' : kept === 0 ? 'Log the day' : `Log the day · ${kept} ${kept === 1 ? 'piece' : 'pieces'}`}
         </button>
-        <button type="button" disabled={stage === 'saving'} onClick={() => { setJob(null); setStage('pick') }} className="btn-quiet !h-9 !text-xs">
+        <button type="button" disabled={stage === 'saving'} onClick={() => { setJob(null); setStage('pick') }} className="btn-quiet btn-quiet-sm">
           Another photo
         </button>
       </div>

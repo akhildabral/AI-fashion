@@ -336,7 +336,7 @@ export function StorePage() {
             </button>
           </div>
           <label className="mt-3 flex animate-rise-3 items-center gap-2 text-xs text-ink/50">
-            <input type="checkbox" checked={nudge === '2w'} onChange={(e) => setNudge(e.target.checked ? '2w' : 'none')} className="h-3.5 w-3.5 accent-[#B98C3B]" />
+            <input type="checkbox" checked={nudge === '2w'} onChange={(e) => setNudge(e.target.checked ? '2w' : 'none')} className="h-3.5 w-3.5 accent-iris" />
             Nudge me in two weeks if it’s still on my mind
           </label>
         </div>

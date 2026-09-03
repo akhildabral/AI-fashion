@@ -22,7 +22,7 @@ export function RequireProfile({ children }: { children: ReactNode }) {
   if (!profile && loadFailed) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-sm text-ink/60">We couldn't reach your stylist — check your connection.</p>
+        <p className="text-sm text-ink/60">We couldn’t reach your stylist. Check your connection.</p>
         <button type="button" onClick={() => void refresh()} className="btn-primary">
           Try again
         </button>

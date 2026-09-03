@@ -66,7 +66,7 @@ export function LetGoModal({ item, onClose, onChanged, onNote }: { item: Wardrob
           <div className="mt-4 flex gap-2">
             <button
               type="button"
-              onClick={() => void copyText(`${draft.title}\n\n${draft.body}${draft.price ? `\n\n${money(Number(draft.price) || 0)}` : ''}`).then((ok) => onNote(ok ? 'Listing copied — paste it where you sell.' : 'Could not copy.'))}
+              onClick={() => void copyText(`${draft.title}\n\n${draft.body}${draft.price ? `\n\n${money(Number(draft.price) || 0)}` : ''}`).then((ok) => onNote(ok ? 'Listing copied. Paste it where you sell.' : 'Could not copy.'))}
               className="btn-primary btn-sm"
             >
               Copy the listing

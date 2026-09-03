@@ -135,7 +135,7 @@ export function StyleFriendModal({
                   <Initials handle={p.handle} name={p.name} className="h-9 w-9" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-ink">{p.name}</span>
-                    <span className="block truncate text-xs text-ink/50">{p.isFriend ? 'Friends — you follow each other' : 'You follow them'}</span>
+                    <span className="block truncate text-xs text-ink/50">{p.isFriend ? 'Friends, you follow each other' : 'You follow them'}</span>
                   </span>
                   <span className="text-xs font-semibold text-brass">Dress →</span>
                 </button>
@@ -174,7 +174,7 @@ export function StyleFriendModal({
             <>
               {anchor && byId.get(anchor) && (
                 <p className="mt-2 text-xs text-ink/55">
-                  The stylist says the <b className="text-ink">{byId.get(anchor)?.subtype ?? byId.get(anchor)?.category}</b> goes with {closet.pairs.length} of their pieces — they’re lit.
+                  The stylist says the <b className="text-ink">{byId.get(anchor)?.subtype ?? byId.get(anchor)?.category}</b> goes with {closet.pairs.length} of their pieces. They’re lit.
                 </p>
               )}
               <div className="mt-3 grid max-h-[34vh] grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-5">
@@ -186,7 +186,7 @@ export function StyleFriendModal({
                       <Arch aspect="aspect-[4/5]" bright={idx >= 0 || lit}>
                         <img src={resolveImageUrl(p.imageUrl)} alt={p.subtype ?? p.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
                       </Arch>
-                      {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-bold text-[rgb(26_21_9)]">{idx + 1}</span>}
+                      {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-bold text-on-brass">{idx + 1}</span>}
                       <p className="mt-1 truncate text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{p.subtype ?? p.category}</p>
                     </button>
                   )

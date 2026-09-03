@@ -61,9 +61,9 @@ export function outcomeLine(o: ShareOutcome): string | null {
     case 'shared':
       return 'Shared.'
     case 'opened':
-      return 'The card is open in a new tab — save it or drag it anywhere.'
+      return 'The card is open in a new tab. Save it or drag it anywhere.'
     case 'copied':
-      return 'Link copied — paste it anywhere.'
+      return 'Link copied. Paste it anywhere.'
     default:
       return null
   }

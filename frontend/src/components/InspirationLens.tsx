@@ -92,7 +92,7 @@ export function InspirationLens({
     try {
       const { tryOn, cached } = await tryOnLook(look.id)
       onRender(tryOn)
-      onNote(cached ? 'Already rendered — here it is.' : 'Dressing you in it. Half a minute.')
+      onNote(cached ? 'Already rendered. Here it is.' : 'Dressing you in it. Half a minute.')
     } catch (err) {
       onNote(err instanceof Error ? err.message : 'Could not render that.')
     } finally {
@@ -205,7 +205,7 @@ export function InspirationLens({
                         <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight" style={{ color: '#6b5f4a' }}>{m.color} {m.subtype}</span>
                       </Arch>
                       <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/70">{m.subtype}</p>
-                      <p className="truncate text-[10px] text-[#D0524E]">missing</p>
+                      <p className="truncate text-[10px] text-[rgb(var(--c-danger))]">missing</p>
                     </div>
                   ))}
                 </div>
@@ -220,7 +220,7 @@ export function InspirationLens({
                       Ask the store about the rest
                     </button>
                   )}
-                  <button type="button" onClick={() => setClosetFor(null)} className="btn-quiet !h-9 !text-xs">
+                  <button type="button" onClick={() => setClosetFor(null)} className="btn-quiet btn-quiet-sm">
                     Close
                   </button>
                 </div>

@@ -345,7 +345,7 @@ export function ClosetPage() {
             </div>
             <h2 className="mt-6 font-display text-2xl font-medium text-ink">Your collection begins here.</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">
-              Drag a photo anywhere, or hit Add. Flat-lays and hangers work best — every garment is
+              Drag a photo anywhere, or hit Add. Flat-lays and hangers work best. Each garment is
               extracted and framed on its own.
             </p>
           </div>
@@ -463,7 +463,7 @@ export function ClosetPage() {
                   {workhorses.map((item) => (
                     <div key={item.id} className="relative">
                       {item.id === bestValueId && (
-                        <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-[2px] bg-brass px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[rgb(26_21_9)]">
+                        <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-[2px] bg-brass px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-on-brass">
                           Best value
                         </span>
                       )}

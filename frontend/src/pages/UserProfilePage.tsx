@@ -137,7 +137,7 @@ export function UserProfilePage() {
         setProfile({ ...profile, isFollowing: true, isFriend, counts: { ...profile.counts, followers: profile.counts.followers + 1 } })
       }
     } catch {
-      flash('Could not update follow — try again.')
+      flash('Couldn’t update follow. Try again.')
     } finally {
       setBusy(false)
     }
@@ -277,7 +277,7 @@ export function UserProfilePage() {
           )}
           {profile.mutedUntil && !profile.blockedByMe && (
             <p className="mt-4 text-xs text-ink/50">
-              Muted{profile.mutedUntil === 'forever' ? '' : ` until ${new Date(profile.mutedUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`} — their posts stay off your table.
+              Muted{profile.mutedUntil === 'forever' ? '' : ` until ${new Date(profile.mutedUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}. Their posts stay off your table.
             </p>
           )}
 
@@ -343,7 +343,7 @@ export function UserProfilePage() {
             <>
               {profile.publicItems.length === 0 ? (
                 <div className="mt-5 rounded-[3px] border border-dashed border-ink/20 py-14 text-center text-sm text-ink/55">
-                  Their public wardrobe is empty{profile.isMe ? ' — make pieces public from your Closet.' : '.'}
+                  Their public wardrobe is empty{profile.isMe ? '. Make pieces public from your Closet.' : '.'}
                 </div>
               ) : (
                 <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -371,7 +371,7 @@ export function UserProfilePage() {
         </>
       )}
 
-      <StyleFriendModal open={styling} onClose={() => setStyling(false)} onSent={() => flash('Sent — it’s waiting on their table.')} onNote={flash} initialHandle={handle} />
+      <StyleFriendModal open={styling} onClose={() => setStyling(false)} onSent={() => flash('Sent. It’s waiting on their table.')} onNote={flash} initialHandle={handle} />
       <Modal open={reporting} onClose={() => setReporting(false)} title={`Report ${who}`}>
         <p className="text-sm text-ink/60">Tell the house what’s wrong. They won’t know it came from you.</p>
         <div className="mt-4 flex flex-wrap gap-2">

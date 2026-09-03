@@ -92,7 +92,7 @@ export function LoginPage() {
           <>
             {' '}
             {resent ? (
-              <span className="text-ink/60">Sent — check your inbox.</span>
+              <span className="text-ink/60">Sent. Check your inbox.</span>
             ) : (
               <button type="button" onClick={() => void resend()} className="font-semibold text-brass underline-offset-4 hover:underline">
                 Send it again.

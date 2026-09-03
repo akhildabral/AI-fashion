@@ -527,7 +527,7 @@ function AccountSection({
       setLinkSent(true)
       onNote('A link to set a new password is on its way. It lasts an hour.')
     } catch {
-      onNote('Could not send the link — try again in a moment.')
+      onNote('Couldn’t send the link. Try again in a moment.')
     }
   }
 
@@ -547,7 +547,7 @@ function AccountSection({
             <button type="submit" disabled={!first.trim() || savingName} className="btn-primary btn-sm">
               {savingName ? '…' : 'Save'}
             </button>
-            <button type="button" onClick={() => setEditingName(false)} className="btn-quiet !h-9 !text-xs">
+            <button type="button" onClick={() => setEditingName(false)} className="btn-quiet btn-quiet-sm">
               Cancel
             </button>
           </form>
@@ -586,13 +586,13 @@ function AccountSection({
         <b className="text-sm font-semibold text-ink">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : '—'}</b>
       </Row>
       <Row label="Sign out">
-        <button type="button" onClick={onSignOut} className="btn-quiet !h-9 !text-xs">
+        <button type="button" onClick={onSignOut} className="btn-quiet btn-quiet-sm">
           Sign out of this device
         </button>
       </Row>
       <Row label="Delete the account">
         <span className="text-xs text-ink/45">Everything goes: the closet, the record, every photo.</span>
-        <button type="button" onClick={onDelete} className="text-xs font-semibold text-[#D0524E] hover:underline">
+        <button type="button" onClick={onDelete} className="text-xs font-semibold text-[rgb(var(--c-danger))] hover:underline">
           Delete…
         </button>
       </Row>
@@ -630,7 +630,7 @@ function DeleteModal({ email, onClose, onDeleted }: { email: string; onClose: ()
         </p>
       )}
       <div className="action-row mt-5">
-        <button type="button" disabled={!ok || busy} onClick={() => void go()} className="btn-ghost !border-[#D0524E]/60 !text-[#D0524E] disabled:opacity-40">
+        <button type="button" disabled={!ok || busy} onClick={() => void go()} className="btn-ghost !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))] disabled:opacity-40">
           {busy ? 'Deleting…' : 'Delete everything'}
         </button>
         <button type="button" onClick={onClose} className="btn-quiet">
@@ -663,7 +663,7 @@ function AddressCard({ current, onChanged }: { current: string | null; onChanged
     }
     const t = window.setTimeout(() => {
       checkHandle(h)
-        .then((r) => setState(r.available ? { ok: true, msg: 'Free.' } : { ok: false, msg: 'Taken — try another.' }))
+        .then((r) => setState(r.available ? { ok: true, msg: 'Free.' } : { ok: false, msg: 'Taken. Try another.' }))
         .catch(() => setState({ ok: false, msg: 'Could not check that just now.' }))
     }, 250)
     return () => window.clearTimeout(t)
@@ -708,7 +708,7 @@ function AddressCard({ current, onChanged }: { current: string | null; onChanged
             <button type="submit" disabled={!state.ok || saving} className="btn-primary btn-sm shrink-0">
               {saving ? '…' : 'Save'}
             </button>
-            <button type="button" onClick={() => setEditing(false)} className="btn-quiet !h-9 !text-xs">
+            <button type="button" onClick={() => setEditing(false)} className="btn-quiet btn-quiet-sm">
               Cancel
             </button>
           </div>

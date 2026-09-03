@@ -97,11 +97,11 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
             onClick={() => {
               void updateWardrobeItem(item.id, { suppressed: false })
                 .then(({ item: updated }) => onUpdated?.(updated))
-                .catch(() => setError('Could not restore this item — try again.'))
+                .catch(() => setError('Couldn’t restore this item. Try again.'))
             }}
             className="absolute left-3 top-3 rounded-[3px] bg-ink/80 px-2.5 py-1 text-xs text-bone  transition hover:bg-ink"
           >
-            Excluded — tap to include
+            Excluded. Tap to include
           </button>
         )}
         {item.status === 'processing' && (
@@ -112,7 +112,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
         )}
         {item.status === 'failed' && (
           <span className="absolute left-3 top-3 rounded-[3px] bg-surface/90 px-2.5 py-1 text-xs text-red-700 ">
-            Tagging failed — edit manually
+            Tagging failed. Edit manually
           </span>
         )}
       </div>
@@ -171,14 +171,14 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
                 type="button"
                 title={
                   item.visibility === 'public'
-                    ? 'Visible on your profile — tap to make private'
-                    : 'Private — tap to show on your profile'
+                    ? 'Visible on your profile. Tap to make private'
+                    : 'Private. Tap to show on your profile'
                 }
                 onClick={() => {
                   const visibility = item.visibility === 'public' ? 'private' : 'public'
                   void updateWardrobeItem(item.id, { visibility })
                     .then(({ item: updated }) => onUpdated?.(updated))
-                    .catch(() => setError('Could not change visibility — try again.'))
+                    .catch(() => setError('Couldn’t change visibility. Try again.'))
                 }}
                 className={
                   item.visibility === 'public'
@@ -188,7 +188,7 @@ export function WardrobeCard({ item, onUpdated, onDeleted }: WardrobeCardProps) 
               >
                 {item.visibility === 'public' ? 'Public' : 'Private'}
               </button>
-              <ShareButton target={{ kind: 'piece', id: item.id, title: `${item.subtype ?? item.category} from my closet` }} className="btn-quiet !h-9 !text-xs" />
+              <ShareButton target={{ kind: 'piece', id: item.id, title: `${item.subtype ?? item.category} from my closet` }} className="btn-quiet btn-quiet-sm" />
               <button
                 type="button"
                 onClick={handleDelete}
