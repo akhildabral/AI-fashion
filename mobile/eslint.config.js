@@ -10,6 +10,10 @@ module.exports = defineConfig([
     ignores: ['dist/*', 'ios/*', 'android/*', '.expo/*', 'expo-env.d.ts'],
   },
   {
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: { globals: { Buffer: 'readonly', process: 'readonly', console: 'readonly' } },
+  },
+  {
     files: ['jest.setup.js', '**/*.test.{ts,tsx,js}'],
     languageOptions: {
       globals: { jest: 'readonly', describe: 'readonly', it: 'readonly', test: 'readonly', expect: 'readonly', beforeEach: 'readonly', afterEach: 'readonly' },
