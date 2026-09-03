@@ -140,14 +140,28 @@ export function ComposePage() {
     };
   }, [chosen, eventType]);
 
+  // Categories you only ever wear one of at a time.
+  const SINGULAR = new Set(["bottom", "footwear", "dress"]);
+
   function toggle(id: string) {
-    setChosen((c) =>
-      c.includes(id)
-        ? c.filter((x) => x !== id)
-        : c.length >= 8
-          ? c
-          : [...c, id],
-    );
+    setChosen((c) => {
+      if (c.includes(id)) return c.filter((x) => x !== id);
+      if (c.length >= 8) return c;
+      const item = byId.get(id);
+      if (!item) return [...c, id];
+      // An outfit is one-per-slot: adding a piece swaps out anything it would
+      // double up — the same singular category (a second pair of trousers or
+      // shoes), or the same subtype anywhere (a second handbag). Different
+      // subtypes still layer (a camisole under a shirt, a bag with a belt).
+      const kept = c.filter((xid) => {
+        const x = byId.get(xid);
+        if (!x) return true;
+        if (SINGULAR.has(item.category) && x.category === item.category) return false;
+        if (item.subtype && x.subtype && x.subtype === item.subtype) return false;
+        return true;
+      });
+      return [...kept, id];
+    });
   }
 
   async function save() {
