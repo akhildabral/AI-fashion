@@ -12,7 +12,7 @@ import {
 } from "../lib/outfits";
 import { logWear } from "../lib/wearlog";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../components/ui";
+import { PageShell, Toast, useFlash, ArchSkeleton, LoadError, UndoBar } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
@@ -62,6 +62,7 @@ export function OutfitsRoom() {
   const [asking, setAsking] = useState(false);
   const [failed, setFailed] = useState(false);
   const [tryOnItems, setTryOnItems] = useState<string[] | null>(null);
+  const [pending, setPending] = useState<{ outfit: Outfit; timer: number } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -138,15 +139,27 @@ export function OutfitsRoom() {
     }
   }
 
-  async function remove(o: Outfit) {
-    setBusy(`rm:${o.id}`);
-    try {
-      await deleteOutfit(o.id);
-      setOutfits((prev) => (prev ?? []).filter((x) => x.id !== o.id));
-      flash("Let go.");
-    } finally {
-      setBusy(null);
+  // Deferred delete with a 5s Undo window before the server call fires.
+  function remove(o: Outfit) {
+    if (pending) {
+      window.clearTimeout(pending.timer);
+      void deleteOutfit(pending.outfit.id).catch(() => undefined);
     }
+    setOutfits((prev) => (prev ?? []).filter((x) => x.id !== o.id));
+    const timer = window.setTimeout(() => {
+      void deleteOutfit(o.id).catch(() => {
+        flash("Couldn’t let it go. Try again.");
+        setOutfits((prev) => [o, ...(prev ?? [])]);
+      });
+      setPending(null);
+    }, 5000);
+    setPending({ outfit: o, timer });
+  }
+  function undoRemove() {
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    setOutfits((prev) => [pending.outfit, ...(prev ?? [])]);
+    setPending(null);
   }
 
   const count = outfits?.length ?? 0;
@@ -334,6 +347,7 @@ export function OutfitsRoom() {
       </section>
           <AskCircleModal open={askingCircle !== null} onClose={() => setAskingCircle(null)} onAsked={() => flash("Asked. The verdict lands in your Circle.")} initialOutfitId={askingCircle} />
       {tryOnItems && <TryOnModal itemIds={tryOnItems} onClose={() => setTryOnItems(null)} />}
+      {pending && <UndoBar message="Outfit let go." onUndo={undoRemove} />}
     </PageShell>
   );
 }

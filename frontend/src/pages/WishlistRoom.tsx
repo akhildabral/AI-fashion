@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { deleteWardrobeItem, getWishlist, updateWardrobeItem } from '../lib/wardrobe'
 import { ClosetRooms, RoomMantel } from '../components/ClosetRooms'
-import { PageShell, Toast, useFlash, SkeletonBlock, LoadError } from '../components/ui'
+import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
 import type { WardrobeItem } from '../lib/types'
 
@@ -34,6 +34,7 @@ export function WishlistRoom() {
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
+  const [pending, setPending] = useState<{ item: WardrobeItem; timer: number } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -60,15 +61,28 @@ export function WishlistRoom() {
       setBusy(null)
     }
   }
-  async function letGo(it: WardrobeItem) {
-    setBusy(it.id)
-    try {
-      await deleteWardrobeItem(it.id)
-      flash('Let go.')
-      setItems((p) => (p ?? []).filter((x) => x.id !== it.id))
-    } finally {
-      setBusy(null)
+  // Deferred delete: the piece leaves the list now, but the server call waits
+  // ~5s so an Undo can pull it back.
+  function letGo(it: WardrobeItem) {
+    if (pending) {
+      window.clearTimeout(pending.timer)
+      void deleteWardrobeItem(pending.item.id).catch(() => undefined)
     }
+    setItems((p) => (p ?? []).filter((x) => x.id !== it.id))
+    const timer = window.setTimeout(() => {
+      void deleteWardrobeItem(it.id).catch(() => {
+        flash('Couldn’t let it go. Try again.')
+        setItems((p) => [it, ...(p ?? [])])
+      })
+      setPending(null)
+    }, 5000)
+    setPending({ item: it, timer })
+  }
+  function undoLetGo() {
+    if (!pending) return
+    window.clearTimeout(pending.timer)
+    setItems((p) => [pending.item, ...(p ?? [])])
+    setPending(null)
   }
 
   const total = (items ?? []).reduce((s, i) => s + (i.seenPrice ?? 0), 0)
@@ -158,6 +172,7 @@ export function WishlistRoom() {
           })}
         </div>
       )}
+      {pending && <UndoBar message={`${pending.item.subtype ?? pending.item.category} let go.`} onUndo={undoLetGo} />}
     </PageShell>
   )
 }

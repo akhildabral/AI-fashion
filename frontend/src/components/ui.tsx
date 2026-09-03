@@ -446,3 +446,15 @@ export function LoadError({
     </div>
   )
 }
+
+/** The bottom undo bar for deferred deletes: an item's gone, but not yet. */
+export function UndoBar({ message, onUndo }: { message: string; onUndo: () => void }) {
+  return (
+    <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-[3px] border border-brass/40 bg-surface px-4 py-2.5 text-sm text-ink shadow-float animate-rise" role="status">
+      <span>{message}</span>
+      <button type="button" onClick={onUndo} className="press font-semibold text-brass hover:underline">
+        Undo
+      </button>
+    </div>
+  )
+}
