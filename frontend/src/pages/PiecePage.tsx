@@ -425,7 +425,7 @@ export function PiecePage() {
               See it on me
             </Link>
             <div className="relative">
-              <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-ghost !px-4" aria-label="More">
+              <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-icon" aria-label="More">
                 ···
               </button>
               {menu && (

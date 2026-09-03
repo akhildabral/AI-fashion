@@ -279,7 +279,7 @@ export function ClosetPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search"
-                className="w-40 rounded-[3px] border border-ink/15 bg-surface px-4 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-brass/60 focus:ring-2 focus:ring-brass/20 sm:w-52"
+                className="field field-sm w-40 sm:w-52"
               />
             </label>
             <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={handleFileChange} className="hidden" />

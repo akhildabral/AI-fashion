@@ -463,7 +463,7 @@ function MoreMenu({ items }: { items: { label: string; danger?: boolean; onSelec
   }, [open])
   return (
     <div ref={ref} className="relative">
-      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-ghost !px-3 tracking-[0.2em]">
+      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-icon">
         ···
       </button>
       {open && (

@@ -508,7 +508,7 @@ export function CardMenu({ items }: { items: { label: string; danger?: boolean; 
   if (items.length === 0) return null
   return (
     <div ref={ref} className="relative -mr-2 shrink-0">
-      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="press rounded-[3px] px-2 py-1.5 text-xs font-semibold tracking-[0.2em] text-ink/45 hover:text-ink">
+      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-icon">
         ···
       </button>
       {open && (

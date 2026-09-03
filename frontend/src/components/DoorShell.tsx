@@ -122,7 +122,7 @@ export function PasswordField({
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink/40 hover:text-ink"
+          className="absolute right-1 top-1/2 flex h-9 -translate-y-1/2 items-center px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/40 transition-colors hover:text-ink"
           aria-pressed={show}
         >
           {show ? 'Hide' : 'Show'}
