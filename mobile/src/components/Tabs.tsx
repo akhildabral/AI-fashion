@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import * as haptics from '@/src/design/haptics'
@@ -24,10 +24,11 @@ export function Tabs<K extends string>({ items, value, onChange }: { items: TabI
   const x = useSharedValue(0)
   const w = useSharedValue(0)
   const active = layouts[value]
-  if (active && (x.get() !== active.x || w.get() !== active.w)) {
+  useEffect(() => {
+    if (!active) return
     x.set(withTiming(active.x, timing.move))
     w.set(withTiming(active.w, timing.move))
-  }
+  }, [active, x, w])
   const rule = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }], width: w.get() }))
 
   return (

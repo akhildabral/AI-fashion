@@ -20,9 +20,7 @@ export default function TabsLayout() {
     <NativeTabs
       tintColor={t.brass}
       iconColor={alpha(t.ink, 0.55)}
-      backgroundColor={t.surface}
       labelStyle={{ fontFamily: fonts.sansMedium, fontSize: 10, color: alpha(t.ink, 0.55) }}
-      indicatorColor={t.brassSoft}
       minimizeBehavior="onScrollDown"
     >
       {ROOMS.map((room) => (

@@ -2,7 +2,7 @@
 // title, an eyebrow, actions on the right) and the thumb-zone action bar that
 // sits above the tab bar with the screen's one primary action.
 import { type ReactNode } from 'react'
-import { StyleSheet, View, type ViewStyle } from 'react-native'
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline } from '@/src/design/tokens'
@@ -36,8 +36,11 @@ export function RoomHeader({ eyebrow, title, emphasis, lead, right, style }: { e
   )
 }
 
+/** The floating native tab bar's footprint above the safe area (iOS 26 / Material). */
+export const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 62 : 80
+
 /** Space a scrolling screen must leave at the bottom when it has an ActionBar. */
-export const ACTION_BAR_HEIGHT = 72
+export const ACTION_BAR_HEIGHT = 72 + TAB_BAR_HEIGHT
 
 /**
  * The bar above the tab bar for the screen's primary action (and at most
@@ -50,7 +53,7 @@ export function ActionBar({ children, style }: { children: ReactNode; style?: Vi
     <View
       style={[
         styles.bar,
-        { backgroundColor: alpha(t.bone, 0.94), borderTopColor: alpha(t.ink, 0.1), paddingBottom: Math.max(insets.bottom, 12) },
+        { bottom: insets.bottom + TAB_BAR_HEIGHT, backgroundColor: alpha(t.bone, 0.94), borderTopColor: alpha(t.ink, 0.1), paddingBottom: 12 },
         style,
       ]}
     >

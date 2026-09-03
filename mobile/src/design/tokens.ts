@@ -105,6 +105,17 @@ export const BRAND = {
   neutral: '#D6CFC0',
 } as const
 
+/**
+ * Split an `rgba()` token into a hex colour and its alpha. SVG gradient
+ * stops need the alpha as `stopOpacity`; they ignore it inside `rgba()`.
+ */
+export function rgbaParts(rgba: string): { color: string; opacity: number } {
+  const m = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
+  if (!m) return { color: rgba, opacity: 1 }
+  const hex = [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')
+  return { color: `#${hex}`, opacity: m[4] === undefined ? 1 : Number(m[4]) }
+}
+
 /** `#RRGGBB` at an opacity, for the `ink/45` style washes. */
 export function alpha(hex: string, a: number): string {
   const h = hex.replace('#', '')

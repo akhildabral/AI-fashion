@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Redu
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { EASE_OUT, duration } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
+import { rgbaParts } from '@/src/design/tokens'
 
 export type ArchVariant = 'niche' | 'photo' | 'mirror' | 'plain'
 
@@ -92,6 +93,8 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
   const inner = archPath(width, h, variant, bezelWidth / 2)
   const small = width < 120
   const uid = `${variant}-${Math.round(width)}-${Math.round(h)}`
+  const edge = rgbaParts(t.nicheEdge)
+  const sheen = rgbaParts(t.sheen)
   const nicheStops: [string, string][] =
     variant === 'mirror'
       ? [
@@ -132,18 +135,18 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
           <Svg pointerEvents="none" width={width} height={h} style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id={`vig-${uid}`} cx="50%" cy="50%" rx="62%" ry="58%">
-                <Stop offset="0" stopColor={t.nicheEdge} stopOpacity={0} />
-                <Stop offset={small ? '0.9' : '0.72'} stopColor={t.nicheEdge} stopOpacity={0} />
-                <Stop offset="1" stopColor={t.nicheEdge} stopOpacity={small ? 0.5 : 1} />
+                <Stop offset="0" stopColor={edge.color} stopOpacity={0} />
+                <Stop offset={small ? '0.9' : '0.72'} stopColor={edge.color} stopOpacity={0} />
+                <Stop offset="1" stopColor={edge.color} stopOpacity={edge.opacity * (small ? 0.5 : 1)} />
               </RadialGradient>
               <LinearGradient id={`lip-${uid}`} x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="#281908" stopOpacity={0.14} />
                 <Stop offset="1" stopColor="#281908" stopOpacity={0} />
               </LinearGradient>
               <LinearGradient id={`sheen-${uid}`} x1="0" y1="0" x2="1" y2="0.6">
-                <Stop offset="0.35" stopColor="#FFFFFF" stopOpacity={0} />
-                <Stop offset="0.5" stopColor={t.sheen} />
-                <Stop offset="0.65" stopColor="#FFFFFF" stopOpacity={0} />
+                <Stop offset="0.35" stopColor={sheen.color} stopOpacity={0} />
+                <Stop offset="0.5" stopColor={sheen.color} stopOpacity={sheen.opacity} />
+                <Stop offset="0.65" stopColor={sheen.color} stopOpacity={0} />
               </LinearGradient>
             </Defs>
             <Rect width={width} height={h} fill={`url(#vig-${uid})`} />

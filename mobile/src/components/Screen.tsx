@@ -3,7 +3,7 @@ import { StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-nat
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context'
 import Svg, { Defs, Ellipse, Image as SvgImage, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { useTheme } from '@/src/design/theme'
-import { gutter } from '@/src/design/tokens'
+import { gutter, rgbaParts } from '@/src/design/tokens'
 
 const grain = require('../../assets/grain.png')
 
@@ -11,16 +11,18 @@ const grain = require('../../assets/grain.png')
 function Wash() {
   const { t } = useTheme()
   const { width, height } = useWindowDimensions()
+  const a = rgbaParts(t.washA)
+  const b = rgbaParts(t.washB)
   return (
     <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={width} height={height}>
       <Defs>
         <RadialGradient id="washA" cx="82%" cy="-8%" rx="60%" ry="45%">
-          <Stop offset="0" stopColor={t.washA} />
-          <Stop offset="1" stopColor={t.washA} stopOpacity={0} />
+          <Stop offset="0" stopColor={a.color} stopOpacity={a.opacity} />
+          <Stop offset="1" stopColor={a.color} stopOpacity={0} />
         </RadialGradient>
         <RadialGradient id="washB" cx="-8%" cy="10%" rx="55%" ry="45%">
-          <Stop offset="0" stopColor={t.washB} />
-          <Stop offset="1" stopColor={t.washB} stopOpacity={0} />
+          <Stop offset="0" stopColor={b.color} stopOpacity={b.opacity} />
+          <Stop offset="1" stopColor={b.color} stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Ellipse cx="82%" cy="-8%" rx="60%" ry="45%" fill="url(#washA)" />

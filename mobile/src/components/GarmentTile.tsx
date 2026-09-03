@@ -117,7 +117,8 @@ export function GarmentTile({
 
 const styles = StyleSheet.create({
   garment: { position: 'absolute', left: '8%', right: '8%', top: '9%', bottom: '7%' },
-  badge: { position: 'absolute', top: 10, left: 10, paddingHorizontal: 6, paddingVertical: 3 },
+  // Below the crown, where the arch's sides are straight, so nothing clips.
+  badge: { position: 'absolute', bottom: 10, left: 10, paddingHorizontal: 6, paddingVertical: 3 },
   developing: { alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 12 },
   caption: { marginTop: 8, gap: 2 },
 })
