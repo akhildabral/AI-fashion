@@ -1,7 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { getLocales } from 'expo-localization'
+import { setCurrentCurrency, setLocaleHints } from '@zauq/shared/money'
 import type { ProfileResponse, StyleProfile } from '@zauq/shared/types'
+import { setCurrentUnits } from '@zauq/shared/units'
 import { apiFetch } from '@/src/lib/api'
 import { useAuth } from './AuthProvider'
+
+// Until the profile names a currency, guess it from the device's region.
+setLocaleHints(getLocales().map((l) => l.languageTag))
 
 export interface ProfileValue {
   profile: StyleProfile | null
@@ -71,6 +77,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, initializing])
 
   const setProfile = useCallback((p: StyleProfile) => setProfileState(p), [])
+
+  // Every figure prints in the member's currency and units once the profile is known.
+  useEffect(() => {
+    setCurrentCurrency(profile?.currency ?? null)
+    setCurrentUnits(profile?.units ?? null)
+  }, [profile?.currency, profile?.units])
 
   const settled = !initializing && (!user || loadedFor === user.id)
   const value = useMemo<ProfileValue>(

@@ -1,0 +1,440 @@
+// The Closet: every piece in its niche, two across. The mantel carries the
+// estate value; the rooms sit on a row of tabs; the collection is cut by
+// filters; the one brass verb, Add pieces, waits in the thumb zone.
+import { FlashList } from '@shopify/flash-list'
+import { useQueryClient } from '@tanstack/react-query'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import Animated from 'react-native-reanimated'
+import { money } from '@zauq/shared/money'
+import type { WardrobeItem, WardrobeListResponse } from '@zauq/shared/types'
+import { deleteWardrobeItem } from '@zauq/shared/wardrobe'
+import { Arch } from '@/src/components/Arch'
+import { EmptyState, LoadError, Plaque, SectionHead } from '@/src/components/Bits'
+import { Button } from '@/src/components/Button'
+import { Field } from '@/src/components/Field'
+import { GarmentTile } from '@/src/components/GarmentTile'
+import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { Screen } from '@/src/components/Screen'
+import { ArchSkeleton } from '@/src/components/Skeleton'
+import { Filter } from '@/src/components/Tabs'
+import { T } from '@/src/components/Text'
+import { useFlash } from '@/src/components/Toast'
+import { useJobs } from '@/src/context/JobsProvider'
+import { rise } from '@/src/design/motion'
+import { useTheme } from '@/src/design/theme'
+import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
+import { qk } from '@/src/lib/query'
+import { ClosetNotes } from '@/src/features/closet/ClosetNotes'
+import { cpwLabel, GRID_GAP, isNew, nameOf, tileWidth, title, useGaps, useInsights, useInvalidateCloset, useRitual, useWardrobe, type Insights } from '@/src/features/closet/data'
+import { Menu, type MenuItem } from '@/src/features/closet/Menu'
+import { RoomTabs } from '@/src/features/closet/RoomTabs'
+import { shareCard } from '@/src/features/closet/share'
+import { UndoBar, useUndoDelete } from '@/src/features/closet/UndoBar'
+
+type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins'
+
+const COLLECTIONS: { id: Collection; label: string }[] = [
+  { id: 'all', label: 'Everything' },
+  { id: 'most-worn', label: 'Most worn' },
+  { id: 'never-worn', label: 'Never worn' },
+  { id: 'orphans', label: 'Sitting idle' },
+  { id: 'new', label: 'New this month' },
+  { id: 'twins', label: 'Possible twins' },
+]
+
+/** The starter state: four empty niches and the one thing to do. */
+function Starter({ width }: { width: number }) {
+  const w = tileWidth(width, gutter)
+  return (
+    <Animated.View entering={rise(1)} style={styles.starter}>
+      <View style={styles.starterGrid}>
+        {[0, 1, 2, 3].map((i) => (
+          <Arch key={i} width={w} variant="plain">
+            {i === 0 ? (
+              <View style={styles.starterLabel}>
+                <T role="micro" tone="faint">
+                  Your first piece
+                </T>
+              </View>
+            ) : null}
+          </Arch>
+        ))}
+      </View>
+      <EmptyState title="Your collection begins here." line="Add a few pieces. Flat-lays and hangers work best. Each garment is extracted and framed on its own." />
+    </Animated.View>
+  )
+}
+
+export default function ClosetRoom() {
+  const { t } = useTheme()
+  const { width } = useWindowDimensions()
+  const flash = useFlash()
+  const qc = useQueryClient()
+  const jobs = useJobs()
+  const invalidate = useInvalidateCloset()
+
+  const wardrobe = useWardrobe()
+  const insightsQ = useInsights()
+  const ritual = useRitual()
+  const gaps = useGaps()
+
+  const [search, setSearch] = useState('')
+  const [collection, setCollection] = useState<Collection>('all')
+  const [category, setCategory] = useState<string | null>(null)
+  const [menuFor, setMenuFor] = useState<WardrobeItem | null>(null)
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set())
+  const [refreshing, setRefreshing] = useState(false)
+
+  // Tiles the upload queue just created land in the cache at once, ahead of
+  // the refetch the queue also triggers.
+  useEffect(() => {
+    if (jobs.addedItems.length === 0) return
+    qc.setQueryData<WardrobeListResponse>(qk.wardrobe, (prev) => {
+      const have = new Set((prev?.items ?? []).map((i) => i.id))
+      const fresh = jobs.addedItems.filter((i) => !have.has(i.id))
+      return { ...prev, items: [...fresh, ...(prev?.items ?? [])] }
+    })
+    jobs.consumeAddedItems()
+  }, [jobs, qc])
+
+  const { refreshProcessing } = jobs
+  useFocusEffect(
+    useCallback(() => {
+      refreshProcessing()
+    }, [refreshProcessing]),
+  )
+
+  const list = useMemo(() => (wardrobe.data ?? []).filter((i) => !hidden.has(i.id)), [wardrobe.data, hidden])
+  const insights = useMemo<Insights>(() => insightsQ.data ?? new Map(), [insightsQ.data])
+  const stats = ritual.data
+
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const it of list) counts.set(it.category, (counts.get(it.category) ?? 0) + 1)
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [list])
+
+  const twins = list.filter((it) => it.twinOfId).length
+  const collectionCounts: Record<Collection, number> = {
+    all: list.length,
+    'most-worn': list.filter((it) => (insights.get(it.id)?.wearCount ?? 0) >= 1).length,
+    'never-worn': list.filter((it) => (insights.get(it.id)?.wearCount ?? 0) === 0).length,
+    orphans: list.filter((it) => insights.get(it.id)?.orphan).length,
+    new: list.filter(isNew).length,
+    twins,
+  }
+
+  const sorted = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const visible = list.filter((it) => {
+      if (category && it.category !== category) return false
+      const ins = insights.get(it.id)
+      if (collection === 'most-worn' && (ins?.wearCount ?? 0) < 1) return false
+      if (collection === 'never-worn' && (ins?.wearCount ?? 0) > 0) return false
+      if (collection === 'orphans' && !ins?.orphan) return false
+      if (collection === 'new' && !isNew(it)) return false
+      if (collection === 'twins' && !it.twinOfId) return false
+      if (q) {
+        const hay = `${it.subtype ?? ''} ${it.category} ${it.primaryColor ?? ''} ${it.description ?? ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+    return collection === 'most-worn' ? [...visible].sort((a, b) => (insights.get(b.id)?.wearCount ?? 0) - (insights.get(a.id)?.wearCount ?? 0)) : visible
+  }, [list, insights, category, collection, search])
+
+  // ---- Valuation + ledger figures ----
+  const totalValue = list.reduce((sum, it) => sum + (it.price ?? 0), 0)
+  const unpriced = list.filter((it) => it.price == null).length
+  const rotationPct = stats?.rotationPct ?? 0
+  const idleCapital = list.filter((it) => insights.get(it.id)?.orphan).reduce((sum, it) => sum + (it.price ?? 0), 0)
+
+  // ---- Deferred delete from the tile menu ----
+  const undo = useUndoDelete<WardrobeItem>({
+    commit: useCallback(
+      async (it: WardrobeItem) => {
+        await deleteWardrobeItem(it.id)
+        invalidate(it.id)
+      },
+      [invalidate],
+    ),
+    onHide: useCallback((it: WardrobeItem) => setHidden((h) => new Set(h).add(it.id)), []),
+    onRestore: useCallback((it: WardrobeItem) => {
+      setHidden((h) => {
+        const next = new Set(h)
+        next.delete(it.id)
+        return next
+      })
+    }, []),
+    onFail: useCallback(() => flash('Couldn’t remove it. Try again.'), [flash]),
+  })
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true)
+    await Promise.all([wardrobe.refetch(), insightsQ.refetch(), ritual.refetch(), gaps.refetch()]).catch(() => undefined)
+    setRefreshing(false)
+  }, [wardrobe, insightsQ, ritual, gaps])
+
+  const tileW = tileWidth(width, gutter)
+  const showLedger = stats && (stats.wornThisQuarter > 0 || stats.streak > 0 || idleCapital > 0)
+
+  const menuItems: MenuItem[] = menuFor
+    ? [
+        { label: 'Try it on', onPress: () => router.push(`/(tabs)/mirror?items=${menuFor.id}`) },
+        { label: 'Style it', onPress: () => router.push(`/closet/compose?pin=${menuFor.id}`) },
+        { label: 'Let go', onPress: () => router.push(`/sheets/closet-let-go?id=${menuFor.id}`) },
+        {
+          label: 'Share',
+          onPress: () => {
+            shareCard('piece', menuFor.id, `${title(nameOf(menuFor))} from my closet`).catch((err) => flash(err instanceof Error ? err.message : 'Could not prepare the card.'))
+          },
+        },
+        { label: 'Remove from the closet', danger: true, section: true, onPress: () => undo.remove(menuFor, `${title(nameOf(menuFor))} removed.`) },
+      ]
+    : []
+
+  const header = (
+    <View style={styles.header}>
+      <Animated.View entering={rise(0)}>
+        <RoomHeader eyebrow="The collection" title="Closet" lead={list.length > 0 ? `${list.length} pieces${stats ? ` · ${rotationPct}% in rotation this quarter` : ''}` : undefined} />
+      </Animated.View>
+
+      {list.length > 0 ? (
+        <Animated.View entering={rise(1)} style={styles.stack}>
+          <Field
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search"
+            compact
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+            accessibilityLabel="Search your closet"
+          />
+
+          {/* The valuation plate: the owned brass moment */}
+          <Pressable accessibilityRole="button" accessibilityLabel="Price your pieces" pressRetentionOffset={12} onPress={() => router.push('/sheets/closet-price')}>
+            <Plaque>
+              <T role="label" tone="faint">
+                Estate value
+              </T>
+              {totalValue > 0 ? (
+                <>
+                  <T role="stat" tone="brass">
+                    {money(totalValue)}
+                  </T>
+                  <View style={[styles.meter, { backgroundColor: alpha(t.ink, 0.1), borderRadius: 2 }]}>
+                    <View style={[styles.meterFill, { width: `${Math.min(100, rotationPct)}%`, backgroundColor: t.brass, borderRadius: 2 }]} />
+                  </View>
+                  <T role="caption" tone="faint">
+                    <T role="caption" tone="muted" style={{ fontFamily: fonts.sansSemi }}>
+                      {rotationPct}%
+                    </T>{' '}
+                    worn this quarter{idleCapital > 0 ? ` · ${money(idleCapital)} idle` : ''}
+                    {unpriced > 0 ? (
+                      <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>{` · ${unpriced} unpriced`}</T>
+                    ) : null}
+                  </T>
+                </>
+              ) : (
+                <>
+                  <T role="h3" tone="muted">
+                    Add prices to see it
+                  </T>
+                  <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                    Price {list.length} piece{list.length === 1 ? '' : 's'} →
+                  </T>
+                </>
+              )}
+            </Plaque>
+          </Pressable>
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={rise(2)}>
+        <RoomTabs current="pieces" />
+      </Animated.View>
+
+      {list.length > 0 ? (
+        <>
+          {showLedger ? (
+            <Animated.View entering={rise(3)}>
+              <Plaque style={styles.ledger}>
+                <View style={styles.ledgerRow}>
+                  {[
+                    { v: `${rotationPct}%`, l: 'in rotation' },
+                    { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
+                    { v: stats.monthlyPayback > 0 ? money(stats.monthlyPayback) : '–', l: 'earned this month' },
+                    { v: String(stats.streak), l: 'day streak' },
+                  ].map((s) => (
+                    <View key={s.l} style={styles.ledgerStat} accessible accessibilityLabel={`${s.v} ${s.l}`}>
+                      <T role="statSm">{s.v}</T>
+                      <T role="micro" tone="faint">
+                        {s.l}
+                      </T>
+                    </View>
+                  ))}
+                </View>
+                {idleCapital > 0 ? (
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setCollection('orphans')} style={{ alignSelf: 'flex-start' }}>
+                    <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
+                      {money(idleCapital)} sitting idle →
+                    </T>
+                  </Pressable>
+                ) : null}
+              </Plaque>
+            </Animated.View>
+          ) : null}
+
+          <ClosetNotes riseFrom={4} />
+
+          {/* Collections: the wardrobe cut different ways */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={styles.filterRail}>
+            {COLLECTIONS.map((c) => (
+              <Filter key={c.id} label={c.label} on={collection === c.id} count={collectionCounts[c.id] > 0 ? collectionCounts[c.id] : undefined} onPress={() => setCollection(c.id)} />
+            ))}
+          </ScrollView>
+
+          {/* Categories: narrow the collection by kind */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.filters} style={styles.filterRail}>
+            <Filter label="All" on={category === null} count={list.length} onPress={() => setCategory(null)} />
+            {categories.map(([cat, count]) => (
+              <Filter key={cat} label={title(cat)} on={category === cat} count={count} onPress={() => setCategory((prev) => (prev === cat ? null : cat))} />
+            ))}
+          </ScrollView>
+
+          {twins > 0 && collection !== 'twins' ? (
+            <Pressable accessibilityRole="button" pressRetentionOffset={12} onPress={() => setCollection('twins')}>
+              <Plaque style={styles.twinPlaque}>
+                <View style={styles.twinRow}>
+                  <T role="bodySm" tone="muted" style={{ flex: 1 }}>
+                    <T role="bodySm" style={{ fontFamily: fonts.sansSemi }}>
+                      {twins} {twins === 1 ? 'piece looks' : 'pieces look'} like {twins === 1 ? 'one' : 'ones'} you already have.
+                    </T>{' '}
+                    Decide on each: the same piece, or different.
+                  </T>
+                  <T role="label" tone="brass">
+                    Review →
+                  </T>
+                </View>
+              </Plaque>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
+    </View>
+  )
+
+  const footer = (
+    <View style={styles.footer}>
+      {list.length > 0 && gaps.data && gaps.data.length > 0 ? (
+        <Animated.View entering={rise(5)} style={styles.gaps}>
+          <SectionHead title="What the closet is missing" />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gapRail}>
+            {gaps.data.map((g) => (
+              <View key={g.category} style={[styles.gapCard, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
+                <T role="h3">{title(g.wanted)}</T>
+                <T role="bodySm" tone="muted">
+                  Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
+                </T>
+              </View>
+            ))}
+          </ScrollView>
+        </Animated.View>
+      ) : null}
+    </View>
+  )
+
+  const loading = wardrobe.isPending
+  const failed = wardrobe.isError && !wardrobe.data
+
+  return (
+    <Screen edges={['top']}>
+      {failed ? (
+        <View style={{ paddingHorizontal: gutter }}>
+          {header}
+          <LoadError message="Could not load your closet." onRetry={() => void wardrobe.refetch()} />
+        </View>
+      ) : (
+        <FlashList
+          data={sorted}
+          numColumns={2}
+          keyExtractor={(it) => it.id}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={t.brass} />}
+          contentContainerStyle={{ paddingHorizontal: gutter - GRID_GAP / 2, paddingBottom: ACTION_BAR_HEIGHT + space.xl }}
+          ListHeaderComponent={header}
+          ListHeaderComponentStyle={{ paddingHorizontal: GRID_GAP / 2 }}
+          ListFooterComponent={footer}
+          ListFooterComponentStyle={{ paddingHorizontal: GRID_GAP / 2 }}
+          ListEmptyComponent={
+            loading ? (
+              <View style={{ paddingHorizontal: GRID_GAP / 2 }}>
+                <ArchSkeleton count={6} width={width - gutter * 2} />
+              </View>
+            ) : list.length === 0 ? (
+              <Starter width={width} />
+            ) : (
+              <T role="bodySm" tone="faint" align="center" style={styles.nothing}>
+                Nothing matches that filter.
+              </T>
+            )
+          }
+          renderItem={({ item }) => (
+            <View style={styles.cell}>
+              <GarmentTile
+                imageUrl={item.imageUrl}
+                width={tileW}
+                label={title(nameOf(item))}
+                sublabel={item.twinOfId ? 'A twin? · decide' : cpwLabel(item, insights.get(item.id))}
+                badge={item.twinOfId ? 'twin' : isNew(item) ? 'new' : undefined}
+                processing={item.status === 'processing'}
+                accessibilityLabel={`${title(nameOf(item))}, ${cpwLabel(item, insights.get(item.id))}`}
+                onPress={() => router.push(`/closet/piece/${item.id}`)}
+                onLongPress={() => setMenuFor(item)}
+              />
+            </View>
+          )}
+        />
+      )}
+
+      <ActionBar>
+        <Button
+          label={list.length === 0 ? 'Add your first piece' : jobs.upload.active ? `Adding ${Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left` : 'Add pieces'}
+          block
+          onPress={() => router.push('/sheets/closet-add')}
+        />
+      </ActionBar>
+
+      <Menu open={menuFor !== null} title={menuFor ? title(nameOf(menuFor)) : undefined} items={menuItems} onClose={() => setMenuFor(null)} />
+      {undo.pending ? <UndoBar message={undo.pending.message} onUndo={undo.undo} /> : null}
+    </Screen>
+  )
+}
+
+const styles = StyleSheet.create({
+  header: { gap: space.lg, paddingBottom: space.lg },
+  stack: { gap: space.md },
+  meter: { height: 6, width: 176, overflow: 'hidden', marginTop: 10 },
+  meterFill: { height: '100%' },
+  ledger: { padding: 14, paddingLeft: 20, gap: 10 },
+  ledgerRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 24, rowGap: 8 },
+  ledgerStat: { gap: 2 },
+  filterRail: { marginHorizontal: -gutter },
+  filters: { flexDirection: 'row', gap: 6, paddingHorizontal: gutter },
+  twinPlaque: { padding: 12, paddingLeft: 18 },
+  twinRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cell: { paddingHorizontal: GRID_GAP / 2, paddingBottom: space.lg },
+  nothing: { paddingVertical: 40 },
+  footer: { paddingTop: space.md },
+  gaps: { gap: space.md },
+  gapRail: { flexDirection: 'row', gap: 10, paddingVertical: 4 },
+  gapCard: { width: 220, padding: 16, gap: 6, borderWidth: 1 },
+  starter: { paddingTop: space.md, gap: space.md },
+  starterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP, justifyContent: 'center' },
+  starterLabel: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+})
