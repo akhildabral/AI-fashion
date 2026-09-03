@@ -824,7 +824,7 @@ export function TodayPage() {
           </div>
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (
-            <div className="plaque max-w-md animate-rise p-5 pl-6">
+            <div className="plaque animate-rise p-5 pl-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
                 Your closet is working
               </p>
