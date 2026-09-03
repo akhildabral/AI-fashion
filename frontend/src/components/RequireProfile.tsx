@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useProfile } from '../context/useProfile'
-import { Spinner } from './Spinner'
+import { AppBoot } from './AppBoot'
 
 /**
  * Onboarding gate: renders children only once the user has a style profile.
@@ -12,11 +12,7 @@ export function RequireProfile({ children }: { children: ReactNode }) {
   const { profile, loading, loadFailed, refresh } = useProfile()
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center text-ink/50">
-        <Spinner className="h-6 w-6" />
-      </div>
-    )
+    return <AppBoot />
   }
 
   if (!profile && loadFailed) {

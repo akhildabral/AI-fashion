@@ -401,6 +401,18 @@
 }
 .menu-pop { animation: menu-pop 0.14s cubic-bezier(0.23, 1, 0.32, 1) both; }
 
+/* The app-boot splash: the arch breathes while auth and profile resolve. */
+@keyframes boot-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(0.99); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.animate-boot-breathe { animation: boot-breathe 1.7s ease-in-out infinite; }
+@keyframes boot-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+.animate-boot-sweep { animation: boot-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
 @keyframes cord-swing {
   0% { transform: rotate(0deg); }
   18% { transform: rotate(8deg); }
@@ -416,9 +428,12 @@
   .animate-filament,
   .rise-stagger,
   .menu-pop,
+  .animate-boot-breathe,
+  .animate-boot-sweep,
   [class*='animate-rise'] {
     animation: none !important;
   }
+  .animate-boot-breathe { opacity: 1; }
   .animate-mirror-reveal {
     animation: none !important;
     opacity: 1;

@@ -398,3 +398,51 @@ export function MenuItem({
     </button>
   )
 }
+
+/** A single pulsing placeholder block — the atom of every skeleton. */
+export function SkeletonBlock({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-[3px] bg-ink/10 ${className}`} aria-hidden />
+}
+
+/** A grid of pulsing arches, matching the app's garment/render grids. */
+export function ArchSkeleton({
+  count = 6,
+  className = 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
+  aspect = 'aspect-[5/6]',
+}: {
+  count?: number
+  className?: string
+  aspect?: string
+}) {
+  return (
+    <div className={className} aria-busy="true" aria-label="Loading">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={`arch-bezel ${aspect} animate-pulse opacity-60`} style={{ animationDelay: `${i * 80}ms` }}>
+          <div className="arch-niche h-full w-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The standard "the fetch failed" state: a line, and a way back in. */
+export function LoadError({
+  message = 'That didn’t load. Check your connection and try again.',
+  onRetry,
+  className = '',
+}: {
+  message?: string
+  onRetry?: () => void
+  className?: string
+}) {
+  return (
+    <div className={`flex min-h-[40vh] flex-col items-center justify-center gap-4 px-6 text-center ${className}`} role="alert">
+      <p className="max-w-sm text-sm text-ink/60">{message}</p>
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="btn-primary">
+          Try again
+        </button>
+      )}
+    </div>
+  )
+}
