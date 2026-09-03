@@ -105,9 +105,9 @@ export function PhotoManager() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : (
-        // flex-wrap so the controls drop below the photo whenever THIS card is
-        // too narrow (it lives in a column, so a viewport breakpoint lies).
         <div className="flex flex-wrap items-start gap-6 sm:gap-8">
+          {/* flex-wrap so the controls drop below the photo when this card is
+              too narrow: it sits in a column, so a viewport breakpoint lies. */}
           {/* Preview */}
           <div className="w-40 shrink-0">
             <div className="relative aspect-[3/4] w-40 overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-clay/20">

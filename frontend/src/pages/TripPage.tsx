@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { Spinner } from '../components/Spinner'
 import { usePageTitle } from '../lib/usePageTitle'
-import { deleteTrip, getTrip, replanTripDay, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
+import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, setTripLookItems, swapTripItem, updateTrip, type TripPage as TripPageData } from '../lib/brief'
 import { getWardrobe } from '../lib/wardrobe'
 import type { WardrobeItem } from '../lib/types'
 import { resolveImageUrl } from '../lib/api'
@@ -21,6 +21,28 @@ function nights(a: string, b: string): number {
   return Math.round((new Date(`${b}T12:00:00`).getTime() - new Date(`${a}T12:00:00`).getTime()) / 86_400_000) + 1
 }
 const name = (i: WardrobeItem) => i.subtype ?? i.category
+
+// The checklist reads best packed by kind — all the tops, then bottoms, shoes…
+const CHECKLIST_ORDER: [string, string[]][] = [
+  ['Tops', ['top']],
+  ['Bottoms', ['bottom']],
+  ['Dresses', ['dress']],
+  ['Outerwear', ['outerwear']],
+  ['Shoes', ['footwear']],
+  ['Accessories', ['accessory', 'bag']],
+]
+function checklistGroups(items: WardrobeItem[]): [string, WardrobeItem[]][] {
+  const groups: [string, WardrobeItem[]][] = []
+  const used = new Set<string>()
+  for (const [label, cats] of CHECKLIST_ORDER) {
+    const g = items.filter((it) => cats.includes(it.category))
+    g.forEach((it) => used.add(it.id))
+    if (g.length) groups.push([label, g])
+  }
+  const rest = items.filter((it) => !used.has(it.id))
+  if (rest.length) groups.push(['Other', rest])
+  return groups
+}
 
 /** Add a piece from the closet to the capsule. */
 function AddPieceModal({ exclude, onClose, onAdd }: { exclude: Set<string>; onClose: () => void; onAdd: (ids: string[]) => Promise<void> }) {
@@ -86,6 +108,10 @@ export function TripPage() {
   const [adding, setAdding] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [replanning, setReplanning] = useState<number | null>(null)
+  const [newItem, setNewItem] = useState('')
+  const [savingItem, setSavingItem] = useState(false)
+  const [picker, setPicker] = useState<{ index: number; lookId: string; selected: string[] } | null>(null)
+  const [savingPicker, setSavingPicker] = useState(false)
   const saveTimer = useRef<number | null>(null)
 
   const load = useCallback(async () => {
@@ -149,16 +175,79 @@ export function TripPage() {
       flash(err instanceof Error ? err.message : 'Could not pack that.')
     }
   }
-  async function replan(index: number) {
+  async function replan(index: number, lookId?: string) {
     setReplanning(index)
     try {
-      await replanTripDay(id, index)
+      await replanTripDay(id, index, lookId)
       await load()
-      flash('That day is replanned from the capsule.')
+      flash('That look is replanned from the capsule.')
     } catch (err) {
-      flash(err instanceof Error ? err.message : 'Could not replan that day.')
+      flash(err instanceof Error ? err.message : 'Could not replan that look.')
     } finally {
       setReplanning(null)
+    }
+  }
+  async function addLook(index: number) {
+    setReplanning(index)
+    try {
+      await addTripLook(id, index)
+      await load()
+      flash('Another look for that day, from the capsule.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not add a look.')
+    } finally {
+      setReplanning(null)
+    }
+  }
+  async function removeLook(index: number, lookId: string) {
+    setReplanning(index)
+    try {
+      await removeTripLook(id, index, lookId)
+      await load()
+      flash('Taken off the day.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not remove that look.')
+    } finally {
+      setReplanning(null)
+    }
+  }
+  async function addItem() {
+    const text = newItem.trim()
+    if (!text) return
+    setSavingItem(true)
+    try {
+      await addChecklistItem(id, text)
+      setNewItem('')
+      await load()
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not add that.')
+    } finally {
+      setSavingItem(false)
+    }
+  }
+  async function removeCustom(text: string) {
+    try {
+      await removeChecklistItem(id, text)
+      await load()
+    } catch {
+      flash('Could not remove that.')
+    }
+  }
+  function togglePiece(itemId: string) {
+    setPicker((p) => (p ? { ...p, selected: p.selected.includes(itemId) ? p.selected.filter((x) => x !== itemId) : [...p.selected, itemId] } : p))
+  }
+  async function savePicker() {
+    if (!picker || picker.selected.length === 0) return
+    setSavingPicker(true)
+    try {
+      await setTripLookItems(id, picker.index, picker.lookId, picker.selected)
+      setPicker(null)
+      await load()
+      flash('Look built.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not save that look.')
+    } finally {
+      setSavingPicker(false)
     }
   }
   async function remove() {
@@ -334,23 +423,55 @@ export function TripPage() {
           <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
           <div className="card mt-4 px-5">
             {days.map((day, i) => (
-              <article key={day.label} className="flex flex-col gap-2 border-t border-ink/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:gap-4">
-                <div className="sm:w-40 sm:shrink-0">
-                  <p className="text-sm font-semibold text-ink">{day.label}</p>
-                  <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>
+              <article key={day.label} className="border-t border-ink/10 py-4 first:border-t-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">{day.label}</p>
+                    {day.note && <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>}
+                  </div>
                   {!past && (
-                    <button type="button" disabled={replanning !== null} onClick={() => void replan(i)} className="press mt-1 text-[11px] font-semibold text-brass hover:underline disabled:opacity-40">
-                      {replanning === i ? 'Replanning…' : 'Replan this day'}
+                    <button type="button" disabled={replanning !== null} onClick={() => void addLook(i)} className="press text-[11px] font-semibold text-brass hover:underline disabled:opacity-40">
+                      {replanning === i ? '…' : '+ Add a look'}
                     </button>
                   )}
                 </div>
-                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                  {day.items.map((item) => (
-                    <Arch key={item.id} aspect="aspect-[4/5]" className="w-12">
-                      <img src={resolveImageUrl(item.imageUrl)} alt={name(item)} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                    </Arch>
+                <div className="mt-3 flex flex-col gap-3">
+                  {day.looks.map((look, li) => (
+                    <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+                      <div className="sm:w-40 sm:shrink-0">
+                        {(day.looks.length > 1 || look.label || look.time) && (
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
+                            {look.label || ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][li] || `Look ${li + 1}`}
+                            {look.time && <span className="ml-1.5 normal-case tracking-normal text-ink/40">{look.time}</span>}
+                          </p>
+                        )}
+                        {look.occasion && <p className="mt-0.5 text-xs text-ink/50">{look.occasion}</p>}
+                        {!past && (
+                          <div className="mt-1 flex flex-wrap gap-x-3">
+                            <button type="button" onClick={() => setPicker({ index: i, lookId: look.id, selected: look.items.map((it) => it.id) })} className="press text-[11px] font-semibold text-brass hover:underline">
+                              Pick pieces
+                            </button>
+                            <button type="button" disabled={replanning !== null} onClick={() => void replan(i, look.id)} className="press text-[11px] font-medium text-ink/45 hover:text-ink disabled:opacity-40">
+                              {replanning === i ? 'Replanning…' : 'Auto'}
+                            </button>
+                            {day.looks.length > 1 && (
+                              <button type="button" disabled={replanning !== null} onClick={() => void removeLook(i, look.id)} className="press text-[11px] font-medium text-ink/45 hover:text-ink disabled:opacity-40">
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                        {look.items.map((item) => (
+                          <Arch key={item.id} aspect="aspect-[4/5]" className="w-12">
+                            <img src={resolveImageUrl(item.imageUrl)} alt={name(item)} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                          </Arch>
+                        ))}
+                        {look.items.length === 0 && <p className="text-xs text-ink/40">Nothing left in the capsule for this look.</p>}
+                      </div>
+                    </div>
                   ))}
-                  {day.items.length === 0 && <p className="text-xs text-ink/40">Nothing left in the capsule for this day.</p>}
                 </div>
               </article>
             ))}
@@ -366,27 +487,78 @@ export function TripPage() {
               {ticked} of {total} packed · it remembers
             </p>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {capsule.map((item) => {
-              const key = `item-${item.id}`
-              const on = checked.has(key)
+          {/* Progress — the case filling up */}
+          <div className="mt-3 h-1.5 overflow-hidden rounded-[2px] bg-ink/10" role="progressbar" aria-valuenow={ticked} aria-valuemax={total}>
+            <div className="h-full rounded-[2px] bg-brass transition-[width] duration-300" style={{ width: `${total ? Math.round((ticked / total) * 100) : 0}%` }} />
+          </div>
+          {/* Packed by kind, then the things to pick up */}
+          <div className="mt-5 flex flex-col gap-5">
+            {checklistGroups(capsule).map(([label, items]) => {
+              const done = items.filter((it) => checked.has(`item-${it.id}`)).length
               return (
-                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-ink/10 bg-surface px-4 py-2.5 text-sm">
-                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
-                  <span className={on ? 'capitalize text-ink/35 line-through' : 'capitalize text-ink/80'}>{name(item)}</span>
-                </label>
+                <div key={label}>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">
+                    {label} <span className="text-ink/30">{done}/{items.length}</span>
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {items.map((item) => {
+                      const key = `item-${item.id}`
+                      const on = checked.has(key)
+                      return (
+                        <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-ink/10 bg-surface px-4 py-2.5 text-sm">
+                          <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
+                          <span className={on ? 'capitalize text-ink/35 line-through' : 'capitalize text-ink/80'}>{name(item)}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
-            {(plan?.essentials ?? []).map((extra) => {
-              const key = `extra-${extra}`
-              const on = checked.has(key)
-              return (
-                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-dashed border-brass/40 bg-iris-soft/40 px-4 py-2.5 text-sm">
-                  <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
-                  <span className={on ? 'text-ink/35 line-through' : 'text-ink/80'}>{extra}</span>
-                </label>
-              )
-            })}
+            {(plan?.essentials ?? []).length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">
+                  To pick up <span className="text-brass/50">{(plan?.essentials ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.essentials.length}</span>
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(plan?.essentials ?? []).map((extra) => {
+                    const key = `extra-${extra}`
+                    const on = checked.has(key)
+                    return (
+                      <label key={key} className="flex cursor-pointer items-center gap-3 rounded-[3px] border border-dashed border-brass/40 bg-iris-soft/40 px-4 py-2.5 text-sm">
+                        <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
+                        <span className={on ? 'text-ink/35 line-through' : 'text-ink/80'}>{extra}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {(plan?.custom ?? []).length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">
+                  Yours <span className="text-ink/30">{(plan?.custom ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.custom?.length}</span>
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(plan?.custom ?? []).map((extra) => {
+                    const key = `extra-${extra}`
+                    const on = checked.has(key)
+                    return (
+                      <label key={key} className="group flex cursor-pointer items-center gap-3 rounded-[3px] border border-ink/10 bg-surface px-4 py-2.5 text-sm">
+                        <input type="checkbox" checked={on} onChange={() => toggle(key)} className="h-4 w-4 accent-iris" />
+                        <span className={on ? 'text-ink/35 line-through' : 'text-ink/80'}>{extra}</span>
+                        <button type="button" onClick={(e) => { e.preventDefault(); void removeCustom(extra) }} className="ml-auto text-ink/25 transition hover:text-ink" aria-label={`Remove ${extra}`}>×</button>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Add your own — one place to track the whole trip */}
+            <form className="flex max-w-md gap-2" onSubmit={(e) => { e.preventDefault(); void addItem() }}>
+              <input value={newItem} onChange={(e) => setNewItem(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="Add your own — passport, meds, a gift…" />
+              <button type="submit" disabled={savingItem || !newItem.trim()} className="btn-ghost btn-sm shrink-0">{savingItem ? 'Adding…' : 'Add'}</button>
+            </form>
           </div>
           {(plan?.essentials.length ?? 0) > 0 && (
             <p className="mt-3 text-xs text-ink/45">
@@ -401,6 +573,25 @@ export function TripPage() {
       )}
 
       {adding && <AddPieceModal exclude={capsuleIds} onClose={() => setAdding(false)} onAdd={add} />}
+
+      <Modal open={picker !== null} onClose={() => setPicker(null)} title="Build this look">
+        {picker && (
+          <>
+            <p className="text-sm text-ink/55">Tap the pieces for this look — from what you packed.</p>
+            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {capsule.map((item) => (
+                <GarmentTile key={item.id} imageUrl={item.imageUrl} label={name(item)} selected={picker.selected.includes(item.id)} onClick={() => togglePiece(item.id)} />
+              ))}
+            </div>
+            <div className="action-row mt-5">
+              <button type="button" disabled={savingPicker || picker.selected.length === 0} onClick={() => void savePicker()} className="btn-primary">
+                {savingPicker ? 'Saving…' : `Use ${picker.selected.length} piece${picker.selected.length === 1 ? '' : 's'}`}
+              </button>
+              <button type="button" onClick={() => setPicker(null)} className="btn-quiet">Cancel</button>
+            </div>
+          </>
+        )}
+      </Modal>
     </PageShell>
   )
 }

@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
@@ -15,14 +16,57 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const planSchema = z.object({
   rationale: z.string().max(2000),
   essentials: z.array(z.string().max(120)).max(40),
+  // Things the traveller adds themselves — one place to track the whole trip.
+  custom: z.array(z.string().max(120)).max(60).optional(),
   forecast: z.object({
     location: z.string().max(160),
     partial: z.boolean(),
     days: z.array(z.object({ date: z.string(), minC: z.number(), maxC: z.number(), description: z.string(), rainChance: z.boolean() })).max(31),
   }),
-  days: z.array(z.object({ label: z.string().max(80), note: z.string().max(400), itemIds: z.array(z.string()).max(12) })).max(31),
+  days: z.array(z.object({
+    label: z.string().max(80),
+    note: z.string().max(400),
+    itemIds: z.array(z.string()).max(12),
+    // A trip day can hold several looks (a flight outfit, then a dinner; a
+    // wedding's rituals). The first mirrors `itemIds` for backward-compat.
+    looks: z.array(z.object({
+      id: z.string(),
+      label: z.string().max(80).nullish(),
+      time: z.string().nullish(),
+      occasion: z.string().max(160).nullish(),
+      itemIds: z.array(z.string()).max(12),
+    })).max(12).optional(),
+  })).max(31),
 });
 type TripPlan = z.infer<typeof planSchema>;
+type TripDay = TripPlan['days'][number];
+type TripDayLook = NonNullable<TripDay['looks']>[number];
+
+/** A trip day's looks, deriving the legacy single-outfit day into the list. */
+function dayLooksOf(day: TripDay): TripDayLook[] {
+  if (day.looks?.length) return day.looks;
+  return [{ id: 'main', label: null, time: null, occasion: null, itemIds: day.itemIds }];
+}
+
+/** Best outfit the capsule can make that isn't one of `avoid`. */
+function bestCapsuleOutfit(
+  capsule: Awaited<ReturnType<typeof prisma.wardrobeItem.findMany>>,
+  avoid: Set<string>[],
+  eventType?: EventType,
+): string[] | null {
+  const same = (ids: string[]) => avoid.some((s) => ids.length === s.size && ids.every((id) => s.has(id)));
+  const seen = new Set<string>();
+  let best: { itemIds: string[]; score: number } | null = null;
+  for (const piece of capsule) {
+    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8 })) {
+      const key = [...o.itemIds].sort().join('|');
+      if (seen.has(key) || same(o.itemIds)) continue;
+      seen.add(key);
+      if (!best || o.score > best.score) best = o;
+    }
+  }
+  return best?.itemIds ?? null;
+}
 
 const createSchema = z
   .object({
@@ -84,11 +128,25 @@ export async function getTrip(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const trip = await ownTrip(req.user.id, String(req.params.id));
   const plan = (trip.plan as TripPlan | null) ?? null;
-  const ids = [...new Set([...trip.packedItemIds, ...(plan?.days.flatMap((d) => d.itemIds) ?? [])])];
+  const ids = [...new Set([
+    ...trip.packedItemIds,
+    ...(plan?.days.flatMap((d) => [...d.itemIds, ...(d.looks?.flatMap((l) => l.itemIds) ?? [])]) ?? []),
+  ])];
   const items = await prisma.wardrobeItem.findMany({ where: { id: { in: ids }, userId: req.user.id } });
   const byId = new Map(items.map((i) => [i.id, i]));
   const capsule = trip.packedItemIds.map((id) => byId.get(id)).filter(Boolean);
-  const days = (plan?.days ?? []).map((d) => ({ label: d.label, note: d.note, items: d.itemIds.map((id) => byId.get(id)).filter(Boolean) }));
+  const days = (plan?.days ?? []).map((d) => ({
+    label: d.label,
+    note: d.note,
+    items: d.itemIds.map((id) => byId.get(id)).filter(Boolean),
+    looks: dayLooksOf(d).map((l) => ({
+      id: l.id,
+      label: l.label ?? null,
+      time: l.time ?? null,
+      occasion: l.occasion ?? null,
+      items: l.itemIds.map((id) => byId.get(id)).filter(Boolean),
+    })),
+  }));
 
   // What was packed and never worn, once the trip has ended.
   let recap: { packed: number; worn: number; unworn: unknown[] } | null = null;
@@ -153,34 +211,114 @@ export async function swapTripItem(req: Request, res: Response) {
   res.json({ trip: updated, swappedFor: closet.find((c) => c.id === best.id) });
 }
 
-/** Replan one day from the capsule: the best different outfit the pieces can make. */
-const replanSchema = z.object({ eventType: z.enum(EVENT_TYPES).optional() });
+function dayIndexOf(plan: TripPlan | null, raw: string): number {
+  const index = Number(raw);
+  if (!plan || !Number.isInteger(index) || index < 0 || index >= plan.days.length) throw new HttpError(404, 'Day not found');
+  return index;
+}
+
+/** Replan one look of a day from the capsule: the best different outfit the
+ *  pieces can make. Targets the day's first look unless a `lookId` is given. */
+const replanSchema = z.object({ eventType: z.enum(EVENT_TYPES).optional(), lookId: z.string().optional() });
 
 export async function replanTripDay(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const trip = await ownTrip(req.user.id, String(req.params.id));
-  const index = Number(req.params.index);
   const plan = (trip.plan as TripPlan | null) ?? null;
-  if (!plan || !Number.isInteger(index) || index < 0 || index >= plan.days.length) throw new HttpError(404, 'Day not found');
-  const { eventType } = replanSchema.parse(req.body ?? {});
+  const index = dayIndexOf(plan, String(req.params.index));
+  const { eventType, lookId } = replanSchema.parse(req.body ?? {});
   const capsule = await prisma.wardrobeItem.findMany({ where: { id: { in: trip.packedItemIds }, userId: req.user.id } });
   if (capsule.length < 2) throw new HttpError(400, 'Pack a few more pieces first');
 
-  const current = new Set(plan.days[index].itemIds);
-  const same = (ids: string[]) => ids.length === current.size && ids.every((id) => current.has(id));
-  const seen = new Set<string>();
-  let best: { itemIds: string[]; score: number } | null = null;
-  for (const piece of capsule) {
-    for (const o of outfitsAround(piece, capsule, { eventType: eventType as EventType | undefined, limit: 8 })) {
-      const key = [...o.itemIds].sort().join('|');
-      if (seen.has(key) || same(o.itemIds)) continue;
-      seen.add(key);
-      if (!best || o.score > best.score) best = o;
-    }
-  }
+  const looks = dayLooksOf(plan!.days[index]);
+  const target = lookId ? looks.find((l) => l.id === lookId) : looks[0];
+  if (!target) throw new HttpError(404, 'Look not found');
+  const best = bestCapsuleOutfit(capsule, [new Set(target.itemIds)], eventType as EventType | undefined);
   if (!best) throw new HttpError(404, 'The capsule can only make this one outfit for that day');
-  const days = plan.days.map((d, i) => (i === index ? { ...d, itemIds: best!.itemIds, note: d.note.replace(/\s*·\s*replanned$/, '') + ' · replanned' } : d));
-  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan, days } as Prisma.InputJsonValue } });
+  const newLooks = looks.map((l) => (l.id === target.id ? { ...l, itemIds: best } : l));
+  const isPrimary = looks[0].id === target.id;
+  const days = plan!.days.map((d, i) => (i === index
+    ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds: best } : {}), note: d.note.replace(/\s*·\s*replanned$/, '') + ' · replanned' }
+    : d));
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
+  res.json({ trip: updated });
+}
+
+/** Add another look to a trip day — a flight outfit then a dinner, a ritual. */
+const addLookSchema = z.object({
+  label: z.string().max(80).optional(),
+  time: z.string().optional(),
+  occasion: z.string().max(160).optional(),
+  eventType: z.enum(EVENT_TYPES).optional(),
+});
+
+export async function addTripLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const trip = await ownTrip(req.user.id, String(req.params.id));
+  const plan = (trip.plan as TripPlan | null) ?? null;
+  const index = dayIndexOf(plan, String(req.params.index));
+  const { label, time, occasion, eventType } = addLookSchema.parse(req.body ?? {});
+  const capsule = await prisma.wardrobeItem.findMany({ where: { id: { in: trip.packedItemIds }, userId: req.user.id } });
+  if (capsule.length < 2) throw new HttpError(400, 'Pack a few more pieces first');
+  const looks = dayLooksOf(plan!.days[index]);
+  const best = bestCapsuleOutfit(capsule, looks.map((l) => new Set(l.itemIds)), eventType as EventType | undefined);
+  if (!best) throw new HttpError(400, 'The capsule can only make this one outfit for that day');
+  const newLook: TripDayLook = { id: randomUUID(), label: label ?? null, time: time ?? null, occasion: occasion ?? null, itemIds: best };
+  const days = plan!.days.map((d, i) => (i === index ? { ...d, looks: [...dayLooksOf(d), newLook] } : d));
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
+  res.json({ trip: updated });
+}
+
+export async function removeTripLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const trip = await ownTrip(req.user.id, String(req.params.id));
+  const plan = (trip.plan as TripPlan | null) ?? null;
+  const index = dayIndexOf(plan, String(req.params.index));
+  const lookId = String(req.params.lookId);
+  const looks = dayLooksOf(plan!.days[index]);
+  if (looks.length <= 1) throw new HttpError(400, 'A day keeps at least one look');
+  const filtered = looks.filter((l) => l.id !== lookId);
+  if (filtered.length === looks.length) throw new HttpError(404, 'Look not found');
+  const days = plan!.days.map((d, i) => (i === index ? { ...d, looks: filtered, itemIds: filtered[0].itemIds } : d));
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
+  res.json({ trip: updated });
+}
+
+// POST /trips/:id/checklist — add or remove a traveller's own checklist item.
+const checklistSchema = z.object({ add: z.string().max(120).optional(), remove: z.string().max(120).optional() });
+export async function updateChecklist(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const trip = await ownTrip(req.user.id, String(req.params.id));
+  const { add, remove } = checklistSchema.parse(req.body);
+  const plan = (trip.plan as TripPlan | null) ?? null;
+  if (!plan) throw new HttpError(400, 'This trip has no plan yet');
+  let custom = plan.custom ?? [];
+  const text = add?.trim();
+  if (text && !custom.includes(text) && !(plan.essentials ?? []).includes(text)) custom = [...custom, text];
+  if (remove) custom = custom.filter((c) => c !== remove);
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan, custom } as Prisma.InputJsonValue } });
+  res.json({ trip: updated });
+}
+
+// POST /trips/:id/days/:index/looks/:lookId/items — set a look's pieces by hand
+// (from the packed capsule). This is how the traveller builds their own outfit.
+const lookItemsSchema = z.object({ itemIds: z.array(z.string().uuid()).min(1).max(12) });
+export async function setTripLookItems(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const trip = await ownTrip(req.user.id, String(req.params.id));
+  const plan = (trip.plan as TripPlan | null) ?? null;
+  const index = dayIndexOf(plan, String(req.params.index));
+  const lookId = String(req.params.lookId);
+  const { itemIds } = lookItemsSchema.parse(req.body);
+  const packed = new Set(trip.packedItemIds);
+  if (!itemIds.every((id) => packed.has(id))) throw new HttpError(400, 'Pick from the packed capsule');
+  const looks = dayLooksOf(plan!.days[index]);
+  const target = looks.find((l) => l.id === lookId);
+  if (!target) throw new HttpError(404, 'Look not found');
+  const newLooks = looks.map((l) => (l.id === target.id ? { ...l, itemIds } : l));
+  const isPrimary = looks[0].id === target.id;
+  const days = plan!.days.map((d, i) => (i === index ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds } : {}) } : d));
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
   res.json({ trip: updated });
 }
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay } from '../lib/brief'
 import { LookBoard } from './LookBoard'
+import { LookAct, AddLook } from './LookAct'
 import { ShareButton } from './ShareButton'
 import { Spinner } from './Spinner'
 import { resolveImageUrl } from '../lib/api'
@@ -242,6 +243,11 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
           {laidOut && <p className="mt-3 text-xs text-ink/45">The morning push will say it was laid out tonight.</p>}
         </>
       )}
+      {/* Plan the rest of the day — more looks for later, or a wedding's rituals. */}
+      {look && (b?.looks ?? []).slice(1).map((l) => (
+        <LookAct key={l.id} look={l} date={date} planning onReload={() => setNonce((n) => n + 1)} onNote={onNote ?? (() => {})} />
+      ))}
+      {look && <AddLook date={date} onReload={() => setNonce((n) => n + 1)} onNote={onNote ?? (() => {})} />}
     </div>
     {/* The rail: the forecast and the pieces */}
     {look && (

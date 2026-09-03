@@ -151,6 +151,12 @@ export function packForTrip(params: {
   return apiFetch<PackingResponse>('/wardrobe/pack', { method: 'POST', body: params })
 }
 
+/** POST /api/wardrobe/pack/look — compose one more distinct outfit from a
+ *  proposed capsule (for adding a look to a trip day before the trip is saved). */
+export function packLook(capsuleItemIds: string[], avoid: string[][] = []): Promise<{ items: WardrobeItem[] }> {
+  return apiFetch<{ items: WardrobeItem[] }>('/wardrobe/pack/look', { method: 'POST', body: { capsuleItemIds, avoid } })
+}
+
 /**
  * POST /api/wardrobe/:id/feedback — inline correction ("too formal",
  * "don't suggest this", …). Adjustments, not overwrites.

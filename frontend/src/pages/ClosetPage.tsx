@@ -145,6 +145,16 @@ export function ClosetPage() {
 
   const monthAgo = Date.now() - 30 * 86_400_000
   const twins = list.filter((it) => it.twinOfId).length
+  const isNew = (it: WardrobeItem) => new Date(it.createdAt ?? 0).getTime() >= monthAgo
+  // Counts for the collection tabs — each cut of the wardrobe, at a glance.
+  const collectionCounts: Record<Collection, number> = {
+    all: list.length,
+    'most-worn': list.filter((it) => (insights.get(it.id)?.wearCount ?? 0) >= 1).length,
+    'never-worn': list.filter((it) => (insights.get(it.id)?.wearCount ?? 0) === 0).length,
+    orphans: list.filter((it) => insights.get(it.id)?.orphan).length,
+    new: list.filter(isNew).length,
+    twins,
+  }
   const visible = list.filter((it) => {
     if (category && it.category !== category) return false
     const ins = insights.get(it.id)
@@ -178,9 +188,12 @@ export function ClosetPage() {
     if (it.state === 'packed') return 'packed'
     if (it.state === 'lent-out') return 'lent out'
     const ins = insights.get(it.id)
-    if (ins?.costPerWear != null) return `${inr(ins.costPerWear)} / wear · ${ins.wearCount}×`
-    if (ins && ins.wearCount > 0) return `worn ${ins.wearCount}×`
-    return undefined
+    const worn = ins?.wearCount ?? 0
+    if (worn > 0 && ins?.costPerWear != null) return `${inr(ins.costPerWear)} / wear`
+    if (worn > 0) return `${worn} ${worn === 1 ? 'wear' : 'wears'}`
+    if (isNew(it)) return 'New this month'
+    if (ins?.orphan) return 'Sitting idle'
+    return 'Not worn yet'
   }
 
   return (
@@ -219,7 +232,7 @@ export function ClosetPage() {
             <div className="flex items-end gap-8">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink/45">Estate value</p>
-                <p className="font-display text-4xl font-semibold text-brass [font-variant-numeric:tabular-nums] sm:text-5xl">
+                <p className="font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
                   {inr(totalValue)}
                 </p>
                 <div className="mt-2 h-1.5 w-44 overflow-hidden rounded-[2px] bg-ink/10">
@@ -261,7 +274,7 @@ export function ClosetPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search"
-                className="field field-sm w-40 sm:w-52"
+                className="field w-40 sm:w-52"
               />
             </label>
             <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={handleFileChange} className="hidden" />
@@ -276,7 +289,7 @@ export function ClosetPage() {
                   <Spinner className="mr-2 h-4 w-4" /> {Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…
                 </>
               ) : (
-                'Add'
+                'Add item'
               )}
             </button>
           </div>
@@ -347,23 +360,25 @@ export function ClosetPage() {
               </div>
             )}
 
-            {gaps.length > 0 && (
-              <div className="mt-5 flex animate-rise-2 flex-wrap gap-2">
-                {gaps.map((g) => (
-                  <p
-                    key={g.category}
-                    className="rounded-[3px] border border-brass/25 bg-iris-soft px-4 py-2.5 text-sm text-ink/75"
-                  >
-                    <span className="font-medium text-ink">{g.wanted}</span> would unlock{' '}
-                    <span className="font-semibold text-brass">{g.unlocks} new outfits</span> from what
-                    you own
-                  </p>
-                ))}
-              </div>
-            )}
+            {/* Collections — the wardrobe cut different ways, scannable as tabs */}
+            <div className="tabs mt-8 animate-rise" role="tablist" aria-label="Collections">
+              {COLLECTIONS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={collection === c.id}
+                  onClick={() => setCollection(c.id)}
+                  className="tab"
+                >
+                  {c.label}
+                  {collectionCounts[c.id] > 0 && <span className="count">{collectionCounts[c.id]}</span>}
+                </button>
+              ))}
+            </div>
 
-            {/* Filters */}
-            <div className="mt-5 flex animate-rise-2 flex-wrap items-center gap-x-1 gap-y-1.5">
+            {/* Category filters — narrow the collection by kind */}
+            <div className="mt-4 flex animate-rise-2 flex-wrap items-center gap-x-1 gap-y-1.5">
               <Filter on={category === null} onClick={() => setCategory(null)} count={list.length}>
                 All
               </Filter>
@@ -372,19 +387,6 @@ export function ClosetPage() {
                   <span className="capitalize">{cat}</span>
                 </Filter>
               ))}
-              <span className="filter-sep hidden sm:block" />
-              <label className="relative inline-flex items-center">
-                <span className="sr-only">Show a collection</span>
-                <select
-                  value={collection}
-                  onChange={(e) => setCollection(e.target.value as Collection)}
-                  className={`field field-sm !w-auto !pr-8 ${collection !== 'all' ? '!border-brass !text-brass' : ''}`}
-                >
-                  {COLLECTIONS.map((c) => (
-                    <option key={c.id} value={c.id}>{c.id === 'all' ? 'Show: everything' : c.label}</option>
-                  ))}
-                </select>
-              </label>
             </div>
 
             {/* The gallery wall */}
@@ -409,12 +411,32 @@ export function ClosetPage() {
                     imageUrl={item.imageUrl}
                     label={item.subtype ?? item.category}
                     sublabel={item.twinOfId ? 'A twin? · decide' : cpwLabel(item)}
+                    badge={isNew(item) ? 'New' : undefined}
                     processing={item.status === 'processing'}
                     onClick={() => navigate(`/closet/piece/${item.id}`)}
                   />
                 ))}
               </div>
               </>
+            )}
+
+            {/* What the closet is missing — the gaps, as the reason to add. */}
+            {gaps.length > 0 && (
+              <div className="mt-14 animate-rise">
+                <h2 className="font-display text-2xl font-medium text-ink">What the closet is missing</h2>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {gaps.map((g) => (
+                    <div key={g.category} className="card p-5">
+                      <p className="font-display text-xl font-medium text-ink">
+                        {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
+                      </p>
+                      <p className="mt-1.5 text-sm text-ink/55">
+                        Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}

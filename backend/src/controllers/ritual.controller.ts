@@ -96,6 +96,7 @@ export async function ritualStats(req: Request, res: Response) {
 
   res.json({
     streak,
+    wearsLogged: logs.length,
     monthlyPayback: Math.round(monthlyPayback),
     rotationPct,
     activeItems: activeCount,

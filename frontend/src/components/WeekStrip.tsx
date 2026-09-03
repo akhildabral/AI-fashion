@@ -50,8 +50,11 @@ export function WeekStrip({ selected, onSelect, refreshKey = 0 }: { selected: st
             >
               <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] ${d.today ? 'text-brass' : 'text-ink/35'}`}>{wd}</span>
               <span className={`font-display text-xl leading-none transition-colors ${d.rest ? 'text-ink/30' : d.today ? 'text-brass' : on ? 'text-ink' : 'text-ink/70 group-hover:text-ink'}`}>{n}</span>
-              <span className="flex h-3.5 items-center justify-center">
-                {d.past && d.worn && !d.rest && <i className="block h-1 w-1 rounded-full bg-brass/70" aria-label="worn" />}
+              <span className="flex h-3.5 items-center justify-center gap-0.5">
+                {d.past && d.worn && !d.rest &&
+                  Array.from({ length: Math.min(Math.max(d.lookCount ?? 1, 1), 3) }).map((_, i) => (
+                    <i key={i} className="block h-1 w-1 rounded-full bg-brass/70" aria-label="worn" />
+                  ))}
                 {word && <span className={`truncate font-display text-[11px] italic leading-none ${d.rest ? 'text-ink/35' : 'text-brass/80'}`}>{word}</span>}
               </span>
               {/* the rule: brass under today, ink under the day you're looking at */}

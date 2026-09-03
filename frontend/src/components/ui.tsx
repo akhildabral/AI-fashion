@@ -72,6 +72,8 @@ export function GarmentTile({
   onClick,
   selected = false,
   processing = false,
+  // A small brass plate over the top-right of the niche (e.g. "New").
+  badge,
   // A gently-tall arch that garments (aspect ~0.7–1.1) fill well; contain
   // still preserves every garment's true proportions.
   aspect = 'aspect-[5/6]',
@@ -86,6 +88,7 @@ export function GarmentTile({
   onClick?: () => void
   selected?: boolean
   processing?: boolean
+  badge?: string
   aspect?: string
   arch?: boolean
   className?: string
@@ -97,8 +100,13 @@ export function GarmentTile({
       onClick={onClick}
       disabled={!onClick}
       style={style}
-      className={`press group block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'} ${className}`}
+      className={`press group relative block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'} ${className}`}
     >
+      {badge && (
+        <span className="badge-spark absolute right-2 top-2 z-[4] !px-2 !py-0.5 !text-[10px] !tracking-wide">
+          {badge}
+        </span>
+      )}
       <Arch aspect={aspect} bright={selected}>
         <img
           src={resolveImageUrl(imageUrl)}

@@ -19,6 +19,7 @@ import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGar
 import { fingerprintOf, matchPiece, SURE_AT } from '../services/closet-match.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
 import { planPacking } from '../services/packing.service';
+import { outfitsAround } from '../services/pairing.service';
 import {
   validateOutfit,
   type RecentWear,
@@ -708,6 +709,35 @@ export async function packForTrip(req: Request, res: Response) {
   const plan = await planPacking(items, forecast, { startDate, endDate, activities });
 
   res.json({ forecast, plan });
+}
+
+// POST /wardrobe/pack/look — compose one more distinct outfit from a proposed
+// capsule, for adding a second look to a trip day before the trip is saved.
+const packLookSchema = z.object({
+  capsuleItemIds: z.array(z.string().uuid()).min(2).max(40),
+  avoid: z.array(z.array(z.string())).max(12).optional(),
+  eventType: z.enum(EVENT_TYPES).optional(),
+});
+export async function packLook(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const { capsuleItemIds, avoid, eventType } = packLookSchema.parse(req.body);
+  const capsule = await prisma.wardrobeItem.findMany({ where: { id: { in: capsuleItemIds }, userId: req.user.id } });
+  if (capsule.length < 2) throw new HttpError(400, 'Pack a few more pieces first');
+  const avoidSets = (avoid ?? []).map((a) => new Set(a));
+  const same = (ids: string[]) => avoidSets.some((s) => ids.length === s.size && ids.every((id) => s.has(id)));
+  const seen = new Set<string>();
+  let best: { itemIds: string[]; score: number } | null = null;
+  for (const piece of capsule) {
+    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8 })) {
+      const key = [...o.itemIds].sort().join('|');
+      if (seen.has(key) || same(o.itemIds)) continue;
+      seen.add(key);
+      if (!best || o.score > best.score) best = o;
+    }
+  }
+  if (!best) throw new HttpError(400, 'The capsule can only make this one outfit');
+  const byId = new Map(capsule.map((i) => [i.id, i]));
+  res.json({ items: best.itemIds.map((id) => byId.get(id)).filter(Boolean) });
 }
 
 // Inline correction (plan §4.3): the user experiences this as complaining

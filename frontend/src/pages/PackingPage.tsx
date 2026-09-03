@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState, type FormEvent, type CSSProperties } 
 import { Link, useNavigate } from 'react-router-dom'
 import { Arch, GarmentTile, PageShell, Tabs, SkeletonBlock, LoadError } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
-import { packForTrip } from '../lib/wardrobe'
+import { packForTrip, packLook } from '../lib/wardrobe'
 import { createTrip, getTrips, type Trip } from '../lib/brief'
-import type { PackingResponse } from '../lib/types'
+import type { PackingResponse, WardrobeItem } from '../lib/types'
 import { Spinner } from '../components/Spinner'
 import { resolveImageUrl } from '../lib/api'
 import { tempRange } from '../lib/units'
@@ -58,6 +58,9 @@ export function PackingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PackingResponse | null>(null)
+  // Extra looks added per day in the preview, on top of each day's base look.
+  const [extraLooks, setExtraLooks] = useState<Record<number, { id: string; items: WardrobeItem[] }[]>>({})
+  const [addingLook, setAddingLook] = useState<number | null>(null)
   const [trips, setTrips] = useState<Trip[]>([])
   const [past, setPast] = useState<Trip[]>([])
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
@@ -89,6 +92,7 @@ export function PackingPage() {
     setError(null)
     setLoading(true)
     setResult(null)
+    setExtraLooks({})
     try {
       setResult(await packForTrip({ destination: destination.trim(), startDate, endDate, activities: planText || undefined }))
     } catch (err) {
@@ -96,6 +100,25 @@ export function PackingPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function addPreviewLook(dayIndex: number) {
+    if (!result) return
+    setAddingLook(dayIndex)
+    try {
+      const capsuleIds = result.plan.capsule.map((c) => c.id)
+      const base = result.plan.days[dayIndex].items.map((i) => i.id)
+      const extras = (extraLooks[dayIndex] ?? []).map((l) => l.items.map((i) => i.id))
+      const { items } = await packLook(capsuleIds, [base, ...extras])
+      setExtraLooks((prev) => ({ ...prev, [dayIndex]: [...(prev[dayIndex] ?? []), { id: crypto.randomUUID(), items }] }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add a look.')
+    } finally {
+      setAddingLook(null)
+    }
+  }
+  function removePreviewLook(dayIndex: number, lookId: string) {
+    setExtraLooks((prev) => ({ ...prev, [dayIndex]: (prev[dayIndex] ?? []).filter((l) => l.id !== lookId) }))
   }
 
   async function handleSaveTrip() {
@@ -112,7 +135,14 @@ export function PackingPage() {
           rationale: result.plan.rationale,
           essentials: result.plan.essentials,
           forecast: result.forecast,
-          days: result.plan.days.map((d) => ({ label: d.label, note: d.note, itemIds: d.items.map((i) => i.id) })),
+          days: result.plan.days.map((d, i) => {
+            const base = d.items.map((x) => x.id)
+            const looks = [
+              { id: 'main', itemIds: base },
+              ...(extraLooks[i] ?? []).map((l) => ({ id: l.id, itemIds: l.items.map((x) => x.id) })),
+            ]
+            return { label: d.label, note: d.note, itemIds: base, looks }
+          }),
         },
       })
       navigate(`/trips/${trip.id}`)
@@ -292,21 +322,50 @@ export function PackingPage() {
             <section className="animate-rise-2">
               <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
               <div className="card mt-4 px-5">
-                {result.plan.days.map((day) => (
-                  <article key={day.label} className="flex flex-col gap-2 border-t border-ink/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:gap-4">
-                    <div className="sm:w-40 sm:shrink-0">
-                      <p className="text-sm font-semibold text-ink">{day.label}</p>
-                      <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                      {day.items.map((item) => (
-                        <Arch key={item.id} aspect="aspect-[4/5]" className="w-12">
-                          <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                        </Arch>
-                      ))}
-                    </div>
-                  </article>
-                ))}
+                {result.plan.days.map((day, i) => {
+                  const looks = [
+                    { id: 'main', items: day.items, removable: false },
+                    ...(extraLooks[i] ?? []).map((l) => ({ id: l.id, items: l.items, removable: true })),
+                  ]
+                  return (
+                    <article key={day.label} className="border-t border-ink/10 py-4 first:border-t-0">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{day.label}</p>
+                          {day.note && <p className="mt-0.5 text-xs text-ink/50">{day.note}</p>}
+                        </div>
+                        <button type="button" disabled={addingLook !== null} onClick={() => void addPreviewLook(i)} className="press text-[11px] font-semibold text-brass hover:underline disabled:opacity-40">
+                          {addingLook === i ? '…' : '+ Add a look'}
+                        </button>
+                      </div>
+                      <div className="mt-3 flex flex-col gap-3">
+                        {looks.map((look, li) => (
+                          <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+                            <div className="sm:w-32 sm:shrink-0">
+                              {looks.length > 1 && (
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
+                                  {['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][li] || `Look ${li + 1}`}
+                                </p>
+                              )}
+                              {look.removable && (
+                                <button type="button" onClick={() => removePreviewLook(i, look.id)} className="press mt-1 text-[11px] font-medium text-ink/45 hover:text-ink">
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                              {look.items.map((item) => (
+                                <Arch key={item.id} aspect="aspect-[4/5]" className="w-12">
+                                  <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                                </Arch>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
             </section>
           )}

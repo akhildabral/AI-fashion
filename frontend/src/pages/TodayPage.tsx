@@ -39,7 +39,8 @@ import { shareCard, outcomeLine } from '../lib/share'
 import { ClosetNotes } from '../components/ClosetNotes'
 import { WeekStrip } from '../components/WeekStrip'
 import { DayView } from '../components/DayView'
-import { EveningAct } from '../components/EveningAct'
+import { LookAct, AddLook } from '../components/LookAct'
+import { EVENT_LABEL } from '../lib/outfits'
 
 
 // Spoken-language complaints → the real learning-loop signals. Tapping one
@@ -71,6 +72,22 @@ function dateLine(): string {
 
 function itemLabel(i: BriefItem): string {
   return i.subtype ?? i.category
+}
+
+// Small counts read spelled out, per the brand's literary voice ("All four").
+const SMALL_NUMS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
+const spellCount = (n: number): string => SMALL_NUMS[n] ?? String(n)
+const daysAgoPhrase = (n: number): string => (n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`)
+
+// The ledger fact under each brief tile — cost per wear once a piece is priced
+// and worn, else its wear count, else "New this month", falling back to colour.
+// A real number per piece, the way the closet reads.
+function itemSublabel(i: BriefItem): string | undefined {
+  if (i.wears && i.wears > 0 && i.costPerWear != null) return `${money(i.costPerWear)} / wear`
+  if (i.wears && i.wears > 0) return `${i.wears} ${i.wears === 1 ? 'wear' : 'wears'}`
+  if (i.isNew) return 'New this month'
+  if (i.primaryColor) return i.primaryColor.replace(/\b\w/g, (c) => c.toUpperCase())
+  return undefined
 }
 
 const tripDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
@@ -349,7 +366,7 @@ export function TodayPage() {
                     {card.type === 'pick_received' &&
                       `${String(card.byName ?? card.byHandle ?? 'A friend')} picked an outfit for you`}
                     {card.type === 'poll_result' &&
-                      `"${String(card.question)}", ${String(card.totalVotes)} votes in`}
+                      `"${String(card.question)}", ${String(card.totalVotes)} ${card.totalVotes === 1 ? 'vote' : 'votes'} in`}
                     {card.type === 'poll_open' && `"${String(card.question)}" is collecting votes`}
                     {card.type === 'new_follower' && `${String(card.name ?? card.handle)} started following you`}
                     {card.type === 'style_a_friend' && 'Pick an outfit for a friend'}
@@ -366,16 +383,35 @@ export function TodayPage() {
       <Toast msg={toast} />
 
       {/* ---------------- Greeting ---------------- */}
-      <div className="animate-rise">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-ink/40">{dateLine()}</p>
-        <p className="mt-2 font-display text-xl italic text-ink/80 sm:text-2xl">
-          {greeting()}, <span className="text-brass">{name}</span>
-          {stats && stats.streak > 1 && (
-            <span className="ml-3 align-middle font-sans text-[11px] font-semibold not-italic uppercase tracking-[0.14em] text-ink/40">
-              {stats.streak} days styled
-            </span>
-          )}
-        </p>
+      {/* The two facts the wardrobe has earned, quiet in the corner: lifetime
+          wears logged and the current streak. A stat, not a gamified badge. */}
+      <div className="flex animate-rise flex-wrap items-end justify-between gap-x-10 gap-y-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-ink/40">{dateLine()}</p>
+          <p className="mt-2 font-display text-xl italic text-ink/80 sm:text-2xl">
+            {greeting()}, <span className="text-brass">{name}</span>
+          </p>
+        </div>
+        {stats && (stats.wearsLogged > 0 || stats.streak > 0) && (
+          <div className="flex gap-8">
+            {stats.wearsLogged > 0 && (
+              <div>
+                <p className="font-display text-3xl font-medium leading-none text-ink [font-variant-numeric:tabular-nums]">
+                  {stats.wearsLogged}
+                </p>
+                <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">Wears logged</p>
+              </div>
+            )}
+            {stats.streak > 0 && (
+              <div>
+                <p className="font-display text-3xl font-medium leading-none text-brass [font-variant-numeric:tabular-nums]">
+                  {stats.streak}
+                </p>
+                <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">Day streak</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -586,7 +622,7 @@ export function TodayPage() {
                   key={item.id}
                   imageUrl={item.imageUrl}
                   label={itemLabel(item)}
-                  sublabel={reconsiderable ? 'reconsider' : undefined}
+                  sublabel={itemSublabel(item)}
                   onClick={reconsiderable ? () => void openReconsider(item) : undefined}
                 />
               ))}
@@ -749,8 +785,12 @@ export function TodayPage() {
             />
           )}
 
-          {/* Act two: tonight */}
-          {data && <EveningAct data={data} compact={hour < 18} onUpdated={apply} onNote={flash} />}
+          {/* The rest of the day — a timeline of looks, each its own wear.
+              The first look is the main brief above; these are the later acts. */}
+          {(data?.looks ?? []).slice(1).map((look) => (
+            <LookAct key={look.id} look={look} date={todayKey()} onReload={() => load()} onNote={flash} />
+          ))}
+          {data && <AddLook date={todayKey()} onReload={() => load()} onNote={flash} />}
 
           {/* Act three: tomorrow, laid out tonight */}
           {hour >= 20 && (
@@ -762,6 +802,26 @@ export function TodayPage() {
 
           {/* Right rail on desktop: the payoff and the dial, beside the look */}
           <aside className="mt-10 md:grid md:grid-cols-2 md:gap-6 lg:mt-0 lg:block lg:self-start">
+          {/* Why this — the brief's reasoning as skimmable facts, not a paragraph. */}
+          <div className="mb-6 animate-rise md:col-span-2">
+            <h2 className="font-display text-2xl font-medium text-ink">Why this</h2>
+            <div className="card mt-3 px-4">
+              {([
+                brief.weather && ['The weather', `${temp(brief.weather.temperatureC)} · ${brief.weather.description}`],
+                ['The day', brief.occasion ?? EVENT_LABEL[brief.eventType] ?? brief.eventType],
+                ['The closet', `All ${spellCount(brief.items.length)}, clean`],
+                data?.lastWorn && ['Last worn', `The ${data.lastWorn.label.toLowerCase()}, ${daysAgoPhrase(data.lastWorn.days)}`],
+              ].filter(Boolean) as [string, string][]).map(([k, v], i, arr) => (
+                <div
+                  key={k}
+                  className={`flex items-center justify-between gap-4 py-2.5 ${i < arr.length - 1 ? 'border-b border-ink/10' : ''}`}
+                >
+                  <span className="flex-none text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{k}</span>
+                  <span className="text-right font-display text-[17px] leading-tight text-ink">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (
             <div className="plaque max-w-md animate-rise p-5 pl-6">

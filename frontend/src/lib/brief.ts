@@ -7,6 +7,10 @@ export interface BriefItem {
   imageUrl: string
   primaryColor: string | null
   description: string | null
+  /** Wear-ledger facts for the day's tiles (present only on brief items). */
+  wears?: number
+  costPerWear?: number | null
+  isNew?: boolean
 }
 
 export interface BriefWeather {
@@ -34,13 +38,34 @@ export interface EveningLook {
   wornLogId?: string | null
 }
 
+export type LookSlotKind = 'morning' | 'afternoon' | 'evening' | 'custom'
+
+/** One look in the day's timeline — a time-of-day slot or a custom ritual. */
+export interface LookSlot {
+  id: string
+  slot: LookSlotKind
+  label: string | null
+  time: string | null
+  occasion: string | null
+  rationale: string
+  weather: BriefWeather | null
+  itemIds: string[]
+  items: BriefItem[]
+  worn: boolean
+  wornLook: { items: BriefItem[]; photoUrl: string | null; instead: boolean } | null
+}
+
 export interface BriefResponse {
   mode: 'brief' | 'starter' | 'rest' | 'unplanned'
   brief?: Brief
   worn?: boolean
   evening?: EveningLook | null
+  /** The day's ordered looks (morning → …). The first is the main brief. */
+  looks?: LookSlot[]
   canUndo?: boolean
   weatherNote?: string | null
+  /** The piece from today's look worn most recently before today. */
+  lastWorn?: { label: string; days: number } | null
   plannedAt?: string | null
   /** Logged from a photo, and not what was laid out: the truth, with the suggestion kept. */
   wornLook?: { items: BriefItem[]; photoUrl: string | null; instead: boolean } | null
@@ -58,12 +83,16 @@ export interface WeekDay {
   wearLogId: string | null
   shared: boolean
   photoUrl: string | null
+  /** How many looks the day holds (worn for past days, planned otherwise). */
+  lookCount?: number
   itemIds: string[]
   items: BriefItem[]
 }
 
 export interface RitualStats {
   streak: number
+  /** Lifetime count of wear logs — "128 wears logged". */
+  wearsLogged: number
   monthlyPayback: number
   rotationPct: number
   activeItems: number
@@ -118,14 +147,38 @@ export function composeEvening(occasion?: string, date = todayKey()) {
   return apiFetch<BriefResponse>('/brief/evening', { method: 'POST', body: { date, ...(occasion ? { occasion } : {}) } })
 }
 
+/** POST /brief/look — add another look to the day's timeline. */
+export function composeLook(
+  body: { slot?: LookSlotKind; label?: string; time?: string; occasion?: string },
+  date = todayKey(),
+) {
+  return apiFetch<BriefResponse>('/brief/look', { method: 'POST', body: { date, ...body } })
+}
+
+/** DELETE /brief/look — remove an unworn look from the day. */
+export function removeLook(lookId: string, date = todayKey()) {
+  return apiFetch<BriefResponse>('/brief/look', { method: 'DELETE', body: { date, lookId } })
+}
+
 export function weatherCheck(date = todayKey()) {
   return apiFetch<{ note: string | null }>('/brief/weather', { method: 'POST', body: { date } })
 }
 
-export function wearBrief(itemIds?: string[], act: 'morning' | 'evening' = 'morning') {
+/** Log a look as worn. Pass a `lookId` for the timeline model; `act` is the
+ *  legacy two-act fallback. Defaults to the first (morning) look. */
+export function wearBrief(
+  itemIds?: string[],
+  target: { lookId?: string; act?: 'morning' | 'evening' } = {},
+  date = todayKey(),
+) {
   return apiFetch<{ log: { id: string }; alreadyLogged: boolean }>('/brief/wear', {
     method: 'POST',
-    body: { date: todayKey(), act, ...(itemIds ? { itemIds } : {}) },
+    body: {
+      date,
+      ...(target.lookId ? { lookId: target.lookId } : {}),
+      ...(target.act ? { act: target.act } : {}),
+      ...(itemIds ? { itemIds } : {}),
+    },
   })
 }
 
@@ -188,8 +241,15 @@ export function getClosetGaps() {
 export interface TripPlan {
   rationale: string
   essentials: string[]
+  /** The traveller's own checklist items. */
+  custom?: string[]
   forecast: import('./types').TripForecast
-  days: { label: string; note: string; itemIds: string[] }[]
+  days: {
+    label: string
+    note: string
+    itemIds: string[]
+    looks?: { id: string; label?: string | null; time?: string | null; occasion?: string | null; itemIds: string[] }[]
+  }[]
 }
 
 export interface Trip {
@@ -204,10 +264,18 @@ export interface Trip {
   plan: TripPlan | null
 }
 
+export interface TripDayLook {
+  id: string
+  label: string | null
+  time: string | null
+  occasion: string | null
+  items: import('./types').WardrobeItem[]
+}
+
 export interface TripPage {
   trip: Trip
   capsule: import('./types').WardrobeItem[]
-  days: { label: string; note: string; items: import('./types').WardrobeItem[] }[]
+  days: { label: string; note: string; items: import('./types').WardrobeItem[]; looks: TripDayLook[] }[]
   /** Once the trip is over: what was packed and never worn. */
   recap: { packed: number; worn: number; unworn: import('./types').WardrobeItem[] } | null
 }
@@ -236,9 +304,28 @@ export function updateTrip(id: string, data: { checked?: string[]; packedItemIds
 export function swapTripItem(id: string, itemId: string) {
   return apiFetch<{ trip: Trip; swappedFor: import('./types').WardrobeItem }>(`/trips/${id}/swap`, { method: 'POST', body: { itemId } })
 }
-/** Replan one day from the capsule. */
-export function replanTripDay(id: string, index: number) {
-  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/replan`, { method: 'POST', body: {} })
+/** Replan one look of a day from the capsule (the day's first look by default). */
+export function replanTripDay(id: string, index: number, lookId?: string) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/replan`, { method: 'POST', body: lookId ? { lookId } : {} })
+}
+/** Add another look to a trip day (a flight outfit then a dinner, a ritual). */
+export function addTripLook(id: string, index: number, body: { label?: string; time?: string; occasion?: string; eventType?: string } = {}) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/looks`, { method: 'POST', body })
+}
+/** Remove a look from a trip day (keeps at least one). */
+export function removeTripLook(id: string, index: number, lookId: string) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/looks/${lookId}`, { method: 'DELETE' })
+}
+/** Build a look by hand: set its pieces from the packed capsule. */
+export function setTripLookItems(id: string, index: number, lookId: string, itemIds: string[]) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/days/${index}/looks/${lookId}/items`, { method: 'POST', body: { itemIds } })
+}
+/** Add / remove a traveller's own checklist item. */
+export function addChecklistItem(id: string, text: string) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/checklist`, { method: 'POST', body: { add: text } })
+}
+export function removeChecklistItem(id: string, text: string) {
+  return apiFetch<{ trip: Trip }>(`/trips/${id}/checklist`, { method: 'POST', body: { remove: text } })
 }
 export function deleteTrip(id: string) {
   return apiFetch<void>(`/trips/${id}`, { method: 'DELETE' })

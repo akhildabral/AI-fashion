@@ -29,7 +29,7 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
     if (!ev) return
     setBusy('wear')
     try {
-      await wearBrief(ev.itemIds, 'evening')
+      await wearBrief(ev.itemIds, { act: 'evening' })
       onUpdated({ ...data, evening: { ...ev, wornLogId: 'logged' } })
       onNote('Logged. Whatever’s had its turn is in the basket.')
     } catch (err) {

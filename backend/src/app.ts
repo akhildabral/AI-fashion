@@ -45,17 +45,33 @@ export function createApp() {
       },
     }),
   );
-  // A generous global ceiling against abuse; auth has its own strict limiter.
-  app.use(
-    '/api',
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      limit: 600,
-      standardHeaders: 'draft-8',
-      legacyHeaders: false,
-      message: { error: 'Too many requests — slow down a little' },
-    }),
-  );
+  // Rate limiting is scoped by cost, not one blanket ceiling over everything.
+  //  - Reads (GET/HEAD) are cheap and per-user — refresh, navigation and
+  //    polling dominate them, so they get a high ceiling normal use never
+  //    reaches. Moving fast between pages must never rate-limit.
+  //  - Writes are the risky surface (uploads, renders, votes, settings) and
+  //    stay on a tight ceiling.
+  // Credential routes (auth) and the public share/vote pages carry their own
+  // stricter limiters on top; AI generation is additionally capped by quota.
+  const isRead = (req: express.Request) =>
+    req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+  const readLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 3000,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Too many requests — slow down a little' },
+    skip: (req) => !isRead(req),
+  });
+  const writeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 600,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Too many requests — slow down a little' },
+    skip: (req) => isRead(req),
+  });
+  app.use('/api', readLimiter, writeLimiter);
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -91,6 +107,10 @@ export function createApp() {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: 'Too many requests',
+    // These routers are mounted without a path prefix, so this middleware runs
+    // for every request that reaches it (wearlog/tryon/looks routes and 404s).
+    // Scope it to the actual public pages so it never throttles the app itself.
+    skip: (req) => !req.path.startsWith('/vote/') && !req.path.startsWith('/look/'),
   });
   app.use(shareLimiter, votePageRouter);
   app.use(shareLimiter, lookPageRouter);

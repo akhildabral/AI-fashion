@@ -282,7 +282,22 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
 }
 
 /** One day: the photo if there is one, the pieces, and "Again?". */
-function DayCard({ log, onChange, onRemove, onNote }: { log: WearLogEntry; onChange: (log: WearLogEntry) => void; onRemove: (log: WearLogEntry) => void; onNote: (msg: string) => void }) {
+const timeOfDay = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+
+/** Group adjacent logs that fall on the same day (logs arrive newest-first,
+ *  so same-day entries are contiguous) — a day can hold several looks. */
+function groupByDay(logs: WearLogEntry[]): [string, WearLogEntry[]][] {
+  const groups: [string, WearLogEntry[]][] = []
+  for (const log of logs) {
+    const k = dayKey(new Date(log.wornOn))
+    const last = groups[groups.length - 1]
+    if (last && last[0] === k) last[1].push(log)
+    else groups.push([k, [log]])
+  }
+  return groups
+}
+
+function DayCard({ log, onChange, onRemove, onNote, heading = 'date' }: { log: WearLogEntry; onChange: (log: WearLogEntry) => void; onRemove: (log: WearLogEntry) => void; onNote: (msg: string) => void; heading?: 'date' | 'time' }) {
   const [busy, setBusy] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const shared = Boolean(log.sharedAt)
@@ -344,7 +359,7 @@ function DayCard({ log, onChange, onRemove, onNote }: { log: WearLogEntry; onCha
   return (
     <article id={`day-${dayKey(new Date(log.wornOn))}`} className="card scroll-mt-24 p-4 sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(log.wornOn)}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{heading === 'time' ? timeOfDay(log.wornOn) : formatDay(log.wornOn)}</p>
         <p className="text-xs text-ink/45">
           {occasionLabel(log.eventType)}
           {log.weather ? ` · ${temp(log.weather.temperatureC)} ${log.weather.description}` : ''}
@@ -639,11 +654,25 @@ export function JournalPage() {
         )}
         {logs && logs.length > 0 && (
           <div className="mt-4 grid gap-3">
-            {logs.map((log, i) => (
-              <div key={log.id} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
-                <DayCard log={log} onChange={upsert} onRemove={remove} onNote={flash} />
-              </div>
-            ))}
+            {groupByDay(logs).map(([dayK, dayLogs], i) =>
+              dayLogs.length > 1 ? (
+                // A day with several looks — one header, then each look by time.
+                <div key={dayK} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">
+                    {formatDay(dayLogs[0].wornOn)} <span className="text-ink/40">· {dayLogs.length} looks</span>
+                  </p>
+                  <div className="grid gap-2 border-l border-brass/25 pl-4">
+                    {dayLogs.map((log) => (
+                      <DayCard key={log.id} log={log} heading="time" onChange={upsert} onRemove={remove} onNote={flash} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div key={dayK} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
+                  <DayCard log={dayLogs[0]} onChange={upsert} onRemove={remove} onNote={flash} />
+                </div>
+              ),
+            )}
           </div>
         )}
       </section>

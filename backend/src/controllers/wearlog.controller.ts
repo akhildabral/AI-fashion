@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { applyWear, unapplyWear } from '../lib/wear-rules';
 import { getWeather } from '../services/weather.service';
@@ -200,8 +201,30 @@ export async function deleteWear(req: Request, res: Response) {
       data: { wearCount: { decrement: 1 } },
     });
   }
-  // The day it was logged against opens again, and the wear comes off the pieces.
+  // The day it was logged against opens again, and the wear comes off the
+  // pieces. Clear both the column (the first look) and any look in the day's
+  // timeline that pointed at this log — a later look's id lives only in the JSON.
   await prisma.dailyBrief.updateMany({ where: { userId: req.user.id, wornLogId: id }, data: { wornLogId: null } });
+  const d0 = new Date(log.wornOn);
+  const near = [-1, 0, 1].map((n) => {
+    const x = new Date(d0);
+    x.setDate(x.getDate() + n);
+    return x.toISOString().slice(0, 10);
+  });
+  const briefs = await prisma.dailyBrief.findMany({ where: { userId: req.user.id, date: { in: near } } });
+  for (const b of briefs) {
+    const p = b.payload as unknown as { looks?: { wornLogId?: string | null }[]; evening?: { wornLogId?: string | null } | null };
+    let changed = false;
+    if (p.looks?.some((l) => l.wornLogId === id)) {
+      p.looks = p.looks.map((l) => (l.wornLogId === id ? { ...l, wornLogId: null } : l));
+      changed = true;
+    }
+    if (p.evening?.wornLogId === id) {
+      p.evening.wornLogId = null;
+      changed = true;
+    }
+    if (changed) await prisma.dailyBrief.update({ where: { id: b.id }, data: { payload: p as unknown as Prisma.InputJsonValue } });
+  }
   await unapplyWear(req.user.id, log.itemIds);
   await prisma.wearLog.delete({ where: { id } });
   res.status(204).send();
