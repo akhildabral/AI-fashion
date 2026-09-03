@@ -60,3 +60,7 @@ deploy/backend.env
 
 # staged dev tokens for browser sign-in, never committed
 frontend/public/_*.json
+
+# marketing output copied into the repo (big binaries; not versioned)
+/branding-and-ads/
+/ZAUQ - *.pdf
