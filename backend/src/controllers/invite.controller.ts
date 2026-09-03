@@ -17,8 +17,8 @@ import { displayName, ensureHandle } from '../lib/people';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function signToken(userId: string): string {
-  return jwt.sign({ sub: userId }, env.JWT_SECRET, {
+function signToken(userId: string, tokenVersion: number): string {
+  return jwt.sign({ sub: userId, tv: tokenVersion }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN,
     algorithm: 'HS256',
   } as SignOptions);
@@ -84,7 +84,7 @@ export async function inviteInfo(req: Request, res: Response) {
 
 const acceptSchema = z.object({
   token: z.string().min(16).max(128),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
   firstName: z.string().min(1).max(60),
   lastName: z.string().max(60).nullish(),
 });
@@ -108,7 +108,7 @@ export async function acceptInvite(req: Request, res: Response) {
   });
   await ensureHandle(updated.id);
   res.json({
-    token: signToken(updated.id),
+    token: signToken(updated.id, updated.tokenVersion),
     user: {
       id: updated.id,
       email: updated.email,
@@ -149,7 +149,7 @@ export async function forgotPassword(req: Request, res: Response) {
 
 const resetSchema = z.object({
   token: z.string().min(16).max(128),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
 // POST /auth/reset — set the new password and sign in.
@@ -162,7 +162,7 @@ export async function resetPassword(req: Request, res: Response) {
   if (user.status === 'suspended') throw new HttpError(403, 'This account is suspended');
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await bcrypt.hash(password, 12), resetToken: null, resetTokenExpires: null, emailVerified: true },
+    data: { passwordHash: await bcrypt.hash(password, 12), resetToken: null, resetTokenExpires: null, emailVerified: true, tokenVersion: { increment: 1 } },
   });
   if (updated.status !== 'approved') {
     // Password changed, but the door is still closed for them.
@@ -170,7 +170,7 @@ export async function resetPassword(req: Request, res: Response) {
     return;
   }
   res.json({
-    token: signToken(updated.id),
+    token: signToken(updated.id, updated.tokenVersion),
     user: { id: updated.id, email: updated.email, role: updated.role, status: updated.status, firstName: updated.firstName },
   });
 }
@@ -285,7 +285,7 @@ async function redeemInvite(inviter: Inviter, userId: string): Promise<void> {
 
 const joinSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
   firstName: z.string().min(1).max(60),
   lastName: z.string().max(60).nullish(),
 });
@@ -320,7 +320,7 @@ export async function joinWithCode(req: Request, res: Response) {
   await redeemInvite(inviter, user.id);
 
   res.status(201).json({
-    token: signToken(user.id),
+    token: signToken(user.id, user.tokenVersion),
     user: { id: user.id, email: user.email, role: user.role, status: 'approved', firstName: user.firstName },
     inviter: { handle: inviter.handle },
   });
@@ -406,7 +406,7 @@ export async function googleAuth(req: Request, res: Response) {
   }
 
   res.json({
-    token: signToken(user.id),
+    token: signToken(user.id, user.tokenVersion),
     user: {
       id: user.id,
       email: user.email,

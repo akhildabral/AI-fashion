@@ -168,3 +168,14 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+// In production the browser origin allowlist must be set — an empty list makes
+// CORS wildcard, letting any site drive the public endpoints from a browser.
+if (env.NODE_ENV === 'production' && env.CORS_ORIGINS.length === 0) {
+  console.error('❌ CORS_ORIGINS must be set in production (comma-separated allowlist).');
+  process.exit(1);
+}
+if (env.NODE_ENV === 'production' && !env.PUBLIC_ORIGIN) {
+  console.error('❌ PUBLIC_ORIGIN must be set in production (e.g. https://myzauq.com).');
+  process.exit(1);
+}

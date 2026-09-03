@@ -43,6 +43,20 @@ export function clearSessionExpired() {
   }
 }
 
+// Trust only a JSON { error } body; never surface a raw proxy/HTML body to the
+// user. Anything else maps to a friendly line by status.
+function errorMessageFor(data: unknown, status: number): string {
+  if (data && typeof data === 'object' && 'error' in data) {
+    const e = (data as { error: unknown }).error
+    if (typeof e === 'string' && e.trim()) return e
+  }
+  if (status >= 500) return 'The stylist is out for a moment. Please try again.'
+  if (status === 429) return 'That’s a lot at once — give it a moment.'
+  if (status === 413) return 'That photo is too large.'
+  if (status === 401 || status === 403) return 'Please sign in again.'
+  return 'Something went wrong. Please try again.'
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -108,12 +122,7 @@ export async function apiFetch<T>(
       markSessionExpired()
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
-    const message =
-      (data && typeof data === 'object' && 'error' in data
-        ? String((data as { error: unknown }).error)
-        : typeof data === 'string' && data
-          ? data
-          : null) ?? `Request failed with status ${res.status}`
+    const message = errorMessageFor(data, res.status)
     throw new ApiError(message, res.status)
   }
 
@@ -205,12 +214,7 @@ export async function apiUpload<T>(
       markSessionExpired()
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
-    const message =
-      (data && typeof data === 'object' && 'error' in data
-        ? String((data as { error: unknown }).error)
-        : typeof data === 'string' && data
-          ? data
-          : null) ?? `Request failed with status ${res.status}`
+    const message = errorMessageFor(data, res.status)
     throw new ApiError(message, res.status)
   }
 

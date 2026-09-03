@@ -6,6 +6,7 @@ import { HttpError } from './error';
 
 interface JwtPayload {
   sub: string;
+  tv?: number;
 }
 
 // Requires a valid Bearer token AND a live, approved account. The DB check on
@@ -28,10 +29,16 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, status: true, emailVerified: true, plan: true },
+      select: { id: true, email: true, role: true, status: true, emailVerified: true, plan: true, tokenVersion: true },
     });
     if (!user || !user.emailVerified || user.status !== 'approved') {
       throw new HttpError(401, 'This account does not currently have access');
+    }
+    // A logout, password reset, or suspension bumps tokenVersion; a token
+    // minted before that no longer matches and is rejected. (Tokens issued
+    // before this field existed carry no tv and match the default 0.)
+    if ((payload.tv ?? 0) !== user.tokenVersion) {
+      throw new HttpError(401, 'This session has ended — please sign in again');
     }
 
     req.user = { id: user.id, email: user.email, role: user.role, plan: user.plan };

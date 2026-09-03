@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { deleteMe, login, me, register, resend, updateMe, verify } from '../controllers/auth.controller';
+import { deleteMe, login, logout, me, register, resend, updateMe, verify } from '../controllers/auth.controller';
 import {
   acceptInvite,
   authConfig,
@@ -31,6 +31,7 @@ authRouter.post('/login', authLimiter, login);
 authRouter.get('/verify-email', authLimiter, verify);
 authRouter.post('/resend-verification', authLimiter, resend);
 authRouter.get('/me', requireAuth, me);
+ authRouter.post('/logout', requireAuth, logout);
 authRouter.patch('/me', requireAuth, updateMe);
 authRouter.delete('/me', requireAuth, deleteMe);
 authRouter.get('/config', authConfig);

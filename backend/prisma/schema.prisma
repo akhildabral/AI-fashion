@@ -40,6 +40,9 @@ model User {
   emailVerified Boolean      @default(false)
   verifyToken  String?       @unique
   verifyTokenExpires DateTime?
+  // Bumped to invalidate every issued JWT at once — on logout, password reset,
+  // or suspension. The token carries the version it was minted at.
+  tokenVersion Int           @default(0)
   // Billing: which tier the account is on and what the gateway knows.
   //   plan: free | plus | pro | founder   planStatus: none | active | grace | cancelled
   plan         String        @default("free")

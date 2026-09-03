@@ -14,7 +14,7 @@ import { deleteFile } from '../lib/storage';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
 // Where verification links should point — the public web origin, derived from
@@ -40,6 +40,14 @@ const nameSchema = z.object({
   firstName: z.string().min(1).max(60),
   lastName: z.string().max(60).nullish(),
 });
+
+// POST /auth/logout — end the session server-side by rotating the token
+// version, so the bearer token can't be reused (on any device) after sign-out.
+export async function logout(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  await prisma.user.update({ where: { id: req.user.id }, data: { tokenVersion: { increment: 1 } } });
+  res.status(204).end();
+}
 
 export async function updateMe(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
@@ -108,15 +116,23 @@ export async function deleteMe(req: Request, res: Response) {
   if (!user) throw new HttpError(404, 'User not found');
   if (confirm.trim().toLowerCase() !== user.email.toLowerCase()) throw new HttpError(400, 'Type your email address exactly to confirm');
 
-  const [items, logs, photos] = await Promise.all([
+  const [items, logs, photos, tryOns, looks, polls, wearJobs] = await Promise.all([
     prisma.wardrobeItem.findMany({ where: { userId: req.user.id }, select: { imageUrl: true, originalUrl: true } }),
     prisma.wearLog.findMany({ where: { userId: req.user.id, photoUrl: { not: null } }, select: { photoUrl: true } }),
     prisma.userPhoto.findMany({ where: { userId: req.user.id }, select: { path: true } }),
+    prisma.tryOn.findMany({ where: { userId: req.user.id }, select: { imageUrl: true } }),
+    prisma.look.findMany({ where: { userId: req.user.id }, select: { imageUrl: true } }),
+    prisma.poll.findMany({ where: { userId: req.user.id }, select: { options: true } }),
+    prisma.wearPhotoJob.findMany({ where: { userId: req.user.id }, select: { photoUrl: true } }),
   ]);
   const files = [
     ...items.flatMap((i) => [i.imageUrl, i.originalUrl]),
     ...logs.map((l) => l.photoUrl),
     ...photos.map((p) => p.path),
+    ...tryOns.map((t) => t.imageUrl),
+    ...looks.map((l) => l.imageUrl),
+    ...polls.flatMap((p) => ((p.options as { imageUrl?: string }[] | null) ?? []).map((o) => o.imageUrl)),
+    ...wearJobs.map((w) => w.photoUrl),
     user.photoPath,
   ].filter((f): f is string => Boolean(f));
 

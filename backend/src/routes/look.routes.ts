@@ -77,6 +77,11 @@ lookPageRouter.get('/look/:id', async (req, res) => {
         `<li><div class="mini"><img src="${esc(absoluteImage(base, it.imageUrl))}" alt="" /></div><p class="lbl">${esc(it.subtype ?? it.category)}</p>${i < strip.length - 1 ? '<p class="down">↓</p>' : ''}</li>`,
     )
     .join('');
+  // No inline script on this page — lock it right down.
+  res.setHeader(
+    'Content-Security-Policy',
+    `default-src 'self'; script-src 'none'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'none'; frame-ancestors 'none'; object-src 'none'`,
+  );
   res.type('html').send(
     page({
       title,

@@ -24,8 +24,12 @@ export interface PublicUser {
 
 const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
-function signToken(userId: string): string {
-  return jwt.sign({ sub: userId }, env.JWT_SECRET, {
+// A fixed bcrypt hash to compare against when no account exists, so the login
+// path takes the same time whether or not the email is real.
+const DUMMY_HASH = bcrypt.hashSync('timing-equalizer-not-a-real-password', 12);
+
+function signToken(userId: string, tokenVersion: number): string {
+  return jwt.sign({ sub: userId, tv: tokenVersion }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN,
     algorithm: 'HS256',
   } as SignOptions);
@@ -75,17 +79,23 @@ export async function registerUser(
       passwordHash,
       role: admin ? 'admin' : 'user',
       status: admin ? 'approved' : 'pending',
-      emailVerified: admin,
-      verifyToken: admin ? null : verifyToken,
-      verifyTokenExpires: admin ? null : new Date(Date.now() + VERIFY_TOKEN_TTL_MS),
+      // Email must be proven even for a bootstrap admin, so whoever registers
+      // a listed admin address can't become a working admin without inbox
+      // access. Access opens on verify.
+      emailVerified: false,
+      verifyToken,
+      verifyTokenExpires: new Date(Date.now() + VERIFY_TOKEN_TTL_MS),
     },
   });
 
   if (admin) {
+    await sendVerificationEmail(
+      normalizedEmail,
+      `${verifyUrlBase}/verify-email?token=${verifyToken}`,
+    );
     return {
       user: toPublic(created),
-      token: signToken(created.id),
-      message: 'Welcome back, admin.',
+      message: 'Admin account created — verify your email to sign in.',
     };
   }
 
@@ -140,6 +150,9 @@ export async function loginUser(
 
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) {
+    // Spend the same time as a real bcrypt compare so a missing account can't
+    // be told apart from a wrong password by timing.
+    await bcrypt.compare(password, DUMMY_HASH);
     throw new HttpError(401, 'Invalid email or password');
   }
 
@@ -183,5 +196,5 @@ export async function loginUser(
     throw new HttpError(403, 'This account does not currently have access');
   }
 
-  return { user: toPublic(current), token: signToken(current.id) };
+  return { user: toPublic(current), token: signToken(current.id, current.tokenVersion) };
 }

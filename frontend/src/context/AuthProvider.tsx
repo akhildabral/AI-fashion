@@ -77,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    // Rotate the server-side token version so this bearer token can't be
+    // reused after sign-out; then drop it locally regardless of the result.
+    void apiFetch('/auth/logout', { method: 'POST' }).catch(() => undefined)
     clearToken()
     setUser(null)
   }, [])

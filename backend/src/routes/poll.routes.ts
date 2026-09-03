@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomBytes } from 'node:crypto';
 import { env } from '../config/env';
 import {
   createPoll,
@@ -36,12 +37,17 @@ votePageRouter.get('/vote/:id', async (req, res) => {
   const base = env.PUBLIC_ORIGIN ?? `${proto}://${req.get('host')}`;
   const first = ((poll?.options as { imageUrl?: string }[] | null) ?? [])[0]?.imageUrl;
   const door = poll ? await joinLinkFor(poll.userId, base) : null;
+  const nonce = randomBytes(16).toString('base64');
+  res.setHeader(
+    'Content-Security-Policy',
+    `default-src 'self'; script-src 'nonce-${nonce}'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'`,
+  );
   res.type('html').send(
     votePage(id, {
       title: poll ? poll.question : 'Which one?',
       image: first ? absoluteImage(base, first) : undefined,
       door: door ? { url: door.url, label: `Join with ${door.handle ? '@' + door.handle : 'their'}’s invite` } : { url: `${base}/landing`, label: 'Join the waitlist' },
-    }),
+    }, nonce),
   );
 });
 
@@ -49,7 +55,7 @@ function escapeAttr(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 }
 
-function votePage(pollId: string, og: { title: string; image?: string; door: { url: string; label: string } }): string {
+function votePage(pollId: string, og: { title: string; image?: string; door: { url: string; label: string } }, nonce: string): string {
   // Self-contained, in the Atelier language — dark brass-on-black, twin arches,
   // the vote is a tap on the look. Many people's first contact with the
   // product, so it's given real care and needs no account.
@@ -102,7 +108,7 @@ ${og.image ? `<meta property="og:image" content="${escapeAttr(og.image)}" />\n<m
   <div class="row" id="opts"></div>
   <div class="state" id="state"></div>
   <div class="brand">A personal stylist</div>
-<script>
+<script nonce="${nonce}">
   var pollId = ${JSON.stringify(pollId)};
   var DOOR = ${JSON.stringify(og.door)};
   function voterKey() {

@@ -78,7 +78,7 @@ async function setStatus(req: Request, res: Response, status: 'approved' | 'susp
 
   const updated = await prisma.user.update({
     where: { id },
-    data: { status },
+    data: { status, ...(status === 'suspended' ? { tokenVersion: { increment: 1 } } : {}) },
     select: { id: true, email: true, status: true, role: true, emailVerified: true },
   });
   res.json({ user: updated });
@@ -94,7 +94,7 @@ export function suspendUser(req: Request, res: Response) {
 
 const createUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
 // Admin-created accounts skip the email flow entirely: verified + approved
@@ -120,7 +120,7 @@ export async function createUser(req: Request, res: Response) {
 }
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
 export async function resetPassword(req: Request, res: Response) {
@@ -135,7 +135,7 @@ export async function resetPassword(req: Request, res: Response) {
 
   await prisma.user.update({
     where: { id },
-    data: { passwordHash: await bcrypt.hash(password, 12) },
+    data: { passwordHash: await bcrypt.hash(password, 12), tokenVersion: { increment: 1 } },
   });
   res.json({ ok: true });
 }
