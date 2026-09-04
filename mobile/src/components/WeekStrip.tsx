@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { getWeek, shiftKey, todayKey, type WeekDay } from '@zauq/shared/brief'
 import { EVENT_LABEL } from '@zauq/shared/outfits'
-import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline } from '@/src/design/tokens'
+import { alpha, hairline, height, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
+import { Press } from './Press'
 import { T } from './Text'
 
 function blankWeek(from: string, today: string): WeekDay[] {
@@ -32,7 +32,8 @@ function blankWeek(from: string, today: string): WeekDay[] {
 
 /**
  * The week as a timeline: seven days on one hairline, today in brass. Past
- * days carry a dot per look worn; future days a quiet word when named.
+ * days carry a dot per look worn; future days a quiet word when named. Each
+ * day is a tab: the micro weekday, the Bodoni figure, the brass rule.
  */
 export function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (date: string) => void }) {
   const { t } = useTheme()
@@ -55,20 +56,19 @@ export function WeekStrip({ selected, onSelect }: { selected: string; onSelect: 
             : null
         const dots = d.past && d.worn && !d.rest ? Math.min(Math.max(d.lookCount ?? 1, 1), 3) : 0
         return (
-          <Pressable
+          <Press
             key={d.date}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={`${wd} ${n}${d.today ? ', today' : ''}${word ? `, ${word}` : ''}`}
+            haptic={on ? 'none' : 'select'}
             onPress={() => {
-              if (!on) {
-                haptics.select()
-                onSelect(d.date)
-              }
+              if (!on) onSelect(d.date)
             }}
+            wrapStyle={styles.cell}
             style={styles.day}
           >
-            <T role="micro" style={{ fontSize: 9, color: d.today ? t.brass : alpha(t.ink, 0.35) }}>
+            <T role="micro" style={{ color: d.today ? t.brass : alpha(t.ink, 0.35) }}>
               {wd}
             </T>
             <T role="h3" style={{ color: d.rest ? alpha(t.ink, 0.3) : d.today ? t.brass : on ? t.ink : alpha(t.ink, 0.7) }}>
@@ -79,13 +79,13 @@ export function WeekStrip({ selected, onSelect }: { selected: string; onSelect: 
                 ? Array.from({ length: dots }).map((_, i) => <View key={i} style={[styles.dot, { backgroundColor: alpha(t.brass, 0.7) }]} />)
                 : null}
               {word ? (
-                <T numberOfLines={1} style={{ fontFamily: fonts.serifItalic, fontSize: 11, lineHeight: 12, color: d.rest ? alpha(t.ink, 0.35) : alpha(t.brass, 0.8) }}>
+                <T numberOfLines={1} maxFontSizeMultiplier={1.3} style={[styles.word, { color: d.rest ? alpha(t.ink, 0.35) : alpha(t.brass, 0.8) }]}>
                   {word}
                 </T>
               ) : null}
             </View>
             <View style={[styles.rule, { backgroundColor: d.today ? t.brass : on ? alpha(t.ink, 0.5) : 'transparent' }]} />
-          </Pressable>
+          </Press>
         )
       })}
     </View>
@@ -94,8 +94,12 @@ export function WeekStrip({ selected, onSelect }: { selected: string; onSelect: 
 
 const styles = StyleSheet.create({
   rail: { flexDirection: 'row', borderBottomWidth: hairline },
-  day: { flex: 1, alignItems: 'center', gap: 3, paddingTop: 4, paddingBottom: 12, minHeight: 64 },
-  mark: { height: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 2 },
+  cell: { flex: 1 },
+  // 4 above the weekday, 12 below the mark to the rule; the box meets the 44 floor.
+  day: { alignItems: 'center', gap: space.xs, paddingTop: space.xs, paddingBottom: space.md, minHeight: height.action },
+  mark: { height: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs, paddingHorizontal: 2 },
   dot: { width: 4, height: 4, borderRadius: 2 },
+  // The quiet word: Bodoni italic, kept at 1.2x leading so nothing clips.
+  word: { fontFamily: fonts.serifItalic, fontSize: 11, lineHeight: 14 },
   rule: { position: 'absolute', left: '18%', right: '18%', bottom: -1, height: 2 },
 })

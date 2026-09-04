@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Arch, Modal } from './ui'
-import { Spinner } from './Spinner'
+import { Arch, Modal, ArchSkeleton, SkeletonBlock, Alert, Chip, EmptyState, Tabs } from './ui'
 import { resolveImageUrl } from '../lib/api'
 import { clearLookPhoto, getMyRecentLooks, setLookPhoto, setLookPhotoFromRender, shareLook, unshareLook, type MyLook } from '@zauq/shared/circle'
 import { getOutfits, type Outfit } from '@zauq/shared/outfits'
@@ -100,17 +99,28 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
       <p className="text-sm text-ink/60">Your recent wears. Put one on the circle as the pieces, or add a photo of you in it.</p>
       <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {looks === null && (
-        <div className="py-10 text-center text-ink/40">
-          <Spinner className="h-5 w-5" />
+        <div className="mt-4 flex flex-col gap-4" aria-busy="true" aria-label="Loading">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <SkeletonBlock className="aspect-[3/4] w-11" style={{ animationDelay: `${i * 80}ms` }} />
+              <div className="flex-1">
+                <SkeletonBlock className="h-4 w-1/3" />
+                <SkeletonBlock className="mt-2 h-3 w-1/2 !bg-ink/[0.07]" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {looks && looks.length === 0 && (
-        <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center">
-          <p className="text-sm text-ink/60">Nothing logged in the last two weeks.</p>
-          <Link to="/" onClick={onClose} className="btn-primary mt-4 inline-flex btn-sm">
-            Wear today’s brief
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-4"
+          line="Nothing logged in the last two weeks."
+          action={
+            <Link to="/" onClick={onClose} className="btn-primary btn-sm">
+              Wear today’s brief
+            </Link>
+          }
+        />
       )}
       {looks && looks.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
@@ -143,17 +153,17 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
                   {busy === l.id ? '…' : l.shared ? 'Take down' : 'Share'}
                 </button>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-[11px] font-semibold text-brass">
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                 {l.photoUrl ? (
                   <>
-                    <button type="button" onClick={() => pickFile(l.id)} className="press hover:underline">Change photo</button>
-                    <button type="button" onClick={() => void removePhoto(l.id)} className="press text-ink/45 hover:underline">Remove photo</button>
+                    <button type="button" onClick={() => pickFile(l.id)} className="btn-quiet btn-quiet-sm">Change photo</button>
+                    <button type="button" onClick={() => void removePhoto(l.id)} className="btn-quiet btn-quiet-sm">Remove photo</button>
                   </>
                 ) : (
                   <>
-                    <button type="button" onClick={() => pickFile(l.id)} className="press hover:underline">Add a photo</button>
+                    <button type="button" onClick={() => pickFile(l.id)} className="btn-quiet btn-quiet-sm">Add a photo</button>
                     {renders && renders.length > 0 && (
-                      <button type="button" onClick={() => setPickingRender(pickingRender === l.id ? null : l.id)} className="press hover:underline">
+                      <button type="button" onClick={() => setPickingRender(pickingRender === l.id ? null : l.id)} className="btn-quiet btn-quiet-sm">
                         {pickingRender === l.id ? 'Cancel' : 'Use a Mirror render'}
                       </button>
                     )}
@@ -175,7 +185,7 @@ export function ShareLookModal({ open, onClose, onShared }: { open: boolean; onC
           ))}
         </ul>
       )}
-      {error && <p className="mt-3 alert-error">{error}</p>}
+      {error && <Alert className="mt-4">{error}</Alert>}
     </Modal>
   )
 }
@@ -301,7 +311,7 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
     outfits: (
       <>
         Save a couple of outfits first, from{' '}
-        <Link to="/closet/outfits" onClick={onClose} className="font-semibold text-brass hover:underline">
+        <Link to="/closet/outfits" onClick={onClose} className="font-semibold text-brass-ink hover:underline">
           the Closet
         </Link>
         .
@@ -311,7 +321,7 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
     renders: (
       <>
         You need two renders to compare.{' '}
-        <Link to="/mirror" onClick={onClose} className="font-semibold text-brass hover:underline">
+        <Link to="/mirror" onClick={onClose} className="font-semibold text-brass-ink hover:underline">
           Try a look in the Mirror
         </Link>
         .
@@ -325,22 +335,12 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
       <p className="text-sm text-ink/60">Two or three of anything. Ask everyone, a few friends, or just a link.</p>
 
       {/* what to ask with */}
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Ask with</p>
-      <div role="tablist" aria-label="Choose from" className="tabs mt-2">
-        {SOURCES.map((s) => (
-          <button key={s.key} role="tab" type="button" aria-selected={source === s.key} onClick={() => setSource(s.key)} className="tab press">
-            {s.label}
-          </button>
-        ))}
-      </div>
-      {loading && (
-        <div className="py-10 text-center text-ink/40">
-          <Spinner className="h-5 w-5" />
-        </div>
-      )}
-      {!loading && pool.length === 0 && <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center text-sm text-ink/60">{empty[source]}</div>}
+      <p className="eyebrow mt-6">Ask with</p>
+      <Tabs className="mt-2" label="Choose from" value={source} onChange={setSource} items={SOURCES} />
+      {loading && <ArchSkeleton count={4} aspect="aspect-[4/5]" className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4" />}
+      {!loading && pool.length === 0 && <EmptyState className="mt-4" line={empty[source]} />}
       {!loading && pool.length > 0 && (
-        <div className="mt-3 grid max-h-[38vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
+        <div className="mt-4 grid max-h-[38vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
           {pool.map((c) => {
             const idx = chosen.findIndex((x) => x.key === c.key)
             return (
@@ -362,10 +362,10 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
         </div>
       )}
 
-      <input type="text" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={140} className="field mt-4 !text-sm" placeholder="Which one should I wear? (optional)" />
+      <input type="text" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={140} className="field mt-4" placeholder="Which one should I wear? (optional)" />
 
       {/* who */}
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Ask</p>
+      <p className="eyebrow mt-6">Ask</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {(
           [
@@ -374,42 +374,42 @@ export function AskCircleModal({ open, onClose, onAsked, initialOutfitId = null 
             ['link', 'Just a link'],
           ] as [PollAudience, string][]
         ).map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setAudience(k)} aria-pressed={audience === k} className="chip">
+          <Chip key={k} onClick={() => setAudience(k)} on={audience === k}>
             {l}
-          </button>
+          </Chip>
         ))}
       </div>
       {audience === 'friends' && (
-        <div className="mt-2">
-          {people === null && <Spinner className="h-4 w-4" />}
+        <div className="mt-4">
+          {people === null && <SkeletonBlock className="h-9 w-48" />}
           {people && people.length === 0 && <p className="text-xs text-ink/50">Follow a few people first; they’ll appear here.</p>}
           {people && people.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {people.slice(0, 24).map((p) => (
-                <button key={p.handle} type="button" onClick={() => setFriends((f) => (f.includes(p.handle) ? f.filter((x) => x !== p.handle) : f.length >= 8 ? f : [...f, p.handle]))} aria-pressed={friends.includes(p.handle)} className="chip !h-8 !text-xs">
+                <Chip key={p.handle} onClick={() => setFriends((f) => (f.includes(p.handle) ? f.filter((x) => x !== p.handle) : f.length >= 8 ? f : [...f, p.handle]))} on={friends.includes(p.handle)}>
                   {p.name}
-                </button>
+                </Chip>
               ))}
             </div>
           )}
-          <p className="mt-1.5 text-xs text-ink/45">They’re told; the rest of the circle isn’t.</p>
+          <p className="mt-2 text-xs text-ink/45">They’re told; the rest of the circle isn’t.</p>
         </div>
       )}
       {audience === 'link' && <p className="mt-2 text-xs text-ink/45">Only people with the link see it. You still see who voted, if they’re members.</p>}
 
       {/* how long */}
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">For</p>
+      <p className="eyebrow mt-6">For</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {EXPIRIES.map((e) => (
-          <button key={e.key} type="button" onClick={() => setExpiry(e.key)} aria-pressed={expiry === e.key} className="chip">
+          <Chip key={e.key} onClick={() => setExpiry(e.key)} on={expiry === e.key}>
             {e.label}
-          </button>
+          </Chip>
         ))}
       </div>
 
-      {error && <p className="mt-3 alert-error">{error}</p>}
-      <div className="action-row mt-5">
-        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary disabled:opacity-40">
+      {error && <Alert className="mt-4">{error}</Alert>}
+      <div className="action-row mt-6">
+        <button type="button" disabled={chosen.length < 2 || sending} onClick={() => void ask()} className="btn-primary">
           {sending ? 'Asking…' : `Ask (${chosen.length}/3)`}
         </button>
         <button type="button" onClick={onClose} className="btn-quiet">

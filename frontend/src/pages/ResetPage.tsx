@@ -41,12 +41,12 @@ export function ResetPage() {
 
   if (!token) {
     return (
-      <DoorShell eyebrow="New password" title={<>This link is <em className="text-brass">missing its key.</em></>} lead="Open the link from the email, or ask for a fresh one." foot={<Link to="/forgot" className="font-semibold text-brass underline-offset-4 hover:underline">Send me a new link</Link>} />
+      <DoorShell eyebrow="New password" title={<>This link is <em className="text-accent-text">missing its key.</em></>} lead="Open the link from the email, or ask for a fresh one." foot={<Link to="/forgot" className="font-semibold text-accent-text underline-offset-4 hover:underline">Send me a new link</Link>} />
     )
   }
 
   if (closed) {
-    return <DoorShell eyebrow="New password" title={<>Set, and <em className="text-brass">waiting.</em></>} lead={closed} foot={<SignInLink label="Back to sign in" />} />
+    return <DoorShell eyebrow="New password" title={<>Set, and <em className="text-accent-text">waiting.</em></>} lead={closed} foot={<SignInLink label="Back to sign in" />} />
   }
 
   return (
@@ -54,13 +54,13 @@ export function ResetPage() {
       eyebrow="New password"
       title={
         <>
-          Choose <em className="text-brass">a new one.</em>
+          Choose <em className="text-accent-text">a new one.</em>
         </>
       }
       lead="At least eight characters. You’ll be signed in straight after."
       foot={<SignInLink />}
     >
-      <form onSubmit={save} className="space-y-5">
+      <form onSubmit={save} className="space-y-4">
         <PasswordField id="new-password" label="New password" autoComplete="new-password" minLength={8} placeholder="at least 8 characters" value={password} onChange={setPassword} error={error} />
         <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? <Spinner className="h-4 w-4" /> : 'Save and sign in'}

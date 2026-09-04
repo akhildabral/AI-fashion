@@ -16,7 +16,7 @@ import * as haptics from '@/src/design/haptics'
 import { space } from '@/src/design/tokens'
 import { resolveImageUrl } from '@/src/lib/api'
 import { youKeys } from '@/src/features/you/keys'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function ResaleSheet() {
   const { item = '' } = useLocalSearchParams<{ item: string }>()
@@ -37,7 +37,7 @@ export default function ResaleSheet() {
   }
 
   return (
-    <SheetShell title="A listing, drafted" foot={result ? <Button label={copied ? 'Copied' : 'Copy the listing'} block onPress={() => void copyAll()} /> : null}>
+    <SheetShell dense title="A listing, drafted" footer={result ? <Button label={copied ? 'Copied' : 'Copy the listing'} block onPress={() => void copyAll()} /> : null}>
       {q.isError && !result ? (
         <LoadError message="Could not draft a listing." onRetry={() => void q.refetch()} />
       ) : !result ? (
@@ -52,7 +52,7 @@ export default function ResaleSheet() {
       ) : (
         <View style={styles.stack}>
           <View style={styles.top}>
-            <Arch width={80} aspect={4 / 5}>
+            <Arch width={80}>
               <Image source={{ uri: resolveImageUrl(result.imageUrl) }} contentFit="contain" cachePolicy="disk" style={styles.image} accessible={false} />
             </Arch>
             <View style={{ flex: 1, gap: 4 }}>
@@ -82,10 +82,11 @@ export default function ResaleSheet() {
 }
 
 const styles = StyleSheet.create({
-  // The web's `space-y-5`, the top row `flex gap-4`, the checklist `mb-2` under its label and `space-y-1`.
-  stack: { gap: 20 },
+  // The blocks 16 apart, the top row 16 apart, the checklist 4 apart under its label.
+  stack: { gap: space.lg },
   top: { flexDirection: 'row', gap: space.lg, alignItems: 'flex-start' },
   checks: { gap: space.xs },
+  // Label to line: 8.
   checksLabel: { marginBottom: space.xs },
   image: { position: 'absolute', left: '8%', right: '8%', top: '9%', bottom: '7%' },
 })

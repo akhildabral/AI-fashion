@@ -10,7 +10,7 @@ import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
 import { PhotoManager } from '../components/PhotoManager'
 import { RitualSettings } from '../components/RitualSettings'
-import { Modal, PageShell, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
+import { Alert, Chip, EmptyState, Modal, PageHead, PageShell, RowLabel, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
 
 // You: the fitting's answers, editable with the fitting's own controls and
 // saved as you change them; the ritual; and the account beside them.
@@ -67,16 +67,6 @@ type Section = 'fit' | 'taste' | 'ritual' | 'account'
 
 const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button type="button" aria-pressed={on} onClick={onClick} className={`chip ${on ? 'chip-on' : ''}`}>
-      {children}
-    </button>
-  )
-}
-function RowLabel({ children, first = false }: { children: ReactNode; first?: boolean }) {
-  return <p className={`${first ? '' : 'mt-7'} text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45`}>{children}</p>
-}
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-ink/10 py-3.5 first:border-t-0">
@@ -153,18 +143,19 @@ export function ProfilePage() {
 
   if (profileLoading) {
     return (
-      <PageShell narrow>
-        <SkeletonBlock className="h-12 w-56" />
-        <div className="mt-6 flex gap-2">
-          {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-8 w-24" />)}
-        </div>
-        <div className="mt-8 flex flex-col gap-4" aria-busy="true" aria-label="Loading your profile">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-[3px] border border-ink/10 bg-surface p-5">
-              <SkeletonBlock className="h-4 w-32" />
-              <SkeletonBlock className="mt-3 h-8 w-full" />
-            </div>
-          ))}
+      <PageShell>
+        <div aria-busy="true" aria-label="Loading your profile">
+          <SkeletonBlock className="h-3 w-12" />
+          <SkeletonBlock className="mt-3 h-9 w-72" />
+          <div className="mt-8 flex gap-5">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonBlock key={i} className="h-4 w-16 !bg-ink/[0.07]" />)}
+          </div>
+          <div className="mt-8 card p-5">
+            <SkeletonBlock className="h-3 w-24" />
+            <SkeletonBlock className="mt-3 h-9 w-full" />
+            <SkeletonBlock className="mt-8 h-3 w-24" />
+            <SkeletonBlock className="mt-3 h-9 w-2/3" />
+          </div>
         </div>
       </PageShell>
     )
@@ -193,32 +184,36 @@ export function ProfilePage() {
   return (
     <PageShell>
       <Toast msg={toast} />
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">You</p>
-          <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-            The facts you’re <em className="text-brass">dressed by.</em>
-          </h1>
-          <p className="mt-3 max-w-xl animate-rise-1 text-sm text-ink/55">What the fitting learned, editable here. Every change saves itself.</p>
-        </div>
-        {user?.handle && (
-          <Link to={`/u/${user.handle}`} className="btn-ghost animate-rise-1">
-            Your room
-          </Link>
-        )}
-      </header>
+      <PageHead
+        eyebrow="You"
+        title={
+          <>
+            The facts you’re <em className="text-accent-text">dressed by.</em>
+          </>
+        }
+        line="What the fitting learned, editable here. Every change saves itself."
+        aside={
+          user?.handle ? (
+            <Link to={`/u/${user.handle}`} className="btn-ghost">
+              Your room
+            </Link>
+          ) : undefined
+        }
+      />
 
       {!profile ? (
-        <section className="card mt-8 animate-rise-2 p-6 text-center">
-          <p className="font-display text-2xl text-ink">Your stylist hasn’t met you yet.</p>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">The fitting takes a few minutes: who you dress for, your measure, your taste.</p>
-          <Link to="/fitting" className="btn-primary mt-5 inline-flex">
-            Start the fitting
-          </Link>
-        </section>
+        <EmptyState
+          className="mt-8 animate-rise-2"
+          line="Your stylist hasn’t met you yet. The fitting takes a few minutes: who you dress for, your measure, your taste."
+          action={
+            <Link to="/fitting" className="btn-primary">
+              Start the fitting
+            </Link>
+          }
+        />
       ) : (
         <>
-          <div className="mt-6 flex animate-rise-1 flex-wrap items-end justify-between gap-3">
+          <div className="mt-8 flex animate-rise-1 flex-wrap items-end justify-between gap-x-4 gap-y-2">
             <Tabs
               label="Sections"
               value={section}
@@ -235,12 +230,13 @@ export function ProfilePage() {
             </p>
           </div>
 
-          <div className="mt-6 animate-rise-2 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
+          {/* The two-column room: content and a 340 aside, 48 → 64 apart; the aside stacks last below lg. */}
+          <div className="mt-8 animate-rise-2 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
             <div className="min-w-0">
               {section === 'fit' && (
-                <section className="card p-5 sm:p-7">
+                <section className="card p-5">
                   <RowLabel first>How tall</RowLabel>
-                  <p className="mt-2 font-display text-5xl leading-none text-ink [font-variant-numeric:tabular-nums]">{heightLabel(height, units)}</p>
+                  <p className="mt-2 font-display text-4xl font-medium leading-[1.04] text-ink [font-variant-numeric:tabular-nums]">{heightLabel(height, units)}</p>
                   <input
                     type="range"
                     min={140}
@@ -253,14 +249,14 @@ export function ProfilePage() {
                     className="tape mt-4 w-full max-w-xl"
                     style={{ ['--p' as string]: `${((height - 140) / 70) * 100}%` }}
                   />
-                  <div className="mt-2 flex max-w-xl justify-between text-[10px] tracking-[0.14em] text-ink/40">
+                  <div className="mt-2 flex max-w-xl justify-between text-[10px] font-semibold uppercase tracking-label-sm text-ink/40 [font-variant-numeric:tabular-nums]">
                     <span>{heightLabel(140, units)}</span>
                     <span>{heightLabel(175, units)}</span>
                     <span>{heightLabel(210, units)}</span>
                   </div>
 
                   <RowLabel>Build</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {BUILDS.map((b) => (
                       <Chip key={b} on={profile.bodyType === b} onClick={() => save({ bodyType: b })}>
                         {title(b)}
@@ -268,9 +264,9 @@ export function ProfilePage() {
                     ))}
                   </div>
 
-                  <div className="mt-7 flex items-end justify-between gap-3">
+                  <div className="mt-8 flex items-end justify-between gap-3">
                     <RowLabel first>What you reach for · tops</RowLabel>
-                    <input value={sizeDraft.top} onChange={(e) => setSizeDraft((d) => ({ ...d, top: e.target.value }))} onBlur={(e) => setSize('top', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Top size" />
+                    <input value={sizeDraft.top} onChange={(e) => setSizeDraft((d) => ({ ...d, top: e.target.value }))} onBlur={(e) => setSize('top', e.target.value.trim())} className="field field-sm w-20 text-center" placeholder="or type" aria-label="Top size" />
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {TOP_SIZES.map((s) => (
@@ -279,9 +275,9 @@ export function ProfilePage() {
                       </Chip>
                     ))}
                   </div>
-                  <div className="mt-7 flex items-end justify-between gap-3">
+                  <div className="mt-8 flex items-end justify-between gap-3">
                     <RowLabel first>Bottoms</RowLabel>
-                    <input value={sizeDraft.bottom} onChange={(e) => setSizeDraft((d) => ({ ...d, bottom: e.target.value }))} onBlur={(e) => setSize('bottom', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Bottom size" />
+                    <input value={sizeDraft.bottom} onChange={(e) => setSizeDraft((d) => ({ ...d, bottom: e.target.value }))} onBlur={(e) => setSize('bottom', e.target.value.trim())} className="field field-sm w-20 text-center" placeholder="or type" aria-label="Bottom size" />
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {BOTTOM_SIZES.map((s) => (
@@ -290,9 +286,9 @@ export function ProfilePage() {
                       </Chip>
                     ))}
                   </div>
-                  <div className="mt-7 flex items-end justify-between gap-3">
+                  <div className="mt-8 flex items-end justify-between gap-3">
                     <RowLabel first>Shoes</RowLabel>
-                    <input value={sizeDraft.shoe} onChange={(e) => setSizeDraft((d) => ({ ...d, shoe: e.target.value }))} onBlur={(e) => setSize('shoe', e.target.value.trim())} className="field field-sm !h-8 w-20 text-center" placeholder="or type" aria-label="Shoe size" />
+                    <input value={sizeDraft.shoe} onChange={(e) => setSizeDraft((d) => ({ ...d, shoe: e.target.value }))} onBlur={(e) => setSize('shoe', e.target.value.trim())} className="field field-sm w-20 text-center" placeholder="or type" aria-label="Shoe size" />
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {SHOE_SIZES.map((s) => (
@@ -303,7 +299,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>Who we dress</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {WHO.map(([k, l]) => (
                       <Chip key={k} on={profile.styleFor === k} onClick={() => save({ styleFor: k })}>
                         {l}
@@ -314,9 +310,9 @@ export function ProfilePage() {
               )}
 
               {section === 'taste' && (
-                <section className="card p-5 sm:p-7">
+                <section className="card p-5">
                   <RowLabel first>Your tone</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2.5">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {TONES.map(([k, c]) => (
                       <button
                         key={k}
@@ -331,7 +327,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>Never on me</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2.5">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {COLOURS.map(([k, c]) => {
                       const on = avoid.has(k)
                       return (
@@ -350,7 +346,7 @@ export function ProfilePage() {
                     })}
                   </div>
                   {custom.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {custom.map((c) => (
                         <Chip key={c} on onClick={() => toggleAvoid(c.toLowerCase())}>
                           {c} ×
@@ -360,7 +356,7 @@ export function ProfilePage() {
                   )}
 
                   <RowLabel>What matters most</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {INTENTS.map(([k, l]) => (
                       <Chip key={k} on={(profile.intents ?? [])[0] === k} onClick={() => save({ intents: [k] })}>
                         {l}
@@ -369,7 +365,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>The days you dress for</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {OCCASIONS.map(([k, l]) => (
                       <Chip key={k} on={(profile.occasions ?? []).includes(k)} onClick={() => toggleOccasion(k)}>
                         {l}
@@ -378,7 +374,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>Your vibe</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {VIBES.map((v) => (
                       <Chip key={v} on={profile.styleVibe === v} onClick={() => save({ styleVibe: v })}>
                         {title(v)}
@@ -387,7 +383,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>How you shop</RowLabel>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {BUDGETS.map(([k, l]) => (
                       <Chip key={k} on={profile.budgetBand === k} onClick={() => save({ budgetBand: k })}>
                         {l}
@@ -396,7 +392,7 @@ export function ProfilePage() {
                   </div>
 
                   <RowLabel>Currency</RowLabel>
-                  <select value={profile.currency ?? ''} onChange={(e) => save({ currency: e.target.value || null })} className="field mt-3 max-w-xs" aria-label="Currency">
+                  <select value={profile.currency ?? ''} onChange={(e) => save({ currency: e.target.value || null })} className="field mt-2 max-w-xs" aria-label="Currency">
                     <option value="">Guess from my location ({guessCurrency()})</option>
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -408,13 +404,15 @@ export function ProfilePage() {
               )}
 
               {section === 'ritual' && (
-                <div className="grid gap-5">
+                <div className="grid gap-4">
                   <RitualSettings onNotice={flash} />
-                  <section className="card p-5 sm:p-7">
-                    <RowLabel first>Home city · for the weather in your brief</RowLabel>
-                    <input value={city} onChange={(e) => setCity(e.target.value)} onBlur={() => (city.trim() || null) !== (profile.city ?? null) && save({ city: city.trim() || null }, 'city', 0)} className="field mt-3 max-w-xs" placeholder="e.g. Dubai" aria-label="Home city" />
+                  <section className="card p-5">
+                    <label htmlFor="profile-city" className="label">
+                      Home city · for the weather in your brief
+                    </label>
+                    <input id="profile-city" value={city} onChange={(e) => setCity(e.target.value)} onBlur={() => (city.trim() || null) !== (profile.city ?? null) && save({ city: city.trim() || null }, 'city', 0)} className="field max-w-xs" placeholder="e.g. Dubai" />
                     <RowLabel>Units</RowLabel>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <Chip on={units === 'metric'} onClick={() => save({ units: 'metric' })}>
                         °C · cm
                       </Chip>
@@ -446,7 +444,7 @@ export function ProfilePage() {
               )}
             </div>
 
-            <aside className="mt-8 flex flex-col gap-5 lg:mt-0 lg:self-start">
+            <aside className="mt-10 flex flex-col gap-4 lg:mt-0 lg:self-start">
               {section === 'fit' && <PhotoManager />}
               {section === 'fit' && (
                 <section className="plaque p-5 pl-6">
@@ -458,7 +456,7 @@ export function ProfilePage() {
                 <section className="plaque p-5 pl-6">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">How this is used</p>
                   <p className="mt-1 text-sm text-ink/60">Struck colours never come back in a brief. Your tone steers the shades. The days you dress for decide what the week is composed around.</p>
-                  <Link to="/journal" className="mt-3 inline-block text-xs font-semibold text-brass hover:underline">
+                  <Link to="/journal" className="btn-quiet btn-quiet-sm mt-2">
                     The record, where the numbers live →
                   </Link>
                 </section>
@@ -542,7 +540,7 @@ function AccountSection({
   }
 
   return (
-    <section className="card px-5 py-2 sm:px-7">
+    <section className="card px-5 py-2">
       <Row label="Name">
         {editingName ? (
           <form
@@ -634,13 +632,9 @@ function DeleteModal({ email, onClose, onDeleted }: { email: string; onClose: ()
         Type your email to confirm
       </label>
       <input id="del-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} className="field" placeholder={email} autoComplete="off" />
-      {error && (
-        <p className="mt-3 alert-error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Alert className="mt-3">{error}</Alert>}
       <div className="action-row mt-5">
-        <button type="button" disabled={!ok || busy} onClick={() => void go()} className="btn-ghost !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))] disabled:opacity-40">
+        <button type="button" disabled={!ok || busy} onClick={() => void go()} className="btn-danger">
           {busy ? 'Deleting…' : 'Delete everything'}
         </button>
         <button type="button" onClick={onClose} className="btn-quiet">
@@ -696,12 +690,12 @@ function AddressCard({ current, onChanged }: { current: string | null; onChanged
 
   return (
     <section className="card p-5">
-      <p className="font-display text-xl font-medium text-ink">Your address</p>
+      <p className="font-display text-2xl font-medium text-ink">Your address</p>
       <p className="mt-1 text-sm text-ink/55">Friends see your name. This is the link to your room.</p>
       {!editing ? (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <code className="text-sm text-ink">/u/{handle ?? '…'}</code>
-          <button type="button" onClick={() => setEditing(true)} className="btn-quiet !h-8 !text-xs">
+          <span className="text-sm text-ink">/u/{handle ?? '…'}</span>
+          <button type="button" onClick={() => setEditing(true)} className="btn-quiet btn-quiet-sm">
             Change
           </button>
         </div>

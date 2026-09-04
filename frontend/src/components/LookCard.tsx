@@ -4,6 +4,7 @@ import type { FavoriteResponse, Look } from '@zauq/shared/types'
 import { Spinner } from './Spinner'
 import { TryOnModal } from './TryOnModal'
 import { ZoomableImage } from './ImageLightbox'
+import { Alert } from './ui'
 
 interface OutfitItem {
   /** e.g. "Top", "Shoes" — derived from the object key when available. */
@@ -144,7 +145,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
       onFavoriteChange?.(res.look)
     } catch (err) {
       setFavorite(!next) // revert
-      setError(err instanceof Error ? err.message : 'Could not update favorite.')
+      setError(err instanceof Error ? err.message : 'Couldn’t save the favourite. Try again.')
     } finally {
       setFavBusy(false)
     }
@@ -165,17 +166,17 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
   }
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-[3px] border border-ink/10 bg-surface ">
-      {/* Image */}
-      <div className="relative aspect-[3/4] bg-gradient-to-br from-bone to-iris-soft">
+    <article className="card flex flex-col overflow-hidden">
+      {/* The render: a flat raised field, no gradient. */}
+      <div className="relative aspect-[3/4] bg-surface">
         {hasImage ? (
           <ZoomableImage
             src={look.imageUrl as string}
             alt={look.occasion ? `Look for ${look.occasion}` : 'Generated look'}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm text-ink/40">
-            No image available
+          <div className="flex h-full w-full items-center justify-center px-6 text-center font-display text-lg italic text-ink/55">
+            No render yet.
           </div>
         )}
 
@@ -185,24 +186,24 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             onClick={toggleFavorite}
             disabled={favBusy}
             aria-pressed={favorite}
-            aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-[3px] bg-surface/85 transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
+            aria-label={favorite ? 'Remove from favourites' : 'Add to favourites'}
+            title={favorite ? 'Remove from favourites' : 'Add to favourites'}
+            className={`btn-icon absolute right-3 top-3 !bg-surface/85 hover:!bg-surface ${favorite ? '!border-brass !text-brass' : ''}`}
           >
-            <HeartIcon filled={favorite} />
+            <HeartIcon />
           </button>
         )}
       </div>
 
-      {/* Details */}
-      <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
+      {/* Details: the tracked label over the Bodoni line, then the facts. */}
+      <div className="flex flex-1 flex-col gap-5 p-5">
         <div>
           {(look.occasion || look.gender) && (
-            <p className="mb-1 text-xs uppercase tracking-[0.28em] text-brass">
+            <p className="eyebrow">
               {[look.occasion, look.gender].filter(Boolean).join(' · ')}
             </p>
           )}
-          <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">Your Look</h2>
+          <h2 className="mt-2 font-display text-2xl font-medium text-ink">Your look</h2>
         </div>
 
         {items.length > 0 && (
@@ -251,14 +252,11 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
           </div>
         )}
 
-        {error && (
-          <p className="alert-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Alert>{error}</Alert>}
 
         {canPersist && (
-          <div className="mt-auto flex items-center justify-between gap-4 pt-2">
+          // One row, one height: the ghost alternative and the outline-only destructive action, both 44.
+          <div className="action-row mt-auto justify-between pt-2">
             <button
               type="button"
               onClick={() => setTryOnOpen(true)}
@@ -273,9 +271,9 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-2 text-sm font-medium text-ink/50 transition hover:text-red-700 disabled:opacity-60"
+                className="btn-danger"
               >
-                {deleting ? <Spinner className="h-3.5 w-3.5" /> : null}
+                {deleting ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
                 {deleting ? 'Removing…' : 'Remove'}
               </button>
             )}
@@ -290,6 +288,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
   )
 }
 
+// Hand-drawn glyphs: 1.5px stroke, currentColor, never filled.
 function TryOnIcon() {
   return (
     <svg
@@ -297,7 +296,7 @@ function TryOnIcon() {
       className="h-4 w-4"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -307,14 +306,14 @@ function TryOnIcon() {
   )
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
+function HeartIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill={filled ? 'currentColor' : 'none'}
+      className="h-4 w-4"
+      fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

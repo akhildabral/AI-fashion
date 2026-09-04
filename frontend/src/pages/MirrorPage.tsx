@@ -10,8 +10,7 @@ import { getBriefAlternatives, planDay, shiftKey, todayKey, createLookbook, getL
 import { logWear } from '@zauq/shared/wearlog'
 import { saveOutfit } from '@zauq/shared/outfits'
 import type { Reflection, TryOn, WardrobeItem } from '@zauq/shared/types'
-import { Spinner } from '../components/Spinner'
-import { MirrorFrame, Modal, Tabs, Toast, useFlash, MoreMenu, MenuItem } from '../components/ui'
+import { MirrorFrame, Modal, Tabs, Toast, useFlash, MoreMenu, MenuItem, PageShell, Eyebrow, Filter, ArchSkeleton, Alert, EmptyState, Arch } from '../components/ui'
 import { useJobs } from '../context/useJobs'
 import { InspirationLens } from '../components/InspirationLens'
 
@@ -424,25 +423,25 @@ export function MirrorPage() {
   })
 
   return (
-    <div className="relative mx-auto max-w-shell-wide px-4 py-8 sm:px-6 sm:py-10">
+    <PageShell wide>
       <Toast msg={toast} />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,540px)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
         {/* ---------------- The glass ---------------- */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <p className="animate-rise font-display text-sm italic text-brass">{compareMode && compared.length === 2 ? 'Which one?' : rendering ? 'Dressing you' : ready && fresh ? 'Fresh from the stylist' : 'Show yourself'}</p>
-          <h1 className="mt-1 animate-rise-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
+          <Eyebrow className="animate-rise">{compareMode && compared.length === 2 ? 'Which one?' : rendering ? 'Dressing you' : ready && fresh ? 'Fresh from the stylist' : 'The Mirror'}</Eyebrow>
+          <h1 className="page-title mt-2 animate-rise-1">
             {compareMode && compared.length === 2 ? (
               <>
-                A, <em className="text-brass">or B.</em>
+                A, <em className="text-brass-ink">or B.</em>
               </>
             ) : ready ? (
               <>
-                There <em className="text-brass">you are.</em>
+                There <em className="text-brass-ink">you are.</em>
               </>
             ) : (
               <>
-                The <em className="text-brass">Mirror.</em>
+                The <em className="text-brass-ink">Mirror.</em>
               </>
             )}
           </h1>
@@ -463,12 +462,8 @@ export function MirrorPage() {
           ) : (
             <div className="mt-6 animate-rise-2">
               <MirrorFrame>
-                {/* still finding out whether there's a photo: the glass keeps its shape */}
-                {!rendering && !photoChecked && (
-                  <div className="flex aspect-[2/3] items-center justify-center text-[#ECE5D8]/40">
-                    <Spinner className="h-5 w-5" />
-                  </div>
-                )}
+                {/* still finding out whether there's a photo: the glass keeps its shape, and stays dark */}
+                {!rendering && !photoChecked && <div className="aspect-[2/3]" aria-busy="true" aria-label="Loading" />}
 
                 {/* rendering: the figure is being dressed */}
                 {rendering && (
@@ -505,8 +500,8 @@ export function MirrorPage() {
                       <>
                         <img src={resolveImageUrl(photoUrl)} alt="You, before" className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }} />
                         <span aria-hidden className="absolute bottom-0 top-0 w-[2px] bg-brass" style={{ left: `${split}%` }} />
-                        <span className="absolute left-3 top-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">Before</span>
-                        <span className="absolute right-3 top-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">After</span>
+                        <span className="absolute left-3 top-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">Before</span>
+                        <span className="absolute right-3 top-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">After</span>
                       </>
                     )}
                   </div>
@@ -546,15 +541,17 @@ export function MirrorPage() {
           )}
 
           {error && (
-            <div className="alert-error mt-4 flex items-center justify-between gap-3" role="alert">
-              <span>{error}</span>
-              <button type="button" onClick={() => { setError(null); loadAll() }} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
+            <div className="mt-4">
+              <Alert>{error}</Alert>
+              <div className="action-row mt-4">
+                <button type="button" onClick={() => { setError(null); loadAll() }} className="btn-ghost btn-sm">Try again</button>
+              </div>
             </div>
           )}
         </div>
 
         {/* ---------------- The rail, the meter, the decision ---------------- */}
-        <div className="mt-10 lg:mt-0">
+        <div className="mt-12 lg:mt-0">
           <Tabs
             label="What the Mirror dresses you in"
             value={lens}
@@ -579,10 +576,10 @@ export function MirrorPage() {
           {/* the rail: pieces on you, each a switch */}
           {lens === 'closet' && (
           <section>
-            <div className="flex h-8 items-center justify-between gap-3">
+            <div className="flex h-9 items-center justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">On you</p>
               {rail.length > 0 && (
-                <button type="button" onClick={() => setRail([])} className="btn-quiet !h-8 !text-xs">
+                <button type="button" onClick={() => setRail([])} className="btn-quiet btn-quiet-sm">
                   Clear the rail
                 </button>
               )}
@@ -603,11 +600,9 @@ export function MirrorPage() {
                   <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6">
                     {closet.slice(0, 12).map((p) => (
                       <button key={p.id} type="button" onClick={() => setRail((r) => (r.some((x) => x.id === p.id) ? r : [...r, { id: p.id, on: true }]))} className="press text-left" title={label(p)}>
-                        <div className="arch-bezel aspect-[5/6] opacity-80 transition hover:opacity-100">
-                          <div className="arch-niche h-full w-full">
-                            <img src={resolveImageUrl(p.imageUrl)} alt={label(p)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                          </div>
-                        </div>
+                        <Arch aspect="aspect-[5/6]" className="opacity-80 transition-opacity hover:opacity-100">
+                          <img src={resolveImageUrl(p.imageUrl)} alt={label(p)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                        </Arch>
                       </button>
                     ))}
                   </div>
@@ -618,14 +613,12 @@ export function MirrorPage() {
                 {railPieces.map(({ id, on, piece }) => (
                   <div key={id}>
                     <button type="button" aria-pressed={on} onClick={() => toggle(id)} className="press block w-full text-left" title={on ? 'Take it off' : 'Put it back'}>
-                      <div className={`arch-bezel aspect-[5/6] transition-opacity ${on ? '' : 'opacity-35'}`}>
-                        <div className="arch-niche h-full w-full">
-                          <img src={resolveImageUrl(piece.imageUrl)} alt={label(piece)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                        </div>
-                      </div>
+                      <Arch aspect="aspect-[5/6]" className={`transition-opacity ${on ? '' : 'opacity-35'}`}>
+                        <img src={resolveImageUrl(piece.imageUrl)} alt={label(piece)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                      </Arch>
                       <span className={`mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] ${on ? 'text-ink/60' : 'text-ink/35 line-through'}`}>{label(piece)}</span>
                     </button>
-                    <button type="button" onClick={() => void openSwap(piece)} className="btn-quiet !h-7 !px-0 !text-[10px] !uppercase !tracking-[0.12em] !text-brass">
+                    <button type="button" onClick={() => void openSwap(piece)} className="btn-quiet !h-7 !px-0 !text-[10px] !uppercase !tracking-[0.12em] !text-brass-ink">
                       Swap
                     </button>
                   </div>
@@ -633,11 +626,9 @@ export function MirrorPage() {
                 {closet && (
                   <div>
                     <button type="button" onClick={() => setSwapFor({ id: '', imageUrl: '', category: '', subtype: null })} className="press block w-full text-left" title="Add a piece">
-                      <div className="arch-bezel aspect-[5/6] opacity-40 transition-opacity hover:opacity-80">
-                        <div className="arch-niche flex h-full w-full items-center justify-center">
-                          <span className="relative z-[1] font-display text-3xl text-[rgb(var(--c-on-brass))]/45">+</span>
-                        </div>
-                      </div>
+                      <Arch aspect="aspect-[5/6]" className="opacity-75 transition-opacity hover:opacity-100">
+                        <span className="absolute inset-0 z-[1] flex items-center justify-center font-display text-3xl text-[var(--text-in-niche-muted)]">+</span>
+                      </Arch>
                       <span className="mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/40">Add a piece</span>
                     </button>
                     {/* the same row the others give to Swap, so the tiles sit level */}
@@ -659,13 +650,13 @@ export function MirrorPage() {
                   {out ? (
                     <>
                       <b className="text-ink">No renders left</b> on the {usage?.label ?? 'free'} plan.{' '}
-                      <button type="button" onClick={() => navigate('/billing')} className="font-semibold text-brass underline-offset-4 hover:underline">
+                      <button type="button" onClick={() => navigate('/billing')} className="font-semibold text-brass-ink underline-offset-4 hover:underline">
                         See plans
                       </button>
                     </>
                   ) : (
                     <>
-                      <b className="text-brass">{left} of {meter.limit}</b> left{usage?.lifetime ? '' : ' this month'} · same pieces again is free
+                      <b className="text-brass-ink">{left} of {meter.limit}</b> left{usage?.lifetime ? '' : ' this month'} · same pieces again is free
                     </>
                   )}
                 </p>
@@ -676,12 +667,12 @@ export function MirrorPage() {
 
           {/* your reflections: up to three, one dressed */}
           {photoChecked && (photos.length > 0 || photoUrl) && (
-            <section className="mt-8 border-t border-ink/10 pt-6">
+            <section className="mt-10 border-t border-ink/10 pt-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Your reflections</p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
               {photos.map((p) => (
                 <div key={p.id} className="group relative">
-                  <button type="button" onClick={() => void pickPhoto(p.id)} aria-pressed={p.active} title={p.active ? 'The one the Mirror dresses' : 'Dress this one'} className={`press block w-12 overflow-hidden rounded-[3px] border transition-colors ${p.active ? 'border-brass ring-2 ring-brass/30' : 'border-ink/15 opacity-70 hover:opacity-100'}`}>
+                  <button type="button" onClick={() => void pickPhoto(p.id)} aria-pressed={p.active} title={p.active ? 'The one the Mirror dresses' : 'Dress this one'} className={`press block w-12 overflow-hidden rounded-[3px] border transition-colors ${p.active ? 'border-brass' : 'border-ink/15 opacity-70 hover:opacity-100'}`}>
                     <img src={resolveImageUrl(p.url)} alt="" className="aspect-[3/4] w-full object-cover" />
                   </button>
                   <button type="button" onClick={() => setConfirmRemovePhoto(p.id)} aria-label="Delete this photo and its renders" className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-[3px] bg-ink/80 text-bone group-hover:flex">
@@ -692,7 +683,7 @@ export function MirrorPage() {
                 </div>
               ))}
               {photos.length < photoMax && (
-                <button type="button" onClick={() => setPhotoModal(true)} className="flex aspect-[3/4] w-12 items-center justify-center rounded-[3px] border border-dashed border-ink/25 text-ink/40 transition-colors hover:border-brass hover:text-brass" aria-label="Add a photo">
+                <button type="button" onClick={() => setPhotoModal(true)} className="flex aspect-[3/4] w-12 items-center justify-center rounded-[3px] border border-dashed border-ink/25 text-ink/40 transition-colors hover:border-brass hover:text-brass-ink" aria-label="Add a photo">
                   +
                 </button>
               )}
@@ -703,7 +694,7 @@ export function MirrorPage() {
 
           {/* an inspiration look on you: the doors are on its card */}
           {ready && current && !compareMode && current.lookId && (
-            <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
+            <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Then</p>
               <p className="mt-2 text-sm text-ink/60">
                 An inspiration look, on you. Keep it, or make it from your closet, on its card{lens === 'inspiration' ? '' : ' in the Inspiration lens'}.
@@ -720,12 +711,12 @@ export function MirrorPage() {
 
           {/* the decision */}
           {ready && current && !compareMode && !current.lookId && (
-            <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
+            <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Then</p>
               {current.items && current.items.length > 0 && <p className="mt-2 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
               <div className="action-row mt-4">
                 {decided.wear ? (
-                  <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass">Logged for today</span>
+                  <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass-ink">Logged for today</span>
                 ) : (
                   <button type="button" disabled={busy !== null} onClick={() => void wearIt()} className="btn-primary">
                     {busy === 'wear' ? 'Logging…' : 'Wearing it'}
@@ -781,7 +772,7 @@ export function MirrorPage() {
 
           {/* compare controls */}
           {compareMode && (
-            <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
+            <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Which one?</p>
               <p className="mt-1 text-sm text-ink/55">{compared.length < 2 ? 'Pick two renders below.' : 'Side by side. Still torn? Put it to the circle.'}</p>
               <div className="action-row mt-3">
@@ -820,7 +811,7 @@ export function MirrorPage() {
                     setCompareMode(false)
                     setCompare([])
                   }}
-                  className="btn-quiet btn-quiet-sm !text-ink/40"
+                  className="btn-quiet btn-quiet-sm"
                 >
                   Done
                 </button>
@@ -832,7 +823,7 @@ export function MirrorPage() {
           {photoUrl && (tryOns?.length ?? 0) > 0 && (
             <section className="mt-10 border-t border-ink/10 pt-6">
               {/* label row: the section name left, its one action right; the filters get their own row */}
-              <div className="flex h-8 items-center justify-between gap-3">
+              <div className="flex h-9 items-center justify-between gap-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Renders</p>
                 {(tryOns?.length ?? 0) >= 2 && !compareMode && (
                   <button
@@ -849,17 +840,16 @@ export function MirrorPage() {
               </div>
               <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-1">
-                  <button type="button" onClick={() => setActiveBook(null)} aria-pressed={activeBook === null} className="filter press">
-                    All<span className="count">{tryOns?.length ?? 0}</span>
-                  </button>
+                  <Filter on={activeBook === null} onClick={() => setActiveBook(null)} count={tryOns?.length ?? 0}>
+                    All
+                  </Filter>
                   {lookbooks.map((b) => (
                     <span key={b.id} className="inline-flex items-center">
-                      <button type="button" onClick={() => setActiveBook((prev) => (prev === b.id ? null : b.id))} aria-pressed={activeBook === b.id} className="filter press">
+                      <Filter on={activeBook === b.id} onClick={() => setActiveBook((prev) => (prev === b.id ? null : b.id))} count={b.tryOnIds.length}>
                         {b.name}
-                        <span className="count">{b.tryOnIds.length}</span>
-                      </button>
+                      </Filter>
                       {activeBook === b.id && (
-                        <button type="button" aria-label="Delete lookbook" onClick={() => void handleDeleteBook(b.id)} className="ml-1 text-ink/35 hover:text-red-500">
+                        <button type="button" aria-label="Delete lookbook" onClick={() => void handleDeleteBook(b.id)} className="press ml-1 flex h-8 w-8 items-center justify-center rounded-[3px] text-ink/35 transition-colors hover:text-[rgb(var(--c-danger))]">
                           <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
                             <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" />
                           </svg>
@@ -888,11 +878,11 @@ export function MirrorPage() {
                             if (t.itemIds?.length) setRail(t.itemIds.map((id) => ({ id, on: true })))
                           }
                         }}
-                        className={`press block w-full overflow-hidden rounded-[3px] border transition-colors ${idx >= 0 || isCurrent ? 'border-brass ring-2 ring-brass/30' : 'border-ink/12 hover:border-brass/50'}`}
+                        className={`press block w-full overflow-hidden rounded-[3px] border transition-colors ${idx >= 0 || isCurrent ? 'border-brass' : 'border-ink/10 hover:border-brass/50'}`}
                       >
                         {t.status === 'queued' || t.status === 'rendering' ? (
-                          <div className="flex aspect-[2/3] w-full items-center justify-center bg-ink/5 text-ink/40">
-                            <Spinner className="h-4 w-4" />
+                          <div className="flex aspect-[2/3] w-full animate-pulse items-center justify-center bg-ink/10 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass-ink">
+                            developing
                           </div>
                         ) : (
                           <img src={resolveImageUrl(t.imageUrl)} alt="Try-on render" loading="lazy" className="aspect-[2/3] w-full object-cover" />
@@ -925,22 +915,16 @@ export function MirrorPage() {
 
       {/* ---- Swap / add a piece ---- */}
       <Modal open={swapFor !== null} onClose={() => setSwapFor(null)} title={swapFor?.id ? `Instead of the ${label(swapFor)}` : 'Add a piece'}>
-        {swapFor?.id && alternatives === null && (
-          <div className="py-6 text-center text-ink/40">
-            <Spinner className="h-5 w-5" />
-          </div>
-        )}
+        {swapFor?.id && alternatives === null && <ArchSkeleton count={3} className="grid grid-cols-3 gap-3" />}
         {swapFor?.id && alternatives && (
           <>
-            {alternatives.length === 0 && <p className="text-sm text-ink/55">Nothing else of that kind is clean right now.</p>}
+            {alternatives.length === 0 && <EmptyState line="Nothing else of that kind is clean right now." />}
             <div className="grid grid-cols-3 gap-3">
               {alternatives.map((a) => (
                 <button key={a.id} type="button" onClick={() => swap(a.id)} className="press text-left">
-                  <div className="arch-bezel aspect-[5/6]">
-                    <div className="arch-niche h-full w-full">
-                      <img src={resolveImageUrl(a.imageUrl)} alt={label(a)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                    </div>
-                  </div>
+                  <Arch aspect="aspect-[5/6]">
+                    <img src={resolveImageUrl(a.imageUrl)} alt={label(a)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                  </Arch>
                   <span className="mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/60">{label(a)}</span>
                 </button>
               ))}
@@ -961,11 +945,9 @@ export function MirrorPage() {
                   }}
                   className="press text-left"
                 >
-                  <div className="arch-bezel aspect-[5/6]">
-                    <div className="arch-niche h-full w-full">
-                      <img src={resolveImageUrl(p.imageUrl)} alt={label(p)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                    </div>
-                  </div>
+                  <Arch aspect="aspect-[5/6]">
+                    <img src={resolveImageUrl(p.imageUrl)} alt={label(p)} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                  </Arch>
                   <span className="mt-1.5 block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/60">{label(p)}</span>
                 </button>
               ))}
@@ -975,7 +957,7 @@ export function MirrorPage() {
 
       <Modal open={confirmRemovePhoto !== null} onClose={() => setConfirmRemovePhoto(null)} title="Delete this photo?">
         <p className="text-sm text-ink/70">Every render made from it goes with it. There’s no way back.</p>
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="action-row mt-6 justify-end">
           <button type="button" className="btn-quiet" onClick={() => setConfirmRemovePhoto(null)}>
             Keep it
           </button>
@@ -989,32 +971,22 @@ export function MirrorPage() {
       <input ref={cameraRef} type="file" accept="image/*" capture="user" onChange={handlePhotoFile} className="hidden" />
       <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoFile} className="hidden" />
       <Modal open={photoModal} onClose={() => setPhotoModal(false)} title="Add your photo">
-        {chosen.length > 0 && <p className="mb-4 rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-3 font-display text-sm italic text-ink/80">The pieces stay on the rail. Once your photo’s in, See it on me is one tap.</p>}
+        {chosen.length > 0 && <p className="mb-4 font-display text-base italic text-ink/70">The pieces stay on the rail. Once your photo’s in, See it on me is one tap.</p>}
         <label className="mb-4 flex cursor-pointer items-start gap-3 text-sm text-ink/70">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-iris" />
           <span>I agree my photo is stored to generate try-on images. It’s used only for this, never shared, and I can delete it anytime.</span>
         </label>
-        <div className={`space-y-3 ${consent ? '' : 'pointer-events-none opacity-40'}`}>
-          <button type="button" onClick={() => cameraRef.current?.click()} disabled={!consent || photoBusy} className="press flex w-full items-center justify-between rounded-[3px] border border-ink/12 px-5 py-4 text-left transition-colors hover:border-brass">
-            <span>
-              <span className="block text-sm font-semibold text-ink">Take a photo</span>
-              <span className="block text-xs text-ink/50">Full-length, a plain wall behind you, even light</span>
-            </span>
-            <span className="text-ink/30">→</span>
+        <div className={`flex flex-col gap-4 ${consent ? '' : 'pointer-events-none opacity-50'}`}>
+          <button type="button" onClick={() => cameraRef.current?.click()} disabled={!consent || photoBusy} className="card card-hover press block w-full p-4 text-left disabled:cursor-not-allowed">
+            <span className="block text-sm font-semibold text-ink">Take a photo</span>
+            <span className="mt-1 block text-xs text-ink/50">Full-length, a plain wall behind you, even light</span>
           </button>
-          <button type="button" onClick={() => galleryRef.current?.click()} disabled={!consent || photoBusy} className="press flex w-full items-center justify-between rounded-[3px] border border-ink/12 px-5 py-4 text-left transition-colors hover:border-brass">
-            <span>
-              <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
-              <span className="block text-xs text-ink/50">A clear, front-facing, full-length shot</span>
-            </span>
-            <span className="text-ink/30">→</span>
+          <button type="button" onClick={() => galleryRef.current?.click()} disabled={!consent || photoBusy} className="card card-hover press block w-full p-4 text-left disabled:cursor-not-allowed">
+            <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
+            <span className="mt-1 block text-xs text-ink/50">A clear, front-facing, full-length shot</span>
           </button>
         </div>
-        {photoBusy && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-ink/50">
-            <Spinner className="h-4 w-4" /> saving your photo…
-          </div>
-        )}
+        {photoBusy && <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-brass-ink">saving your photo</p>}
       </Modal>
 
       {/* ---- Lookbook picker ---- */}
@@ -1026,7 +998,7 @@ export function MirrorPage() {
                 {lookbooks.map((b) => {
                   const inBook = b.tryOnIds.includes(pickerFor)
                   return (
-                    <button key={b.id} type="button" onClick={() => void handleToggleBook(b.id, pickerFor)} className={`press flex w-full items-center justify-between rounded-[3px] border px-4 py-3 text-sm transition-colors ${inBook ? 'border-brass bg-iris-soft text-brass' : 'border-ink/12 text-ink/75 hover:border-brass/50'}`}>
+                    <button key={b.id} type="button" onClick={() => void handleToggleBook(b.id, pickerFor)} aria-pressed={inBook} className={`press flex h-11 w-full items-center justify-between rounded-[3px] border px-4 text-sm transition-colors ${inBook ? 'border-brass bg-iris-soft text-brass-ink' : 'border-ink/15 text-ink/75 hover:border-brass/50'}`}>
                       <span>{b.name}</span>
                       <span className="text-xs">{inBook ? 'added' : `${b.tryOnIds.length} renders`}</span>
                     </button>
@@ -1043,6 +1015,6 @@ export function MirrorPage() {
           </>
         )}
       </Modal>
-    </div>
+    </PageShell>
   )
 }

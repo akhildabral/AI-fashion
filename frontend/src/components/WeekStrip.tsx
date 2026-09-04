@@ -48,8 +48,8 @@ export function WeekStrip({ selected, onSelect, refreshKey = 0 }: { selected: st
               onClick={() => onSelect(d.date)}
               className="press group relative flex flex-col items-center gap-1 pb-3 pt-1 text-center"
             >
-              <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] ${d.today ? 'text-brass' : 'text-ink/35'}`}>{wd}</span>
-              <span className={`font-display text-xl leading-none transition-colors ${d.rest ? 'text-ink/30' : d.today ? 'text-brass' : on ? 'text-ink' : 'text-ink/70 group-hover:text-ink'}`}>{n}</span>
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${d.today ? 'text-brass-ink' : 'text-ink/35'}`}>{wd}</span>
+              <span className={`font-display text-xl leading-none transition-colors ${d.rest ? 'text-ink/30' : d.today ? 'text-brass-ink' : on ? 'text-ink' : 'text-ink/70 group-hover:text-ink'}`}>{n}</span>
               <span className="flex h-3.5 items-center justify-center gap-0.5">
                 {d.past && d.worn && !d.rest &&
                   Array.from({ length: Math.min(Math.max(d.lookCount ?? 1, 1), 3) }).map((_, i) => (

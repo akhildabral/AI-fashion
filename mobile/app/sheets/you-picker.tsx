@@ -2,9 +2,10 @@
 // through the profile and the sheet closes.
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { saveFitting } from '@zauq/shared/fitting'
 import { CURRENCIES, guessCurrency, setCurrentCurrency } from '@zauq/shared/money'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import { useProfile } from '@/src/context/ProfileProvider'
@@ -13,7 +14,8 @@ import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, height, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk, queryClient } from '@/src/lib/query'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { CheckGlyph } from '@/src/components/Glyphs'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function PickerSheet() {
   const router = useRouter()
@@ -43,34 +45,24 @@ export default function PickerSheet() {
   }
 
   return (
-    <SheetShell title={kind === 'currency' ? 'Your currency' : 'Pick one'} line={kind === 'currency' ? 'Every figure, from the estate to cost per wear, prints in it.' : undefined}>
+    <SheetShell dense title={kind === 'currency' ? 'Your currency' : 'Pick one'} lead={kind === 'currency' ? 'Every figure, from the estate to cost per wear, prints in it.' : undefined}>
       <View>
         {options.map((o, i) => {
           const on = o.value === current
           return (
-            <Pressable
-              key={o.value || 'guess'}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on, busy: busy === o.value }}
-              accessibilityLabel={`${o.label}${o.line ? `, ${o.line}` : ''}`}
-              onPress={() => void pick(o.value)}
-              pressRetentionOffset={12}
-              style={({ pressed }) => [styles.row, { borderTopColor: alpha(t.ink, 0.1), borderTopWidth: i === 0 ? 0 : hairline, opacity: pressed ? 0.6 : 1 }]}
-            >
-              <T role="bodySm" style={[{ flex: 1 }, on && { fontFamily: fonts.sansSemi }]}>
-                {o.label}
-              </T>
-              {o.line ? (
-                <T role="bodySm" tone={on ? 'brass' : 'muted'} style={{ fontVariant: ['tabular-nums'] }}>
-                  {o.line}
+            <Press key={o.value || 'guess'} accessibilityRole="button" accessibilityState={{ selected: on, busy: busy === o.value }} accessibilityLabel={`${o.label}${o.line ? `, ${o.line}` : ''}`} onPress={() => void pick(o.value)}>
+              <View style={[styles.row, { borderTopColor: alpha(t.ink, 0.1), borderTopWidth: i === 0 ? 0 : hairline }]}>
+                <T role="bodySm" style={[{ flex: 1 }, on && { fontFamily: fonts.sansSemi }]}>
+                  {o.label}
                 </T>
-              ) : null}
-              {on ? (
-                <T role="bodySm" tone="brass" accessible={false}>
-                  ✓
-                </T>
-              ) : null}
-            </Pressable>
+                {o.line ? (
+                  <T role="bodySm" tone={on ? 'brass' : 'muted'} style={{ fontVariant: ['tabular-nums'] }}>
+                    {o.line}
+                  </T>
+                ) : null}
+                {on ? <CheckGlyph color={t.brass} /> : null}
+              </View>
+            </Press>
           )
         })}
       </View>

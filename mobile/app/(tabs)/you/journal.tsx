@@ -14,7 +14,7 @@ import { deleteWearLog, getWearInsights, getWearLog } from '@zauq/shared/wearlog
 import { EmptyState, LoadError, Plaque, SectionHead, Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Filter } from '@/src/components/Tabs'
@@ -30,7 +30,7 @@ import { DayLogCard } from '@/src/features/you/DayLogCard'
 import { Card, TextLink } from '@/src/features/you/Furniture'
 import { MonthStrip } from '@/src/features/you/MonthStrip'
 import { routes } from '@/src/features/you/nav'
-import { UndoBar } from '@/src/features/you/UndoBar'
+import { UndoBar } from '@/src/components/UndoBar'
 
 const UNDO_MS = 6000
 const TILE = 112
@@ -58,6 +58,7 @@ export default function Journal() {
   const [pending, setPending] = useState<{ log: WearLogEntry; timer: ReturnType<typeof setTimeout> } | null>(null)
   const scroller = useRef<ScrollView>(null)
   const dayY = useRef<Record<string, number>>({})
+  const bottom = useBottomReserve()
 
   const key = qk.journal(month)
   const logsQ = useQuery({ queryKey: key, queryFn: () => getWearLog({ month }) })
@@ -145,7 +146,7 @@ export default function Journal() {
       <Screen>
         <ScrollView
           ref={scroller}
-          contentContainerStyle={styles.body}
+          contentContainerStyle={[styles.body, { paddingBottom: bottom }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -159,7 +160,14 @@ export default function Journal() {
             />
           }
         >
-          <RoomHeader eyebrow="The record" title="What you" emphasis="actually wore." lead="Every brief learns from this. Fill the days, and tell the stylist what to bring back." style={styles.header} />
+          <RoomHeader
+            eyebrow="The record"
+            title="What you"
+            emphasis="actually wore."
+            lead="Every brief learns from this. Fill the days, and tell the stylist what to bring back."
+            right={<Button label="Log a day" size="sm" onPress={() => router.push(routes.logDay(dayKey(new Date())))} />}
+            style={styles.header}
+          />
 
           {ritual || insights ? (
             <Plaque style={styles.plaque}>
@@ -298,17 +306,14 @@ export default function Journal() {
           ) : null}
         </ScrollView>
 
-        {pending ? <UndoBar message={`${formatDay(pending.log.wornOn)} removed.`} onUndo={undo} bottom={ACTION_BAR_HEIGHT + space.md} /> : null}
-        <ActionBar>
-          <Button label="Log a day" block onPress={() => router.push(routes.logDay(dayKey(new Date())))} />
-        </ActionBar>
+        {pending ? <UndoBar message={`${formatDay(pending.log.wornOn)} removed.`} onUndo={undo} /> : null}
       </Screen>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: ACTION_BAR_HEIGHT + space.xl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md },
   // The blocks below carry the web's `mt-*` themselves.
   header: { paddingBottom: 0 },
   plaque: { marginTop: space.xxl },
@@ -322,8 +327,9 @@ const styles = StyleSheet.create({
   list: { gap: space.md },
   group: { gap: space.sm },
   multi: { gap: space.sm, borderLeftWidth: hairline, paddingLeft: space.lg },
-  section: { marginTop: space.xxxl, gap: space.xs },
-  rail: { marginHorizontal: -gutter, marginTop: space.md },
+  // A group 40 on; the head and its line 8 apart; the rail 16 under.
+  section: { marginTop: space.xxxl, gap: space.sm },
+  rail: { marginHorizontal: -gutter, marginTop: space.sm },
   railBody: { paddingHorizontal: gutter, gap: space.lg, paddingTop: space.xs },
   idle: { width: TILE, opacity: 0.8, gap: space.xs, alignItems: 'center' },
 })

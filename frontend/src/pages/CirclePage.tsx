@@ -3,8 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import { Arch, Modal, PageShell, Toast, useFlash, Tabs, MoreMenu, MenuItem } from '../components/ui'
-import { Spinner } from '../components/Spinner'
+import { Arch, Modal, PageShell, PageHead, Toast, useFlash, Tabs, MoreMenu, MenuItem, Filter, Stat, LoadError, SkeletonBlock } from '../components/ui'
 import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { InviteSheet } from '../components/InviteSheet'
 import { ReportSheet } from '../components/ReportSheet'
@@ -355,18 +354,16 @@ export function CirclePage() {
   )
 
   return (
-    <PageShell>
+    <PageShell wide>
       <Toast msg={toast} />
 
-      {/* ---- mantel ---- */}
-      <header>
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">The Circle</p>
-        <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium text-ink sm:text-6xl">Circle</h1>
-      </header>
+      {/* ---- mantel: the tracked label over the Bodoni line ---- */}
+      <PageHead eyebrow="The Circle" title="Circle" />
 
-      <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      {/* The two-column room: content and a 340 aside, 48 → 64 apart; the aside stacks last below lg. */}
+      <div className="mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
         {/* ================= main column ================= */}
-        <div className="mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-none">
+        <div className="mx-auto w-full max-w-2xl lg:mx-0">
           {/* ---- today rail ---- */}
           <section aria-label="Today in your circle" className="animate-rise-1">
             <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
@@ -376,7 +373,8 @@ export function CirclePage() {
                 ) : (
                   <div className="arch-bezel aspect-[4/5] w-16 opacity-50">
                     <div className="arch-niche flex h-full w-full items-center justify-center">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="relative z-[1] text-brass-lo" aria-hidden="true">
+                      {/* Drawn inside the niche, so it takes the theme-invariant niche ink. */}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="relative z-[1]" style={{ color: 'var(--text-in-niche-muted)' }} aria-hidden="true">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
                     </div>
@@ -393,7 +391,7 @@ export function CirclePage() {
                 ) : null,
               )}
               {today && othersToday.length === 0 && (
-                <p className="self-center pl-2 text-xs text-ink/40">No one in your circle has shared a look today.</p>
+                <p className="self-center pl-2 font-display text-sm italic text-ink/45">No one in your circle has shared a look today.</p>
               )}
             </div>
           </section>
@@ -419,8 +417,8 @@ export function CirclePage() {
             </MoreMenu>
           </div>
 
-          {/* ---- lens ---- */}
-          <Tabs className="mt-6 animate-rise-1" label="Feed" value={lens} onChange={(k) => setLens(k)} items={LENSES.map((l) => ({ key: l.key, label: l.label }))} />
+          {/* ---- lens: tabs switch views of the same feed; filters narrow one of them ---- */}
+          <Tabs className="mt-8 animate-rise-1" label="Feed" value={lens} onChange={(k) => setLens(k)} items={LENSES.map((l) => ({ key: l.key, label: l.label }))} />
           {lens === 'explore' && (
             <div className="mt-3 flex flex-wrap items-center gap-1">
               {(
@@ -432,37 +430,32 @@ export function CirclePage() {
                   ['occasion', 'Occasion'],
                 ] as [ExploreOccasion | null, string][]
               ).map(([k, l]) => (
-                <button key={l} type="button" aria-pressed={exploreOccasion === k} onClick={() => setExploreOccasion(k)} className="filter press">
+                <Filter key={l} on={exploreOccasion === k} onClick={() => setExploreOccasion(k)}>
                   {l}
-                </button>
+                </Filter>
               ))}
               <span className="filter-sep" />
-              <button type="button" aria-pressed={exploreKindred} onClick={() => setExploreKindred((v) => !v)} className="filter press">
+              <Filter on={exploreKindred} onClick={() => setExploreKindred((v) => !v)}>
                 Kindred taste
-              </button>
+              </Filter>
             </div>
           )}
 
-          {/* ---- feed ---- */}
-          <div className="mt-5 flex flex-col gap-4">
+          {/* ---- feed: one ranked column, in a single measure ---- */}
+          <div className="mt-4 flex flex-col gap-4">
             {posts === null && (
-              <>
+              <div aria-busy="true" aria-label="Loading your circle" className="flex flex-col gap-4">
                 {[0, 1].map((i) => (
-                  <div key={i} className="card animate-pulse p-4 opacity-60">
-                    <div className="h-9 w-40 rounded-[3px] bg-ink/10" />
-                    <div className="rect-frame mt-3 aspect-[4/3] w-full">
+                  <div key={i} className="card p-4">
+                    <SkeletonBlock className="h-8 w-40" />
+                    <div className="rect-frame mt-3 aspect-[4/3] w-full animate-pulse opacity-60">
                       <div className="arch-niche h-full w-full" />
                     </div>
                   </div>
                 ))}
-              </>
-            )}
-            {error && (
-              <div className="alert-error flex items-center justify-between gap-3">
-                <span>{error}</span>
-                <button type="button" onClick={() => void loadFeed(lens)} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
               </div>
             )}
+            {error && <LoadError className="!min-h-0 py-10" message={error} onRetry={() => void loadFeed(lens)} />}
             {feedEmpty && <EmptyFeed lens={lens} circleSize={circleSize} onFind={() => openPeople('find')} onShare={() => setSharing(true)} onInvite={() => setInviting(true)} />}
 
             {posts?.slice(0, 2).map(renderPost)}
@@ -484,16 +477,16 @@ export function CirclePage() {
           </div>
         </div>
 
-        {/* ================= side rail ================= */}
-        <aside className="mt-12 flex flex-col gap-5 lg:sticky lg:top-24 lg:mt-0 lg:self-start">
-          <div className="card p-5">
-            <p className="font-display text-xl font-medium text-ink">You in the circle</p>
+        {/* ================= side rail: stacks last below lg ================= */}
+        <aside className="mt-10 flex flex-col gap-4 lg:sticky lg:top-24 lg:mt-0 lg:self-start">
+          <div className="card p-4">
+            <p className="font-display text-2xl font-medium text-ink">You in the circle</p>
             {me?.handle ? (
               <>
                 <div className="mt-4 flex gap-6">
-                  <Stat v={me.followers} l="Followers" />
-                  <Stat v={me.following} l="Following" />
-                  <Stat v={me.picks} l="Styled for you" />
+                  <Stat value={me.followers} label="Followers" />
+                  <Stat value={me.following} label="Following" />
+                  <Stat value={me.picks} label="Styled for you" />
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
                   <button type="button" onClick={() => setInviting(true)} className="btn-primary w-full btn-sm">
@@ -510,13 +503,17 @@ export function CirclePage() {
                 </div>
               </>
             ) : (
-              <p className="mt-2 text-sm text-ink/55">One moment…</p>
+              <div className="mt-4 flex gap-6" aria-busy="true" aria-label="Loading">
+                {[0, 1, 2].map((i) => (
+                  <SkeletonBlock key={i} className="h-10 w-14" />
+                ))}
+              </div>
             )}
           </div>
 
           {twins.length > 0 && (
-            <div className="card hidden p-5 lg:block">
-              <p className="font-display text-xl font-medium text-ink">Kindred taste</p>
+            <div className="card hidden p-4 lg:block">
+              <p className="font-display text-2xl font-medium text-ink">Kindred taste</p>
               <p className="mt-1 text-xs text-ink/50">Matched by wardrobe and taste, not follower counts.</p>
               <div className="mt-2">
                 {twins.slice(0, 3).map((t) => (
@@ -529,11 +526,7 @@ export function CirclePage() {
                       </span>
                     </Link>
                     {!t.isFollowing && (
-                      <button
-                        type="button"
-                        onClick={() => void quickFollow(t.handle)}
-                        className="btn-ghost btn-sm shrink-0 !border-brass/60 !text-brass hover:!bg-iris-soft"
-                      >
+                      <button type="button" onClick={() => void quickFollow(t.handle)} className="btn-ghost btn-sm shrink-0">
                         Follow
                       </button>
                     )}
@@ -541,7 +534,7 @@ export function CirclePage() {
                 ))}
               </div>
               {twins.length > 3 && (
-                <button type="button" onClick={() => openPeople('suggested')} className="btn-quiet mt-1 !h-9 !text-xs !text-brass">
+                <button type="button" onClick={() => openPeople('suggested')} className="btn-quiet btn-quiet-sm mt-1">
                   See all {twins.length} →
                 </button>
               )}
@@ -581,8 +574,14 @@ export function CirclePage() {
 
       <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={recreate ? `In your closet, ${recreate.handle}’s look` : 'Recreate'}>
         {recreate && recreate.result === null && (
-          <div className="flex justify-center py-10 text-ink/50">
-            <Spinner className="h-6 w-6" />
+          <div aria-busy="true" aria-label="Reading your closet" className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="arch-bezel aspect-[5/6] w-16 animate-pulse opacity-50"><div className="arch-niche h-full w-full" /></div>
+                <SkeletonBlock className="h-4 flex-1" />
+                <div className="arch-bezel aspect-[5/6] w-16 animate-pulse opacity-50"><div className="arch-niche h-full w-full" /></div>
+              </div>
+            ))}
           </div>
         )}
         {recreate?.result && (
@@ -602,7 +601,7 @@ export function CirclePage() {
                 ))}
               </div>
             ) : (
-              <p className="rounded-[3px] border border-dashed border-ink/20 p-4 text-sm text-ink/55">
+              <p className="font-display text-lg italic text-ink/70">
                 Nothing here matches this look yet{recreate.result.closetSize === 0 ? '. Your closet’s empty; add some pieces first.' : '.'}
               </p>
             )}
@@ -664,9 +663,10 @@ function EmptyFeed({
     saved: { title: 'Your board is empty', body: 'Tap Save on any look you’d wear. It waits here for when you need the idea.' },
   }
   const c = copy[lens]
+  // An empty state is one italic Bodoni line and a way forward: no box.
   return (
-    <div className="rounded-[3px] border border-dashed border-ink/20 px-6 py-14 text-center">
-      <p className="font-display text-2xl font-medium text-ink">{c.title}</p>
+    <div className="px-6 py-12 text-center">
+      <p className="font-display text-2xl font-medium italic text-ink">{c.title}</p>
       <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">{c.body}</p>
       {lens !== 'explore' && lens !== 'saved' && circleSize === 0 && (
         <div className="action-row mt-5 justify-center">
@@ -702,8 +702,8 @@ function SuggestedRail({
   return (
     <section aria-label="People with your taste" className="card p-4 lg:hidden">
       <div className="flex items-baseline justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Kindred taste</p>
-        <button type="button" onClick={onDismiss} className="press text-[11px] text-ink/40 hover:text-ink/70">
+        <p className="eyebrow">Kindred taste</p>
+        <button type="button" onClick={onDismiss} className="press text-xs text-ink/55 transition-colors hover:text-ink">
           Hide
         </button>
       </div>
@@ -711,16 +711,16 @@ function SuggestedRail({
         {people.map((t) => (
           <div key={t.handle} className="w-36 shrink-0 rounded-[3px] border border-ink/10 bg-bone p-3 text-center">
             <Link to={`/u/${t.handle}`} className="press inline-flex flex-col items-center">
-              <Initials handle={t.handle} name={t.name} className="h-10 w-10 text-xs" />
+              <Initials handle={t.handle} name={t.name} className="h-8 w-8" />
               <span className="mt-2 block max-w-full truncate text-sm font-semibold text-ink">{t.name}</span>
               <span className="mt-0.5 block max-w-full truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
             </Link>
-            <button type="button" onClick={() => onFollow(t.handle)} className="btn-ghost btn-sm mt-3 w-full !border-brass/60 !text-brass hover:!bg-iris-soft">
+            <button type="button" onClick={() => onFollow(t.handle)} className="btn-ghost btn-sm mt-3 w-full">
               Follow
             </button>
           </div>
         ))}
-        <button type="button" onClick={onSeeAll} className="btn-quiet shrink-0 self-center whitespace-nowrap !text-xs !text-brass">
+        <button type="button" onClick={onSeeAll} className="btn-quiet btn-quiet-sm shrink-0 self-center whitespace-nowrap">
           See all →
         </button>
       </div>
@@ -738,14 +738,5 @@ function RailThumb({ look }: { look: LookPost }) {
     )
   }
   return <GarmentThumb item={look.items[0]} className="w-16" />
-}
-
-function Stat({ v, l }: { v: number; l: string }) {
-  return (
-    <div>
-      <p className="font-display text-2xl font-medium leading-tight text-ink [font-variant-numeric:tabular-nums]">{v}</p>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{l}</p>
-    </div>
-  )
 }
 

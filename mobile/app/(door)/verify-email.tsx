@@ -1,8 +1,8 @@
 import { Link, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator } from 'react-native'
 import { Button } from '@/src/components/Button'
 import { DoorShell } from '@/src/components/DoorShell'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { apiFetch } from '@/src/lib/api'
 
 // The emailed verification link, opened on the phone.
@@ -34,9 +34,11 @@ export default function VerifyEmail() {
   )
 
   if (state === 'checking') {
+    // The shape of the line arriving.
     return (
       <DoorShell eyebrow="One moment" title="Checking" emphasis="your email.">
-        <ActivityIndicator />
+        <SkeletonBlock height={16} width="72%" />
+        <SkeletonBlock height={16} width="48%" />
       </DoorShell>
     )
   }

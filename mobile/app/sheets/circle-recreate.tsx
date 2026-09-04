@@ -4,18 +4,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 import { recreateFromCloset } from '@zauq/shared/brief'
+import { EmptyState, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius } from '@/src/design/tokens'
+import { alpha, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { apiFetch } from '@/src/lib/api'
 import { qk } from '@/src/lib/query'
-import { Dashed, GarmentThumb, Plate } from '@/src/features/circle/atoms'
+import { GarmentThumb, Plate } from '@/src/features/circle/atoms'
 import { ck } from '@/src/features/circle/keys'
-import { SheetFrame } from '@/src/features/circle/SheetFrame'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function RecreateSheet() {
   const { t } = useTheme()
@@ -42,10 +43,10 @@ export default function RecreateSheet() {
   })
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title={`In your closet, ${who}’s look`}
       busy={q.isPending && !result}
-      action={
+      footer={
         result && result.pairs.length > 0 ? (
           <>
             <Button
@@ -62,14 +63,7 @@ export default function RecreateSheet() {
         ) : undefined
       }
     >
-      {q.isError && !result ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            {q.error instanceof Error ? q.error.message : 'Could not recreate that look.'}
-          </T>
-          <Button label="Try again" variant="ghost" size="sm" onPress={() => void q.refetch()} />
-        </Dashed>
-      ) : null}
+      {q.isError && !result ? <LoadError message={q.error instanceof Error ? q.error.message : 'Could not recreate that look.'} onRetry={() => void q.refetch()} /> : null}
       {result ? (
         <>
           {result.pairs.length > 0 ? (
@@ -94,11 +88,7 @@ export default function RecreateSheet() {
               ))}
             </View>
           ) : (
-            <Dashed>
-              <T role="bodySm" tone="muted" align="center">
-                {`Nothing here matches this look yet${result.closetSize === 0 ? '. Your closet’s empty; add some pieces first.' : '.'}`}
-              </T>
-            </Dashed>
+            <EmptyState title={`Nothing here matches this look yet${result.closetSize === 0 ? '. Your closet’s empty; add some pieces first.' : '.'}`} />
           )}
           {result.missing.length > 0 ? (
             <View style={[styles.missing, { borderColor: alpha(t.brass, 0.25), backgroundColor: alpha(t.brassSoft, 0.5), borderRadius: radius }]}>
@@ -112,14 +102,14 @@ export default function RecreateSheet() {
           ) : null}
         </>
       ) : null}
-    </SheetFrame>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  pairs: { gap: 12 },
-  pair: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pairs: { gap: space.md },
+  pair: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   names: { flex: 1 },
-  // `mt-4 p-4`, the lines `mt-2 space-y-1`
-  missing: { borderWidth: hairline, padding: 16, gap: 4, marginTop: 4 },
+  // A 16 card; its plate and lines 4 apart.
+  missing: { borderWidth: hairline, padding: space.lg, gap: space.xs },
 })

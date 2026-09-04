@@ -1,11 +1,13 @@
 // The closet, in the morning: one line when the basket is worth a load, one
 // when a wishlist piece is still on your mind. Quiet when there's nothing.
-// ClosetNotes.tsx on the web: plaques 14 / 20 inside, 8 apart, a brass arrow.
+// Each note is a plaque that is wholly a link: the label, the Bodoni line,
+// a brass arrow.
 import { useQuery } from '@tanstack/react-query'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { getBasket, getWishlist } from '@zauq/shared/wardrobe'
 import { Plaque } from '@/src/components/Bits'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
 import { space } from '@/src/design/tokens'
@@ -39,19 +41,18 @@ export function ClosetNotes({ index = 2 }: { index?: number }) {
   return (
     <Animated.View entering={rise(index)} style={styles.list}>
       {notes.map((n) => (
-        <Pressable key={n.to} accessibilityRole="button" accessibilityLabel={`${n.eyebrow}. ${n.line}`} pressRetentionOffset={12} onPress={() => go(n.to)}>
-          <Plaque style={styles.plaque}>
-            <View style={styles.text}>
-              <T role="micro" tone="faint" style={styles.eyebrow}>
-                {n.eyebrow}
+        <Press key={n.to} accessibilityRole="button" accessibilityLabel={`${n.eyebrow}. ${n.line}`} haptic="tap" onPress={() => go(n.to)}>
+          <Plaque label={n.eyebrow} style={styles.plaque}>
+            <View style={styles.row}>
+              <T role="lede" style={styles.line}>
+                {n.line}
               </T>
-              <T role="lede">{n.line}</T>
+              <T role="body" tone="brass" accessible={false}>
+                →
+              </T>
             </View>
-            <T role="body" tone="brass" accessible={false}>
-              →
-            </T>
           </Plaque>
-        </Pressable>
+        </Press>
       ))}
     </Animated.View>
   )
@@ -59,8 +60,7 @@ export function ClosetNotes({ index = 2 }: { index?: number }) {
 
 const styles = StyleSheet.create({
   list: { gap: space.sm },
-  // `p-3.5 pl-5`, `flex items-center justify-between gap-4`.
-  plaque: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.lg, paddingVertical: 14, paddingRight: 14, paddingLeft: 20 },
-  text: { flex: 1, gap: 2 },
-  eyebrow: { letterSpacing: 2 },
+  plaque: { gap: space.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  line: { flex: 1 },
 })

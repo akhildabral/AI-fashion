@@ -1,4 +1,4 @@
-import { Modal } from './ui'
+import { Modal, SectionHead, SkeletonBlock, Alert } from './ui'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { deletePhoto, getPhoto, uploadPhoto } from '@zauq/shared/tryon'
 import { Spinner } from './Spinner'
@@ -49,11 +49,11 @@ export function PhotoManager() {
     if (!file) return
 
     if (!ACCEPTED.includes(file.type)) {
-      setError('Please choose a JPG, PNG, or WebP image.')
+      setError('Use a JPG, PNG or WebP photo.')
       return
     }
     if (file.size > MAX_BYTES) {
-      setError('That image is larger than 10MB. Please choose a smaller file.')
+      setError('Use a photo up to 10MB.')
       return
     }
 
@@ -88,29 +88,29 @@ export function PhotoManager() {
   const busy = uploading || removing
 
   return (
-    <section
-      id="photo"
-      className="scroll-mt-24 rounded-[3px] border border-ink/10 bg-surface p-6  sm:p-8"
-    >
-      <div className="mb-6 max-w-2xl">
-        <h2 className="font-display text-2xl font-semibold text-ink">Your photo</h2>
+    <section id="photo" className="card scroll-mt-24 p-5">
+      <div className="max-w-2xl">
+        <SectionHead title="Your photo" className="!mb-0" />
         <p className="mt-2 text-sm text-ink/60">
-          Upload a clear, front-facing photo and we'll render your saved looks onto it,
-          so you can see yourself in every outfit before you commit.
+          One clear, front-facing photo, and every saved look renders on you before you commit to it.
         </p>
       </div>
 
       {loading ? (
-        <div className="flex min-h-[12rem] items-center justify-center text-ink/50">
-          <Spinner className="h-6 w-6" />
+        <div className="mt-6 flex flex-wrap items-start gap-6" aria-busy="true" aria-label="Loading">
+          <SkeletonBlock className="aspect-[3/4] w-40" />
+          <div className="min-w-[15rem] flex-1">
+            <SkeletonBlock className="h-11 w-40" />
+            <SkeletonBlock className="mt-4 h-4 w-56 !bg-ink/[0.07]" />
+          </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-start gap-6 sm:gap-8">
+        <div className="mt-6 flex flex-wrap items-start gap-6 sm:gap-8">
           {/* flex-wrap so the controls drop below the photo when this card is
               too narrow: it sits in a column, so a viewport breakpoint lies. */}
-          {/* Preview */}
+          {/* Preview: a photograph is a rectangle with a hairline, never an arch. */}
           <div className="w-40 shrink-0">
-            <div className="relative aspect-[3/4] w-40 overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-clay/20">
+            <div className="rect-frame aspect-[3/4] w-40">
               {photoUrl ? (
                 <img
                   src={photoUrl}
@@ -118,23 +118,23 @@ export function PhotoManager() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs text-ink/40">
-                  No photo yet
+                <div className="flex h-full w-full items-center justify-center px-4 text-center font-display text-base italic text-ink/45">
+                  No photo yet.
                 </div>
               )}
             </div>
           </div>
 
           {/* Controls */}
-          <div className="min-w-[15rem] flex-1 space-y-4">
+          <div className="min-w-[15rem] flex-1">
             {!photoUrl && (
-              <label className="flex items-start gap-2.5 text-sm text-ink/70">
+              <label className="flex items-start gap-3 text-sm text-ink/70">
                 <input
                   type="checkbox"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   disabled={busy}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-ink/30 text-brass focus:ring-brass/30"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-iris"
                 />
                 <span>
                   I consent to my photo being stored to generate try-on images.
@@ -158,7 +158,7 @@ export function PhotoManager() {
               className="hidden"
             />
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className={`action-row ${photoUrl ? '' : 'mt-4'}`}>
               <button
                 type="button"
                 onClick={() => setChooserOpen(true)}
@@ -187,46 +187,36 @@ export function PhotoManager() {
                   type="button"
                   onClick={handleRemove}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-ink/50 transition hover:text-red-700 disabled:opacity-60"
+                  className="btn-quiet !text-[rgb(var(--c-danger))]"
                 >
-                  {removing ? <Spinner className="h-3.5 w-3.5" /> : null}
+                  {removing ? <Spinner className="mr-2 h-4 w-4" /> : null}
                   {removing ? 'Removing…' : 'Remove photo'}
                 </button>
               )}
             </div>
 
-            <p className="text-xs text-ink/40">
-              JPG, PNG, or WebP · up to 10MB.
+            <p className="mt-4 text-xs text-ink/40">
+              JPG, PNG or WebP · up to 10MB.
               {photoUrl && ' Replacing overwrites your current photo.'}
             </p>
 
-            {error && (
-              <p
-                className="alert-error"
-                role="alert"
-              >
-                {error}
-              </p>
-            )}
+            {error && <Alert className="mt-4">{error}</Alert>}
           </div>
         </div>
       )}
 
       <Modal open={chooserOpen} onClose={() => setChooserOpen(false)} title="Add your photo">
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
           <button
             type="button"
             onClick={() => {
               setChooserOpen(false)
               cameraRef.current?.click()
             }}
-            className="flex w-full items-center justify-between rounded-[3px] border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            className="card card-hover press block w-full p-4 text-left"
           >
-            <span>
-              <span className="block text-sm font-semibold text-ink">Take a photo</span>
-              <span className="block text-xs text-ink/50">Front camera, full-length works best</span>
-            </span>
-            <span className="text-ink/30">→</span>
+            <span className="block text-sm font-semibold text-ink">Take a photo</span>
+            <span className="mt-1 block text-xs text-ink/50">Front camera, full-length works best</span>
           </button>
           <button
             type="button"
@@ -234,13 +224,10 @@ export function PhotoManager() {
               setChooserOpen(false)
               inputRef.current?.click()
             }}
-            className="flex w-full items-center justify-between rounded-[3px] border border-ink/10 px-5 py-4 text-left transition-colors hover:border-iris"
+            className="card card-hover press block w-full p-4 text-left"
           >
-            <span>
-              <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
-              <span className="block text-xs text-ink/50">Pick an existing photo</span>
-            </span>
-            <span className="text-ink/30">→</span>
+            <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
+            <span className="mt-1 block text-xs text-ink/50">Pick an existing photo</span>
           </button>
         </div>
       </Modal>

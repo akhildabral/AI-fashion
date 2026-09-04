@@ -65,7 +65,8 @@ export default function SignIn() {
       <KeyboardAwareScrollView bottomOffset={40} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Animated.View entering={rise(0)} style={styles.brand}>
           <ArchMark size={44} />
-          <Wordmark />
+          {/* The wordmark artwork is 3.5:1, so a 26 cap height clears the 88px floor. */}
+          <Wordmark size={26} />
         </Animated.View>
 
         <Animated.View entering={rise(1)} style={styles.head}>

@@ -1,6 +1,6 @@
 import { currencySymbol } from '@zauq/shared/money'
 import { useState } from 'react'
-import { Arch, Modal } from './ui'
+import { Arch, Modal, Alert, EmptyState } from './ui'
 import { resolveImageUrl } from '../lib/api'
 import { updateWardrobeItem } from '@zauq/shared/wardrobe'
 import type { WardrobeItem } from '@zauq/shared/types'
@@ -51,9 +51,7 @@ export function PriceDrawer({
         A rough number is fine. Prices power your estate value and cost-per-wear; they’re only ever shown to you.
       </p>
       {unpriced.length === 0 ? (
-        <p className="mt-6 rounded-[3px] border border-dashed border-ink/20 p-5 text-center text-sm text-ink/55">
-          Every piece has a price. Your estate value is on the mantel.
-        </p>
+        <EmptyState className="mt-6" line="Every piece has a price. Your estate value is on the mantel." />
       ) : (
         <ul className="mt-4 flex flex-col">
           {unpriced.map((item) => (
@@ -65,8 +63,9 @@ export function PriceDrawer({
               <label className="sr-only" htmlFor={`price-${item.id}`}>
                 Price for {item.subtype ?? item.category}
               </label>
-              <div className="flex items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-2 focus-within:border-iris/70">
-                <span className="text-sm text-ink/40">{currencySymbol()}</span>
+              {/* A small field with the currency inside it: 36 tall, the height sets the padding. */}
+              <div className="flex h-9 items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-3 transition focus-within:border-iris/70 focus-within:ring-2 focus-within:ring-iris/20">
+                <span className="text-[13px] text-ink/40">{currencySymbol()}</span>
                 <input
                   id={`price-${item.id}`}
                   type="number"
@@ -77,7 +76,7 @@ export function PriceDrawer({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void save(item)
                   }}
-                  className="w-20 border-0 bg-transparent py-1.5 text-sm text-ink outline-none"
+                  className="w-20 border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink/35 sm:text-[13px]"
                   placeholder="0"
                 />
               </div>
@@ -85,7 +84,7 @@ export function PriceDrawer({
                 type="button"
                 disabled={busy === item.id || !(drafts[item.id] ?? '').trim()}
                 onClick={() => void save(item)}
-                className="btn-primary btn-sm disabled:opacity-40"
+                className="btn-primary btn-sm"
               >
                 {busy === item.id ? '…' : 'Save'}
               </button>
@@ -93,7 +92,7 @@ export function PriceDrawer({
           ))}
         </ul>
       )}
-      {error && <p className="mt-3 alert-error">{error}</p>}
+      {error && <Alert className="mt-4">{error}</Alert>}
     </Modal>
   )
 }

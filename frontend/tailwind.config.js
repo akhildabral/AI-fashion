@@ -91,17 +91,18 @@ export default {
       keyframes: {
         rise: {
           from: { opacity: '0', transform: 'translateY(12px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+          // Ends on `none`, not `translateY(0)`: a kept transform makes every risen block a stacking context and traps menus beneath later siblings.
+          to: { opacity: '1', transform: 'none' },
         },
       },
       animation: {
-        rise: 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both',
-        'rise-1': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.06s both',
-        'rise-2': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.12s both',
-        'rise-3': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.18s both',
-        'rise-4': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.24s both',
-        'rise-5': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s both',
-        'rise-6': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.36s both',
+        rise: 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards',
+        'rise-1': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.06s backwards',
+        'rise-2': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.12s backwards',
+        'rise-3': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.18s backwards',
+        'rise-4': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.24s backwards',
+        'rise-5': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s backwards',
+        'rise-6': 'rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.36s backwards',
       },
     },
   },

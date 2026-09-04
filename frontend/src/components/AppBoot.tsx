@@ -7,7 +7,7 @@ import { ArchMark, Wordmark } from './Brand'
  */
 export function AppBoot() {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-7 bg-bone">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-bone">
       <div className="animate-boot-breathe">
         <ArchMark variant="script" size={76} />
       </div>

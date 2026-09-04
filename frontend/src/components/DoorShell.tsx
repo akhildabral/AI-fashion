@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Arch } from './ui'
+import { Arch, FieldError, PageShell } from './ui'
 
 // The door shell every public page shares: the panel on the left, the dawn
 // photograph in the arch on the right, phone-first stacking. Only the panel
@@ -27,15 +27,16 @@ export function DoorShell({
   alt?: string
 }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <div className="grid items-center gap-10 py-10 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:py-16">
+    <PageShell>
+      {/* Copy then picture: two columns from md, the copy the wider half. */}
+      <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:py-8">
         <div className="mx-auto w-full max-w-md md:max-w-[480px]">
-          {note && <div className="plaque mb-5 p-3 pl-4 text-sm text-ink/70 animate-rise">{note}</div>}
-          <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">{eyebrow}</p>
-          <h1 className="mt-2 animate-rise-1 font-display text-4xl font-medium leading-[1.02] text-ink sm:text-5xl [text-wrap:balance]">{title}</h1>
-          {lead && <p className="mt-3 animate-rise-2 font-display text-lg italic text-ink/55">{lead}</p>}
-          {children && <div className="mt-6 animate-rise-3 rounded-[3px] border border-ink/10 bg-surface p-6">{children}</div>}
-          {foot && <div className="mt-5 animate-rise-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink/55">{foot}</div>}
+          {note && <div className="plaque mb-5 animate-rise p-3 pl-4 text-sm text-ink/70">{note}</div>}
+          <p className="animate-rise eyebrow">{eyebrow}</p>
+          <h1 className="page-title mt-2 animate-rise-1 [text-wrap:balance]">{title}</h1>
+          {lead && <p className="mt-3 animate-rise-2 font-display text-xl italic text-ink/55">{lead}</p>}
+          {children && <div className="card mt-8 animate-rise-3 p-5">{children}</div>}
+          {foot && <div className="mt-4 flex animate-rise-3 flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/55">{foot}</div>}
           <LegalLinks className="mt-8 animate-rise-3" />
         </div>
         <div className="mx-auto hidden w-full max-w-sm md:block">
@@ -44,18 +45,18 @@ export function DoorShell({
           </Arch>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 
 /** Privacy and terms, quietly, on every public page. */
 export function LegalLinks({ className = '' }: { className?: string }) {
   return (
-    <p className={`flex flex-wrap gap-x-4 text-xs text-ink/40 ${className}`}>
-      <Link to="/privacy" className="hover:text-ink">
+    <p className={`flex flex-wrap gap-x-4 text-xs text-ink/45 ${className}`}>
+      <Link to="/privacy" className="transition-colors hover:text-ink">
         Privacy
       </Link>
-      <Link to="/terms" className="hover:text-ink">
+      <Link to="/terms" className="transition-colors hover:text-ink">
         Terms
       </Link>
     </p>
@@ -65,7 +66,7 @@ export function LegalLinks({ className = '' }: { className?: string }) {
 /** The hairline "or" between the password and Google. */
 export function Or() {
   return (
-    <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/35" aria-hidden>
+    <div className="my-4 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-label-xl text-ink/35" aria-hidden>
       <span className="h-px flex-1 bg-ink/10" />
       or
       <span className="h-px flex-1 bg-ink/10" />
@@ -122,17 +123,13 @@ export function PasswordField({
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-1 top-1/2 flex h-9 -translate-y-1/2 items-center px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/40 transition-colors hover:text-ink"
+          className="press absolute right-1 top-1/2 flex h-9 -translate-y-1/2 items-center px-3 text-[11px] font-semibold uppercase tracking-label-sm text-ink/55 transition-colors hover:text-ink"
           aria-pressed={show}
         >
           {show ? 'Hide' : 'Show'}
         </button>
       </div>
-      {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-xs text-red-500 dark:text-red-300" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
   )
 }
@@ -149,7 +146,7 @@ export function InviteDoor() {
   }
   return (
     <>
-      <button type="button" onClick={() => setOpen((v) => !v)} className="press font-semibold text-brass underline-offset-4 hover:underline">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="press font-semibold text-accent-text underline-offset-4 hover:underline">
         Have an invite? Come in →
       </button>
       {open && (
@@ -171,7 +168,7 @@ export function WaitlistLink() {
   return (
     <span>
       New here?{' '}
-      <Link to="/landing" className="font-semibold text-brass underline-offset-4 hover:underline">
+      <Link to="/landing" className="font-semibold text-accent-text underline-offset-4 hover:underline">
         Join the waitlist
       </Link>
     </span>
@@ -180,7 +177,7 @@ export function WaitlistLink() {
 
 export function SignInLink({ label = '← Back to sign in' }: { label?: string }) {
   return (
-    <Link to="/login" className="font-semibold text-brass underline-offset-4 hover:underline">
+    <Link to="/login" className="font-semibold text-accent-text underline-offset-4 hover:underline">
       {label}
     </Link>
   )

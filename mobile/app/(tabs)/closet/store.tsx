@@ -6,27 +6,28 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Image } from 'expo-image'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated'
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg'
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { currencySymbol, money } from '@zauq/shared/money'
 import type { WardrobeItem } from '@zauq/shared/types'
 import { addCandidate, deleteWardrobeItem, updateWardrobeItem } from '@zauq/shared/wardrobe'
 import { Arch } from '@/src/components/Arch'
 import { Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { Check } from '@/src/components/Check'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { ActionRow, RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { EASE_IN_OUT, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, dark, gutter, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, dark, gutter, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { pickImages, type PickedImage } from '@/src/lib/upload'
 import { CountUp } from '@/src/features/closet/CountUp'
@@ -37,15 +38,15 @@ type Stage = 'viewfinder' | 'reading' | 'verdict' | 'kept' | 'bought' | 'failed'
 const READING_LINES = ['Cutting it out…', 'Reading the colour and cut…', 'Checking it against your closet…']
 const READ_TIMEOUT_MS = 100_000
 
-/** The web's frames: the viewfinder at max-w-[240px], the reading arch at max-w-[320px], both 3/4. */
+/** The frames: the viewfinder at most 240 wide, the reading arch at most 320, both a picture's 3/4. */
 const VIEWFINDER_MAX = 240
 const READING_MAX = 320
 const FRAME_ASPECT = 3 / 4
-/** The piece and its outfits: grid-cols-[96px_1fr], boards at w-[220px]. */
+/** The piece and its outfits: the piece 96 wide, the boards 220. */
 const PIECE_W = 96
 const BOARD_W = 220
 
-/** The brass filament down the middle of the frame while the piece is read: the web's `animate-filament`. */
+/** The brass filament down the middle of the frame while the piece is read: a slow 5.5s pulse. */
 function Filament({ width, height }: { width: number; height: number }) {
   const { t } = useTheme()
   const opacity = useSharedValue(0.25)
@@ -221,7 +222,7 @@ export default function Store() {
   const v = verdict.data?.status === 'ready' ? verdict.data : null
   const viewfinderW = Math.min(width - gutter * 2, VIEWFINDER_MAX)
   const readingW = Math.min(width - gutter * 2, READING_MAX)
-  const pad = { paddingBottom: ACTION_BAR_HEIGHT + space.xl }
+  const pad = { paddingBottom: useBottomReserve() }
 
   return (
     <Screen edges={[]}>
@@ -243,6 +244,10 @@ export default function Store() {
                   the piece, in the frame
                 </T>
               </Arch>
+              <ActionRow style={styles.frameRow}>
+                <Button label="Open the camera" block style={styles.grow} onPress={() => void shoot('camera')} />
+                <Button label="Choose a photo" variant="ghost" onPress={() => void shoot('library')} />
+              </ActionRow>
             </Animated.View>
             <Animated.View entering={rise(2)} style={[styles.steps, { borderTopColor: alpha(t.ink, 0.1) }]}>
               {[
@@ -254,7 +259,7 @@ export default function Store() {
                   <T role="h3" tone="brass" style={styles.stepNo}>
                     {i + 1}
                   </T>
-                  <T role="bodySm" tone="muted" style={{ flex: 1 }}>
+                  <T role="bodySm" tone="muted" style={styles.grow}>
                     <T role="bodySm" style={styles.semi}>
                       {head}
                     </T>{' '}
@@ -264,10 +269,6 @@ export default function Store() {
               ))}
             </Animated.View>
           </ScrollView>
-          <ActionBar>
-            <Button label="Open the camera" block style={{ flex: 1 }} onPress={() => void shoot('camera')} />
-            <Button label="Choose a photo" variant="ghost" onPress={() => void shoot('library')} />
-          </ActionBar>
         </>
       ) : null}
 
@@ -279,9 +280,9 @@ export default function Store() {
               {READING_LINES[line]}
             </T>
           </Animated.View>
-          <Animated.View entering={rise(1)} style={styles.reading}>
+          <Animated.View entering={rise(1)} style={styles.frame}>
             <Arch width={readingW} height={Math.round(readingW / FRAME_ASPECT)} variant="photo">
-              {preview ? <Image source={{ uri: preview }} contentFit="cover" blurRadius={1} style={[StyleSheet.absoluteFill, { opacity: 0.6 }]} accessible={false} /> : null}
+              {preview ? <Image source={{ uri: preview }} contentFit="cover" blurRadius={1} style={[StyleSheet.absoluteFill, styles.preview]} accessible={false} /> : null}
               <Filament width={readingW} height={Math.round(readingW / FRAME_ASPECT)} />
             </Arch>
           </Animated.View>
@@ -296,17 +297,17 @@ export default function Store() {
               <T role="lede" tone="muted" style={styles.lead}>
                 Try a shot with the whole piece in frame, on a plain background if you can.
               </T>
+              <ActionRow>
+                <Button label="Try again" block loading={busy} onPress={() => void pass('')} />
+              </ActionRow>
             </Animated.View>
           </ScrollView>
-          <ActionBar>
-            <Button label="Try again" block loading={busy} onPress={() => void pass('')} />
-          </ActionBar>
         </>
       ) : null}
 
       {stage === 'verdict' && v && piece ? (
         <>
-          <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, pad]}>
+          <KeyboardAwareScrollView bottomOffset={space.xl} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, pad]}>
             <Animated.View entering={rise(0)}>
               <RoomHeader
                 eyebrow={label}
@@ -314,14 +315,14 @@ export default function Store() {
                 emphasis={v.verdict.outfits >= 3 ? 'earns its place.' : v.verdict.outfits > 0 ? 'could work.' : 'yet.'}
               />
             </Animated.View>
-            <Animated.View entering={rise(1)}>
+            <Animated.View entering={rise(1)} style={styles.verdict}>
               <View style={styles.count}>
                 <CountUp to={v.verdict.outfits} />
                 <T role="label" tone="faint" style={styles.countLabel}>
                   outfit{v.verdict.outfits === 1 ? '' : 's'} with what you own
                 </T>
               </View>
-              <T role="bodySm" tone="muted" style={styles.pairs}>
+              <T role="bodySm" tone="muted">
                 Pairs with{' '}
                 <T role="bodySm" style={styles.semi}>
                   {v.verdict.pairs} of your {v.verdict.closetSize}
@@ -333,25 +334,22 @@ export default function Store() {
             {/* The piece and its outfits */}
             <Animated.View entering={rise(2)} style={styles.verdictRow}>
               <GarmentTile imageUrl={piece.imageUrl} width={PIECE_W} accessibilityLabel={label} />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={{ flex: 1 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.grow}>
                 {v.outfits.map((o, i) => (
                   <LookBoard key={i} items={[...o.items, piece]} width={BOARD_W} />
                 ))}
                 {v.outfits.length === 0 ? (
-                  <T role="lede" tone="faint" style={{ alignSelf: 'center' }}>
+                  <T role="lede" tone="faint" style={styles.centred}>
                     No complete outfit yet.
                   </T>
                 ) : null}
               </ScrollView>
             </Animated.View>
 
-            {v.closest ? (
-              <Animated.View entering={rise(3)} style={styles.plaqueFirst}>
-                <Plaque style={styles.plaque}>
-                  <T role="micro" tone="faint" style={styles.eyebrow}>
-                    Worth knowing
-                  </T>
-                  <T role="bodySm" style={styles.plaqueLine}>
+            <Animated.View entering={rise(3)} style={styles.plaques}>
+              {v.closest ? (
+                <Plaque label="Worth knowing" style={styles.plaque}>
+                  <T role="bodySm">
                     Closest thing you own: the {labelOf(v.closest.item)}
                     {v.closest.wears > 0 ? `, worn ${v.closest.wears}×` : ', never worn'}.{' '}
                     <T role="bodySm" tone="muted">
@@ -359,60 +357,32 @@ export default function Store() {
                     </T>
                   </T>
                 </Plaque>
-              </Animated.View>
-            ) : null}
-            {v.unlockLine ? (
-              <Animated.View entering={rise(3)} style={v.closest ? styles.plaqueNext : styles.plaqueFirst}>
-                <Plaque style={styles.plaque}>
-                  <T role="micro" tone="faint" style={styles.eyebrow}>
-                    It would unlock more
-                  </T>
-                  <T role="bodySm" style={styles.plaqueLine}>
-                    {v.unlockLine}
-                  </T>
+              ) : null}
+              {v.unlockLine ? (
+                <Plaque label="It would unlock more" style={styles.plaque}>
+                  <T role="bodySm">{v.unlockLine}</T>
                 </Plaque>
-              </Animated.View>
-            ) : null}
+              ) : null}
+            </Animated.View>
 
             {/* Where and how much: optional, one line */}
-            <Animated.View entering={rise(4)}>
+            <Animated.View entering={rise(4)} style={styles.form}>
               <View style={styles.fields}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.grow}>
                   <Field value={store} onChangeText={setStore} placeholder="Where you saw it (optional)" autoCapitalize="words" accessibilityLabel="Where you saw it" />
                 </View>
                 <View style={styles.priceField}>
                   <Field value={price} onChangeText={(s) => setPrice(s.replace(/[^\d]/g, ''))} keyboardType="number-pad" placeholder={`${currencySymbol()} price`} accessibilityLabel="Price" />
                 </View>
               </View>
-              <Button label="I’m buying it" variant="quiet" disabled={busy} style={styles.buying} onPress={() => void bought()} />
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: nudge }}
-                hitSlop={8}
-                pressRetentionOffset={12}
-                onPress={() => {
-                  haptics.tap()
-                  setNudge((n) => !n)
-                }}
-                style={styles.nudge}
-              >
-                <View style={[styles.box, { borderRadius: radius, borderColor: nudge ? t.brass : alpha(t.ink, 0.35), backgroundColor: nudge ? t.brass : 'transparent' }]}>
-                  {nudge ? (
-                    <Svg width={10} height={10} viewBox="0 0 12 12">
-                      <Path d="M2 6.5l2.6 2.6L10 3.5" stroke={t.onBrass} strokeWidth={1.8} fill="none" />
-                    </Svg>
-                  ) : null}
-                </View>
-                <T role="caption" tone="faint" style={{ flexShrink: 1 }}>
-                  Nudge me in two weeks if it’s still on my mind
-                </T>
-              </Pressable>
+              <Button label="I’m buying it" variant="quiet" disabled={busy} onPress={() => void bought()} />
+              <Check checked={nudge} onChange={setNudge} label="Nudge me in two weeks if it’s still on my mind" />
+              <ActionRow top={space.lg}>
+                <Button label="Keep in mind" block style={styles.grow} loading={busy} onPress={() => void keep()} />
+                <Button label="Pass" variant="ghost" disabled={busy} onPress={() => void pass()} />
+              </ActionRow>
             </Animated.View>
           </KeyboardAwareScrollView>
-          <ActionBar>
-            <Button label="Keep in mind" block style={{ flex: 1 }} loading={busy} onPress={() => void keep()} />
-            <Button label="Pass" variant="ghost" disabled={busy} onPress={() => void pass()} />
-          </ActionBar>
         </>
       ) : null}
 
@@ -425,12 +395,12 @@ export default function Store() {
                 The {label} is in your wishlist with its verdict{price ? `, ${money(Number(price))}` : ''}
                 {store.trim() ? `, seen at ${store.trim()}` : ''}. The stylist reads it too: if the brief is ever one piece short, it says which.
               </T>
+              <ActionRow>
+                <Button label="Point at another" block style={styles.grow} onPress={reset} />
+                <Button label="See the wishlist" variant="ghost" onPress={() => router.navigate('/closet/wishlist')} />
+              </ActionRow>
             </Animated.View>
           </ScrollView>
-          <ActionBar>
-            <Button label="Point at another" block style={{ flex: 1 }} onPress={reset} />
-            <Button label="See the wishlist" variant="ghost" onPress={() => router.navigate('/closet/wishlist')} />
-          </ActionBar>
         </>
       ) : null}
 
@@ -442,15 +412,13 @@ export default function Store() {
               <T role="lede" tone="muted" style={styles.lead}>
                 The {label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.
               </T>
-            </Animated.View>
-            <Animated.View entering={rise(1)}>
-              <Button label="Point at another" variant="quiet" style={styles.another} onPress={reset} />
+              <ActionRow>
+                <Button label="Wear it first with…" block style={styles.grow} onPress={() => router.replace(`/closet/compose?pin=${piece.id}`)} />
+                <Button label="Back to the closet" variant="ghost" onPress={() => router.navigate('/closet')} />
+                <Button label="Point at another" variant="quiet" onPress={reset} />
+              </ActionRow>
             </Animated.View>
           </ScrollView>
-          <ActionBar>
-            <Button label="Wear it first with…" block style={{ flex: 1 }} onPress={() => router.replace(`/closet/compose?pin=${piece.id}`)} />
-            <Button label="Back to the closet" variant="ghost" onPress={() => router.navigate('/closet')} />
-          </ActionBar>
         </>
       ) : null}
     </Screen>
@@ -458,48 +426,39 @@ export default function Store() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm },
+  content: { paddingHorizontal: gutter },
+  grow: { flex: 1 },
+  centred: { alignSelf: 'center' },
   semi: { fontFamily: fonts.sansSemi },
-  // The web's lead is mt-4 Bodoni italic; the title's pb-4 gives the 16.
   lead: { maxWidth: 448 },
-  // The viewfinder's gap-8, on the gutter
+  // The frame a block under the head, on the gutter; its row spans the gutter.
   frame: { paddingTop: space.xxl, alignItems: 'flex-start' },
-  // bottom-6 font-display text-sm italic
-  frameCaption: { position: 'absolute', left: 0, right: 0, bottom: space.xl, fontSize: 14, lineHeight: 20 },
+  frameRow: { alignSelf: 'stretch' },
+  // The caption on the dark glass, in the night palette's ink.
+  frameCaption: { position: 'absolute', left: 0, right: 0, bottom: space.xl },
+  preview: { opacity: 0.6 },
   brackets: { position: 'absolute', left: '14%', right: '14%', top: '16%', bottom: '24%' },
   bracket: { position: 'absolute', width: 20, height: 20 },
   tl: { left: 0, top: 0, borderLeftWidth: 2, borderTopWidth: 2 },
   tr: { right: 0, top: 0, borderRightWidth: 2, borderTopWidth: 2 },
   bl: { left: 0, bottom: 0, borderLeftWidth: 2, borderBottomWidth: 2 },
   br: { right: 0, bottom: 0, borderRightWidth: 2, borderBottomWidth: 2 },
-  // gap-8, then border-t pt-6 space-y-3 max-w-md
-  steps: { marginTop: space.xxl, paddingTop: space.xl, borderTopWidth: hairline, gap: space.md, maxWidth: 448 },
+  // A block, a hairline, then 16; the steps 16 apart.
+  steps: { marginTop: space.xxl, paddingTop: space.lg, borderTopWidth: hairline, gap: space.lg, maxWidth: 448 },
   step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   stepNo: { width: 20 },
-  // mt-8 for the reading arch
-  reading: { paddingTop: space.xxl, alignItems: 'flex-start' },
   filament: { position: 'absolute', top: 0, width: 1 },
-  // mt-5 items-end gap-3; the label pb-2 text-xs tracking-[0.16em]
-  count: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginTop: 20 },
-  countLabel: { paddingBottom: space.sm, flexShrink: 1, letterSpacing: 1.92 },
-  pairs: { marginTop: space.sm },
-  // mt-6 grid-cols-[96px_1fr] gap-4; the rail gap-3 pb-1
-  verdictRow: { flexDirection: 'row', gap: space.lg, alignItems: 'flex-start', marginTop: space.xl },
+  // The figure and its line, 8 apart; the label sits on the figure's baseline.
+  verdict: { gap: space.sm },
+  count: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md },
+  countLabel: { paddingBottom: space.sm, flexShrink: 1 },
+  // Blocks 32 apart; the boards 12 apart in the rail.
+  verdictRow: { flexDirection: 'row', gap: space.lg, alignItems: 'flex-start', marginTop: space.xxl },
   rail: { flexDirection: 'row', gap: space.md, paddingBottom: space.xs },
-  // plaque mt-5 p-4 pl-5, the next mt-3
-  plaqueFirst: { marginTop: 20 },
-  plaqueNext: { marginTop: space.md },
-  plaque: { padding: space.lg, paddingLeft: 20 },
-  // text-[10px] tracking-[0.2em]
-  eyebrow: { letterSpacing: 2 },
-  plaqueLine: { marginTop: space.xs },
-  // mt-5 grid-cols-[1fr_120px] gap-2
-  fields: { flexDirection: 'row', gap: space.sm, marginTop: 20 },
+  plaques: { marginTop: space.xxl, gap: space.lg },
+  plaque: { gap: space.sm },
+  // The form a block beneath, its parts 16 apart.
+  form: { marginTop: space.xxl, gap: space.lg },
+  fields: { flexDirection: 'row', gap: space.sm },
   priceField: { width: 120 },
-  // The action row's mt-5, then the checkbox mt-3
-  buying: { marginTop: 20 },
-  nudge: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, minHeight: 44 },
-  // h-3.5 w-3.5 accent-iris
-  box: { width: 14, height: 14, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
-  another: { marginTop: space.xl },
 })

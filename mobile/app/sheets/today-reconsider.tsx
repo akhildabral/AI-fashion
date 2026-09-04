@@ -1,7 +1,7 @@
 // Reconsider one piece of today's look: swap it for another from the closet,
-// or tell the stylist what's off so it learns. TodayPage.tsx's reconsider
-// modal: the piece 80 wide beside one line, the labels 8 above their chips,
-// the note on the soft brass wash at 16 / 12, the alternatives three across.
+// or tell the stylist what's off so it learns. The piece 80 wide beside one
+// line, the labels 8 above their chips, the note on the soft brass wash at
+// 16 / 12, the alternatives two across like every board.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
@@ -13,7 +13,7 @@ import { sendItemFeedback } from '@zauq/shared/wardrobe'
 import { EmptyState } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ArchSkeleton } from '@/src/components/Skeleton'
+import { ArchSkeleton, GRID_GAP } from '@/src/components/Skeleton'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
@@ -39,7 +39,7 @@ export default function ReconsiderSheet() {
   const qc = useQueryClient()
   const invalidate = useInvalidateDay()
   const W = useWindowDimensions().width - gutter * 2
-  const tile = (W - 24) / 3
+  const tile = Math.floor((W - GRID_GAP) / 2)
 
   const brief = useBrief(date, { peek: !isToday })
   const main = looksOf(brief.data)[0]
@@ -101,7 +101,7 @@ export default function ReconsiderSheet() {
     return (
       <SheetShell title="Reconsider" footer={<Button label="Back to today" variant="ghost" onPress={() => router.back()} />}>
         {brief.isPending && !brief.data ? (
-          <ArchSkeleton count={3} columns={3} width={W} />
+          <ArchSkeleton count={2} width={W} />
         ) : (
           <EmptyState title="That piece isn’t on the board." line="Long-press a piece of today’s look to reconsider it." />
         )}
@@ -149,7 +149,7 @@ export default function ReconsiderSheet() {
             Swaps are for today’s look. Plan another day from its own page.
           </T>
         ) : alternatives.isPending ? (
-          <ArchSkeleton count={3} columns={3} width={W} />
+          <ArchSkeleton count={2} width={W} />
         ) : alternatives.isError ? (
           <T role="bodySm" tone="muted">
             Couldn’t look for alternatives. Try again in a moment.
@@ -175,7 +175,7 @@ export default function ReconsiderSheet() {
           </View>
         )}
         {swap.isPending ? (
-          <T role="bodySm" align="center" style={{ color: alpha(t.ink, 0.5) }}>
+          <T role="micro" tone="faint" align="center">
             swapping…
           </T>
         ) : null}
@@ -187,12 +187,11 @@ export default function ReconsiderSheet() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   intro: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  // `.label` sits `mb-1.5` over its content.
+  // A label 8 over what it labels.
   group: { gap: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  // `px-4 py-3`.
   note: { borderWidth: hairline, paddingHorizontal: space.lg, paddingVertical: space.md },
   empty: { borderWidth: hairline, borderStyle: 'dashed', padding: space.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
   swapping: { opacity: 0.5 },
 })

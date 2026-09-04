@@ -1,40 +1,44 @@
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
+import { PageShell, SectionHead } from '../components/ui'
 
 // The two plain pages every door needs. Written to be read, not scrolled
 // past: what we keep, why, and how you take it back.
 
 const UPDATED = '2 September 2026'
 
+/** A prose section: the Bodoni head, then 15px body. Sections sit 40 apart on a hairline. */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-ink/10 py-6 first:border-t-0">
-      <h2 className="font-display text-2xl font-medium text-ink">{title}</h2>
-      <div className="mt-2 space-y-3 text-sm leading-relaxed text-ink/70 [&_b]:font-semibold [&_b]:text-ink">{children}</div>
+    <section className="border-t border-ink/10 py-5 first:border-t-0 first:pt-0">
+      <SectionHead title={title} />
+      <div className="space-y-3 text-[15px] leading-relaxed text-ink/70 [&_b]:font-semibold [&_b]:text-ink">{children}</div>
     </section>
   )
 }
 
 function Shell({ eyebrow, title, lead, children }: { eyebrow: string; title: string; lead: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-16">
-      <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">{eyebrow}</p>
-      <h1 className="mt-2 animate-rise-1 font-display text-4xl font-medium leading-[1.02] text-ink sm:text-5xl [text-wrap:balance]">{title}</h1>
-      <p className="mt-3 animate-rise-2 font-display text-lg italic text-ink/55">{lead}</p>
-      <p className="mt-2 animate-rise-2 text-xs text-ink/45">Last changed {UPDATED}.</p>
-      <div className="mt-8 animate-rise-3">{children}</div>
-      <footer className="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-ink/10 pt-6 text-sm text-ink/55">
-        <Link to="/landing" className="font-semibold text-brass underline-offset-4 hover:underline">
+    <PageShell narrow>
+      <header>
+        <p className="animate-rise eyebrow">{eyebrow}</p>
+        <h1 className="page-title mt-2 animate-rise-1 [text-wrap:balance]">{title}</h1>
+        <p className="mt-3 animate-rise-2 font-display text-xl italic text-ink/55">{lead}</p>
+        <p className="mt-2 animate-rise-2 text-xs text-ink/45">Last changed {UPDATED}.</p>
+      </header>
+      <div className="mt-10 animate-rise-3">{children}</div>
+      <footer className="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-ink/10 pt-5 text-sm text-ink/55">
+        <Link to="/landing" className="font-semibold text-accent-text underline-offset-4 hover:underline">
           The front door
         </Link>
-        <Link to="/privacy" className="hover:text-ink">
+        <Link to="/privacy" className="transition-colors hover:text-ink">
           Privacy
         </Link>
-        <Link to="/terms" className="hover:text-ink">
+        <Link to="/terms" className="transition-colors hover:text-ink">
           Terms
         </Link>
       </footer>
-    </div>
+    </PageShell>
   )
 }
 

@@ -1,43 +1,12 @@
-// The web's UndoBar, and the deferred delete behind it: the thing leaves the
-// list now, the server call waits five seconds, and one tap pulls it back.
+// The deferred delete behind the UndoBar: the thing leaves the list now, the
+// server call waits five seconds, and one tap pulls it back. The bar itself
+// is shared furniture (`@/src/components/UndoBar`).
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
-import Animated from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ACTION_BAR_HEIGHT } from '@/src/components/Room'
-import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
-import { fadeOut, rise } from '@/src/design/motion'
-import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hitSlopFor, radius, shadowFloat } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+
+export { UndoBar } from '@/src/components/UndoBar'
 
 const UNDO_MS = 5000
-
-export function UndoBar({ message, onUndo, aboveActionBar = true }: { message: string; onUndo: () => void; aboveActionBar?: boolean }) {
-  const { t } = useTheme()
-  const insets = useSafeAreaInsets()
-  const bottom = (aboveActionBar ? ACTION_BAR_HEIGHT : 0) + Math.max(insets.bottom, 12) + 12
-  return (
-    <View pointerEvents="box-none" style={[styles.host, { bottom }]}>
-      <Animated.View
-        entering={rise()}
-        exiting={fadeOut}
-        accessibilityLiveRegion="polite"
-        style={[styles.bar, shadowFloat, { backgroundColor: t.surface, borderColor: alpha(t.brass, 0.4), borderRadius: radius }]}
-      >
-        <T role="bodySm" style={{ flexShrink: 1 }} numberOfLines={2}>
-          {message}
-        </T>
-        <Pressable accessibilityRole="button" accessibilityLabel="Undo" hitSlop={hitSlopFor(20)} pressRetentionOffset={12} onPress={onUndo}>
-          <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
-            Undo
-          </T>
-        </Pressable>
-      </Animated.View>
-    </View>
-  )
-}
 
 export interface Pending<Item> {
   item: Item
@@ -106,9 +75,3 @@ export function useUndoDelete<Item>({
 
   return { pending, remove, undo }
 }
-
-const styles = StyleSheet.create({
-  host: { position: 'absolute', left: gutter, right: gutter, alignItems: 'center', zIndex: 20 },
-  // The web's px-4 py-2.5 gap-3 border-brass/40
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, maxWidth: 420 },
-})

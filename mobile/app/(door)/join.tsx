@@ -11,10 +11,10 @@ export default function JoinCode() {
 
   return (
     <DoorShell
-      eyebrow="A friend's door"
+      eyebrow="A friend’s door"
       title="Come in with"
       emphasis="their code."
-      lead="A member's invite code, or the link they sent you."
+      lead="A member’s invite code, or the link they sent you."
       foot={
         <Link href="/(door)/sign-in" asChild>
           <Button label="Already a member? Sign in" variant="quiet" size="sm" />

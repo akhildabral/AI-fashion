@@ -10,11 +10,11 @@ import { EVENT_LABEL, saveOutfit, validateOutfit, type Validation } from '@zauq/
 import type { WardrobeItem } from '@zauq/shared/types'
 import { logWear } from '@zauq/shared/wearlog'
 import { Arch } from '@/src/components/Arch'
-import { Hairline, LoadError } from '@/src/components/Bits'
+import { EmptyState, Hairline, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { ActionRow, RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { ArchSkeleton } from '@/src/components/Skeleton'
 import { Chip, Tabs } from '@/src/components/Tabs'
@@ -24,7 +24,7 @@ import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
-import { GRID_GAP, nameOf, tileWidth, title, useInvalidateCloset, useOutfits, useWardrobe } from '@/src/features/closet/data'
+import { GRID_GAP, GRID_ROW_GAP, nameOf, tileWidth, title, useInvalidateCloset, useOutfits, useWardrobe } from '@/src/features/closet/data'
 
 type SlotKey = 'outer' | 'top' | 'dress' | 'bottom' | 'shoes' | 'extras'
 const SLOTS: { key: SlotKey; label: string; test: (i: WardrobeItem) => boolean }[] = [
@@ -39,7 +39,7 @@ const EVENTS = ['work', 'casual', 'evening', 'occasion']
 const SINGULAR = new Set(['bottom', 'footwear', 'dress'])
 const isSeparate = (i: WardrobeItem) => i.category === 'top' || i.category === 'bottom'
 
-/** The web's w-16 thumbs in "In the outfit". */
+/** The thumbs in "In the outfit". */
 const THUMB_W = 64
 
 /** Would adding `a` mean wearing two of something you can't? Then `b` steps out. */
@@ -68,6 +68,7 @@ export default function Compose() {
   const flash = useFlash()
   const invalidate = useInvalidateCloset()
   const wardrobe = useWardrobe()
+  const bottom = useBottomReserve()
   const outfits = useOutfits()
 
   const [chosen, setChosen] = useState<string[]>(() => (pin ? [pin] : []))
@@ -160,16 +161,17 @@ export default function Compose() {
   const current = SLOTS.find((s) => s.key === slot) ?? SLOTS[0]
   const inSlot = closet.filter(current.test)
   const boardW = width - gutter * 2
-  const railW = tileWidth(width, gutter, 3)
+  // The rail is a board: two across, 12 apart.
+  const railW = tileWidth(width, gutter)
   const slotItems = SLOTS.map((s) => ({ key: s.key, label: s.label, count: closet.filter(s.test).length })).filter((s) => s.count > 0)
 
   return (
     <Screen edges={[]}>
       <Stack.Screen options={{ headerShown: true, title: 'Compose' }} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: ACTION_BAR_HEIGHT + space.xl }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottom }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={rise(0)}>
           <RoomHeader eyebrow="Outfits" title="Compose" lead="Tap pieces; the stylist reads it as you go." />
-          <Hairline style={styles.mantelRule} />
+          <Hairline />
         </Animated.View>
 
         {/* The board */}
@@ -185,12 +187,12 @@ export default function Compose() {
               </View>
             </Arch>
           )}
-          <T role="lede" tone={line.tone} style={styles.verdict} accessibilityLiveRegion="polite">
+          <T role="lede" tone={line.tone} accessibilityLiveRegion="polite">
             {line.text}
           </T>
           {picked.length > 0 ? (
-            <View style={styles.inOutfit}>
-              <T role="micro" tone="faint" style={styles.eyebrow}>
+            <View style={styles.labelled}>
+              <T role="label" tone="faint">
                 In the outfit
               </T>
               <View style={styles.thumbs}>
@@ -198,8 +200,8 @@ export default function Compose() {
                   <View key={i.id} style={styles.thumb}>
                     <GarmentTile imageUrl={i.imageUrl} width={THUMB_W} label={nameOf(i)} accessibilityLabel={`Remove ${nameOf(i)}`} onPress={() => toggle(i.id)} />
                     <View pointerEvents="none" style={[styles.remove, { backgroundColor: alpha(t.ink, 0.85), borderColor: alpha(t.bone, 0.2), borderRadius: radius }]}>
-                      <Svg width={9} height={9} viewBox="0 0 12 12">
-                        <Path d="M1 1l10 10M11 1L1 11" stroke={t.bone} strokeWidth={1.7} fill="none" />
+                      <Svg width={10} height={10} viewBox="0 0 12 12">
+                        <Path d="M1 1l10 10M11 1L1 11" stroke={t.bone} strokeWidth={1.5} fill="none" />
                       </Svg>
                     </View>
                   </View>
@@ -207,8 +209,8 @@ export default function Compose() {
               </View>
             </View>
           ) : null}
-          <View style={styles.forDay}>
-            <T role="micro" tone="faint" style={styles.eyebrow}>
+          <View style={styles.labelled}>
+            <T role="label" tone="faint">
               For
             </T>
             <View style={styles.chips}>
@@ -217,29 +219,25 @@ export default function Compose() {
               ))}
             </View>
           </View>
-          {chosen.length >= 2 ? <Button label="See it on me" variant="quiet" style={styles.seeIt} onPress={() => router.push(`/(tabs)/mirror?items=${chosen.join(',')}`)} /> : null}
+          {/* the verdict's verbs, under the board: keep it, wear it, see it */}
+          <ActionRow top={space.lg}>
+            <Button label="Keep it" block style={styles.grow} loading={busy === 'save'} disabled={chosen.length < 2 || busy !== null || !validation?.ok} onPress={() => void save()} />
+            <Button label="Wearing it today" variant="ghost" loading={busy === 'wear'} disabled={chosen.length < 2 || busy !== null} onPress={() => void wearToday()} />
+            {chosen.length >= 2 ? <Button label="See it on me" variant="quiet" onPress={() => router.push(`/(tabs)/mirror?items=${chosen.join(',')}`)} /> : null}
+          </ActionRow>
         </Animated.View>
 
         {/* The rail */}
         <Animated.View entering={rise(2)} style={styles.rail}>
-          {wardrobe.isPending ? (
-            <View style={styles.gridWrap}>
-              <ArchSkeleton count={9} width={boardW} columns={3} />
-            </View>
-          ) : null}
+          {wardrobe.isPending ? <ArchSkeleton count={6} width={boardW} /> : null}
           {wardrobe.isError && !wardrobe.data ? <LoadError message="Couldn’t load your closet. Check your connection." onRetry={() => void wardrobe.refetch()} /> : null}
           {wardrobe.data && closet.length === 0 ? (
-            <View style={styles.emptyCloset}>
-              <T role="lede" tone="muted">
-                Your closet is empty. Add a few pieces first, then style them by hand here.
-              </T>
-              <Button label="Add pieces" variant="ghost" style={styles.emptyAction} onPress={() => router.push('/sheets/closet-add')} />
-            </View>
+            <EmptyState title="Your closet is empty. Add a few pieces first, then style them by hand here." action={<Button label="Add pieces" variant="ghost" onPress={() => router.push('/sheets/closet-add')} />} />
           ) : null}
           {closet.length > 0 ? (
             <>
               <Tabs<SlotKey> value={slotItems.some((s) => s.key === slot) ? slot : (slotItems[0]?.key ?? slot)} items={slotItems} onChange={setSlot} />
-              <Animated.View key={slot} entering={fadeIn} style={[styles.gridWrap, styles.grid]}>
+              <Animated.View key={slot} entering={fadeIn} style={styles.grid}>
                 {inSlot.map((i) => {
                   const on = chosen.includes(i.id)
                   const dirty = i.state !== 'clean'
@@ -258,7 +256,7 @@ export default function Compose() {
                   )
                 })}
                 {inSlot.length === 0 ? (
-                  <T role="bodySm" tone="faint">
+                  <T role="lede" tone="faint">
                     Nothing of this kind in the closet yet.
                   </T>
                 ) : null}
@@ -267,41 +265,24 @@ export default function Compose() {
           ) : null}
         </Animated.View>
       </ScrollView>
-
-      <ActionBar>
-        <Button label="Keep it" block style={{ flex: 1 }} loading={busy === 'save'} disabled={chosen.length < 2 || busy !== null || !validation?.ok} onPress={() => void save()} />
-        <Button label="Wearing it today" variant="ghost" loading={busy === 'wear'} disabled={chosen.length < 2 || busy !== null} onPress={() => void wearToday()} />
-      </ActionBar>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm },
-  // The mantel's pb-7 and hairline; the title carries 16 already.
-  mantelRule: { marginTop: space.md },
-  // mt-8 under the mantel; the rail another gap-8 below the board's column.
-  board: { paddingTop: space.xxl },
-  rail: { paddingTop: space.xxl },
+  content: { paddingHorizontal: gutter },
+  grow: { flex: 1 },
+  // The board a block under the mantel, its parts 16 apart; the rail a block beneath, its parts 16 apart.
+  board: { paddingTop: space.xxl, gap: space.lg },
+  rail: { paddingTop: space.xxl, gap: space.lg },
   emptyBoard: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xxl },
-  verdict: { marginTop: space.lg },
-  // text-[10px] tracking-[0.2em]
-  eyebrow: { letterSpacing: 2 },
-  // mt-3, the thumbs mt-2 flex-wrap gap-2.5
-  inOutfit: { marginTop: space.md },
-  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: space.sm, paddingTop: 6, paddingRight: 6 },
+  // A label 8 over what it labels.
+  labelled: { gap: space.sm },
+  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingTop: 6, paddingRight: 6 },
   thumb: { width: THUMB_W },
-  // The web's -right-1.5 -top-1.5 h-5 w-5 plate over the arch's corner.
+  // The 20 x 20 plate over the arch's corner: the remove mark, drawn at 1.5.
   remove: { position: 'absolute', right: -6, top: -6, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: hairline },
-  // mt-5, the chips mt-2 gap-2
-  forDay: { marginTop: 20 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm },
-  seeIt: { marginTop: 20 },
-  // mt-4 grid grid-cols-3 gap-3
-  gridWrap: { marginTop: space.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: GRID_GAP, rowGap: GRID_ROW_GAP },
   dirty: { opacity: 0.5 },
-  // mt-6 max-w-md, the action mt-4
-  emptyCloset: { marginTop: space.xl, maxWidth: 448 },
-  emptyAction: { marginTop: space.lg },
 })

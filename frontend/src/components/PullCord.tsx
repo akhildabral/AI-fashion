@@ -53,7 +53,7 @@ export function PullCord() {
             transition: 'height 170ms cubic-bezier(0.3, 0.9, 0.4, 1.3)',
           }}
         />
-        {/* handle in the brand primary */}
+        {/* handle in the brand primary. Owner decision: the pill handle and the overshoot swing stay as they are; do not "align" this to the 3px rule. */}
         <span className="mt-0.5 block h-5 w-2.5 rounded-full border border-iris-deep bg-iris transition-colors group-hover:bg-iris-deep" />
       </span>
     </button>

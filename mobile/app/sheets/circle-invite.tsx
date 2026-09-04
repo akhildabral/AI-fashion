@@ -5,17 +5,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Share, StyleSheet, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { getMyInvite } from '@zauq/shared/invites'
-import { Hairline } from '@/src/components/Bits'
+import { Hairline, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { SheetShell } from '@/src/components/Sheet'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, light, radius } from '@/src/design/tokens'
-import { Dashed } from '@/src/features/circle/atoms'
+import { alpha, hairline, height, light, radius, space } from '@/src/design/tokens'
 import { ck } from '@/src/features/circle/keys'
 import { copyText } from '@/src/features/circle/share'
-import { SheetFrame, SheetLabel } from '@/src/features/circle/SheetFrame'
+import { SheetLabel } from '@/src/features/circle/SheetLabel'
 
 /** The web's `LinkRow`: a `field-sm` holding the link, the Copy beside it (`btn-primary btn-sm`). */
 function LinkRow({ url, label }: { url: string; label: string }) {
@@ -66,7 +66,7 @@ export default function InviteSheet() {
   }
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title="Bring someone in"
       busy={q.isPending && !invite}
       lead={
@@ -79,14 +79,7 @@ export default function InviteSheet() {
           : undefined
       }
     >
-      {q.isError && !invite ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            {q.error instanceof Error ? q.error.message : 'Could not load your invite.'}
-          </T>
-          <Button label="Try again" variant="ghost" size="sm" onPress={() => void q.refetch()} />
-        </Dashed>
-      ) : null}
+      {q.isError && !invite ? <LoadError message={q.error instanceof Error ? q.error.message : 'Could not load your invite.'} onRetry={() => void q.refetch()} /> : null}
       {invite ? (
         <>
           <SheetLabel>Your invite link</SheetLabel>
@@ -118,19 +111,20 @@ export default function InviteSheet() {
           ) : null}
         </>
       ) : null}
-    </SheetFrame>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  // `mt-2 flex gap-2`
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  linkBox: { flex: 1, height: height.secondary, borderWidth: hairline, paddingHorizontal: 12, justifyContent: 'center' },
-  usedRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: -4 },
+  // A 36 field and its 36 Copy, 8 apart: one row, one height.
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  linkBox: { flex: 1, height: height.secondary, borderWidth: hairline, paddingHorizontal: space.md, justifyContent: 'center' },
+  // The quiet share sits 8 under the link (label to line), the note beside it.
+  usedRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: -space.sm },
   usedLine: { flex: 1 },
   // `rounded border p-2`, sized to the code
-  qr: { padding: 8, borderWidth: hairline, alignSelf: 'flex-start' },
-  rule: { marginTop: 12 },
-  // `mt-1` under its label
-  alreadyIn: { marginTop: -4 },
+  qr: { padding: space.sm, borderWidth: hairline, alignSelf: 'flex-start' },
+  rule: { marginTop: space.lg },
+  // 8 under its label
+  alreadyIn: { marginTop: -space.sm },
 })

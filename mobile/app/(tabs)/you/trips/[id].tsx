@@ -4,7 +4,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, swapTripItem, updateTrip, type TripPage } from '@zauq/shared/brief'
 import type { WardrobeItem } from '@zauq/shared/types'
@@ -12,7 +12,8 @@ import { LoadError, Plaque, SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { Press } from '@/src/components/Press'
+import { ActionRow, RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { ArchSkeleton, SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
@@ -22,6 +23,7 @@ import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk, queryClient } from '@/src/lib/query'
+import { CheckGlyph, CrossGlyph } from '@/src/components/Glyphs'
 import { dayKey, formatDay, nights } from '@/src/features/you/dates'
 import { ForecastStrip } from '@/src/features/you/ForecastStrip'
 import { Card, TextLink } from '@/src/features/you/Furniture'
@@ -54,11 +56,11 @@ function checklistGroups(items: WardrobeItem[]): [string, WardrobeItem[]][] {
   return groups
 }
 
-/** The web's checklist line: `px-4 py-2.5 gap-3`, a 16px box, dashed brass for the things to pick up. */
+/** A checklist line, 44 tall on a hairline: a 16 box with a drawn tick, the house press and a tap, dashed brass for the things to pick up. */
 function CheckRow({ label, on, dashed, capitalize, onToggle, onRemove }: { label: string; on: boolean; dashed?: boolean; capitalize?: boolean; onToggle: () => void; onRemove?: () => void }) {
   const { t } = useTheme()
   return (
-    <Pressable
+    <Press
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
       accessibilityLabel={label}
@@ -66,24 +68,24 @@ function CheckRow({ label, on, dashed, capitalize, onToggle, onRemove }: { label
         haptics.tap()
         onToggle()
       }}
-      pressRetentionOffset={12}
-      style={({ pressed }) => [
-        styles.check,
-        { backgroundColor: dashed ? alpha(t.brassSoft, 0.4) : t.surface, borderColor: dashed ? alpha(t.brass, 0.4) : alpha(t.ink, 0.1), borderStyle: dashed ? 'dashed' : 'solid', borderRadius: radius, opacity: pressed ? 0.7 : 1 },
-      ]}
     >
-      <View style={[styles.box, { borderColor: on ? t.brass : alpha(t.ink, 0.35), backgroundColor: on ? t.brass : 'transparent', borderRadius: radius }]}>
-        {on ? (
-          <T role="micro" style={{ color: t.onBrass }}>
-            ✓
-          </T>
+      <View
+        style={[
+          styles.check,
+          { backgroundColor: dashed ? alpha(t.brassSoft, 0.4) : t.surface, borderColor: dashed ? alpha(t.brass, 0.4) : alpha(t.ink, 0.1), borderStyle: dashed ? 'dashed' : 'solid', borderRadius: radius },
+        ]}
+      >
+        <View style={[styles.box, { borderColor: on ? t.brass : alpha(t.ink, 0.35), backgroundColor: on ? t.brass : 'transparent', borderRadius: radius }]}>{on ? <CheckGlyph size={12} color={t.onBrass} /> : null}</View>
+        <T role="bodySm" style={[styles.checkLabel, capitalize && styles.capitalize, on && { textDecorationLine: 'line-through', color: alpha(t.ink, 0.35) }]}>
+          {label}
+        </T>
+        {onRemove ? (
+          <Press accessibilityRole="button" accessibilityLabel={`Remove ${label}`} visual={16} onPress={onRemove}>
+            <CrossGlyph color={alpha(t.ink, 0.45)} />
+          </Press>
         ) : null}
       </View>
-      <T role="bodySm" style={[styles.checkLabel, capitalize && styles.capitalize, on && { textDecorationLine: 'line-through', color: alpha(t.ink, 0.35) }]}>
-        {label}
-      </T>
-      {onRemove ? <TextLink label="×" tone="muted" onPress={onRemove} /> : null}
-    </Pressable>
+    </Press>
   )
 }
 
@@ -102,6 +104,7 @@ export default function TripScreen() {
   const flash = useFlash()
   const { t } = useTheme()
   const { width } = useWindowDimensions()
+  const bottom = useBottomReserve()
   const q = useQuery({ queryKey: qk.trip(id), queryFn: () => getTrip(id), enabled: !!id })
   const data = q.data
   const [checked, setChecked] = useState<Set<string>>(new Set())
@@ -233,7 +236,7 @@ export default function TripScreen() {
         <KeyboardAwareScrollView
           bottomOffset={40}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.body, !past && styles.bodyWithBar]}
+          contentContainerStyle={[styles.body, { paddingBottom: bottom }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl tintColor={t.brass} refreshing={q.isFetching} onRefresh={() => void q.refetch()} />}
         >
@@ -301,6 +304,12 @@ export default function TripScreen() {
                 </View>
               ))}
             </View>
+            {!past ? (
+              <ActionRow>
+                <Button label="Add from the closet" block style={styles.grow} onPress={() => router.push(routes.tripAdd(id))} />
+                <Button label="Today’s brief" variant="ghost" onPress={() => router.push(routes.today)} />
+              </ActionRow>
+            ) : null}
           </View>
 
           {days.length > 0 ? (
@@ -427,21 +436,13 @@ export default function TripScreen() {
             )}
           </View>
         </KeyboardAwareScrollView>
-
-        {!past ? (
-          <ActionBar>
-            <Button label="Today’s brief" variant="ghost" onPress={() => router.push(routes.today)} />
-            <Button label="Add from the closet" block style={styles.grow} onPress={() => router.push(routes.tripAdd(id))} />
-          </ActionBar>
-        ) : null}
       </Screen>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl },
-  bodyWithBar: { paddingBottom: ACTION_BAR_HEIGHT + space.xl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md },
   stack: { gap: space.lg },
   header: { paddingBottom: 0 },
   // The web's `mt-*`, literally.
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
   mt3: { marginTop: space.md },
   mt4: { marginTop: space.lg },
   mt8: { marginTop: space.xxl },
-  mt10: { marginTop: 40 },
+  mt10: { marginTop: space.xxxl },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP, marginTop: space.lg },
   tileActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs, marginTop: space.xs },
   day: { paddingVertical: space.lg },
@@ -462,7 +463,8 @@ const styles = StyleSheet.create({
   lookActions: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap', marginTop: 2 },
   track: { height: 6, borderRadius: radius, overflow: 'hidden', marginTop: space.md },
   fill: { height: '100%', borderRadius: radius },
-  groups: { marginTop: 20, gap: 20 },
+  // The groups 24 apart, 24 under the bar.
+  groups: { marginTop: space.xl, gap: space.xl },
   groupLabel: { marginBottom: space.sm },
   lines: { gap: space.sm },
   check: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: 10, borderWidth: hairline, minHeight: 44 },
@@ -471,5 +473,5 @@ const styles = StyleSheet.create({
   capitalize: { textTransform: 'capitalize' },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   grow: { flex: 1 },
-  removeRow: { flexDirection: 'row', gap: space.md, marginTop: 40, paddingTop: space.lg, borderTopWidth: hairline },
+  removeRow: { flexDirection: 'row', gap: space.md, marginTop: space.xxxl, paddingTop: space.lg, borderTopWidth: hairline },
 })

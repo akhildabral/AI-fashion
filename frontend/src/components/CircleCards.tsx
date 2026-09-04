@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
-import { Arch } from './ui'
-import { Spinner } from './Spinner'
+import { Arch, Chip, MoreMenu, MenuItem, SkeletonBlock } from './ui'
 import { Initials } from './PeopleDrawer'
 import { dismissPick } from '@zauq/shared/social'
 import { logWear } from '@zauq/shared/wearlog'
@@ -42,8 +41,13 @@ export function Handle({ handle, name, className = '' }: { handle: string | null
   )
 }
 
+/** A brass name-plate: the small tracked label that titles a card (the kit's Plate). */
 export function Plate({ children }: { children: ReactNode }) {
-  return <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{children}</p>
+  return (
+    <span className="inline-flex items-center rounded-[3px] border border-brass/30 bg-iris-soft px-[7px] py-0.5 text-[10px] font-semibold uppercase tracking-label-lg text-accent-text">
+      {children}
+    </span>
+  )
 }
 
 function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string | null; name: string; label?: string; meta: ReactNode; plate?: ReactNode; menu?: ReactNode }) {
@@ -108,7 +112,7 @@ export function LookHero({
             {strip.map((it) => (
               <div key={it.id} className="w-12 shrink-0 text-center">
                 <GarmentThumb item={it} className="w-12" />
-                {expanded && <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/50">{it.subtype ?? it.category}</p>}
+                {expanded && <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-label-xs text-ink/50">{it.subtype ?? it.category}</p>}
               </div>
             ))}
           </div>
@@ -135,8 +139,8 @@ export function LookHero({
             {strip.map((it, i) => (
               <li key={it.id} className="text-center">
                 <GarmentThumb item={it} className="w-full" />
-                <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{it.subtype ?? it.category}</p>
-                {i < strip.length - 1 && <p className="leading-none text-brass-lo" aria-hidden>↓</p>}
+                <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-label-xs text-ink/55">{it.subtype ?? it.category}</p>
+                {i < strip.length - 1 && <p className="leading-none text-brass" aria-hidden>↓</p>}
               </li>
             ))}
           </ol>
@@ -153,9 +157,9 @@ export function LookHero({
       <button type="button" onClick={onToggle} className="press block w-full text-left" aria-label="Show the recipe">
         {lay}
       </button>
-      <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 px-0.5">
+      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-0.5">
         {strip.slice(0, 6).map((it) => (
-          <span key={it.id} className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/50">
+          <span key={it.id} className="text-[11px] font-semibold uppercase tracking-label-xs text-ink/50">
             {it.subtype ?? it.category}
           </span>
         ))}
@@ -218,50 +222,50 @@ function ActionButton({
   children: ReactNode
   label: string
 }) {
+  // A quiet action on the 36 scale, so it sits level with the card's small buttons.
   return (
     <button
       type="button"
       aria-pressed={on}
       aria-label={label}
       onClick={onClick}
-      className={`press inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-xs font-semibold transition-colors sm:px-2.5 ${
-        on ? 'text-brass' : 'text-ink/55 hover:text-ink'
-      }`}
+      className={`btn-quiet btn-quiet-sm inline-flex items-center gap-1.5 !px-2 !no-underline ${on ? '!text-accent-text' : ''}`}
     >
       {children}
     </button>
   )
 }
 
+// Hand-drawn glyphs: 1.5px stroke, currentColor, no fill.
 const ICON = {
   heart: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M12 21s-7-4.5-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z" />
     </svg>
   ),
   bolt: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M13 2L4 14h7l-1 8 9-12h-7z" />
     </svg>
   ),
   comment: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
     </svg>
   ),
   star: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
     </svg>
   ),
   recreate: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" />
       <path d="M18 3v4h-4M6 21v-4h4" />
     </svg>
   ),
   bookmark: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M6 3h12v18l-6-4-6 4z" />
     </svg>
   ),
@@ -367,8 +371,13 @@ export function CommentThread({
   return (
     <div className="border-t border-ink/10 px-4 py-3">
       {comments === null && !failed && (
-        <div className="py-3 text-center text-ink/40">
-          <Spinner className="h-4 w-4" />
+        <div className="flex flex-col gap-2.5 pb-1" aria-busy="true" aria-label="Loading notes">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-start gap-2.5">
+              <SkeletonBlock className="h-6 w-6" />
+              <SkeletonBlock className="h-4 w-2/3" />
+            </div>
+          ))}
         </div>
       )}
       {failed && (
@@ -378,13 +387,13 @@ export function CommentThread({
         </p>
       )}
       {!failed && comments && comments.length === 0 && (
-        <p className="pb-2 text-xs text-ink/45">No notes yet. Say what works, or @mention a friend.</p>
+        <p className="pb-2 font-display text-sm italic text-ink/55">No notes yet. Say what works, or @mention a friend.</p>
       )}
       {comments && comments.length > 0 && (
         <ul className="flex flex-col gap-2.5 pb-1">
           {comments.map((c) => (
             <li key={c.id} className="group flex items-start gap-2.5">
-              <Initials handle={c.handle} name={c.name} className="mt-0.5 h-6 w-6 !text-[9px]" />
+              <Initials handle={c.handle} name={c.name} className="mt-0.5 h-6 w-6 !text-[10px]" />
               <div className="min-w-0 flex-1 text-sm leading-snug text-ink/80">
                 <Handle handle={c.handle} name={c.name} className="text-xs" />{' '}
                 <Mentions text={c.body} />
@@ -414,10 +423,10 @@ export function CommentThread({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           maxLength={500}
-          className="field !py-2 !text-sm"
+          className="field field-sm min-w-0 flex-1"
           placeholder="Add a note… @mention a friend"
         />
-        <button type="submit" disabled={sending || !body.trim()} className="btn-ghost btn-sm disabled:opacity-40">
+        <button type="submit" disabled={sending || !body.trim()} className="btn-ghost btn-sm shrink-0">
           {sending ? '…' : 'Post'}
         </button>
       </form>
@@ -501,48 +510,17 @@ function NotesButton({ open, count, onClick }: { open: boolean; count: number; o
   )
 }
 
-/** The "···" on every card: the rest, one list, closes on any choice. */
+/** The "···" on every card: the rest, one floating list (the shared MoreMenu), closes on any choice. */
 export function CardMenu({ items }: { items: { label: string; danger?: boolean; onSelect: () => void }[] }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
   if (items.length === 0) return null
   return (
-    <div ref={ref} className="relative -mr-2 shrink-0">
-      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-icon">
-        ···
-      </button>
-      {open && (
-        <div role="menu" className="card absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden py-1 text-left">
-          {items.map((it) => (
-            <button
-              key={it.label}
-              role="menuitem"
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                it.onSelect()
-              }}
-              className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-ink/5 ${it.danger ? 'text-red-500 dark:text-red-300' : 'text-ink/80'}`}
-            >
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <MoreMenu align="right" label="Post options" className="shrink-0">
+      {items.map((it) => (
+        <MenuItem key={it.label} danger={it.danger} onClick={it.onSelect}>
+          {it.label}
+        </MenuItem>
+      ))}
+    </MoreMenu>
   )
 }
 
@@ -573,7 +551,7 @@ export function LookCard({ post, actions, highlight = false }: { post: LookPost;
   if (!post.isMine && actions.report) menu.push({ label: 'Report', onSelect: () => actions.report?.('look', post.id, `${post.name}’s look`) })
   if (post.isMine && actions.takeDown) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown?.('look', post.id) })
   return (
-    <article id={`post-look-${post.id}`} className={`card overflow-hidden transition-shadow ${post.featured ? '!border-brass/45' : ''} ${highlight ? 'ring-1 ring-brass' : ''}`}>
+    <article id={`post-look-${post.id}`} className={`card overflow-hidden ${post.featured ? '!border-brass/45' : ''} ${highlight ? 'ring-1 ring-brass' : ''}`}>
       <PostHeader
         handle={post.handle}
         name={post.name}
@@ -592,10 +570,11 @@ export function LookCard({ post, actions, highlight = false }: { post: LookPost;
           post.isMine ? (
             <span className="px-1 text-xs text-ink/45">Your look, on the circle.</span>
           ) : (
-            <button type="button" aria-pressed={post.reactions.mine === 'would_wear'} onClick={() => void actions.react('look', post.id, post.reactions.mine === 'would_wear' ? null : 'would_wear')} className={post.reactions.mine === 'would_wear' ? 'btn-ghost !border-brass/60 btn-sm !text-brass' : 'btn-primary btn-sm'}>
-              {post.reactions.mine === 'would_wear' ? 'Would wear ✓' : 'Would wear'}
-              {post.reactions.counts.would_wear ? <Count n={post.reactions.counts.would_wear} /> : null}
-            </button>
+            // A reaction picks a value, so it is a chip: bordered off, brass when chosen. Brass stays for the one verb per screen.
+            <Chip on={post.reactions.mine === 'would_wear'} onClick={() => void actions.react('look', post.id, post.reactions.mine === 'would_wear' ? null : 'would_wear')} className="gap-1.5">
+              Would wear
+              {post.reactions.counts.would_wear ? <Count n={post.reactions.counts.would_wear} muted={post.reactions.mine !== 'would_wear'} /> : null}
+            </Chip>
           )
         }
 >
@@ -613,8 +592,8 @@ export function LookCard({ post, actions, highlight = false }: { post: LookPost;
   )
 }
 
-function Count({ n }: { n: number }) {
-  return <span className="text-ink/40 [font-variant-numeric:tabular-nums]">{n}</span>
+function Count({ n, muted = true }: { n: number; muted?: boolean }) {
+  return <span className={`[font-variant-numeric:tabular-nums] ${muted ? 'text-ink/40' : 'opacity-70'}`}>{n}</span>
 }
 
 export function VerdictCard({ post, actions, onVote, highlight = false }: { post: VerdictPost; actions: CardActions; onVote: (pollId: string, optionId: string) => Promise<void>; highlight?: boolean }) {
@@ -659,11 +638,11 @@ export function VerdictCard({ post, actions, onVote, highlight = false }: { post
               </Arch>
               {counts ? (
                 <>
-                  <div className="mt-2 h-1 overflow-hidden rounded-[2px] bg-ink/10">
+                  <div className="mt-2 h-1 overflow-hidden rounded-[3px] bg-ink/10">
                     <div className="h-full bg-gradient-to-r from-[var(--c-brass-lo)] to-[var(--c-brass-hi)] transition-[width] duration-700" style={{ width: `${share ?? 0}%` }} />
                   </div>
                   <div className="mt-1.5 flex items-baseline justify-between px-0.5">
-                    <span className={`text-[11px] font-semibold ${won || chosen ? 'text-brass' : 'text-ink/50'}`}>
+                    <span className={`text-[11px] font-semibold uppercase tracking-label-xs ${won || chosen ? 'text-accent-text' : 'text-ink/50'}`}>
                       {o.id.toUpperCase()}
                       {won ? ' · won' : chosen ? ' · yours' : ''}
                     </span>
@@ -805,9 +784,9 @@ export function PickCard({ post, actions, highlight = false }: { post: PickPost;
                     .then((r) => setWorn(r.log?.id ?? 'worn'))
                     .catch(() => actions.note('Couldn’t log the wear. Try again.'))
                 }
-                className={worn ? 'btn-ghost !border-brass/50 btn-sm !text-brass' : 'btn-primary btn-sm'}
+                className="btn-primary btn-sm"
               >
-                {worn ? 'Worn ✓' : 'I wore it'}
+                {worn ? 'Worn' : 'I wore it'}
               </button>
               {worn && worn !== 'worn' && !photo && actions.photo && (
                 <>

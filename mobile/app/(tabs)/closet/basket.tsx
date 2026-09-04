@@ -7,11 +7,10 @@ import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture
 import Animated from 'react-native-reanimated'
 import type { WardrobeItem } from '@zauq/shared/types'
 import { basketClean, updateWardrobeItem } from '@zauq/shared/wardrobe'
-import { Arch } from '@/src/components/Arch'
-import { LoadError, Plaque, SectionHead } from '@/src/components/Bits'
+import { EmptyState, LoadError, Plaque, SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { ActionRow, RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { ArchSkeleton } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
@@ -61,7 +60,7 @@ function Row({ item, state, busy, onBack }: { item: WardrobeItem; state: BasketS
             <T role="body" numberOfLines={1}>
               {title(nameOf(item))}
             </T>
-            <T role="caption" tone="brass" numberOfLines={1}>
+            <T role="caption" tone="muted" numberOfLines={1}>
               {sub}
             </T>
           </View>
@@ -78,6 +77,7 @@ export default function BasketRoom() {
   const flash = useFlash()
   const invalidate = useInvalidateCloset()
   const basket = useBasket()
+  const bottom = useBottomReserve()
   const [busy, setBusy] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -127,12 +127,12 @@ export default function BasketRoom() {
       <Stack.Screen options={{ headerShown: true, title: 'The basket' }} />
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={t.brass} />}
-        contentContainerStyle={[styles.content, { paddingBottom: (inWash > 0 ? ACTION_BAR_HEIGHT : 0) + space.xl }]}
+        contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
       >
         <Animated.View entering={rise(0)}>
           <RoomHeader eyebrow="The collection" title="The basket" lead={data ? `${data.items.length} out of rotation · last wash ${daysAgo(data.lastWashedAt)}` : undefined} />
         </Animated.View>
-        <Animated.View entering={rise(1)} style={styles.rooms}>
+        <Animated.View entering={rise(1)}>
           <RoomTabs current="basket" />
         </Animated.View>
 
@@ -147,33 +147,26 @@ export default function BasketRoom() {
           <>
             {/* The plaque: is it worth a load? */}
             <Animated.View entering={rise(2)} style={styles.block}>
-              <Plaque>
-                <T role="micro" tone="faint" style={styles.eyebrow}>
-                  Laundry
-                </T>
-                <T role="h2" italic style={styles.line}>
+              <Plaque label="Laundry" style={styles.plaque}>
+                <T role="h2" italic>
                   {inWash === 0 ? 'Nothing in the wash. Everything is yours to wear.' : data.worthALoad ? `${inWash} pieces in the wash. Worth a load.` : `${inWash} in the wash. A load is worth it at ${data.loadWorth}.`}
                 </T>
                 {data.oneMoreWear.length > 0 ? (
-                  <T role="bodySm" tone="muted" style={styles.line}>
+                  <T role="bodySm" tone="muted">
                     One more wear and {data.oneMoreWear.length === 1 ? `the ${nameOf(data.oneMoreWear[0])} joins` : `${data.oneMoreWear.length} more pieces join`} it.
                   </T>
                 ) : null}
               </Plaque>
+              {inWash > 0 ? (
+                <ActionRow top={space.lg} plain>
+                  <Button label={busy === 'all' ? 'Folding…' : 'Everything’s back from the wash'} block loading={busy === 'all'} disabled={busy !== null} onPress={() => void allClean()} />
+                </ActionRow>
+              ) : null}
             </Animated.View>
 
             {groups.length === 0 ? (
-              <Animated.View entering={rise(3)} style={styles.empty}>
-                <Arch width={160} variant="plain">
-                  <View style={styles.emptyArch}>
-                    <T role="micro" tone="faint" style={styles.eyebrow}>
-                      Empty
-                    </T>
-                  </View>
-                </Arch>
-                <T role="h3" italic tone="muted" align="center" style={styles.emptyLine}>
-                  The basket fills itself. Log a wear, and pieces come here when they’ve had their turn.
-                </T>
+              <Animated.View entering={rise(3)} style={styles.group}>
+                <EmptyState title="The basket fills itself. Log a wear, and pieces come here when they’ve had their turn." />
               </Animated.View>
             ) : null}
 
@@ -197,34 +190,21 @@ export default function BasketRoom() {
           </>
         ) : null}
       </ScrollView>
-
-      {inWash > 0 ? (
-        <ActionBar>
-          <Button label={busy === 'all' ? 'Folding…' : 'Everything’s back from the wash'} block loading={busy === 'all'} disabled={busy !== null} onPress={() => void allClean()} />
-        </ActionBar>
-      ) : null}
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.sm },
-  // The mantel's pb-7 above the rooms' hairline; the title carries 16 already.
-  rooms: { paddingTop: space.md },
-  // mt-8 under the rooms
+  content: { paddingHorizontal: gutter },
+  // A block under the rooms.
   block: { paddingTop: space.xxl },
-  // text-[10px] tracking-[0.2em]
-  eyebrow: { letterSpacing: 2 },
-  line: { marginTop: space.xs },
-  // mt-10, the arch at w-40, the line mt-5
-  empty: { alignItems: 'center', paddingTop: 40 },
-  emptyArch: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyLine: { marginTop: 20, maxWidth: 320 },
-  // mt-10 per group, the rows mt-4 under the head
-  group: { paddingTop: 40, gap: space.lg },
+  // The label 8 over its line, the note 8 beneath.
+  plaque: { gap: space.sm },
+  // A group per state; the rows 16 under the head.
+  group: { paddingTop: space.xxxl, gap: space.lg },
   rows: { borderTopWidth: hairline },
   swipe: { overflow: 'hidden' },
   swipeAction: { width: 140, alignItems: 'center', justifyContent: 'center', marginVertical: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, borderBottomWidth: hairline },
-  rowText: { flex: 1, gap: 2, minWidth: 0 },
+  rowText: { flex: 1, gap: space.xs, minWidth: 0 },
 })

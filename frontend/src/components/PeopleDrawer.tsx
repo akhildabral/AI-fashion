@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Modal } from './ui'
-import { Spinner } from './Spinner'
+import { Alert, EmptyState, Modal, RowSkeleton, Tabs } from './ui'
 import {
   followUser,
   getHidden,
@@ -75,17 +74,19 @@ function PersonRow({
             setBusy(true)
             void onToggle().finally(() => setBusy(false))
           }}
-          className={`btn-ghost btn-sm shrink-0 ${
-            following
-              ? 'border-ink/15 text-ink/60 hover:border-ink/40'
-              : 'border-brass/60 text-brass hover:bg-iris-soft'
-          }`}
+          aria-pressed={following}
+          className="btn-ghost btn-sm shrink-0"
         >
           {busy ? '…' : following ? 'Following' : 'Follow'}
         </button>
       )}
     </div>
   )
+}
+
+/** An empty list: one italic Bodoni line. */
+function Nobody({ children }: { children: string }) {
+  return <EmptyState className="py-6" line={children} />
 }
 
 export function PeopleDrawer({
@@ -177,29 +178,15 @@ export function PeopleDrawer({
 
   return (
     <Modal open={open} onClose={onClose} title="Your people">
-      <div role="tablist" aria-label="People" className="tabs -mt-1">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            type="button"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className="tab press"
-          >
-            {t.label}
-            {typeof t.count === 'number' ? <span className="count">{t.count}</span> : null}
-          </button>
-        ))}
-      </div>
+      <Tabs className="-mt-1" label="People" value={tab} onChange={setTab} items={tabs} />
 
       {note && (
-        <p className="mt-3 alert-error !py-2 text-xs" role="alert">{note}</p>
+        <Alert className="mt-4">{note}</Alert>
       )}
 
       {tab === 'find' && (
         <div className="mt-4">
-          <label htmlFor="people-search" className="sr-only">
+          <label htmlFor="people-search" className="label">
             Find people by name
           </label>
           <input
@@ -212,14 +199,8 @@ export function PeopleDrawer({
             placeholder="Search by name…"
           />
           <div className="mt-2">
-            {searching && (
-              <div className="py-6 text-center text-ink/40">
-                <Spinner className="h-5 w-5" />
-              </div>
-            )}
-            {!searching && query.trim().length >= 2 && results.length === 0 && (
-              <p className="py-6 text-center text-sm text-ink/50">No one goes by that yet.</p>
-            )}
+            {searching && <RowSkeleton count={2} label="Loading people" />}
+            {!searching && query.trim().length >= 2 && results.length === 0 && <Nobody>No one goes by that yet.</Nobody>}
             {results.map((u) => (
               <PersonRow
                 key={u.handle}
@@ -236,15 +217,9 @@ export function PeopleDrawer({
 
       {(tab === 'following' || tab === 'followers') && (
         <div className="mt-2">
-          {network === null && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
-            </div>
-          )}
+          {network === null && <RowSkeleton label="Loading people" />}
           {network && (tab === 'following' ? network.following : network.followers).length === 0 && (
-            <p className="py-8 text-center text-sm text-ink/50">
-              {tab === 'following' ? 'You aren’t following anyone yet.' : 'No followers yet.'}
-            </p>
+            <Nobody>{tab === 'following' ? 'You aren’t following anyone yet.' : 'No followers yet.'}</Nobody>
           )}
           {network &&
             (tab === 'following' ? network.following : network.followers).map((u) => (
@@ -296,14 +271,8 @@ export function PeopleDrawer({
       {tab === 'suggested' && (
         <div className="mt-2">
           <p className="pb-2 text-xs text-ink/50">Matched by wardrobe and taste, not follower counts.</p>
-          {twins === null && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
-            </div>
-          )}
-          {twins && twins.length === 0 && (
-            <p className="py-8 text-center text-sm text-ink/50">No matches yet. Take the style quiz and fill your closet.</p>
-          )}
+          {twins === null && <RowSkeleton label="Loading people" />}
+          {twins && twins.length === 0 && <Nobody>No matches yet. Take the fitting and fill your closet.</Nobody>}
           {twins?.map((t) => (
             <PersonRow
               key={t.handle}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
-import { Modal, PageShell } from '../components/ui'
+import { Alert, Badge, EmptyState, Modal, PageHead, PageShell, Tabs, SkeletonBlock, LoadError } from '../components/ui'
 import { useAuth } from '../context/useAuth'
 
 interface AdminUser {
@@ -46,13 +46,23 @@ const REASON_LABEL: Record<string, string> = {
   other: 'Other',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  waitlist: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  invited: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
-  suspended: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+/** A one-word state is a Badge: brass for "in", a quiet ink wash for waiting; suspended takes danger text on its own wash. */
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'approved') return <Badge>{status}</Badge>
+  if (status === 'suspended') return <Badge tone="quiet" className="!bg-[rgb(var(--c-danger)/0.1)] !text-[rgb(var(--c-danger))]">{status}</Badge>
+  return <Badge tone="quiet">{status}</Badge>
 }
+
+/** A quiet tag beside a name: "google", "admin". */
+function Tag({ children }: { children: string }) {
+  return (
+    <Badge tone="quiet" className="ml-2 !text-[10px] uppercase tracking-label-xs">
+      {children}
+    </Badge>
+  )
+}
+
+const TH = 'px-4 py-3 text-[11px] font-semibold uppercase tracking-label-xs text-ink/45'
 
 const WAITING = ['waitlist', 'pending', 'invited']
 
@@ -81,7 +91,7 @@ export function AdminPage() {
       setUsers(res.users)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users')
+      setError(err instanceof Error ? err.message : 'Couldn’t load the members. Check your connection and try again.')
     }
   }, [])
 
@@ -94,7 +104,7 @@ export function AdminPage() {
       const res = await apiFetch<{ reports: AdminReport[] }>('/admin/reports')
       setReports(res.reports)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load reports')
+      setError(err instanceof Error ? err.message : 'Couldn’t load the reports. Check your connection and try again.')
     }
   }, [])
   useEffect(() => {
@@ -121,7 +131,7 @@ export function AdminPage() {
       await load()
       return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed')
+      setError(err instanceof Error ? err.message : 'That didn’t go through. Try again.')
       return false
     } finally {
       setBusyId(null)
@@ -217,9 +227,26 @@ export function AdminPage() {
 
   if (!users && !error) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-ink/60">
-        <Spinner className="h-6 w-6" />
-      </div>
+      <PageShell>
+        <div aria-busy="true" aria-label="Loading the house">
+          <SkeletonBlock className="h-3 w-20" />
+          <SkeletonBlock className="mt-3 h-9 w-40" />
+          <SkeletonBlock className="mt-3 h-4 w-48 !bg-ink/[0.07]" />
+          <div className="card mt-8 p-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonBlock key={i} className={`h-10 w-full ${i ? 'mt-3' : ''}`} />
+            ))}
+          </div>
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (!users && error) {
+    return (
+      <PageShell>
+        <LoadError message={error} onRetry={() => { setError(null); void load() }} />
+      </PageShell>
     )
   }
 
@@ -227,85 +254,71 @@ export function AdminPage() {
   const members = (users ?? []).filter((u) => !WAITING.includes(u.status))
 
   return (
-    <PageShell wide>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="animate-rise font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-            Admin
-          </h1>
-          <p className="mt-1 animate-rise-1 text-sm text-ink/55">
+    <PageShell>
+      <PageHead
+        eyebrow="The house"
+        title="Admin"
+        line={
+          <span className="[font-variant-numeric:tabular-nums]">
             {members.length} members · {waiting.length} waiting
-          </p>
-        </div>
-        <button type="button" onClick={() => void load()} className="btn-ghost animate-rise-1">
-          Refresh
-        </button>
-      </div>
-
-      <div className="mt-6 flex animate-rise-1 gap-1 rounded-[3px] border border-ink/10 bg-surface p-1 sm:w-fit">
-        {(
-          [
-            ['waitlist', `Waitlist · ${waiting.length}`],
-            ['members', `Members · ${members.length}`],
-            ['reports', `Reports · ${reports?.filter((r) => !r.resolvedAt).length ?? 0}`],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`flex-1 rounded-[3px] px-5 py-2 text-sm font-medium transition-colors sm:flex-none ${
-              tab === key ? 'bg-ink text-bone' : 'text-ink/55 hover:text-ink'
-            }`}
-          >
-            {label}
+          </span>
+        }
+        aside={
+          <button type="button" onClick={() => void load()} className="btn-ghost">
+            Refresh
           </button>
-        ))}
-      </div>
+        }
+      />
 
-      {notice && (
-        <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-          {notice}
-        </p>
-      )}
-      {error && (
-        <p className="mt-4 alert-error">
-          {error}
-        </p>
-      )}
+      {/* Three views of the same house: tabs, with the brass rule under the one you are in. */}
+      <Tabs
+        className="mt-8 animate-rise-1"
+        label="Admin"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { key: 'waitlist', label: 'Waitlist', count: waiting.length },
+          { key: 'members', label: 'Members', count: members.length },
+          { key: 'reports', label: 'Reports', count: reports?.filter((r) => !r.resolvedAt).length ?? 0 },
+        ]}
+      />
+
+      {notice && <Alert tone="success" className="mt-4">{notice}</Alert>}
+      {error && <Alert className="mt-4">{error}</Alert>}
 
       {tab === 'waitlist' && (
-        <div className="mt-6">
-          <form
-            onSubmit={inviteSomeone}
-            className="flex max-w-md items-center gap-2 rounded-[3px] border border-ink/10 bg-surface p-1.5 pl-4 focus-within:border-iris/60 focus-within:ring-2 focus-within:ring-iris/20"
-          >
-            <input
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Invite someone by email…"
-              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink/35"
-            />
-            <button type="submit" disabled={inviting} className="btn-primary btn-sm">
+        <div className="mt-8">
+          <form onSubmit={inviteSomeone} className="flex max-w-md items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="admin-invite-email" className="label">
+                Invite someone by email
+              </label>
+              <input
+                id="admin-invite-email"
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="them@example.com"
+                className="field"
+              />
+            </div>
+            <button type="submit" disabled={inviting} className="btn-primary shrink-0">
               {inviting ? <Spinner className="h-4 w-4" /> : 'Invite'}
             </button>
           </form>
 
           {waiting.length === 0 ? (
-            <p className="mt-8 rounded-[3px] border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">
-              Nobody is waiting right now.
-            </p>
+            <EmptyState className="mt-8" line="Nobody is waiting right now." />
           ) : (
-            <div className="card mt-6 overflow-x-auto">
+            <div className="card mt-8 overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
-                    <th className="px-4 py-3 font-medium">Person</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Joined</th>
-                    <th className="px-4 py-3 font-medium" />
+                  <tr className="border-b border-ink/10">
+                    <th className={TH}>Person</th>
+                    <th className={TH}>Status</th>
+                    <th className={TH}>Joined</th>
+                    <th className={TH} />
                   </tr>
                 </thead>
                 <tbody>
@@ -315,21 +328,13 @@ export function AdminPage() {
                         <div className="font-medium text-ink">{displayName(u)}</div>
                         <div className="text-xs text-ink/50">
                           {u.email}
-                          {u.viaGoogle && (
-                            <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/60">
-                              google
-                            </span>
-                          )}
+                          {u.viaGoogle && <Tag>google</Tag>}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`rounded-[3px] px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
-                        >
-                          {u.status}
-                        </span>
+                        <StatusBadge status={u.status} />
                       </td>
-                      <td className="px-4 py-3 text-ink/70">
+                      <td className="px-4 py-3 text-ink/70 [font-variant-numeric:tabular-nums]">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -358,15 +363,15 @@ export function AdminPage() {
       )}
 
       {tab === 'members' && users && (
-        <div className="card mt-6 overflow-x-auto">
+        <div className="card mt-8 overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
-                <th className="px-4 py-3 font-medium">Member</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 font-medium">Activity</th>
-                <th className="px-4 py-3 font-medium" />
+              <tr className="border-b border-ink/10">
+                <th className={TH}>Member</th>
+                <th className={TH}>Status</th>
+                <th className={TH}>Plan</th>
+                <th className={TH}>Activity</th>
+                <th className={TH} />
               </tr>
             </thead>
             <tbody>
@@ -377,24 +382,12 @@ export function AdminPage() {
                     <div className="text-xs text-ink/50">
                       {u.email}
                       {u.handle ? ` · @${u.handle}` : ''}
-                      {u.role === 'admin' && (
-                        <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/70">
-                          admin
-                        </span>
-                      )}
-                      {u.viaGoogle && (
-                        <span className="ml-1 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/60">
-                          google
-                        </span>
-                      )}
+                      {u.role === 'admin' && <Tag>admin</Tag>}
+                      {u.viaGoogle && <Tag>google</Tag>}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-[3px] px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[u.status] ?? 'bg-ink/10 text-ink/70'}`}
-                    >
-                      {u.status}
-                    </span>
+                    <StatusBadge status={u.status} />
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -403,7 +396,8 @@ export function AdminPage() {
                       onChange={(e) =>
                         void runAction(u.id, `/admin/users/${u.id}/plan`, { plan: e.target.value })
                       }
-                      className="rounded-[3px] border border-ink/15 bg-surface px-2 py-1 text-xs text-ink"
+                      aria-label={`Plan for ${displayName(u)}`}
+                      className="field field-sm !w-auto"
                     >
                       {['free', 'plus', 'pro', 'premium', 'founder'].map((p) => (
                         <option key={p} value={p}>
@@ -412,7 +406,7 @@ export function AdminPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-ink/70">
+                  <td className="px-4 py-3 text-ink/70 [font-variant-numeric:tabular-nums]">
                     {u.items} items · {u.wears} wears
                     <div className="text-xs text-ink/45">{u.aiCalls7d} AI calls / 7d</div>
                     <div className="mt-1 flex items-center gap-2 text-xs text-ink/45">
@@ -425,7 +419,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void runAction(u.id, `/admin/users/${u.id}/invites`, { invitesLeft: u.invitesLeft + 5 })}
-                          className="font-semibold text-brass hover:underline"
+                          className="press font-semibold text-accent-text hover:underline disabled:opacity-50"
                         >
                           +5
                         </button>
@@ -449,7 +443,7 @@ export function AdminPage() {
                           type="button"
                           disabled={busyId === u.id}
                           onClick={() => void runAction(u.id, `/admin/users/${u.id}/suspend`)}
-                          className="btn-ghost !border-rose-200 btn-sm !text-rose-700 dark:!border-rose-900 dark:!text-rose-400"
+                          className="btn-danger btn-sm"
                         >
                           Suspend
                         </button>
@@ -474,31 +468,26 @@ export function AdminPage() {
       )}
 
       {tab === 'reports' && (
-        <div className="mt-6">
+        <div className="mt-8">
           {!reports && !error && (
-            <div className="flex justify-center py-10 text-ink/50">
-              <Spinner className="h-6 w-6" />
+            <div className="card p-4" aria-busy="true" aria-label="Loading reports">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonBlock key={i} className={`h-10 w-full ${i ? 'mt-3' : ''}`} />
+              ))}
             </div>
           )}
-          {!reports && error && (
-            <div className="py-10 text-center">
-              <p className="text-sm text-ink/60">Couldn’t load reports.</p>
-              <button type="button" onClick={() => { setError(null); void loadReports() }} className="btn-ghost btn-sm mt-3">Try again</button>
-            </div>
-          )}
-          {reports && reports.length === 0 && (
-            <p className="rounded-[3px] border border-dashed border-ink/15 p-8 text-center text-sm text-ink/50">Nothing reported. Good.</p>
-          )}
+          {!reports && error && <LoadError className="!min-h-0 py-10" message="Couldn’t load the reports. Check your connection and try again." onRetry={() => { setError(null); void loadReports() }} />}
+          {reports && reports.length === 0 && <EmptyState line="Nothing reported. Good." />}
           {reports && reports.length > 0 && (
             <div className="card overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
-                    <th className="px-4 py-3 font-medium">About</th>
-                    <th className="px-4 py-3 font-medium">Reason</th>
-                    <th className="px-4 py-3 font-medium">From</th>
-                    <th className="px-4 py-3 font-medium">When</th>
-                    <th className="px-4 py-3 font-medium" />
+                  <tr className="border-b border-ink/10">
+                    <th className={TH}>About</th>
+                    <th className={TH}>Reason</th>
+                    <th className={TH}>From</th>
+                    <th className={TH}>When</th>
+                    <th className={TH} />
                   </tr>
                 </thead>
                 <tbody>
@@ -512,10 +501,10 @@ export function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-ink/70">{REASON_LABEL[r.reason] ?? r.reason}</td>
                       <td className="px-4 py-3 text-ink/70">{r.reporter}</td>
-                      <td className="px-4 py-3 text-ink/70">{new Date(r.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-ink/70 [font-variant-numeric:tabular-nums]">{new Date(r.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
                         {r.resolvedAt ? (
-                          <span className="text-xs text-ink/45">Resolved</span>
+                          <Badge tone="quiet">Resolved</Badge>
                         ) : (
                           <button type="button" disabled={busyId === r.id} onClick={() => void resolveReport(r.id)} className="btn-ghost btn-sm">
                             Resolve
@@ -554,11 +543,11 @@ export function AdminPage() {
                 <div
                   onClick={selectLinkText}
                   title="Click to select"
-                  className="mt-4 cursor-text select-all break-all rounded-[3px] border border-ink/10 bg-bone p-3 font-mono text-xs text-ink/75"
+                  className="mt-4 cursor-text select-all break-all rounded-[3px] border border-ink/10 bg-bone p-3 text-xs text-ink/75"
                 >
                   {inviteLink.url}
                 </div>
-                <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4 btn-sm">
+                <button type="button" onClick={() => void copyInvite()} className="btn-primary mt-4">
                   {copied ? 'Copied' : 'Copy invite link'}
                 </button>
               </>

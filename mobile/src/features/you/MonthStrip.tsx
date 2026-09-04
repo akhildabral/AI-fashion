@@ -2,13 +2,15 @@
 // a brass dot, unlogged past days dashed, today ringed in brass. Laid out as
 // the web's MonthStrip: the month between its arrows on the left, the count
 // beneath (the web's row wraps at this width), the grid 12 below.
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { Button } from '@/src/components/Button'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
+import { alpha, hairline, height, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
+import { ChevronGlyph } from '@/src/components/Glyphs'
 import { dayKey, formatMonth, monthKey, pad, shiftMonth } from './dates'
 
 export function MonthStrip({ month, days, onMonth, onPick }: { month: string; days: Set<string>; onMonth: (m: string) => void; onPick: (day: string, logged: boolean) => void }) {
@@ -37,7 +39,7 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
             haptics.select()
             onMonth(shiftMonth(month, -1))
           }}
-          icon={<T role="h3">‹</T>}
+          icon={<ChevronGlyph direction="left" />}
         />
         <T role="h2" accessibilityRole="header">
           {formatMonth(month)}
@@ -50,7 +52,7 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
             haptics.select()
             onMonth(shiftMonth(month, 1))
           }}
-          icon={<T role="h3">›</T>}
+          icon={<ChevronGlyph />}
         />
       </View>
       <T role="caption" tone="faint">
@@ -75,7 +77,7 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
               const isToday = key === today
               return (
                 <View key={key} style={styles.cell}>
-                  <Pressable
+                  <Press
                     accessibilityRole="button"
                     accessibilityLabel={`${key}${isLogged ? ', logged' : future ? '' : ', not logged'}`}
                     accessibilityState={{ disabled: future }}
@@ -84,24 +86,25 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
                       haptics.select()
                       onPick(key, isLogged)
                     }}
-                    hitSlop={hitSlopFor(height.secondary)}
-                    pressRetentionOffset={12}
-                    style={({ pressed }) => [
-                      styles.day,
-                      {
-                        borderRadius: radius,
-                        borderWidth: isToday ? 1.5 : hairline,
-                        borderStyle: isLogged || future ? 'solid' : 'dashed',
-                        borderColor: isToday ? t.brass : isLogged ? alpha(t.ink, 0.25) : future ? 'transparent' : alpha(t.ink, 0.2),
-                        opacity: pressed ? 0.6 : 1,
-                      },
-                    ]}
+                    visual={height.secondary}
                   >
-                    <T role="caption" style={{ fontFamily: fonts.sansSemi, fontVariant: ['tabular-nums'], color: isLogged ? t.ink : future ? alpha(t.ink, 0.2) : alpha(t.ink, 0.4) }}>
-                      {String(Number(key.slice(-2)))}
-                    </T>
-                    {isLogged ? <View style={[styles.dot, { backgroundColor: t.brass }]} /> : null}
-                  </Pressable>
+                    <View
+                      style={[
+                        styles.day,
+                        {
+                          borderRadius: radius,
+                          borderWidth: isToday ? 1.5 : hairline,
+                          borderStyle: isLogged || future ? 'solid' : 'dashed',
+                          borderColor: isToday ? t.brass : isLogged ? alpha(t.ink, 0.25) : future ? 'transparent' : alpha(t.ink, 0.2),
+                        },
+                      ]}
+                    >
+                      <T role="caption" style={{ fontFamily: fonts.sansSemi, fontVariant: ['tabular-nums'], color: isLogged ? t.ink : future ? alpha(t.ink, 0.2) : alpha(t.ink, 0.4) }}>
+                        {String(Number(key.slice(-2)))}
+                      </T>
+                      {isLogged ? <View style={[styles.dot, { backgroundColor: t.brass }]} /> : null}
+                    </View>
+                  </Press>
                 </View>
               )
             })}

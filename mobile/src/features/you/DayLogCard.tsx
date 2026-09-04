@@ -1,6 +1,6 @@
 // One day in the record: the look on its board (and the photo, if there is
-// one), "Again?" as the web's two filter tokens, and the small actions
-// beside it. The web's DayCard: `card p-4`, head on the baseline, the board
+// one), "Again?" as two chips (a rating is a value picked, so a Chip, brass
+// when on), and the small actions beside it. The web's DayCard: `card p-4`, head on the baseline, the board
 // 12 below, a hairline foot 12 below that with the actions 4 apart.
 import { Image } from 'expo-image'
 import { useState } from 'react'
@@ -11,7 +11,7 @@ import { temp } from '@zauq/shared/units'
 import { rateWearLog } from '@zauq/shared/wearlog'
 import { Arch } from '@/src/components/Arch'
 import { LookBoard, type FlatLayItem } from '@/src/components/LookBoard'
-import { Filter } from '@/src/components/Tabs'
+import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
@@ -50,7 +50,7 @@ export function DayLogCard({
     if (busy) return
     const next = log.rating === v ? null : v
     setBusy('rate')
-    haptics.tap()
+    // The Chip's own `select()` is the haptic for this choice.
     try {
       await rateWearLog(log.id, next)
       onChange({ ...log, rating: next })
@@ -135,8 +135,8 @@ export function DayLogCard({
         <T role="micro" tone="faint" style={styles.again} accessibilityRole="header">
           Again?
         </T>
-        <Filter label="Yes" on={log.rating === 5} onPress={() => void rate(5)} />
-        <Filter label="Not this one" on={log.rating === 1} onPress={() => void rate(1)} />
+        <Chip label="Yes" on={log.rating === 5} onPress={() => void rate(5)} />
+        <Chip label="Not this one" on={log.rating === 1} onPress={() => void rate(1)} />
         <View style={[styles.sep, { backgroundColor: alpha(t.ink, 0.15) }]} />
         {log.photoUrl ? (
           <TextLink label="Remove the photo" tone="muted" disabled={busy === 'photo'} onPress={() => void removePhoto()} />
@@ -155,8 +155,8 @@ export function DayLogCard({
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.lg },
   body: { flexDirection: 'row', gap: space.lg, marginTop: space.md },
-  foot: { marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.xs },
-  again: { marginRight: space.xs },
+  foot: { marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
+  again: { marginRight: 0 },
   // The web's `.filter-sep`: a 1 x 16 hairline with 4 either side.
   sep: { width: 1, height: 16, marginHorizontal: space.xs },
   remove: { marginLeft: 'auto' },

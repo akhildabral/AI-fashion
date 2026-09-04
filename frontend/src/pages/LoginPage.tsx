@@ -6,6 +6,7 @@ import { apiFetch, clearSessionExpired } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { GoogleButton } from '../components/GoogleButton'
 import { DoorShell, InviteDoor, Or, PasswordField, WaitlistLink } from '../components/DoorShell'
+import { FieldError } from '../components/ui'
 
 // Sign in. One panel: email and password, a hairline "or", Google. Errors sit
 // under the field they belong to; the backend's honest messages are kept.
@@ -94,7 +95,7 @@ export function LoginPage() {
             {resent ? (
               <span className="text-ink/60">Sent. Check your inbox.</span>
             ) : (
-              <button type="button" onClick={() => void resend()} className="font-semibold text-brass underline-offset-4 hover:underline">
+              <button type="button" onClick={() => void resend()} className="font-semibold text-accent-text underline-offset-4 hover:underline">
                 Send it again.
               </button>
             )}
@@ -125,7 +126,7 @@ export function LoginPage() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-5" noValidate={false}>
+      <form onSubmit={submit} className="space-y-4" noValidate={false}>
         <div>
           <label htmlFor="email" className="label">
             Email
@@ -142,11 +143,7 @@ export function LoginPage() {
             aria-invalid={emailError ? true : undefined}
             aria-describedby={emailError ? 'email-error' : undefined}
           />
-          {emailError && (
-            <p id="email-error" className="mt-1.5 text-xs text-red-500 dark:text-red-300" role="alert">
-              {emailError}
-            </p>
-          )}
+          {emailError && <FieldError id="email-error">{emailError}</FieldError>}
         </div>
 
         <PasswordField
@@ -154,7 +151,7 @@ export function LoginPage() {
           value={password}
           onChange={setPassword}
           aside={
-            <Link to={`/forgot${email ? `?email=${encodeURIComponent(email.trim())}` : ''}`} className="text-[11px] font-semibold text-brass underline-offset-4 hover:underline">
+            <Link to={`/forgot${email ? `?email=${encodeURIComponent(email.trim())}` : ''}`} className="text-xs font-semibold text-accent-text underline-offset-4 hover:underline">
               Forgot?
             </Link>
           }
@@ -163,7 +160,7 @@ export function LoginPage() {
               <>
                 {error.text}{' '}
                 {error.forgot && (
-                  <Link to={`/forgot${email ? `?email=${encodeURIComponent(email.trim())}` : ''}`} className="font-semibold text-brass underline-offset-4 hover:underline">
+                  <Link to={`/forgot${email ? `?email=${encodeURIComponent(email.trim())}` : ''}`} className="font-semibold text-accent-text underline-offset-4 hover:underline">
                     Send me a link instead.
                   </Link>
                 )}

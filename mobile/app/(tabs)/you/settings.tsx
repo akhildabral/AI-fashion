@@ -1,6 +1,6 @@
 // Settings: how the app looks and measures, the lock, the nudges, the legal
-// pages in the in-app browser, and the version. A `card p-5` of choices,
-// then lists of 44px rows, the cards 20 apart.
+// pages in the in-app browser, and the version. A card of choices, then
+// lists of 44px rows on hairlines, the cards a block (32) apart.
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQuery } from '@tanstack/react-query'
 import * as LocalAuthentication from 'expo-local-authentication'
@@ -115,6 +115,7 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: 20 },
-  mt3: { marginTop: space.md },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: space.xxl },
+  // Label to line: 8.
+  mt3: { marginTop: space.sm },
 })

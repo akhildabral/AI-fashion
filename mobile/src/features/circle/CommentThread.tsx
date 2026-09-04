@@ -3,16 +3,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
 import { addComment, deleteComment, getComments, timeAgo, type Comment, type CommentTarget, type LookPost, type PickPost, type VerdictPost } from '@zauq/shared/circle'
+import { EmptyState } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { Press } from '@/src/components/Press'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, height, radius } from '@/src/design/tokens'
 import { fonts, fontScale } from '@/src/design/type'
-import { Initials, Press } from './atoms'
+import { Initials } from './atoms'
 import { patchPost } from './cache'
 import { ck } from './keys'
 import { userHref } from './notifications'
@@ -50,7 +53,6 @@ export function useComments(target: CommentTarget, id: string) {
 }
 
 export function CommentList({ target, id }: { target: CommentTarget; id: string }) {
-  const { t } = useTheme()
   const flash = useFlash()
   const queryClient = useQueryClient()
   const q = useComments(target, id)
@@ -78,9 +80,15 @@ export function CommentList({ target, id }: { target: CommentTarget; id: string 
   })
 
   if (q.isPending && !q.data) {
+    // The shape of a thread: two rows, a 24 square and a line each.
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={t.brass} />
+      <View style={styles.list} accessibilityState={{ busy: true }}>
+        {[0, 1].map((i) => (
+          <View key={i} style={styles.row}>
+            <SkeletonBlock width={24} height={24} />
+            <SkeletonBlock width={i ? '58%' : '76%'} height={14} style={styles.avatar} />
+          </View>
+        ))}
       </View>
     )
   }
@@ -96,13 +104,7 @@ export function CommentList({ target, id }: { target: CommentTarget; id: string 
   }
   const comments = q.data?.comments ?? []
   if (comments.length === 0) {
-    return (
-      <View style={styles.center}>
-        <T role="caption" tone="faint" align="center">
-          No notes yet. Say what works, or @mention a friend.
-        </T>
-      </View>
-    )
+    return <EmptyState title="No notes yet. Say what works, or @mention a friend." />
   }
   // The web's thread: rows `gap-2.5` apart, a 24 square of initials, the
   // handle in `text-xs font-semibold`, the note in `text-sm`, the time after.
@@ -110,7 +112,7 @@ export function CommentList({ target, id }: { target: CommentTarget; id: string 
     <View style={styles.list}>
       {comments.map((c) => (
         <View key={c.id} style={styles.row}>
-          <Press accessibilityRole="button" accessibilityLabel={c.name} disabled={!c.handle} onPress={() => c.handle && router.push(userHref(c.handle))} style={styles.avatar}>
+          <Press accessibilityRole="button" accessibilityLabel={c.name} disabled={!c.handle} onPress={() => c.handle && router.push(userHref(c.handle))} wrapStyle={styles.avatar}>
             <Initials handle={c.handle} name={c.name} size={24} />
           </Press>
           <View style={styles.body}>
@@ -127,7 +129,7 @@ export function CommentList({ target, id }: { target: CommentTarget; id: string 
             </T>
           </View>
           {c.isMine ? (
-            <Press accessibilityRole="button" accessibilityLabel="Remove note" hitSlop={8} onPress={() => remove.mutate(c.id)}>
+            <Press accessibilityRole="button" accessibilityLabel="Remove note" visual={16} onPress={() => remove.mutate(c.id)}>
               <T role="caption" tone="faint">
                 Remove
               </T>

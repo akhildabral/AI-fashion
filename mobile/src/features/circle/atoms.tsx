@@ -1,18 +1,23 @@
 // The Circle's small parts: a person as two letters, a plate, a garment in
-// a small arch, a photo in an arch, the reaction chip, the card itself.
-import { MaterialIcons } from '@expo/vector-icons'
+// a small arch, a photo in an arch, the reaction chip, the card's tones. No
+// icon set: a chip is a word, a header control is a hand-drawn glyph. The
+// press, the card, the empty state and the inline error are the shared
+// primitives (`@/src/components/Press`, `Bits`); this only adds the Circle's
+// shapes on top.
 import { Image } from 'expo-image'
 import { type ReactNode } from 'react'
-import { Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import { StyleSheet, View, type ViewStyle } from 'react-native'
 import type { PostItem } from '@zauq/shared/circle'
 import { Arch } from '@/src/components/Arch'
+import { Card as Surface } from '@/src/components/Bits'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
-import { PRESS_SCALE, timing } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, hitSlopFor, radius } from '@/src/design/tokens'
+import { alpha, hairline, height, radius } from '@/src/design/tokens'
 import { fonts, track, tracking } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
+
+export { LONG_PRESS_MS } from '@/src/components/Press'
 
 /** Two letters from a name ("Sam K." → SK), or from the handle when that's all there is. */
 export function initialsOf(name?: string | null, handle?: string | null): string {
@@ -58,10 +63,10 @@ export function Plate({ children }: { children: string }) {
   )
 }
 
-/** A garment in a small arch. */
-export function GarmentThumb({ item, width, selected, sweep }: { item: Pick<PostItem, 'id' | 'imageUrl' | 'subtype' | 'category'>; width: number; selected?: boolean; sweep?: boolean }) {
+/** A garment in a small arch: the standard garment tile at 5/6 (4/5 where it sits beside a person). */
+export function GarmentThumb({ item, width, aspect = 5 / 6, selected, sweep }: { item: Pick<PostItem, 'id' | 'imageUrl' | 'subtype' | 'category'>; width: number; aspect?: number; selected?: boolean; sweep?: boolean }) {
   return (
-    <Arch width={width} aspect={4 / 5} selected={selected} sweep={sweep}>
+    <Arch width={width} aspect={aspect} selected={selected} sweep={sweep}>
       <Image source={{ uri: resolveImageUrl(item.imageUrl) }} contentFit="contain" cachePolicy="disk" transition={200} accessible={false} style={styles.garment} />
     </Arch>
   )
@@ -85,64 +90,36 @@ export function Count({ n }: { n: number }) {
   )
 }
 
-/** Press feedback for anything that isn't a Button: the whole thing scales to 0.97 in 150ms. */
-export function Press({ children, style, onPressIn, onPressOut, ...rest }: PressableProps & { children: ReactNode; style?: ViewStyle }) {
-  const scale = useSharedValue(1)
-  const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
-  return (
-    <Animated.View style={[pressed, style]}>
-      <Pressable
-        pressRetentionOffset={12}
-        onPressIn={(e) => {
-          scale.set(withTiming(PRESS_SCALE, timing.press))
-          onPressIn?.(e)
-        }}
-        onPressOut={(e) => {
-          scale.set(withTiming(1, timing.press))
-          onPressOut?.(e)
-        }}
-        {...rest}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
-  )
-}
-
-export type IconName = React.ComponentProps<typeof MaterialIcons>['name']
-
 /**
- * A reaction or a verb on a card's foot: the web's `ActionButton`, an icon,
- * a word in `text-xs font-semibold`, a count; `px-2 gap-1.5`, brass when on.
+ * A reaction or a verb on a card's foot: the web's `ActionButton` as a word
+ * in `text-xs font-semibold` and a count; `px-2 gap-1.5`, brass when on.
+ * A word, not an icon: ZAUQ labels things.
  */
-export function ActionChip({ icon, iconOn, label, count, on = false, onPress, accessibilityLabel }: { icon: IconName; iconOn?: IconName; label?: string; count?: number; on?: boolean; onPress: () => void; accessibilityLabel: string }) {
+export function ActionChip({ label, count, on = false, onPress, accessibilityLabel }: { label: string; count?: number; on?: boolean; onPress: () => void; accessibilityLabel?: string }) {
   const { t } = useTheme()
   const color = on ? t.brass : alpha(t.ink, 0.55)
   return (
-    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: on }} onPress={onPress} hitSlop={hitSlopFor(height.secondary)}>
+    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: on }} onPress={onPress} visual={height.secondary}>
       <View style={styles.chip}>
-        <MaterialIcons name={on && iconOn ? iconOn : icon} size={15} color={color} />
-        {label ? (
-          <T role="caption" style={{ color, fontFamily: fonts.sansSemi }}>
-            {label}
-          </T>
-        ) : null}
+        <T role="caption" style={{ color, fontFamily: fonts.sansSemi }}>
+          {label}
+        </T>
         {typeof count === 'number' && count > 0 ? <Count n={count} /> : null}
       </View>
     </Press>
   )
 }
 
-/** The web's `btn-icon`: a bordered 36 square, with the bell's count badge when there is one. */
-export function IconButton({ icon, label, onPress, badge }: { icon: IconName; label: string; onPress: () => void; badge?: number }) {
+/** The web's `btn-icon`: a bordered 36 square around a hand-drawn glyph, with the bell's count badge when there is one. */
+export function IconButton({ glyph, label, onPress, badge }: { glyph: ReactNode; label: string; onPress: () => void; badge?: number }) {
   const { t } = useTheme()
   return (
-    <Press accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} unread` : label} onPress={onPress} hitSlop={hitSlopFor(height.secondary)}>
+    <Press accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} unread` : label} onPress={onPress} visual={height.secondary}>
       <View style={[styles.iconButton, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }]}>
-        <MaterialIcons name={icon} size={18} color={alpha(t.ink, 0.6)} />
+        {glyph}
         {badge ? (
           <View style={[styles.badge, { backgroundColor: t.brass, borderRadius: radius }]} accessible={false}>
-            <T style={{ fontFamily: fonts.sansBold, fontSize: 9, lineHeight: 12, color: t.onBrass }} maxFontSizeMultiplier={1}>
+            <T role="micro" style={{ color: t.onBrass, letterSpacing: 0 }} maxFontSizeMultiplier={1}>
               {badge > 9 ? '9+' : String(badge)}
             </T>
           </View>
@@ -152,41 +129,28 @@ export function IconButton({ icon, label, onPress, badge }: { icon: IconName; la
   )
 }
 
-/** The web's `.card`: surface, a hairline of ink/10, 3px corners. A brass edge for the featured and the week; a brass wash for a pick for you. */
-export function Card({ children, tone = 'plain', style }: { children: ReactNode; tone?: 'plain' | 'brass' | 'soft'; style?: ViewStyle }) {
+/**
+ * The shared `Card` with the Circle's tones: a brass edge for the featured
+ * and the week; a brass wash for a pick for you. Unpadded, so a card's rows
+ * can run edge to edge (`CARD_PAD` inside). `onLongPress` is the shared
+ * card's 320ms hold, which opens the menu (see `PostHeader` for how a
+ * screen reader reaches it).
+ */
+export function Card({ children, tone = 'plain', style, onLongPress }: { children: ReactNode; tone?: 'plain' | 'brass' | 'soft'; style?: ViewStyle; onLongPress?: () => void }) {
   const { t } = useTheme()
   return (
-    <View
+    <Surface
+      padding={0}
+      onLongPress={onLongPress}
       style={[
         styles.card,
-        {
-          backgroundColor: tone === 'soft' ? alpha(t.brassSoft, 0.4) : t.surface,
-          borderColor: tone === 'plain' ? alpha(t.ink, 0.1) : alpha(t.brass, tone === 'brass' ? 0.45 : 0.35),
-          borderRadius: radius,
-        },
+        tone === 'soft' && { backgroundColor: alpha(t.brassSoft, 0.4) },
+        tone !== 'plain' && { borderColor: alpha(t.brass, tone === 'brass' ? 0.45 : 0.35) },
         style,
       ]}
     >
       {children}
-    </View>
-  )
-}
-
-/** The web's dashed panel (`border-dashed border-ink/20 p-6`) a room shows when a list has nothing in it. */
-export function Dashed({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  const { t } = useTheme()
-  return <View style={[styles.dashed, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }, style]}>{children}</View>
-}
-
-/** A one-line inline error with what to do next. */
-export function InlineError({ message }: { message: string }) {
-  const { t } = useTheme()
-  return (
-    <View style={[styles.error, { borderColor: alpha(t.danger, 0.4), backgroundColor: alpha(t.danger, 0.08), borderRadius: radius }]} accessibilityLiveRegion="polite">
-      <T role="bodySm" tone="danger">
-        {message}
-      </T>
-    </View>
+    </Surface>
   )
 }
 
@@ -201,7 +165,5 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: height.secondary, paddingHorizontal: 8 },
   iconButton: { width: height.secondary, height: height.secondary, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
-  card: { borderWidth: hairline, overflow: 'hidden' },
-  dashed: { borderWidth: hairline, borderStyle: 'dashed', padding: 24, alignItems: 'center', gap: 8 },
-  error: { borderWidth: hairline, paddingHorizontal: 16, paddingVertical: 10 },
+  card: { overflow: 'hidden' },
 })

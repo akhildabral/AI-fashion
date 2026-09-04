@@ -4,17 +4,19 @@ import { FlashList } from '@shopify/flash-list'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState, type ReactNode } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { RefreshControl, StyleSheet, View } from 'react-native'
 import { followUser, getHidden, getNetwork, getStyleTwins, searchUsers, unblockUser, unfollowUser, unmuteUser, type Hidden, type NetworkEntry } from '@zauq/shared/social'
+import { EmptyState } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { Screen } from '@/src/components/Screen'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Tabs, type TabItem } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { gutter } from '@/src/design/tokens'
+import { gutter, space } from '@/src/design/tokens'
 import { useSocialInvalidate } from '@/src/features/circle/hooks'
 import { ck } from '@/src/features/circle/keys'
 import { PersonRow } from '@/src/features/circle/PersonRow'
@@ -145,24 +147,27 @@ export default function PeopleScreen() {
   const header = (
     <View style={styles.header}>
       <Tabs items={tabs} value={tab} onChange={setTab} />
-      {tab === 'find' ? <Field value={query} onChangeText={setQuery} placeholder="Search by name…" autoFocus autoCorrect={false} autoCapitalize="none" returnKeyType="search" accessibilityLabel="Find people by name" /> : null}
+      {tab === 'find' ? <Field label="Search" value={query} onChangeText={setQuery} placeholder="A name" autoFocus autoCorrect={false} autoCapitalize="none" returnKeyType="search" accessibilityLabel="Find people by name" /> : null}
       {lead ? (
-        <T role="caption" tone="faint" style={{ marginTop: -8 }}>
+        <T role="caption" tone="faint" style={styles.lead}>
           {lead}
         </T>
       ) : null}
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={t.brass} />
+        // Rows shaped like the real ones: a 32 square, a name and a line.
+        <View accessibilityState={{ busy: true }}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={styles.skeletonRow}>
+              <SkeletonBlock width={32} height={32} />
+              <View style={styles.skeletonText}>
+                <SkeletonBlock width={i % 2 ? '52%' : '40%'} height={14} />
+                <SkeletonBlock width="64%" height={12} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : null}
-      {empty ? (
-        <View style={styles.center}>
-          <T role="bodySm" tone="muted" align="center">
-            {empty}
-          </T>
-        </View>
-      ) : null}
+      {empty ? <EmptyState title={empty} /> : null}
     </View>
   )
 
@@ -180,16 +185,29 @@ export default function PeopleScreen() {
         ListHeaderComponent={header}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={network.isRefetching || twins.isRefetching}
+            onRefresh={() => {
+              void network.refetch()
+              void twins.refetch()
+              void hidden.refetch()
+            }}
+            tintColor={t.brass}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: space.xxxl }}
       />
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  // The web's drawer: the tabs, the search `mt-4`, the list `mt-2`
-  header: { paddingHorizontal: gutter, paddingTop: 8, paddingBottom: 8, gap: 16 },
+  // The tabs, then the search and the list 16 beneath.
+  header: { paddingHorizontal: gutter, paddingTop: space.sm, paddingBottom: space.sm, gap: space.lg },
+  // A line under its tabs: 8, label to line.
+  lead: { marginTop: -space.sm },
   row: { paddingHorizontal: gutter },
-  // `py-8 text-center`
-  center: { paddingVertical: 32, alignItems: 'center' },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  skeletonText: { flex: 1, gap: 6 },
 })

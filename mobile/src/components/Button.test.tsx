@@ -30,10 +30,10 @@ describe('Button', () => {
     expect(button.props.accessibilityState).toMatchObject({ disabled: true })
   })
 
-  it('swaps the label for a spinner while loading and blocks presses', async () => {
+  it('keeps its label and takes a spinner while loading, and blocks presses', async () => {
     const onPress = jest.fn()
     await renderWithTheme(<Button label="See it on me" loading onPress={onPress} testID="render" />)
-    expect(screen.queryByText('See it on me')).toBeNull()
+    expect(screen.getByText('See it on me')).toBeTruthy()
     expect(hasType(screen.toJSON() as Json, 'ActivityIndicator')).toBe(true)
     const button = screen.getByTestId('render')
     await fireEvent.press(button)

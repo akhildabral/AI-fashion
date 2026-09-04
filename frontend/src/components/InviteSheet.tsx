@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { Modal } from './ui'
-import { Spinner } from './Spinner'
+import { Alert, Modal, SkeletonBlock } from './ui'
 import { copyText } from '../lib/clipboard'
 import { getMyInvite, type MyInvite } from '@zauq/shared/invites'
 
@@ -30,15 +29,18 @@ function LinkRow({ url, label, onCopied }: { url: string; label: string; onCopie
     onCopied(ok ? 'Copied.' : 'Couldn’t copy. Select the link instead.')
     window.setTimeout(() => setCopied(false), 1800)
   }
+  // A 36 field beside a 36 button: one height, so the row aligns.
   return (
     <div className="mt-2 flex gap-2">
-      <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label={label} className="field field-sm min-w-0 flex-1 font-mono !text-xs" />
+      <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label={label} className="field field-sm min-w-0 flex-1" />
       <button type="button" onClick={() => void copy()} className="btn-primary btn-sm shrink-0">
         {copied ? 'Copied' : 'Copy'}
       </button>
     </div>
   )
 }
+
+const EYEBROW = 'eyebrow'
 
 export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose: () => void; onNote: (msg: string) => void }) {
   const [invite, setInvite] = useState<MyInvite | null>(null)
@@ -76,11 +78,14 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
   return (
     <Modal open={open} onClose={onClose} title="Bring someone in">
       {!invite && !error && (
-        <div className="flex justify-center py-10 text-ink/50">
-          <Spinner className="h-6 w-6" />
+        <div aria-busy="true" aria-label="Loading your invite">
+          <SkeletonBlock className="h-4 w-3/4" />
+          <SkeletonBlock className="mt-2 h-4 w-1/2 !bg-ink/[0.07]" />
+          <SkeletonBlock className="mt-5 h-3 w-24" />
+          <SkeletonBlock className="mt-2 h-9 w-full" />
         </div>
       )}
-      {error && <p className="alert-error">{error}</p>}
+      {error && <Alert>{error}</Alert>}
       {invite && (
         <>
           <p className="text-sm text-ink/60">
@@ -93,11 +98,11 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
 
           <div className="mt-5 grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Your invite link</p>
+              <p className={EYEBROW}>Your invite link</p>
               <LinkRow url={invite.url} label="Your invite link" onCopied={onNote} />
-              <div className="mt-2 flex items-center gap-3">
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                 {canShare && (
-                  <button type="button" onClick={() => void share()} className="btn-quiet !h-8 !text-xs">
+                  <button type="button" onClick={() => void share()} className="btn-quiet btn-quiet-sm">
                     Send it by message
                   </button>
                 )}
@@ -108,7 +113,7 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
               </div>
             </div>
             <div className="hidden sm:block">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Or scan</p>
+              <p className={EYEBROW}>Or scan</p>
               <div className="mt-2 rounded-[3px] border border-ink/10 bg-[#ECE5D8] p-2">
                 <QR text={invite.url} />
               </div>
@@ -116,9 +121,9 @@ export function InviteSheet({ open, onClose, onNote }: { open: boolean; onClose:
           </div>
 
           {invite.profileUrl && (
-            <div className="mt-6 border-t border-ink/10 pt-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Already in?</p>
-              <p className="mt-1 text-sm text-ink/60">Anyone who’s already a member follows you in a tap from this one.</p>
+            <div className="mt-8 border-t border-ink/10 pt-5">
+              <p className={EYEBROW}>Already in?</p>
+              <p className="mt-2 text-sm text-ink/60">Anyone who’s already a member follows you in a tap from this one.</p>
               <LinkRow url={invite.profileUrl} label="Your profile link" onCopied={onNote} />
             </div>
           )}

@@ -7,7 +7,7 @@ import {
   type BasketResponse,
 } from "@zauq/shared/wardrobe";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { GarmentTile, PageShell, Toast, useFlash, ArchSkeleton, LoadError } from "../components/ui";
+import { GarmentTile, PageShell, Toast, useFlash, ArchSkeleton, LoadError, SectionHead, EmptyState } from "../components/ui";
 import { resolveImageUrl } from "../lib/api";
 import type { WardrobeItem } from "@zauq/shared/types";
 
@@ -96,7 +96,7 @@ export function BasketRoom() {
       />
       <ClosetRooms current="basket" />
 
-      {loading && <ArchSkeleton count={4} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6" />}
+      {loading && <ArchSkeleton count={4} className="grid-board mt-8" />}
 
       {!loading && failed && (
         <LoadError message="Couldn’t open the basket. Check your connection and try again." onRetry={() => { setLoading(true); void load() }} />
@@ -105,8 +105,8 @@ export function BasketRoom() {
       {!loading && !failed && data && (
         <>
           {/* The plaque: is it worth a load? */}
-          <div className="plaque mt-8 flex animate-rise-1 flex-col gap-4 p-5 pl-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+          <div className="plaque mt-8 flex animate-rise-1 flex-wrap items-center justify-between gap-x-8 gap-y-4 p-4 pl-5">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
                 Laundry
               </p>
@@ -118,7 +118,7 @@ export function BasketRoom() {
                     : `${inWash} in the wash. A load is worth it at ${data.loadWorth}.`}
               </p>
               {data.oneMoreWear.length > 0 && (
-                <p className="mt-1 text-sm text-ink/55">
+                <p className="mt-2 text-sm text-ink/55">
                   One more wear and{" "}
                   {data.oneMoreWear.length === 1
                     ? `the ${data.oneMoreWear[0].subtype ?? data.oneMoreWear[0].category} joins`
@@ -132,7 +132,7 @@ export function BasketRoom() {
                 type="button"
                 disabled={busy === "all"}
                 onClick={() => void allClean()}
-                className="btn-primary whitespace-nowrap"
+                className="btn-primary"
               >
                 {busy === "all"
                   ? "Folding…"
@@ -142,33 +142,16 @@ export function BasketRoom() {
           </div>
 
           {groups.length === 0 && (
-            <div className="mt-10 animate-rise-2 text-center">
-              <div
-                className="arch-bezel mx-auto w-40"
-                style={{ aspectRatio: "5 / 6" }}
-              >
-                <div className="arch-niche flex h-full w-full items-center justify-center">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/40">
-                    Empty
-                  </span>
-                </div>
-              </div>
-              <p className="mt-5 font-display text-xl italic text-ink/60">
-                The basket fills itself. Log a wear, and pieces come here when
-                they’ve had their turn.
-              </p>
-            </div>
+            <EmptyState
+              className="mt-10 animate-rise-2"
+              line="The basket fills itself. Log a wear, and pieces come here when they’ve had their turn."
+            />
           )}
 
           {groups.map((g) => (
             <section key={g.state} className="mt-10 animate-rise-2">
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-2xl font-medium text-ink">
-                  {STATE_LABEL[g.state]}
-                </h2>
-                <span className="text-xs text-ink/45">{g.items.length}</span>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
+              <SectionHead title={STATE_LABEL[g.state]} action={<span className="text-xs text-ink/45 [font-variant-numeric:tabular-nums]">{g.items.length}</span>} />
+              <div className="grid-board">
                 {g.items.map((it) => (
                   <div key={it.id}>
                     <GarmentTile

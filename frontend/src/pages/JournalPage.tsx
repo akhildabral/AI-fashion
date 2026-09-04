@@ -9,10 +9,9 @@ import { getResaleDraft, getWardrobe } from '@zauq/shared/wardrobe'
 import { getOutfits, type Outfit } from '@zauq/shared/outfits'
 import { getRitualStats, type RitualStats } from '@zauq/shared/brief'
 import type { EventType, ResaleDraftResponse, WardrobeItem, WearInsightsResponse, WearLogEntry } from '@zauq/shared/types'
-import { Spinner } from '../components/Spinner'
 import { ShareButton } from '../components/ShareButton'
 import { clearLookPhoto, setLookPhoto, shareLook, unshareLook } from '@zauq/shared/circle'
-import { Arch, GarmentTile, Modal, PageShell, Stat, Toast, useFlash, SkeletonBlock } from '../components/ui'
+import { Alert, Arch, ArchSkeleton, Chip, EmptyState, Filter, GarmentTile, IconButton, Modal, PageHead, PageShell, SectionHead, Stat, Tabs, Toast, UndoBar, useFlash, SkeletonBlock } from '../components/ui'
 import { resolveImageUrl } from '../lib/api'
 import { temp } from '@zauq/shared/units'
 
@@ -78,16 +77,21 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
   return (
     <Modal open onClose={onClose} title="A listing, drafted">
       {!result && !error && (
-        <div className="flex min-h-[20vh] flex-col items-center justify-center gap-3 text-ink/60">
-          <Spinner className="h-6 w-6" />
-          <p className="font-display text-sm italic">Writing your listing…</p>
+        // The shape of the listing to come, and the word for the wait.
+        <div aria-busy="true" aria-label="Writing your listing">
+          <div className="flex gap-4">
+            <div className="arch-bezel aspect-[4/5] w-20 shrink-0 animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
+            <div className="flex-1">
+              <SkeletonBlock className="h-5 w-2/3" />
+              <SkeletonBlock className="mt-2 h-4 w-1/3 !bg-ink/[0.07]" />
+            </div>
+          </div>
+          <SkeletonBlock className="mt-5 h-4 w-full !bg-ink/[0.07]" />
+          <SkeletonBlock className="mt-2 h-4 w-5/6 !bg-ink/[0.07]" />
+          <p className="mt-5 font-display text-sm italic text-ink/60">Writing your listing…</p>
         </div>
       )}
-      {error && (
-        <p className="alert-error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Alert>{error}</Alert>}
       {result && (
         <div className="space-y-5">
           <div className="flex gap-4">
@@ -101,7 +105,7 @@ function ResaleModal({ itemId, onClose }: { itemId: string; onClose: () => void 
           </div>
           <p className="whitespace-pre-line text-sm leading-relaxed text-ink/75">{result.draft.description}</p>
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Before you list</p>
+            <p className="mb-2 eyebrow">Before you list</p>
             <ul className="space-y-1 text-sm text-ink/70">
               {result.draft.conditionChecklist.map((c) => (
                 <li key={c}>· {c}</li>
@@ -180,25 +184,25 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
           <p className="label">The kind of day</p>
           <div className="flex flex-wrap gap-2">
             {OCCASIONS.map((o) => (
-              <button key={o.key} type="button" onClick={() => setOccasion(o.key)} aria-pressed={occasion === o.key} className="chip">
+              <Chip key={o.key} on={occasion === o.key} onClick={() => setOccasion(o.key)}>
                 {o.label}
-              </button>
+              </Chip>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="tabs mt-5" role="tablist" aria-label="Log with">
-        <button type="button" role="tab" aria-selected={source === 'outfits'} onClick={() => setSource('outfits')} className="tab">
-          An outfit
-        </button>
-        <button type="button" role="tab" aria-selected={source === 'pieces'} onClick={() => setSource('pieces')} className="tab">
-          Pieces{picked.length ? ` · ${picked.length}` : ''}
-        </button>
-        <button type="button" role="tab" aria-selected={source === 'photo'} onClick={() => setSource('photo')} className="tab">
-          A photo
-        </button>
-      </div>
+      <Tabs
+        className="mt-8"
+        label="Log with"
+        value={source}
+        onChange={setSource}
+        items={[
+          { key: 'outfits', label: 'An outfit' },
+          { key: 'pieces', label: 'Pieces', count: picked.length || undefined },
+          { key: 'photo', label: 'A photo' },
+        ]}
+      />
 
       {source === 'photo' && (
         <div className="mt-4">
@@ -216,12 +220,8 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
 
       {source === 'outfits' && (
         <div className="mt-4">
-          {outfits === null && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
-            </div>
-          )}
-          {outfits && outfits.length === 0 && <p className="rounded-[3px] border border-dashed border-ink/20 p-5 text-center text-sm text-ink/60">No kept outfits yet. Log with pieces instead.</p>}
+          {outfits === null && <ArchSkeleton count={4} aspect="aspect-[4/5]" className="grid grid-cols-3 gap-3 sm:grid-cols-4" />}
+          {outfits && outfits.length === 0 && <EmptyState line="No kept outfits yet. Log with pieces instead." />}
           {outfits && outfits.length > 0 && (
             <div className="grid max-h-[40vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
               {outfits.map((o) => (
@@ -243,12 +243,8 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
 
       {source === 'pieces' && (
         <div className="mt-4">
-          {pieces === null && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
-            </div>
-          )}
-          {pieces && pieces.length === 0 && <p className="rounded-[3px] border border-dashed border-ink/20 p-5 text-center text-sm text-ink/60">Nothing in the closet yet.</p>}
+          {pieces === null && <ArchSkeleton count={8} aspect="aspect-[4/5]" className="grid grid-cols-4 gap-2 sm:grid-cols-6" />}
+          {pieces && pieces.length === 0 && <EmptyState line="Nothing in the closet yet." />}
           {pieces && pieces.length > 0 && (
             <div className="grid max-h-[40vh] grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6">
               {pieces.map((p) => {
@@ -357,9 +353,9 @@ function DayCard({ log, onChange, onRemove, onNote, heading = 'date' }: { log: W
   }
 
   return (
-    <article id={`day-${dayKey(new Date(log.wornOn))}`} className="card scroll-mt-24 p-4 sm:p-5">
+    <article id={`day-${dayKey(new Date(log.wornOn))}`} className="card scroll-mt-24 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{heading === 'time' ? timeOfDay(log.wornOn) : formatDay(log.wornOn)}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-label text-accent-text">{heading === 'time' ? timeOfDay(log.wornOn) : formatDay(log.wornOn)}</p>
         <p className="text-xs text-ink/45">
           {occasionLabel(log.eventType)}
           {log.weather ? ` · ${temp(log.weather.temperatureC)} ${log.weather.description}` : ''}
@@ -383,30 +379,31 @@ function DayCard({ log, onChange, onRemove, onNote, heading = 'date' }: { log: W
           {log.items.length === 0 && <p className="text-sm text-ink/40">Pieces no longer in your closet.</p>}
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-ink/10 pt-3">
-        <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/40">Again?</span>
-        <button type="button" disabled={busy === 'rate'} onClick={() => void rate(5)} aria-pressed={log.rating === 5} className="filter press">
+      {/* The foot sits on one height, 36: "Again?" picks a value (chips), the rest are quiet actions. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-ink/10 pt-3">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-label-lg text-ink/45">Again?</span>
+        <Chip disabled={busy === 'rate'} on={log.rating === 5} onClick={() => void rate(5)}>
           Yes
-        </button>
-        <button type="button" disabled={busy === 'rate'} onClick={() => void rate(1)} aria-pressed={log.rating === 1} className="filter press">
+        </Chip>
+        <Chip disabled={busy === 'rate'} on={log.rating === 1} onClick={() => void rate(1)}>
           Not this one
-        </button>
+        </Chip>
         <span className="filter-sep" />
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void photo(e.target.files?.[0] ?? null)} />
         {log.photoUrl ? (
-          <button type="button" disabled={busy === 'photo'} onClick={() => void removePhoto()} className="btn-quiet !h-8 !text-xs">
+          <button type="button" disabled={busy === 'photo'} onClick={() => void removePhoto()} className="btn-quiet btn-quiet-sm">
             Remove the photo
           </button>
         ) : (
-          <button type="button" disabled={busy === 'photo'} onClick={() => fileRef.current?.click()} className="btn-quiet !h-8 !text-xs">
+          <button type="button" disabled={busy === 'photo'} onClick={() => fileRef.current?.click()} className="btn-quiet btn-quiet-sm">
             {busy === 'photo' ? 'Adding…' : 'Add a photo'}
           </button>
         )}
-        <button type="button" disabled={busy === 'share'} onClick={() => void toggleShare()} className={`!h-8 !text-xs ${shared ? 'btn-ghost !border-brass/60 !text-brass' : 'btn-quiet'}`}>
-          {busy === 'share' ? '…' : shared ? 'On the circle ✓' : 'Share to the circle'}
+        <button type="button" disabled={busy === 'share'} onClick={() => void toggleShare()} aria-pressed={shared} className="btn-quiet btn-quiet-sm">
+          {busy === 'share' ? '…' : shared ? 'Take it off the circle' : 'Share to the circle'}
         </button>
-        <ShareButton target={{ kind: 'look', id: log.id, title: 'What I wore', text: `What I wore on ${formatDay(log.wornOn)}.`, url: shared ? `${window.location.origin}/look/${log.id}` : undefined }} onDone={(l) => l && onNote(l)} className="press inline-flex h-8 items-center px-2 text-xs text-ink/50 transition-colors hover:text-ink" />
-        <button type="button" onClick={() => onRemove(log)} className="btn-quiet ml-auto !h-8 !text-xs !text-ink/40">
+        <ShareButton target={{ kind: 'look', id: log.id, title: 'What I wore', text: `What I wore on ${formatDay(log.wornOn)}.`, url: shared ? `${window.location.origin}/look/${log.id}` : undefined }} onDone={(l) => l && onNote(l)} className="btn-quiet btn-quiet-sm" />
+        <button type="button" onClick={() => onRemove(log)} className="btn-quiet btn-quiet-sm ml-auto">
           Remove
         </button>
       </div>
@@ -425,24 +422,25 @@ function MonthStrip({ month, days, onMonth, onPick }: { month: string; days: Set
   const logged = [...days].filter((d) => d.startsWith(month)).length
   const past = month < thisMonth ? count : Number(today.slice(-2))
   return (
-    <section className="mt-8 animate-rise-2">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="mt-10 animate-rise-2">
+      {/* The section head: the month as the Bodoni line, the two 36 icon buttons beside it, the count pushed right. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => onMonth(shiftMonth(month, -1))} className="btn-quiet !h-8 !w-8 !px-0" aria-label="Earlier month">
-            ‹
-          </button>
-          <h2 className="font-display text-2xl font-medium text-ink">{formatMonth(month)}</h2>
-          <button type="button" onClick={() => onMonth(shiftMonth(month, 1))} disabled={month >= thisMonth} className="btn-quiet !h-8 !w-8 !px-0 disabled:opacity-30" aria-label="Later month">
-            ›
-          </button>
+          <IconButton label="Earlier month" onClick={() => onMonth(shiftMonth(month, -1))}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M8 1L3 6l5 5" /></svg>
+          </IconButton>
+          <h2 className="section-title">{formatMonth(month)}</h2>
+          <IconButton label="Later month" onClick={() => onMonth(shiftMonth(month, 1))} disabled={month >= thisMonth}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 1l5 5-5 5" /></svg>
+          </IconButton>
         </div>
-        <p className="text-xs text-ink/45">
+        <p className="text-xs text-ink/45 [font-variant-numeric:tabular-nums]">
           {logged} of {past} days logged{past > logged ? ' · tap a dashed day to fill it' : ''}
         </p>
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1 sm:gap-1.5">
+      <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-1.5">
         {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-          <span key={i} className="pb-1 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/35">
+          <span key={i} className="pb-1 text-center text-[10px] font-semibold uppercase tracking-label text-ink/35">
             {d}
           </span>
         ))}
@@ -563,24 +561,22 @@ export function JournalPage() {
   return (
     <PageShell>
       <Toast msg={toast} />
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">The record</p>
-          <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-            What you <em className="text-brass">actually wore.</em>
-          </h1>
-          <p className="mt-3 max-w-xl animate-rise-1 text-sm text-ink/55">Every brief learns from this. Fill the days, and tell the stylist what to bring back.</p>
-        </div>
-        <button type="button" onClick={() => setLogging(dayKey(new Date()))} className="btn-primary animate-rise-1">
-          Log a day
-        </button>
-      </header>
+      <PageHead
+        eyebrow="The record"
+        title={
+          <>
+            What you <em className="text-accent-text">actually wore.</em>
+          </>
+        }
+        line="Every brief learns from this. Fill the days, and tell the stylist what to bring back."
+        aside={
+          <button type="button" onClick={() => setLogging(dayKey(new Date()))} className="btn-primary">
+            Log a day
+          </button>
+        }
+      />
 
-      {error && (
-        <p className="mt-6 alert-error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Alert className="mt-6">{error}</Alert>}
 
       {(ritual || insights) && (
         <section className="plaque mt-8 animate-rise-2 p-5 pl-6">
@@ -602,31 +598,29 @@ export function JournalPage() {
 
       <MonthStrip month={month} days={days} onMonth={setMonth} onPick={pickDay} />
 
-      <section className="mt-6">
+      <section className="mt-10">
+        {/* Filters narrow the month: an ink wash when on, never brass. */}
         <div className="flex flex-wrap items-center gap-1">
-          <button type="button" aria-pressed={occasion === null} onClick={() => setOccasion(null)} className="filter press">
+          <Filter on={occasion === null} onClick={() => setOccasion(null)}>
             All days
-          </button>
+          </Filter>
           {OCCASIONS.slice(0, 4).map((o) => (
-            <button key={o.key} type="button" aria-pressed={occasion === o.key} onClick={() => setOccasion((cur) => (cur === o.key ? null : o.key))} className="filter press">
+            <Filter key={o.key} on={occasion === o.key} onClick={() => setOccasion((cur) => (cur === o.key ? null : o.key))}>
               {o.label}
-            </button>
+            </Filter>
           ))}
           {itemFilter && (
             <>
               <span className="filter-sep" />
-              <button
-                type="button"
-                aria-pressed
+              <Filter
+                on
                 onClick={() => {
                   params.delete('item')
                   setParams(params, { replace: true })
                 }}
-                className="filter press"
-                title="Show every day"
               >
                 {filteredItem ? `The ${filteredItem.subtype ?? filteredItem.category}` : 'One piece'} ×
-              </button>
+              </Filter>
             </>
           )}
         </div>
@@ -642,15 +636,17 @@ export function JournalPage() {
           </div>
         )}
         {logs && logs.length === 0 && (
-          <div className="mt-4 rounded-[3px] border border-dashed border-ink/20 px-6 py-12 text-center">
-            <p className="font-display text-2xl font-medium text-ink">{filtered ? 'Nothing here' : `Nothing logged in ${formatMonth(month)}`}</p>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">{filtered ? 'No day matches that. Clear the filter, or log one.' : 'Tap a day above, or “Wearing it” on today’s brief, and the record starts here.'}</p>
-            {!filtered && (
-              <Link to="/" className="btn-ghost mt-5 inline-flex">
-                Open today’s brief
-              </Link>
-            )}
-          </div>
+          <EmptyState
+            className="mt-8"
+            line={filtered ? 'Nothing here. No day matches that. Clear the filter, or log one.' : `Nothing logged in ${formatMonth(month)}. Tap a day above, or “Wearing it” on today’s brief, and the record starts here.`}
+            action={
+              !filtered ? (
+                <Link to="/" className="btn-ghost">
+                  Open today’s brief
+                </Link>
+              ) : undefined
+            }
+          />
         )}
         {logs && logs.length > 0 && (
           <div className="mt-4 grid gap-3">
@@ -658,7 +654,7 @@ export function JournalPage() {
               dayLogs.length > 1 ? (
                 // A day with several looks — one header, then each look by time.
                 <div key={dayK} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-label text-accent-text">
                     {formatDay(dayLogs[0].wornOn)} <span className="text-ink/40">· {dayLogs.length} looks</span>
                   </p>
                   <div className="grid gap-2 border-l border-brass/25 pl-4">
@@ -678,9 +674,9 @@ export function JournalPage() {
       </section>
 
       {mostWorn.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-display text-2xl font-medium text-ink">Workhorses</h2>
-          <p className="mt-1 text-sm text-ink/55">The pieces doing the most work, and what each wear has cost so far.</p>
+        <section className="mt-10">
+          <SectionHead className="!mb-1" title="Workhorses" />
+          <p className="text-sm text-ink/55">The pieces doing the most work, and what each wear has cost so far.</p>
           <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6 lg:gap-6">
             {mostWorn.map((item) => (
               <Link key={item.itemId} to={`/journal?item=${item.itemId}`} className="press block min-w-0">
@@ -692,14 +688,14 @@ export function JournalPage() {
       )}
 
       {orphans.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-display text-2xl font-medium text-ink">Sitting idle</h2>
-          <p className="mt-1 text-sm text-ink/55">Not worn in over ninety days. Ask for a look built around one, or let it go and draft the listing.</p>
+        <section className="mt-10">
+          <SectionHead className="!mb-1" title="Sitting idle" />
+          <p className="text-sm text-ink/55">Not worn in over ninety days. Ask for a look built around one, or let it go and draft the listing.</p>
           <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6 lg:gap-6">
             {orphans.map((item) => (
               <div key={item.itemId} className="min-w-0 opacity-80">
                 <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} />
-                <button type="button" onClick={() => setResaleItemId(item.itemId)} className="press mt-1 w-full text-center text-[11px] font-semibold text-brass hover:underline">
+                <button type="button" onClick={() => setResaleItemId(item.itemId)} className="btn-quiet btn-quiet-sm mt-1 w-full justify-center">
                   Draft a listing
                 </button>
               </div>
@@ -708,14 +704,8 @@ export function JournalPage() {
         </section>
       )}
 
-      {pending && (
-        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-[3px] border border-brass/40 bg-surface px-4 py-2.5 text-sm text-ink" role="status">
-          <span>{formatDay(pending.log.wornOn)} removed.</span>
-          <button type="button" onClick={undo} className="font-semibold text-brass hover:underline">
-            Undo
-          </button>
-        </div>
-      )}
+      {/* A removed day is gone, not confirmed: the undo bar is the way back. */}
+      {pending && <UndoBar message={`${formatDay(pending.log.wornOn)} removed.`} onUndo={undo} />}
 
       {resaleItemId && <ResaleModal itemId={resaleItemId} onClose={() => setResaleItemId(null)} />}
       {logging && <LogDayModal date={logging} onClose={() => setLogging(null)} onLogged={logged} onNote={flash} />}

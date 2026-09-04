@@ -4,17 +4,17 @@ import { useState } from 'react'
 import { Button } from '@/src/components/Button'
 import { useAuth } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function SignOutSheet() {
   const router = useRouter()
   const { signOut } = useAuth()
   const [busy, setBusy] = useState(false)
   return (
-    <SheetShell
+    <SheetShell dense
       title="Sign out of this device?"
-      line="Your closet, the record and your circle stay where they are. The web stays signed in."
-      foot={
+      lead="Your closet, the record and your circle stay where they are. The web stays signed in."
+      footer={
         <>
           <Button
             label="Sign out"

@@ -4,9 +4,12 @@ import { createTryOn, getPhoto, getTryOn } from '@zauq/shared/tryon'
 import { tryOnWardrobeOutfit } from '@zauq/shared/wardrobe'
 import type { TryOn } from '@zauq/shared/types'
 import { useJobs } from '../context/useJobs'
-import { Spinner } from './Spinner'
+import { resolveImageUrl } from '../lib/api'
+import { Modal, MirrorFrame, Alert } from './ui'
 
 type Phase = 'checking' | 'no-photo' | 'rendering' | 'done' | 'error'
+
+const DRESSING_LINES = ['Taking your measure…', 'Cutting the pieces…', 'Fitting the shoulders…', 'Setting the light…']
 
 /**
  * The modal renders the user in either a saved look (`lookId`) or a set of
@@ -23,13 +26,14 @@ type TryOnModalProps = { onClose: () => void } & (
  *  2. If not, prompt them to upload one (link to the profile photo section).
  *  3. Otherwise render the look/items onto their photo — either
  *     POST /api/looks/:id/tryon or POST /api/wardrobe/tryon. This is slow
- *     (~30s), so we show a clear spinner + message — then display the result.
+ *     (~30s), so the glass shows the figure being dressed — then the result.
  */
 export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [tryOn, setTryOn] = useState<TryOn | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryNonce, setRetryNonce] = useState(0)
+  const [dressLine, setDressLine] = useState(0)
   const { trackRender } = useJobs()
 
   const lookId = 'lookId' in target ? target.lookId : undefined
@@ -37,14 +41,13 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
   // Stable primitive dep for the render effect (itemIds is a fresh array each render).
   const itemsKey = itemIds?.join(',')
 
-  // Close on Escape.
+  // The atelier lines while the figure is being dressed.
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    if (phase !== 'rendering') return
+    setDressLine(0)
+    const id = window.setInterval(() => setDressLine((n) => (n + 1) % DRESSING_LINES.length), 3200)
+    return () => window.clearInterval(id)
+  }, [phase])
 
   useEffect(() => {
     let cancelled = false
@@ -107,104 +110,71 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
     setRetryNonce((n) => n + 1)
   }
 
+  const title = phase === 'done' ? 'You, in this look' : phase === 'no-photo' ? 'Add a photo first' : phase === 'error' ? 'That one didn’t take' : 'See it on you'
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Try this look on"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md overflow-hidden rounded-[3px] border border-ink/10 bg-surface shadow-float"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-[3px] bg-surface/85 text-ink transition hover:bg-surface"
-        >
-          <span aria-hidden="true" className="text-lg leading-none">
-            ×
-          </span>
-        </button>
-
-        <div className="p-8">
-          {phase === 'checking' && (
-            <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-ink/60">
-              <Spinner className="h-6 w-6" />
-              <p className="text-sm">Getting ready…</p>
-            </div>
-          )}
-
-          {phase === 'rendering' && (
-            <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <Spinner className="h-8 w-8 text-brass" />
-              <div>
-                <p className="font-display text-xl font-semibold text-ink">
-                  Rendering you in this look…
-                </p>
-                <p className="mt-2 text-sm text-ink/50">
-                  This can take up to a minute. Hang tight.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {phase === 'no-photo' && (
-            <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <h3 className="font-display text-2xl font-semibold text-ink">
-                Add a photo first
-              </h3>
-              <p className="max-w-xs text-sm text-ink/60">
-                To see yourself in this look, upload a clear, front-facing photo of
-                yourself. It only takes a moment.
-              </p>
-              <Link to="/profile#photo" onClick={onClose} className="btn-primary mt-2">
-                Upload a photo
-              </Link>
-            </div>
-          )}
-
-          {phase === 'done' && tryOn && (
-            <div className="space-y-4 text-center">
-              <h3 className="font-display text-2xl font-semibold text-ink">You in this look</h3>
-              <div className="overflow-hidden rounded-[3px] border border-ink/10 bg-gradient-to-br from-bone to-iris-soft">
-                <img
-                  src={tryOn.imageUrl}
-                  alt="You wearing this look"
-                  className="mx-auto max-h-[60vh] w-full object-contain"
-                />
-              </div>
-              <Link
-                to="/mirror"
-                onClick={onClose}
-                className="inline-flex text-sm font-medium text-brass underline-offset-4 hover:underline"
-              >
-                See all your try-ons
-              </Link>
-            </div>
-          )}
-
-          {phase === 'error' && (
-            <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 text-center">
-              <h3 className="font-display text-2xl font-semibold text-ink">
-                Couldn't render this look
-              </h3>
-              <p className="max-w-xs alert-error">{error}</p>
-              <div className="mt-2 flex gap-3">
-                <button type="button" onClick={retry} className="btn-primary">
-                  Try again
-                </button>
-                <button type="button" onClick={onClose} className="btn-ghost">
-                  Close
-                </button>
-              </div>
-            </div>
-          )}
+    <Modal open onClose={onClose} title={title}>
+      {phase === 'no-photo' ? (
+        <div>
+          <p className="text-sm text-ink/60">
+            To see yourself in this look, add one clear, front-facing, full-length photo. It only takes a moment.
+          </p>
+          <div className="action-row mt-6">
+            <Link to="/profile#photo" onClick={onClose} className="btn-primary">
+              Add your photo
+            </Link>
+            <button type="button" onClick={onClose} className="btn-quiet">
+              Not now
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        <div>
+          {/* The glass keeps its shape through every phase: a standing figure, 2/3. */}
+          <MirrorFrame className="mx-auto max-w-[320px]">
+            {(phase === 'checking' || phase === 'rendering') && (
+              <div className="relative flex aspect-[2/3] flex-col items-center justify-center gap-5 p-8 text-center" aria-busy="true" aria-label="Loading">
+                {phase === 'rendering' && (
+                  <>
+                    <span aria-hidden className="animate-filament absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-brass/60 to-transparent" />
+                    <p key={dressLine} className="relative animate-rise font-display text-base italic text-[#ECE5D8]/80">
+                      {DRESSING_LINES[dressLine]}
+                    </p>
+                    <p className="relative text-[11px] uppercase tracking-[0.18em] text-[#ECE5D8]/50">Leave if you like; you’ll hear when it’s ready</p>
+                  </>
+                )}
+              </div>
+            )}
+            {phase === 'done' && tryOn && (
+              <img src={resolveImageUrl(tryOn.imageUrl)} alt="You wearing this look" className="animate-mirror-reveal aspect-[2/3] w-full object-cover" />
+            )}
+            {phase === 'error' && (
+              <div className="flex aspect-[2/3] flex-col items-center justify-center gap-3 p-8 text-center">
+                <p className="font-display text-xl font-medium text-[#ECE5D8]">That one didn’t take.</p>
+                <p className="max-w-[28ch] text-sm text-[#ECE5D8]/60">Nothing was charged. Try again, or change a piece.</p>
+              </div>
+            )}
+          </MirrorFrame>
+
+          {phase === 'error' && error && <Alert className="mt-4">{error}</Alert>}
+
+          <div className="action-row mt-6">
+            {phase === 'done' && (
+              <Link to="/mirror" onClick={onClose} className="btn-ghost">
+                Open the Mirror
+              </Link>
+            )}
+            {phase === 'error' && (
+              <button type="button" onClick={retry} className="btn-primary">
+                Try again
+              </button>
+            )}
+            <button type="button" onClick={onClose} className="btn-quiet">
+              {phase === 'done' ? 'Done' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   )
 }

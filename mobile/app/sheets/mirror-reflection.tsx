@@ -1,27 +1,30 @@
 // Your reflections: the photos the Mirror can dress, one of them active.
-// Adding one goes through consent, then the camera or the library.
+// Adding one goes through consent, then the camera or the library. Deleting
+// one is asked here, in words; the native Alert is only the permission nudge.
 import { useQueryClient } from '@tanstack/react-query'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native'
+import { Alert as NativeAlert, StyleSheet, View } from 'react-native'
 // `usePhoto` is the shared module's name for "dress this one"; it is not a hook.
 import { deleteReflection, usePhoto as dressReflection } from '@zauq/shared/tryon'
 import type { PhotoResponse } from '@zauq/shared/types'
+import { Alert, Card } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { Check } from '@/src/components/Check'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { Screen } from '@/src/components/Screen'
+import { SheetShell } from '@/src/components/Sheet'
+import { GRID_GAP } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
-import { Check } from '@/src/features/mirror/Check'
+import { alpha, hairline, radius, space } from '@/src/design/tokens'
 import { CONSENT_LINE, uploadReflection, useInvalidateMirror, useReflections } from '@/src/features/mirror/data'
 import { useMirrorStore } from '@/src/features/mirror/store'
 import { qk } from '@/src/lib/query'
 import { PermissionDenied, pickImages, type PickSource } from '@/src/lib/upload'
 
+/** A reflection: a person, so 4/5. */
 const THUMB = 84
 
 export default function ReflectionSheet() {
@@ -63,7 +66,7 @@ export default function ReflectionSheet() {
       if (!hadPhoto) router.back()
     } catch (err) {
       haptics.failure()
-      if (err instanceof PermissionDenied) Alert.alert(err.what === 'camera' ? 'Camera' : 'Photos', err.message)
+      if (err instanceof PermissionDenied) NativeAlert.alert(err.what === 'camera' ? 'Camera' : 'Photos', err.message)
       else setError(err instanceof Error ? err.message : 'Could not save your photo.')
     } finally {
       setBusy(null)
@@ -108,104 +111,93 @@ export default function ReflectionSheet() {
   const chosen = rail.some((x) => x.on)
 
   return (
-    <Screen padded edges={['bottom']}>
+    <SheetShell
+      title={photos.length > 0 ? 'Your reflections' : 'Add your photo'}
+      lead={
+        photos.length > 0
+          ? canAdd
+            ? 'Add one for winter, a haircut, a new length. The brass one is the one the Mirror dresses.'
+            : 'Three at most. The brass one is the one the Mirror dresses.'
+          : 'One clear, full-length photo, and every outfit renders on you.'
+      }
+    >
       <Stack.Screen options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true, sheetCornerRadius: 3 }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <T role="h2" accessibilityRole="header">
-          {photos.length > 0 ? 'Your reflections' : 'Add your photo'}
-        </T>
 
-        {photos.length > 0 ? (
-          <View style={styles.block}>
-            <T role="bodySm" tone="muted">
-              {canAdd ? 'Add one for winter, a haircut, a new length. The brass one is the one the Mirror dresses.' : 'Three at most. The brass one is the one the Mirror dresses.'}
-            </T>
-            <View style={styles.thumbs}>
-              {photos.map((p) => (
-                <View key={p.id} style={{ width: THUMB, opacity: p.active ? 1 : 0.75 }}>
-                  <GarmentTile
-                    photo
-                    width={THUMB}
-                    aspect={3 / 4}
-                    imageUrl={p.url}
-                    selected={p.active}
-                    badge={p.active ? 'dressed' : undefined}
-                    accessibilityLabel={p.active ? 'The one the Mirror dresses' : 'Dress this one'}
-                    onPress={() => void pick(p.id)}
-                    onLongPress={() => setConfirm(p.id)}
-                  />
-                  <Button label="Delete" variant="quiet" size="sm" disabled={busy !== null} onPress={() => setConfirm(p.id)} style={styles.thumbAction} />
-                </View>
-              ))}
-            </View>
-            {confirm ? (
-              <View style={[styles.confirm, { borderRadius: radius, borderColor: alpha(t.danger, 0.4), backgroundColor: t.surface }]}>
-                <T role="h3">Delete this photo?</T>
-                <T role="bodySm" tone="muted">
-                  Every render made from it goes with it. There’s no way back.
-                </T>
-                <View style={styles.row}>
-                  <Button label="Keep it" variant="quiet" size="sm" onPress={() => setConfirm(null)} />
-                  <Button label="Delete photo" variant="danger" size="sm" loading={busy === confirm} disabled={busy !== null} onPress={() => void remove(confirm)} />
-                </View>
+      {photos.length > 0 ? (
+        <View style={styles.block}>
+          <View style={styles.thumbs}>
+            {photos.map((p) => (
+              <View key={p.id} style={[styles.thumb, { opacity: p.active ? 1 : 0.75 }]}>
+                <GarmentTile
+                  photo
+                  width={THUMB}
+                  aspect={4 / 5}
+                  imageUrl={p.url}
+                  selected={p.active}
+                  badge={p.active ? 'dressed' : undefined}
+                  accessibilityLabel={p.active ? 'The one the Mirror dresses' : 'Dress this one'}
+                  onPress={() => void pick(p.id)}
+                  onLongPress={() => setConfirm(p.id)}
+                />
+                <Button label="Delete" variant="quiet" size="sm" disabled={busy !== null} onPress={() => setConfirm(p.id)} style={styles.thumbAction} />
               </View>
-            ) : null}
+            ))}
           </View>
-        ) : null}
-
-        {canAdd ? (
-          <View style={[styles.block, photos.length > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.12), paddingTop: 20 }]}>
-            {photos.length === 0 ? (
+          {confirm ? (
+            <Card style={[styles.confirm, { borderColor: alpha(t.danger, 0.4) }]}>
+              <T role="h3">Delete this photo?</T>
               <T role="bodySm" tone="muted">
-                One clear, full-length photo, and every outfit renders on you.
+                Every render made from it goes with it. There’s no way back.
               </T>
-            ) : null}
-            {photos.length === 0 && chosen ? (
-              <View style={[styles.note, { borderRadius: radius, borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft }]}>
-                <T role="bodySm" style={{ color: alpha(t.ink, 0.8), fontFamily: fonts.serifItalic }}>
-                  The pieces stay on the rail. Once your photo’s in, See it on me is one tap.
-                </T>
+              <View style={styles.row}>
+                <Button label="Keep it" variant="quiet" size="sm" onPress={() => setConfirm(null)} />
+                <Button label="Delete photo" variant="danger" size="sm" loading={busy === confirm} disabled={busy !== null} onPress={() => void remove(confirm)} />
               </View>
-            ) : null}
-            <Check checked={consent} onChange={setConsent} label={CONSENT_LINE} disabled={uploading} />
-            <View style={styles.doors}>
-              <Button label="Take a photo" block disabled={!consent || uploading} loading={uploading} onPress={() => void add('camera')} />
-              <T role="caption" tone="faint" align="center">
-                Full-length, a plain wall behind you, even light
-              </T>
-              <Button label="Choose from gallery" variant="ghost" block disabled={!consent || uploading} onPress={() => void add('library')} />
-              <T role="caption" tone="faint" align="center">
-                A clear, front-facing, full-length shot
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
+
+      {canAdd ? (
+        <View style={[styles.block, photos.length > 0 && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.12), paddingTop: space.lg }]}>
+          {photos.length === 0 && chosen ? (
+            <View style={[styles.note, { borderRadius: radius, borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft }]}>
+              <T role="lede" style={{ color: alpha(t.ink, 0.8) }}>
+                The pieces stay on the rail. Once your photo’s in, See it on me is one tap.
               </T>
             </View>
-            {uploading ? (
-              <View style={styles.row}>
-                <ActivityIndicator color={t.brass} />
-                <T role="bodySm" tone="muted">
-                  saving your photo…
-                </T>
-              </View>
-            ) : null}
-            {error ? (
-              <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
-                {error}
-              </T>
-            ) : null}
+          ) : null}
+          <Check checked={consent} onChange={setConsent} label={CONSENT_LINE} disabled={uploading} />
+          <View style={styles.doors}>
+            <Button label="Take a photo" block disabled={!consent || uploading} loading={uploading} onPress={() => void add('camera')} />
+            <T role="caption" tone="faint" align="center">
+              Full-length, a plain wall behind you, even light
+            </T>
+            <Button label="Choose from gallery" variant="ghost" block disabled={!consent || uploading} onPress={() => void add('library')} />
+            <T role="caption" tone="faint" align="center">
+              A clear, front-facing, full-length shot
+            </T>
           </View>
-        ) : null}
-      </ScrollView>
-    </Screen>
+          {uploading ? (
+            <T role="micro" tone="faint" align="center">
+              saving your photo…
+            </T>
+          ) : null}
+          {error ? <Alert>{error}</Alert> : null}
+        </View>
+      ) : null}
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 24, paddingBottom: 24, gap: 20 },
-  block: { gap: 14 },
-  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  thumbAction: { alignSelf: 'center', marginTop: 2 },
-  confirm: { padding: 16, gap: 8, borderWidth: hairline },
-  // The web's `border-brass/30 bg-iris-soft px-4 py-3 font-display text-sm italic`.
-  note: { paddingHorizontal: 16, paddingVertical: 12, borderWidth: hairline },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  doors: { gap: 8 },
+  // A block's parts 16 apart.
+  block: { gap: space.lg },
+  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  thumb: { width: THUMB, gap: space.xs },
+  thumbAction: { alignSelf: 'center' },
+  confirm: { gap: space.sm },
+  note: { paddingHorizontal: space.lg, paddingVertical: space.md, borderWidth: hairline },
+  row: { flexDirection: 'row', alignItems: 'center', columnGap: space.lg, rowGap: space.sm, flexWrap: 'wrap' },
+  doors: { gap: space.sm },
 })

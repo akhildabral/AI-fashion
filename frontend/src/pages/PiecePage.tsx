@@ -6,8 +6,7 @@ import { deleteWardrobeItem, getWardrobeItem, recatalogWardrobeItem, resolveTwin
 import { getStory, type StoryResponse } from '@zauq/shared/outfits'
 import type { WardrobeItem, WardrobeItemEdit } from '@zauq/shared/types'
 import { resolveImageUrl } from '../lib/api'
-import { Arch, PageShell, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
-import { Spinner } from '../components/Spinner'
+import { Arch, PageShell, Tabs, Toast, useFlash, SkeletonBlock, Eyebrow, Badge, Chip, MoreMenu, MenuItem, LoadError, Stat, Alert } from '../components/ui'
 import { ShareButton } from '../components/ShareButton'
 import { GoesWith } from '../components/GoesWith'
 import { LetGoModal } from '../components/LetGo'
@@ -128,27 +127,27 @@ function TwinBanner({ item, onResolved, onNote }: { item: WardrobeItem; onResolv
   }
   const name = (i: WardrobeItem) => title(i.subtype ?? i.category)
   return (
-    <section className="mt-6 rounded-[3px] border border-brass/50 p-4 sm:p-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">A twin?</p>
-      <p className="mt-1 text-sm text-ink/70">
+    <section className="card mt-6 !border-brass/50 p-4 sm:p-5">
+      <Eyebrow>A twin?</Eyebrow>
+      <p className="mt-2 text-sm text-ink/70">
         This looks like a piece you already have{other ? `: the ${name(other).toLowerCase()}` : ''}.{item.twinScore != null ? (item.twinScore >= 13 ? ' Same type, same colours, and the photo matches.' : ' The same type and colours.') : ''} Nothing happens until you say.
       </p>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-4">
         <div className="w-16 shrink-0">
           <Arch aspect="aspect-[4/5]">
             <img src={resolveImageUrl(item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
           </Arch>
-          <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/45">New</p>
+          <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/45">New</p>
         </div>
         {other && (
-          <Link to={`/closet/piece/${other.id}`} className="w-16 shrink-0">
+          <Link to={`/closet/piece/${other.id}`} className="press w-16 shrink-0">
             <Arch aspect="aspect-[4/5]">
               <img src={resolveImageUrl(other.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
             </Arch>
-            <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/45">Yours</p>
+            <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/45">Yours</p>
           </Link>
         )}
-        <div className="flex min-w-0 flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
           <button type="button" disabled={busy !== null} onClick={() => void answer('same')} className="btn-primary btn-sm">
             {busy === 'same' ? '…' : 'Same piece'}
           </button>
@@ -191,11 +190,11 @@ function FactRow({ item, fact, open, onOpen, onSave }: { item: WardrobeItem; fac
         <span className="text-sm text-ink/55">{fact.label}</span>
         <span className="min-w-0 text-right">
           {source === 'none' ? (
-            <span className="font-display text-sm italic text-brass">{fact.yours ? 'Add it' : fact.kind === 'chips' && fact.options ? `unsure · which?` : 'unsure'}</span>
+            <span className="font-display text-sm italic text-brass-ink">{fact.yours ? 'Add it' : fact.kind === 'chips' && fact.options ? `unsure · which?` : 'unsure'}</span>
           ) : (
-            <span className={`text-sm font-semibold ${source === 'guess' ? 'text-brass' : 'text-ink'}`}>{labelFor(fact, value)}</span>
+            <span className={`text-sm font-semibold ${source === 'guess' ? 'text-brass-ink' : 'text-ink'}`}>{labelFor(fact, value)}</span>
           )}
-          {source !== 'none' && <span className="ml-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink/35">{source === 'read' ? 'read' : source === 'guess' ? 'a guess' : 'you set it'}</span>}
+          {source !== 'none' && <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink/35">{source === 'read' ? 'read' : source === 'guess' ? 'a guess' : 'you set it'}</span>}
         </span>
       </button>
       {open && (
@@ -206,11 +205,10 @@ function FactRow({ item, fact, open, onOpen, onSave }: { item: WardrobeItem; fac
               {fact.options.map(([k, l]) => {
                 const on = fact.kind === 'multi' ? multi.includes(k) : value === k
                 return (
-                  <button
+                  <Chip
                     key={k}
-                    type="button"
                     disabled={busy}
-                    aria-pressed={on}
+                    on={on}
                     onClick={() => {
                       if (fact.kind === 'multi') {
                         const next = on ? multi.filter((x) => x !== k) : [...multi, k]
@@ -218,10 +216,9 @@ function FactRow({ item, fact, open, onOpen, onSave }: { item: WardrobeItem; fac
                         void commit(next)
                       } else void commit(on ? null : k)
                     }}
-                    className={`chip ${on ? 'chip-on' : ''}`}
                   >
                     {l}
-                  </button>
+                  </Chip>
                 )
               })}
             </div>
@@ -267,7 +264,6 @@ export function PiecePage() {
   const [openFact, setOpenFact] = useState<string | null>(null)
   const [tryOn, setTryOn] = useState(false)
   const [original, setOriginal] = useState(false)
-  const [menu, setMenu] = useState(false)
   const [lettingGo, setLettingGo] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [, setBusy] = useState<string | null>(null)
@@ -320,7 +316,6 @@ export function PiecePage() {
   }
   async function reread() {
     if (!item) return
-    setMenu(false)
     setBusy('reread')
     try {
       const { item: updated } = await recatalogWardrobeItem(item.id)
@@ -345,14 +340,9 @@ export function PiecePage() {
   if (error) {
     return (
       <PageShell>
-        <p className="alert-error" role="alert">
-          {error}
-        </p>
-        <div className="mt-6 flex gap-3">
-          <button type="button" onClick={() => { setError(null); void load() }} className="btn-primary">
-            Try again
-          </button>
-          <Link to="/closet" className="btn-ghost inline-flex">
+        <LoadError message={error} onRetry={() => { setError(null); void load() }} />
+        <div className="action-row justify-center">
+          <Link to="/closet" className="btn-quiet">
             The closet
           </Link>
         </div>
@@ -362,14 +352,17 @@ export function PiecePage() {
   if (!item) {
     return (
       <PageShell>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,420px)_1fr]" aria-busy="true" aria-label="Loading the piece">
-          <div className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
-          <div className="flex flex-col gap-4 pt-2">
-            <SkeletonBlock className="h-4 w-24" />
-            <SkeletonBlock className="h-12 w-3/4" />
+        <SkeletonBlock className="h-3 w-32" />
+        <div className="mt-4 grid gap-8 md:grid-cols-[260px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[320px_minmax(0,1fr)]" aria-busy="true" aria-label="Loading the piece">
+          <div className="mx-auto w-full max-w-[260px] md:mx-0 md:max-w-none">
+            <div className="arch-bezel aspect-[4/5] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
+          </div>
+          <div className="flex flex-col gap-4">
             <SkeletonBlock className="h-9 w-40" />
-            <div className="mt-4 flex flex-col gap-3 border-t border-ink/10 pt-5">
-              {Array.from({ length: 5 }).map((_, i) => <SkeletonBlock key={i} className="h-4 w-full" />)}
+            <SkeletonBlock className="h-9 w-3/4" />
+            <SkeletonBlock className="h-11 w-40" />
+            <div className="mt-4 flex flex-col gap-3 border-t border-ink/10 pt-6">
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonBlock key={i} className="h-4 w-full !bg-ink/[0.07]" />)}
             </div>
           </div>
         </div>
@@ -387,7 +380,7 @@ export function PiecePage() {
   return (
     <PageShell>
       <Toast msg={toast} />
-      <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
+      <p className="eyebrow animate-rise">
         <Link to="/closet" className="hover:underline">
           The closet
         </Link>{' '}
@@ -398,35 +391,37 @@ export function PiecePage() {
         {/* the piece, in its niche */}
         <div className="mx-auto w-full max-w-[260px] md:mx-0 md:max-w-none">
           <Arch aspect="aspect-[4/5]" className="w-full">
-            <img src={resolveImageUrl(original && item.originalUrl ? item.originalUrl : item.imageUrl)} alt={name} className={`relative z-[1] h-full w-full ${original ? 'object-cover' : 'object-contain p-[8%]'}`} />
+            <img src={resolveImageUrl(original && item.originalUrl ? item.originalUrl : item.imageUrl)} alt={name} className={`relative z-[1] h-full w-full transition duration-500 ${original ? 'object-cover' : 'object-contain p-[7%]'} ${item.status === 'processing' ? 'scale-95 opacity-40 blur-[2px]' : ''}`} />
             {item.status === 'processing' && (
-              <span className="absolute left-3 top-3 z-[2] inline-flex items-center gap-1.5 rounded-[3px] bg-surface/90 px-2.5 py-1 text-xs text-ink/70">
-                <Spinner className="h-3 w-3" /> reading the photo…
+              <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-in-niche)]">
+                reading the photo
               </span>
             )}
           </Arch>
           {hasOriginal && (
-            <button type="button" onClick={() => setOriginal((v) => !v)} className="mt-2 w-full text-center text-xs font-semibold text-brass hover:underline">
-              {original ? 'The cut-out' : 'The original photo'}
-            </button>
+            <div className="mt-2 flex justify-center">
+              <button type="button" onClick={() => setOriginal((v) => !v)} className="btn-quiet btn-quiet-sm">
+                {original ? 'The cut-out' : 'The original photo'}
+              </button>
+            </div>
           )}
         </div>
 
         <div className="min-w-0">
-          <div className="flex flex-wrap gap-1.5">
-            <span className="chip">{title(item.category)}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="quiet">{title(item.category)}</Badge>
             {cut && (
-              <button type="button" onClick={() => { setTab('facts'); setOpenFact('cutFor') }} className={`chip ${cutGuess ? '' : 'chip-on'}`} title={cutGuess ? 'A guess. Tap to confirm' : 'Read from the photo'}>
+              <Chip onClick={() => { setTab('facts'); setOpenFact('cutFor') }} on={!cutGuess} title={cutGuess ? 'A guess. Tap to confirm' : 'Read from the photo'}>
                 Cut for {cut.toLowerCase()}{cutGuess ? ' ?' : ''}
-              </button>
+              </Chip>
             )}
-            <span className="chip">{STATES[item.state] ?? title(item.state)}</span>
-            <span className="chip">{item.visibility === 'public' ? 'Public' : 'Private'}</span>
-            {item.suppressed && <span className="chip">Not suggested</span>}
+            <Badge tone="quiet">{STATES[item.state] ?? title(item.state)}</Badge>
+            <Badge tone="quiet">{item.visibility === 'public' ? 'Public' : 'Private'}</Badge>
+            {item.suppressed && <Badge tone="quiet">Not suggested</Badge>}
           </div>
-          <h1 className="mt-3 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
+          <h1 className="page-title mt-4 animate-rise-1">
             {item.primaryColor ? `${title(item.primaryColor)} ` : ''}
-            <em className="text-brass">{name.toLowerCase()}.</em>
+            <em className="text-brass-ink">{name.toLowerCase()}.</em>
           </h1>
           {item.description && <p className="mt-3 max-w-xl font-display text-lg italic text-ink/55">{item.description}</p>}
 
@@ -439,75 +434,58 @@ export function PiecePage() {
             <button type="button" onClick={() => setTryOn(true)} className="btn-quiet">
               See it on me
             </button>
-            <div className="relative">
-              <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} className="btn-icon" aria-label="More">
-                ···
-              </button>
-              {menu && (
-                <div role="menu" className="absolute left-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-[3px] border border-brass/30 bg-surface py-1 shadow-float">
-                  <button type="button" role="menuitem" onClick={() => void reread()} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    Read the photo again
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); void save({ state: item.state === 'in-wash' ? 'clean' : 'in-wash' }) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    {item.state === 'in-wash' ? 'Back from the wash' : 'Into the wash'}
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); void save({ state: item.state === 'lent-out' ? 'clean' : 'lent-out' }) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    {item.state === 'lent-out' ? 'It’s back' : 'Lend it out'}
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); void save({ visibility: item.visibility === 'public' ? 'private' : 'public' }) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    {item.visibility === 'public' ? 'Make it private' : 'Show it in your room'}
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); void save({ suppressed: !item.suppressed }) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    {item.suppressed ? 'Suggest it again' : 'Don’t suggest it'}
-                  </button>
-                  <div className="my-1 border-t border-ink/10" />
-                  <ShareButton target={{ kind: 'piece', id: item.id, title: `${name} from my closet` }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink" />
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setLettingGo(true) }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 hover:bg-bone hover:text-ink">
-                    Let it go
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setConfirmRemove(true) }} className="block w-full px-4 py-2 text-left text-sm text-[rgb(var(--c-danger))] hover:bg-bone">
-                    Remove from the closet
-                  </button>
-                </div>
-              )}
-            </div>
+            <MoreMenu align="left" label="More for this piece">
+              <MenuItem onClick={() => void reread()}>Read the photo again</MenuItem>
+              <MenuItem onClick={() => void save({ state: item.state === 'in-wash' ? 'clean' : 'in-wash' })}>
+                {item.state === 'in-wash' ? 'Back from the wash' : 'Into the wash'}
+              </MenuItem>
+              <MenuItem onClick={() => void save({ state: item.state === 'lent-out' ? 'clean' : 'lent-out' })}>
+                {item.state === 'lent-out' ? 'It’s back' : 'Lend it out'}
+              </MenuItem>
+              <MenuItem onClick={() => void save({ visibility: item.visibility === 'public' ? 'private' : 'public' })}>
+                {item.visibility === 'public' ? 'Make it private' : 'Show it in your room'}
+              </MenuItem>
+              <MenuItem onClick={() => void save({ suppressed: !item.suppressed })}>
+                {item.suppressed ? 'Suggest it again' : 'Don’t suggest it'}
+              </MenuItem>
+              <div className="my-1.5 border-t border-ink/10" />
+              <ShareButton target={{ kind: 'piece', id: item.id, title: `${name} from my closet` }} className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink" />
+              <MenuItem onClick={() => setLettingGo(true)}>Let it go</MenuItem>
+              <MenuItem danger onClick={() => setConfirmRemove(true)}>Remove from the closet</MenuItem>
+            </MoreMenu>
           </div>
           {confirmRemove && (
-            <div className="plaque mt-4 flex flex-wrap items-center gap-3 p-3 pl-4 text-sm">
-              <span className="text-ink/70">Remove this piece and its record? There is no way back.</span>
-              <button type="button" onClick={() => void remove()} className="btn-ghost btn-sm !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))]">
-                Yes, remove it
-              </button>
-              <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet !h-8 !text-xs">
-                Keep it
-              </button>
+            <div className="mt-4">
+              <Alert tone="warning">Remove this piece and its record? There is no way back.</Alert>
+              <div className="action-row mt-4">
+                <button type="button" onClick={() => void remove()} className="btn-danger btn-sm">
+                  Yes, remove it
+                </button>
+                <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet btn-quiet-sm">
+                  Keep it
+                </button>
+              </div>
             </div>
           )}
 
           {item.twinOfId && <TwinBanner item={item} onResolved={(kept) => (kept ? navigate(`/closet/piece/${kept.id}`, { replace: true }) : void load())} onNote={flash} />}
 
-          <section className="plaque mt-6 grid grid-cols-3 gap-3 p-4 pl-5 sm:gap-4">
-            <div className="min-w-0">
-              <p className="font-display text-lg text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{story ? story.wearCount : '–'}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">wears</p>
-            </div>
-            <div className="min-w-0">
-              <p className="font-display text-lg leading-tight text-ink sm:text-2xl">{story ? (story.lastWorn ? formatDay(story.lastWorn) : 'never') : '–'}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">last worn</p>
-            </div>
+          <section className="plaque mt-8 grid grid-cols-3 gap-4 p-4 pl-5">
+            <Stat value={story ? story.wearCount : '–'} label="Wears" className="min-w-0" />
+            <Stat value={story ? (story.lastWorn ? formatDay(story.lastWorn) : 'never') : '–'} label="Last worn" className="min-w-0" />
             <div className="min-w-0">
               {story?.costPerWear != null ? (
-                <p className="font-display text-lg leading-tight text-ink [font-variant-numeric:tabular-nums] sm:text-2xl">{money(story.costPerWear)}</p>
+                <p className="font-display text-2xl font-medium leading-[1.2] text-ink [font-variant-numeric:tabular-nums]">{money(story.costPerWear)}</p>
               ) : (
-                <button type="button" onClick={() => { setTab('facts'); setOpenFact('price') }} className="font-display text-lg italic text-brass hover:underline">
+                <button type="button" onClick={() => { setTab('facts'); setOpenFact('price') }} className="press font-display text-2xl italic leading-[1.2] text-brass-ink hover:underline">
                   Add what it cost
                 </button>
               )}
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">a wear</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">A wear</p>
             </div>
           </section>
 
-          <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
+          <div className="mt-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
             <Tabs label="The piece" value={tab} onChange={setTab} items={[{ key: 'facts', label: 'The facts', count: unsure || undefined }, { key: 'story', label: 'The story' }, { key: 'goes', label: 'Goes with' }]} />
             <p className="min-h-[1rem] font-display text-sm italic text-ink/45" aria-live="polite">
               {whisper}
@@ -516,13 +494,13 @@ export function PiecePage() {
 
           {tab === 'facts' && (
             <div className="mt-4">
-              {unsure > 0 && <p className="mb-3 text-xs text-ink/45">{unsure} {unsure === 1 ? 'fact' : 'facts'} the photo couldn’t settle. Tap one to answer it; the stylist works either way.</p>}
+              {unsure > 0 && <p className="mb-4 text-xs text-ink/45">{unsure} {unsure === 1 ? 'fact' : 'facts'} the photo couldn’t settle. Tap one to answer it; the stylist works either way.</p>}
               {GROUPS.map((g) => {
                 const rows = facts.filter((f) => f.group === g)
                 if (rows.length === 0) return null
                 return (
-                  <section key={g} className="mb-6">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{g}</p>
+                  <section key={g} className="mb-8">
+                    <p className="eyebrow mb-2">{g}</p>
                     <div className="card px-4 sm:px-5">
                       {rows.map((f) => (
                         <FactRow key={f.key} item={item} fact={f} open={openFact === f.key} onOpen={() => setOpenFact((cur) => (cur === f.key ? null : f.key))} onSave={(v) => saveFact(f, v)} />
@@ -537,8 +515,9 @@ export function PiecePage() {
           {tab === 'story' && (
             <div className="mt-4">
               {!story && (
-                <div className="py-8 text-center text-ink/40">
-                  <Spinner className="h-5 w-5" />
+                <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading">
+                  <SkeletonBlock className="h-6 w-3/4" />
+                  <SkeletonBlock className="h-4 w-1/2 !bg-ink/[0.07]" />
                 </div>
               )}
               {story && (
@@ -552,10 +531,10 @@ export function PiecePage() {
                   {story.days.length > 0 && <p className="mt-1 text-sm text-ink/55">Mostly {story.days.map((d) => OCCASIONS.find(([k]) => k === d)?.[1].toLowerCase() ?? d).join(', ')}.</p>}
                   {story.wornWith.length > 0 && (
                     <>
-                      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Worn with</p>
+                      <p className="eyebrow mt-6">Worn with</p>
                       <div className="mt-2 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
                         {story.wornWith.map(({ item: w, times }) => (
-                          <Link key={w.id} to={`/closet/piece/${w.id}`} className="w-16 flex-none text-center">
+                          <Link key={w.id} to={`/closet/piece/${w.id}`} className="press w-16 flex-none text-center">
                             <Arch aspect="aspect-[4/5]">
                               <img src={resolveImageUrl(w.imageUrl)} alt={w.subtype ?? w.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
                             </Arch>
@@ -566,9 +545,11 @@ export function PiecePage() {
                     </>
                   )}
                   {story.wearCount > 0 && (
-                    <Link to={`/journal?item=${item.id}`} className="mt-4 inline-block text-xs font-semibold text-brass hover:underline">
-                      The days it was worn, in the record →
-                    </Link>
+                    <div className="action-row mt-4">
+                      <Link to={`/journal?item=${item.id}`} className="btn-quiet btn-quiet-sm">
+                        The days it was worn, in the record
+                      </Link>
+                    </div>
                   )}
                 </>
               )}
@@ -576,9 +557,9 @@ export function PiecePage() {
           )}
 
           {tab === 'goes' && (
-            <div className="mt-2">
+            <div>
               <GoesWith itemId={item.id} />
-              <p className="mt-3 text-xs text-ink/45">Only pieces on the same side of the line: {cut ? `cut for ${cut.toLowerCase()}` : 'yours'}, or for anyone.</p>
+              <p className="mt-4 text-xs text-ink/45">Only pieces on the same side of the line: {cut ? `cut for ${cut.toLowerCase()}` : 'yours'}, or for anyone.</p>
             </div>
           )}
         </div>

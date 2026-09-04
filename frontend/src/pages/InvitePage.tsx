@@ -4,12 +4,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
+import { SkeletonBlock } from '../components/ui'
 import type { User } from '@zauq/shared/types'
 import { DoorShell, PasswordField } from '../components/DoorShell'
 
 // The invite landing: set a password, claim your name, step inside.
 export function InvitePage() {
-  usePageTitle('You\'re invited')
+  usePageTitle('You’re invited')
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const navigate = useNavigate()
@@ -61,9 +62,12 @@ export function InvitePage() {
 
   if (state === 'checking') {
     return (
-      <DoorShell eyebrow="One moment" title={<>Checking <em className="text-brass">the invite.</em></>}>
-        <div className="flex items-center gap-3 text-sm text-ink/60">
-          <Spinner className="h-5 w-5" /> Checking your invite…
+      <DoorShell eyebrow="One moment" title={<>Checking <em className="text-accent-text">the invite.</em></>}>
+        <div aria-busy="true" aria-label="Checking your invite">
+          <SkeletonBlock className="h-3 w-20" />
+          <SkeletonBlock className="mt-2 h-11 w-full !bg-ink/[0.07]" />
+          <SkeletonBlock className="mt-4 h-3 w-16" />
+          <SkeletonBlock className="mt-2 h-11 w-full !bg-ink/[0.07]" />
         </div>
       </DoorShell>
     )
@@ -72,15 +76,15 @@ export function InvitePage() {
     return (
       <DoorShell
         eyebrow="The door"
-        title={<>This invite <em className="text-brass">isn’t valid.</em></>}
+        title={<>This invite <em className="text-accent-text">isn’t valid.</em></>}
         lead="The link may have expired. Invites last 7 days. Ask for a fresh one, or join the waitlist again."
-        foot={<Link to="/landing" className="font-semibold text-brass underline-offset-4 hover:underline">Back to the waitlist</Link>}
+        foot={<Link to="/landing" className="font-semibold text-accent-text underline-offset-4 hover:underline">Back to the waitlist</Link>}
       />
     )
   }
   return (
-    <DoorShell eyebrow="You’re invited" title={<>Claim <em className="text-brass">your account.</em></>} lead={`Welcome, ${email}.`}>
-      <form onSubmit={accept} className="space-y-5">
+    <DoorShell eyebrow="You’re invited" title={<>Claim <em className="text-accent-text">your account.</em></>} lead={`Welcome, ${email}.`}>
+      <form onSubmit={accept} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="firstName" className="label">

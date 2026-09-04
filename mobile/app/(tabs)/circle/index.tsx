@@ -6,7 +6,7 @@ import { FlashList } from '@shopify/flash-list'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { getCircleToday, type CirclePost, type ExploreOccasion, type Lens } from '@zauq/shared/circle'
 import { followUser, getSocialMe, getStyleTwins } from '@zauq/shared/social'
 import { LoadError } from '@/src/components/Bits'
@@ -20,6 +20,7 @@ import { alpha, gutter, space } from '@/src/design/tokens'
 import { qk } from '@/src/lib/query'
 import { CARD_GAP, IconButton } from '@/src/features/circle/atoms'
 import { CardSkeleton, PostCard } from '@/src/features/circle/cards'
+import { BellGlyph, PlusGlyph } from '@/src/components/Glyphs'
 import { useCardActions, useFeed, useSocialInvalidate, useUnread, type ExploreOpts } from '@/src/features/circle/hooks'
 import { ck, RAIL_DISMISS_KEY } from '@/src/features/circle/keys'
 import { EmptyFeed, HandleNudge, SuggestedRail, TodayRail, YouInCircle } from '@/src/features/circle/rails'
@@ -103,8 +104,8 @@ export default function CircleRoom() {
   const openPeople = (tab: string) => router.push({ pathname: '/(tabs)/circle/people', params: { tab } })
   const openInvite = () => router.push('/sheets/circle-invite')
 
-  // The web's column, top to bottom: the today rail, the compose door, the
-  // lenses (`mt-6`), the explore filters (`mt-3`), then the feed (`mt-5`).
+  // The column, top to bottom, 16 apart: the today rail, the compose door,
+  // the lenses, the explore filters 8 under them, then the feed.
   const header = (
     <View style={styles.header}>
       <TodayRail today={today.data?.entries ?? null} onShare={openShare} />
@@ -139,11 +140,12 @@ export default function CircleRoom() {
         <RoomHeader
           eyebrow="The Circle"
           title="Circle"
+          lead="A few people you trust."
           right={
             // Two 36 squares (the web's `btn-icon`), their feet on the title's baseline.
             <View style={styles.headActions}>
-              <IconButton icon="add" label="Post to your circle" onPress={() => router.push('/sheets/circle-compose')} />
-              <IconButton icon="notifications-none" label="What happened" badge={unread.data?.unread ?? 0} onPress={() => router.push('/(tabs)/circle/notifications')} />
+              <IconButton glyph={<PlusGlyph color={alpha(t.ink, 0.6)} />} label="Post to your circle" onPress={() => router.push('/sheets/circle-compose')} />
+              <IconButton glyph={<BellGlyph color={alpha(t.ink, 0.6)} />} label="What happened" badge={unread.data?.unread ?? 0} onPress={() => router.push('/(tabs)/circle/notifications')} />
             </View>
           }
         />
@@ -164,7 +166,8 @@ export default function CircleRoom() {
         ItemSeparatorComponent={Gap}
         ListHeaderComponent={header}
         ListFooterComponent={
-          <View style={styles.footer}>{feed.fetchingMore ? <ActivityIndicator color={t.brass} /> : null}</View>
+          // The next page arrives as the shape of a card, never a bare spinner.
+          <View style={styles.footer}>{feed.fetchingMore ? <CardSkeleton /> : null}</View>
         }
         onEndReached={feed.fetchMore}
         onEndReachedThreshold={0.6}
@@ -183,16 +186,14 @@ function Gap() {
 const styles = StyleSheet.create({
   room: { paddingHorizontal: gutter },
   // The bell and the plus: RoomHeader sets them 4 down; 8 more puts a 36 square's foot on the h1's baseline.
-  headActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8 },
-  header: { gap: 16, paddingBottom: 20 },
-  // `mt-6` above the lenses, less the column's own 16
-  lenses: { paddingHorizontal: gutter, marginTop: 8 },
-  // `mt-3 gap-1`, with the `filter-sep` (`mx-1 h-4 w-px bg-ink/15`)
-  filterRail: { marginTop: -4 },
-  filters: { flexDirection: 'row', gap: 4, paddingHorizontal: gutter, alignItems: 'center' },
-  sep: { width: 1, height: 16, marginHorizontal: 4 },
-  // `mt-5` above the feed, less the column's own 16
-  skeleton: { marginHorizontal: gutter, gap: CARD_GAP, marginTop: 4 },
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm },
+  header: { gap: space.lg, paddingBottom: space.lg },
+  lenses: { paddingHorizontal: gutter },
+  // The filters sit 8 under their tabs (label to line), 4 apart, with the `filter-sep` (`h-4 w-px bg-ink/15`).
+  filterRail: { marginTop: -space.sm },
+  filters: { flexDirection: 'row', gap: space.xs, paddingHorizontal: gutter, alignItems: 'center' },
+  sep: { width: 1, height: 16, marginHorizontal: space.xs },
+  skeleton: { marginHorizontal: gutter, gap: CARD_GAP },
   row: { paddingHorizontal: gutter },
-  footer: { paddingTop: space.xl, paddingBottom: space.xxxxl, alignItems: 'center', minHeight: 48 },
+  footer: { paddingHorizontal: gutter, paddingTop: CARD_GAP, paddingBottom: space.xxxxl },
 })

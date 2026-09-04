@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getStory, type StoryResponse } from '@zauq/shared/outfits'
 import { resolveImageUrl } from '../lib/api'
+import { Arch } from './ui'
 
 // A piece's story: when it was last worn, what it's worn with, what it's
 // cost you per wear. The numbers already existed in the API; this is the
@@ -32,32 +33,32 @@ export function PieceStory({ itemId }: { itemId: string }) {
   }, [itemId])
   if (!s) return null
   return (
-    <section className="mt-5 border-t border-ink/10 pt-4">
+    <section className="mt-4 border-t border-ink/10 pt-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Its story</p>
-      <p className="mt-1 font-display text-xl italic text-ink">
+      <p className="mt-2 font-display text-xl italic text-ink">
         {s.wearCount === 0
           ? 'Never worn yet.'
           : `Worn ${s.wearCount}×, last ${ago(s.lastWorn)}${s.costPerWear != null ? ` · ${money(s.costPerWear)} a wear` : ''}.`}
       </p>
       {s.wornWith.length > 0 && (
-        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           <span className="flex-none text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">Worn with</span>
           {s.wornWith.map(({ item, times }) => (
             <div key={item.id} className="w-12 flex-none" title={`${item.subtype ?? item.category} · ${times}×`}>
-              <div className="arch-bezel aspect-[5/6]">
-                <div className="arch-niche flex h-full w-full items-center justify-center">
-                  <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                </div>
-              </div>
+              <Arch aspect="aspect-[5/6]">
+                <img src={resolveImageUrl(item.imageUrl)} alt={item.subtype ?? item.category} className="relative z-[1] h-full w-full object-contain p-[10%]" />
+              </Arch>
             </div>
           ))}
         </div>
       )}
       {s.days.length > 0 && <p className="mt-2 text-xs text-ink/45">Mostly {s.days.map((d) => (d === 'casual' ? 'weekends' : d === 'work' ? 'workdays' : d === 'evening' ? 'evenings' : d)).join(', ')}.</p>}
       {s.wearCount > 0 && (
-        <Link to={`/journal?item=${itemId}`} className="mt-2 inline-block text-xs font-semibold text-brass hover:underline">
-          The days it was worn →
-        </Link>
+        <div className="action-row mt-4">
+          <Link to={`/journal?item=${itemId}`} className="btn-quiet btn-quiet-sm">
+            The days it was worn
+          </Link>
+        </div>
       )}
     </section>
   )

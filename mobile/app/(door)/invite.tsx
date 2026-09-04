@@ -1,9 +1,10 @@
 import { Link, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { View } from 'react-native'
 import { Button } from '@/src/components/Button'
 import { DoorShell } from '@/src/components/DoorShell'
 import { Field } from '@/src/components/Field'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { clientFields, useAuth, type SessionResponse } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
 import { space } from '@/src/design/tokens'
@@ -54,9 +55,12 @@ export default function Invite() {
   }
 
   if (state === 'checking') {
+    // The shape of the form arriving: two fields and their button.
     return (
       <DoorShell eyebrow="One moment" title="Checking" emphasis="the invite.">
-        <ActivityIndicator />
+        <SkeletonBlock height={44} />
+        <SkeletonBlock height={44} />
+        <SkeletonBlock height={44} width="60%" />
       </DoorShell>
     )
   }

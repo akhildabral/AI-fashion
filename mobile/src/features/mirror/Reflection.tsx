@@ -2,25 +2,28 @@
 // MirrorFrame: the door when there is no photo; the developing state while a
 // render is a job; the latest render on the glass with the photo underneath;
 // "You're in the mirror" when there is a photo and nothing on it yet; and
-// the compare grid, two glasses side by side.
+// the compare grid, two glasses side by side. The glass is a standing
+// figure's 2/3; while the photo is still being looked up it keeps its shape
+// and stays empty, which is the loading state.
 import { Image } from 'expo-image'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import type { TryOn } from '@zauq/shared/types'
-import { Arch } from '@/src/components/Arch'
+import { MirrorFrame } from '@/src/components/Arch'
 import { Button } from '@/src/components/Button'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { fadeIn, fadeOut } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, arch, dark, radius } from '@/src/design/tokens'
+import { alpha, arch, dark, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 import { DRESSING_LINES, isLive, isReady, renderLabel } from './data'
 import { Filament } from './Filament'
 
-/** Text on the glass is always the night palette's ink: the mirror is dark in both themes (the web's #ECE5D8). */
+/** Text on the glass is always the night palette's ink: the mirror is dark in both themes. */
 const GLASS_INK = dark.ink
 /** The web's `max-w-[26ch]` and `[28ch]` at 14px Archivo. */
 const CH_26 = 208
@@ -45,7 +48,6 @@ export interface ReflectionProps {
 
 export function Reflection({ width, checked, photoUrl, current, developing, chosen, onAdd, onOpen }: ReflectionProps) {
   const { t } = useTheme()
-  // The Mirror holds a standing figure: 2/3, the design system's --ratio-mirror.
   const height = Math.round(width / arch.mirror.ratio)
   const [line, setLine] = useState(0)
 
@@ -62,23 +64,10 @@ export function Reflection({ width, checked, photoUrl, current, developing, chos
   const onGlass = !dressing && !!uri && !!current && isReady(current) && !!current.imageUrl
 
   return (
-    <Arch width={width} height={height} variant="mirror">
-      {/* still finding out whether there's a photo: the glass keeps its shape */}
-      {!dressing && !checked ? (
-        <View style={[StyleSheet.absoluteFill, styles.center]}>
-          <ActivityIndicator color={alpha(GLASS_INK, 0.4)} />
-        </View>
-      ) : null}
-
+    <MirrorFrame width={width}>
       {/* rendering: the figure is being dressed */}
       {dressing ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dressing you. Open the render."
-          onPress={() => onOpen(current?.id ?? '')}
-          pressRetentionOffset={12}
-          style={[StyleSheet.absoluteFill, styles.developing]}
-        >
+        <Press accessibilityRole="button" accessibilityLabel="Dressing you. Open the render." haptic="tap" onPress={() => onOpen(current?.id ?? '')} wrapStyle={StyleSheet.absoluteFill} style={[styles.fill, styles.developing]}>
           {uri ? <Image source={{ uri }} blurRadius={2} style={[StyleSheet.absoluteFill, styles.underlay]} contentFit="cover" cachePolicy="disk" accessible={false} /> : null}
           <Filament height={height} />
           <Animated.View key={line} entering={fadeIn} exiting={fadeOut}>
@@ -86,10 +75,13 @@ export function Reflection({ width, checked, photoUrl, current, developing, chos
               {DRESSING_LINES[line]}
             </T>
           </Animated.View>
+          <T role="micro" align="center" style={{ color: alpha(GLASS_INK, 0.5) }}>
+            developing
+          </T>
           <T role="label" align="center" style={{ color: alpha(GLASS_INK, 0.5) }}>
             Leave if you like; you’ll hear when it’s ready
           </T>
-        </Pressable>
+        </Press>
       ) : null}
 
       {/* no photo: the door */}
@@ -105,16 +97,16 @@ export function Reflection({ width, checked, photoUrl, current, developing, chos
           <T role="bodySm" align="center" style={{ color: alpha(GLASS_INK, 0.6), maxWidth: CH_26 }}>
             One clear, full-length photo, and every outfit renders on you.
           </T>
-          <Button label="Add your photo" onPress={onAdd} style={styles.doorAction} />
+          <Button label="Add your photo" variant="ghost" onGlass onPress={onAdd} />
         </View>
       ) : null}
 
       {/* a render on the glass, with the photo underneath */}
       {onGlass ? (
-        <Pressable accessibilityRole="imagebutton" accessibilityLabel="You, in the render. Open it." onPress={() => onOpen(current.id)} pressRetentionOffset={12} style={StyleSheet.absoluteFill}>
+        <Press accessibilityRole="imagebutton" accessibilityLabel="You, in the render. Open it." haptic="tap" onPress={() => onOpen(current.id)} wrapStyle={StyleSheet.absoluteFill} style={styles.fill}>
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" accessible={false} />
           <Image source={{ uri: resolveImageUrl(current.imageUrl) }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" accessible={false} />
-        </Pressable>
+        </Press>
       ) : null}
 
       {/* failed */}
@@ -141,28 +133,27 @@ export function Reflection({ width, checked, photoUrl, current, developing, chos
           </T>
         </View>
       ) : null}
-    </Arch>
+    </MirrorFrame>
   )
 }
 
-/** Compare: the chosen renders, each in its own glass, two across (the web's `grid-cols-2 gap-3`). */
+/** Compare: the chosen renders, each in its own glass, two across, 12 apart. */
 export function CompareGlass({ width, renders }: { width: number; renders: TryOn[] }) {
   const { t } = useTheme()
-  const w = Math.floor((width - 12) / 2)
-  const h = Math.round(w / arch.mirror.ratio)
+  const w = Math.floor((width - space.md) / 2)
   return (
     <View style={[styles.compare, { width }]}>
       {renders.map((r, i) => (
         <View key={r.id} style={{ width: w }}>
-          <Arch width={w} height={h} variant="mirror">
+          <MirrorFrame width={w}>
             <Image source={{ uri: resolveImageUrl(r.imageUrl) }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" accessibilityLabel={LETTERS[i]} />
-            {/* the letter sits below the crown, where the arch's sides are straight, so nothing clips */}
+            {/* the letter sits below the crown, where the arch's sides are straight, so nothing clips: a brass square, like an avatar */}
             <View style={[styles.letter, { backgroundColor: t.brass, borderRadius: radius }]}>
-              <T role="caption" tone="onBrass" style={{ fontFamily: fonts.sansBold }}>
+              <T role="caption" tone="onBrass" style={{ fontFamily: fonts.sansSemi }}>
                 {LETTERS[i]}
               </T>
             </View>
-          </Arch>
+          </MirrorFrame>
           <T role="caption" align="center" numberOfLines={2} style={[styles.compareLabel, { color: alpha(t.ink, 0.5) }]}>
             {renderLabel(r)}
           </T>
@@ -173,15 +164,14 @@ export function CompareGlass({ width, renders }: { width: number; renders: TryOn
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: 'center', justifyContent: 'center' },
-  // The web's `gap-5 p-8` while dressing, `gap-4 p-8` at the door, `gap-3 p-8` when it failed.
-  developing: { alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 },
-  door: { alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
-  failed: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  fill: { flex: 1 },
+  // Inside the glass: 16 between the lines while dressing and at the door, 12 when it failed; 32 all round.
+  developing: { alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xxl },
+  door: { alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xxl },
+  failed: { alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xxl },
   underlay: { opacity: 0.25 },
-  doorAction: { marginTop: 4 },
   thumb: { width: 112, height: 112, opacity: 0.8 },
-  compare: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  letter: { position: 'absolute', left: 12, bottom: 12, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  compareLabel: { marginTop: 8 },
+  compare: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  letter: { position: 'absolute', left: space.md, bottom: space.md, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  compareLabel: { marginTop: space.sm },
 })

@@ -9,7 +9,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, radius, space } from '@/src/design/tokens'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function AdminInviteSheet() {
   const router = useRouter()
@@ -30,9 +30,9 @@ export default function AdminInviteSheet() {
   }
 
   return (
-    <SheetShell
+    <SheetShell dense
       title={viaGoogle ? 'Approved' : 'Invite ready'}
-      foot={viaGoogle || !p.url ? <Button label="Done" variant="ghost" onPress={() => router.back()} /> : <Button label={copied ? 'Copied' : 'Copy invite link'} block onPress={() => void copy()} />}
+      footer={viaGoogle || !p.url ? <Button label="Done" variant="ghost" onPress={() => router.back()} /> : <Button label={copied ? 'Copied' : 'Copy invite link'} block onPress={() => void copy()} />}
     >
       {viaGoogle ? (
         <T role="bodySm" tone="muted">

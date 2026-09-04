@@ -2,24 +2,27 @@
 // board and the pieces beneath; an act that has passed folds to a row; one
 // still to come is laid out smaller, waiting its turn.
 //
-// Values from TodayPage.tsx (the main brief) and LookAct.tsx (the later
-// acts): a tracked brass eyebrow with LOGGED on its baseline, the headline 4
-// beneath, the rationale 16 (main) or 8 beneath, the board 32 (main) or 24
-// beneath, the action row 24 beneath at 16 / 8, a section rule 24 above.
-import { useState } from 'react'
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native'
+// Every act is a section: the tracked brass eyebrow (LOGGED on its baseline)
+// 8 over the Bodoni h2, the rationale 8 beneath, the board and the two-column
+// brief 16 apart, the action row at 16 / 8; a hairline 32 above every act but
+// the first. The act the clock is on takes the room's action row (`actions`)
+// directly under its tiles, as the web's Today does.
+import { useState, type ReactNode } from 'react'
+import { StyleSheet, View, useWindowDimensions } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { BriefItem, LookSlot } from '@zauq/shared/brief'
 import { temp } from '@zauq/shared/units'
+import { Badge } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
+import { Press } from '@/src/components/Press'
+import { GRID_GAP } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
-import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, height, radius, space } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { alpha, gutter, hairline, height, space } from '@/src/design/tokens'
+import { fonts, track, tracking } from '@/src/design/type'
 import { itemLabel, itemSublabel, lookTitle, prettyTime } from './copy'
 import { go, paths } from './nav'
 
@@ -47,6 +50,8 @@ interface LookActProps {
   removing?: boolean
   headline?: Headline | null
   evening?: boolean
+  /** The room's action row for the act the clock is on: rendered under its tiles. */
+  actions?: ReactNode
 }
 
 function defaultHeadline(look: LookSlot, first: boolean, evening: boolean): Headline {
@@ -56,7 +61,7 @@ function defaultHeadline(look: LookSlot, first: boolean, evening: boolean): Head
   return { lead: 'Then,', emphasis: 'wear this.' }
 }
 
-/** `text-[10px] tracking-[0.28em] text-brass`, the time at ink/40, LOGGED on the same baseline. */
+/** The tracked brass eyebrow (.28em), the time at ink/40, LOGGED on the same baseline. */
 function Eyebrow({ look }: { look: LookSlot }) {
   const { t } = useTheme()
   const time = prettyTime(look.time)
@@ -76,18 +81,6 @@ function Eyebrow({ look }: { look: LookSlot }) {
   )
 }
 
-/** The web's logged pill: a brass hairline box on the soft wash, in the action row. */
-function LoggedPill({ label }: { label: string }) {
-  const { t } = useTheme()
-  return (
-    <View style={[styles.pill, { borderColor: alpha(t.brass, 0.3), backgroundColor: t.brassSoft, borderRadius: radius }]} accessible accessibilityLabel={label}>
-      <T role="caption" tone="brass" style={styles.semi}>
-        {label}
-      </T>
-    </View>
-  )
-}
-
 /** The pieces in a row of small arches, for a folded act and the laid-out record. */
 function Thumbs({ items, width = 44, gap = space.sm }: { items: BriefItem[]; width?: number; gap?: number }) {
   return (
@@ -99,7 +92,7 @@ function Thumbs({ items, width = 44, gap = space.sm }: { items: BriefItem[]; wid
   )
 }
 
-export function LookAct({ look, state, index, first, planning = false, onReconsider, onWear, wearing, onRemove, removing, headline, evening = false }: LookActProps) {
+export function LookAct({ look, state, index, first, planning = false, onReconsider, onWear, wearing, onRemove, removing, headline, evening = false, actions }: LookActProps) {
   const { t } = useTheme()
   const W = useWindowDimensions().width - gutter * 2
   const [open, setOpen] = useState(false)
@@ -108,20 +101,18 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
   const busy = !!wearing || !!removing
   const seeOnYou = () => go(paths.mirror(shown.map((i) => i.id)))
   const title = lookTitle(look)
+  const rule = { borderTopColor: alpha(t.ink, 0.1) }
 
   // ---- an act that has passed: one row, opening to its board on a tap ----
   if (state === 'past') {
     return (
-      <Animated.View entering={rise(index)} style={[styles.act, { borderTopColor: alpha(t.ink, 0.1) }]}>
-        <Pressable
+      <Animated.View entering={rise(index)} style={[styles.act, rule]}>
+        <Press
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
           accessibilityLabel={`${title}, ${look.worn ? 'logged' : 'not logged'}. ${open ? 'Hide' : 'Show'} the look`}
-          pressRetentionOffset={12}
-          onPress={() => {
-            haptics.tap()
-            setOpen((v) => !v)
-          }}
+          haptic="tap"
+          onPress={() => setOpen((v) => !v)}
           style={styles.pastRow}
         >
           <View style={styles.pastText}>
@@ -131,7 +122,7 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
             </T>
           </View>
           <Thumbs items={shown} width={40} />
-        </Pressable>
+        </Press>
         {open ? (
           <Animated.View entering={fadeIn} style={styles.pastOpen}>
             <LookBoard items={shown} width={W} />
@@ -148,38 +139,31 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
   // ---- the act the clock is on, or one still to come ----
   const current = state === 'current'
   const boardWidth = current ? W : Math.round(W * 0.72)
-  const tile = (W - 24) / 3
-  const role = first ? 'display' : 'h2'
+  const tile = Math.floor((W - GRID_GAP) / 2)
   const showActions = (!planning && !current && !look.worn && !!onWear) || (!planning && look.worn) || !current || (!first && !look.worn && !!onRemove)
 
   return (
-    <Animated.View entering={rise(index)} style={[styles.act, first ? styles.first : { borderTopColor: alpha(t.ink, 0.1) }, { gap: first ? space.xxl : space.xl }]}>
-      <View style={{ gap: first ? space.lg : space.sm }}>
-        <View style={styles.head}>
-          {(!first || !current) && <Eyebrow look={look} />}
-          {head ? (
-            <T role={role} accessibilityRole="header">
-              {head.lead}{' '}
-              <T role={role} tone="brass" italic>
-                {head.emphasis}
-              </T>
+    <Animated.View entering={rise(index)} style={[styles.act, first ? styles.first : rule]}>
+      <View style={styles.head}>
+        <Eyebrow look={look} />
+        {head ? (
+          <T role="h2" accessibilityRole="header">
+            {head.lead}{' '}
+            <T role="h2" tone="brass" italic>
+              {head.emphasis}
             </T>
-          ) : null}
-        </View>
+          </T>
+        ) : null}
         {look.weather || look.rationale ? (
           <T role="lede" tone="muted">
-            {look.weather ? (
-              <T role="bodySm" tone="brass" style={styles.semi}>
-                {`${temp(look.weather.temperatureC)} · ${look.weather.description}   `}
-              </T>
-            ) : null}
+            {look.weather ? <T role="bodySm" tone="muted" style={styles.semi}>{`${temp(look.weather.temperatureC)} · ${look.weather.description}   `}</T> : null}
             {look.rationale}
           </T>
         ) : null}
       </View>
 
       <View style={styles.boards}>
-        <View style={{ alignSelf: 'flex-start' }}>
+        <View style={styles.boardWrap}>
           <LookBoard items={shown} width={boardWidth} sweep={current} />
         </View>
         {current ? (
@@ -201,7 +185,7 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
       </View>
 
       {look.wornLook ? (
-        <View style={[styles.record, { borderTopColor: alpha(t.ink, 0.1) }]}>
+        <View style={[styles.record, rule]}>
           <T role="bodySm" tone="muted">
             <T role="bodySm" style={styles.semi}>
               What you wore, from your photo.
@@ -212,9 +196,11 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
         </View>
       ) : null}
 
+      {current && actions ? actions : null}
+
       {showActions ? (
         <View style={styles.actions}>
-          {!planning && look.worn ? <LoggedPill label={first ? 'Logged for today' : `Logged for ${title.toLowerCase()}`} /> : null}
+          {!planning && look.worn ? <Badge>{first ? 'Logged for today' : `Logged for ${title.toLowerCase()}`}</Badge> : null}
           {!planning && !current && !look.worn && onWear ? <Button label="Wearing it" variant="ghost" size="sm" loading={wearing} disabled={busy} onPress={() => onWear(look)} /> : null}
           {!current ? <Button label="See it on you" variant="quiet" size="sm" onPress={seeOnYou} /> : null}
           {!first && !look.worn && onRemove ? (
@@ -227,23 +213,23 @@ export function LookAct({ look, state, index, first, planning = false, onReconsi
 }
 
 const styles = StyleSheet.create({
-  // `border-t border-ink/10 pt-6`; the parent keeps acts 32 apart.
-  act: { borderTopWidth: hairline, paddingTop: space.xl, gap: space.xl },
+  // A hairline, then 16 to the act; the parent keeps acts 32 apart. Inside, element to element.
+  act: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.lg },
   first: { borderTopWidth: 0, paddingTop: 0 },
-  head: { gap: space.xs },
-  eyebrow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md },
-  tracked: { letterSpacing: 2.8 },
+  // Eyebrow, headline, rationale: the label-to-line 8.
+  head: { gap: space.sm },
+  eyebrow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md, minHeight: 14 },
+  tracked: { letterSpacing: track(10, tracking.eyebrow) },
   semi: { fontFamily: fonts.sansSemi },
-  boards: { gap: space.md },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  boards: { gap: space.lg },
+  boardWrap: { alignSelf: 'flex-start' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
   thumbs: { flexDirection: 'row', flexWrap: 'wrap' },
-  pastRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
+  pastRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: height.action },
   pastText: { flex: 1, gap: space.xs },
-  pastOpen: { gap: space.md, paddingTop: space.md },
-  // `mt-5 border-t border-ink/10 pt-4`, thumbs `mt-3 gap-3`.
+  pastOpen: { gap: space.lg, paddingTop: space.lg },
   record: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.md },
-  // `action-row`: gap-x-4 gap-y-2.
+  // The action row: 16 across, 8 down when it wraps.
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.lg, rowGap: space.sm },
   right: { marginLeft: 'auto' },
-  pill: { height: height.secondary, justifyContent: 'center', paddingHorizontal: space.lg, borderWidth: hairline },
 })

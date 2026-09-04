@@ -3,11 +3,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { getTrips, type Trip } from '@zauq/shared/brief'
 import { EmptyState, LoadError, Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { Press } from '@/src/components/Press'
+import { RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Tabs } from '@/src/components/Tabs'
@@ -16,15 +17,16 @@ import { useTheme } from '@/src/design/theme'
 import { gutter, space } from '@/src/design/tokens'
 import { qk } from '@/src/lib/query'
 import { dayKey, formatDay } from '@/src/features/you/dates'
+import { Card } from '@/src/features/you/Furniture'
 import { routes } from '@/src/features/you/nav'
 
-/** The web's TripRow: `plaque p-4 pl-5`, the destination and dates left, "Open" right. */
+/** A trip as a card (a plaque is never clickable): the destination and dates left, "Open" right, the house press. */
 function TripRow({ trip, past, onPress }: { trip: Trip; past?: boolean; onPress: () => void }) {
   const today = dayKey(new Date())
   const on = !past && trip.startDate <= today && trip.endDate >= today
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${trip.destination}, ${formatDay(trip.startDate)} to ${formatDay(trip.endDate)}`} onPress={onPress} pressRetentionOffset={12} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-      <Plaque style={styles.row}>
+    <Press accessibilityRole="button" accessibilityLabel={`${trip.destination}, ${formatDay(trip.startDate)} to ${formatDay(trip.endDate)}`} onPress={onPress}>
+      <Card padding="none" style={styles.row}>
         <View style={styles.rowText}>
           <T role="h3">{trip.destination}</T>
           <T role="caption" tone="muted">
@@ -37,8 +39,8 @@ function TripRow({ trip, past, onPress }: { trip: Trip; past?: boolean; onPress:
         <T role="micro" tone="brass" style={styles.open}>
           Open →
         </T>
-      </Plaque>
-    </Pressable>
+      </Card>
+    </Press>
   )
 }
 
@@ -46,6 +48,7 @@ export default function Trips() {
   const router = useRouter()
   const { t } = useTheme()
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
+  const bottom = useBottomReserve()
   const q = useQuery({ queryKey: qk.trips, queryFn: getTrips })
   const trips = q.data?.trips ?? []
   const past = q.data?.past ?? []
@@ -55,12 +58,13 @@ export default function Trips() {
     <>
       <Stack.Screen options={{ headerShown: true, title: 'Trips' }} />
       <Screen>
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl tintColor={t.brass} refreshing={q.isFetching && !!q.data} onRefresh={() => void q.refetch()} />}>
+        <ScrollView contentContainerStyle={[styles.body, { paddingBottom: bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl tintColor={t.brass} refreshing={q.isFetching && !!q.data} onRefresh={() => void q.refetch()} />}>
           <RoomHeader
             eyebrow="Trips"
             title="Pack from"
             emphasis="your closet."
             lead="Where and when. Your stylist builds the capsule from clothes you own, plans each day, and lists the rest. Save it, and the trip keeps."
+            right={<Button label="Plan a trip" size="sm" onPress={() => router.push(routes.newTrip)} />}
             style={styles.header}
           />
           <View style={styles.content}>
@@ -88,9 +92,7 @@ export default function Trips() {
                   onChange={setTab}
                 />
                 {list.length === 0 ? (
-                  <T role="bodySm" tone="muted" style={styles.none}>
-                    {tab === 'upcoming' ? 'Nothing planned yet. Start one below.' : 'No trips have ended yet.'}
-                  </T>
+                  <EmptyState title={tab === 'upcoming' ? 'Nothing planned yet. Start one below.' : 'No trips have ended yet.'} />
                 ) : (
                   <View style={[styles.list, styles.afterTabs]}>
                     {list.map((trip) => (
@@ -102,24 +104,20 @@ export default function Trips() {
             )}
           </View>
         </ScrollView>
-        <ActionBar>
-          <Button label="Plan a trip" block onPress={() => router.push(routes.newTrip)} />
-        </ActionBar>
       </Screen>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: ACTION_BAR_HEIGHT + space.xl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md },
   header: { paddingBottom: 0 },
   content: { marginTop: space.xxl },
   list: { gap: space.md },
   afterTabs: { marginTop: space.lg },
-  none: { marginTop: space.lg },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, paddingLeft: 20 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg },
   rowText: { flex: 1 },
-  // The web's `mt-1 font-display text-xs italic`: Bodoni at 12 on a 16 line.
-  rowNote: { marginTop: space.xs, fontSize: 12, lineHeight: 16 },
+  // The italic aside voice RoomHeader sets: Bodoni italic at 14 on an 18 line.
+  rowNote: { marginTop: space.xs, fontSize: 14, lineHeight: 18 },
   open: { letterSpacing: 1.8 },
 })

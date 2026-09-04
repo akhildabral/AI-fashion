@@ -4,11 +4,12 @@ import { router } from 'expo-router'
 import { type ReactNode, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button } from '@/src/components/Button'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
-import { Initials, Press } from './atoms'
+import { Initials } from './atoms'
 import { userHref } from './notifications'
 
 export function PersonRow({
@@ -39,7 +40,7 @@ export function PersonRow({
   const open = onPress ?? (handle ? () => router.push(userHref(handle)) : undefined)
   return (
     <View style={[styles.row, !first && { borderTopWidth: hairline, borderTopColor: alpha(t.ink, 0.1) }]}>
-      <Press accessibilityRole="button" accessibilityLabel={name} onPress={open} disabled={!open} style={styles.person}>
+      <Press accessibilityRole="button" accessibilityLabel={name} onPress={open} disabled={!open} wrapStyle={styles.person}>
         <View style={styles.personInner}>
           <Initials handle={handle} name={name} dim={dim} />
           <View style={styles.text}>

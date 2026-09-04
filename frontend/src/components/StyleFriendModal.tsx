@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Arch, Modal } from './ui'
-import { Spinner } from './Spinner'
+import { Alert, Arch, ArchSkeleton, Chip, EmptyState, Modal, RowSkeleton } from './ui'
 import { Initials } from './PeopleDrawer'
 import { FlatLay } from './CircleCards'
 import { resolveImageUrl } from '../lib/api'
@@ -123,11 +122,9 @@ export function StyleFriendModal({
         <>
           <p className="text-sm text-ink/60">Friends you follow each other with, and anyone who came in on your invite.</p>
           {people === null && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
-            </div>
+            <RowSkeleton className="mt-3" lines={1} label="Loading your people" />
           )}
-          {people && people.length === 0 && <p className="mt-4 rounded-[3px] border border-dashed border-ink/20 p-6 text-center text-sm text-ink/60">Follow a few people first; they’ll appear here.</p>}
+          {people && people.length === 0 && <EmptyState className="mt-4" line="Follow a few people first; they’ll appear here." />}
           {people && people.length > 0 && (
             <div className="mt-3">
               {people.map((p) => (
@@ -147,29 +144,32 @@ export function StyleFriendModal({
 
       {friend && (
         <>
-          {/* 2 · which day */}
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">For</p>
+          {/* 2 · which day: a chip picks a value, brass when chosen */}
+          <p className="eyebrow">For</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {DAYS.map((d) => (
-              <button key={d.key} type="button" onClick={() => setDay(d.key)} aria-pressed={day === d.key} className="chip">
+              <Chip key={d.key} on={day === d.key} onClick={() => setDay(d.key)}>
                 {d.label}
-              </button>
+              </Chip>
             ))}
           </div>
-          {day === 'occasion' && <input value={occasion} onChange={(e) => setOccasion(e.target.value)} maxLength={40} className="field field-sm mt-2 max-w-xs" placeholder="a wedding, a dinner…" autoFocus />}
-
-          {/* 3 · their pieces, the stylist alongside */}
-          <div className="mt-5 flex items-baseline justify-between gap-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Their public closet</p>
-            <p className="text-xs text-ink/45">{selected.length}/{MAX} chosen</p>
-          </div>
-          {closetError && <p className="mt-3 alert-error">{closetError}</p>}
-          {!closet && !closetError && (
-            <div className="py-8 text-center text-ink/40">
-              <Spinner className="h-5 w-5" />
+          {day === 'occasion' && (
+            <div className="mt-4 max-w-xs">
+              <label htmlFor="style-occasion" className="label">
+                The occasion
+              </label>
+              <input id="style-occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} maxLength={40} className="field field-sm" placeholder="a wedding, a dinner…" autoFocus />
             </div>
           )}
-          {closet && closet.pieces.length < 2 && <p className="mt-3 rounded-[3px] border border-dashed border-ink/20 p-6 text-center text-sm text-ink/60">They haven’t made enough pieces public yet.</p>}
+
+          {/* 3 · their pieces, the stylist alongside */}
+          <div className="mt-8 flex items-baseline justify-between gap-3">
+            <p className="eyebrow">Their public closet</p>
+            <p className="text-xs text-ink/45 [font-variant-numeric:tabular-nums]">{selected.length}/{MAX} chosen</p>
+          </div>
+          {closetError && <Alert className="mt-3">{closetError}</Alert>}
+          {!closet && !closetError && <ArchSkeleton count={8} aspect="aspect-[4/5]" className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5" />}
+          {closet && closet.pieces.length < 2 && <EmptyState className="mt-3" line="They haven’t made enough pieces public yet." />}
           {closet && closet.pieces.length >= 2 && (
             <>
               {anchor && byId.get(anchor) && (
@@ -187,14 +187,14 @@ export function StyleFriendModal({
                         <img src={resolveImageUrl(p.imageUrl)} alt={p.subtype ?? p.category} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
                       </Arch>
                       {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-semibold text-on-brass">{idx + 1}</span>}
-                      <p className="mt-1 truncate text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{p.subtype ?? p.category}</p>
+                      <p className="mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-label-xs text-ink/55">{p.subtype ?? p.category}</p>
                     </button>
                   )
                 })}
               </div>
               {closet.outfits.length > 0 && (
                 <>
-                  <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">The stylist suggests</p>
+                  <p className="mt-4 eyebrow">The stylist suggests</p>
                   <div className="mt-2 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
                     {closet.outfits.map((o, i) => {
                       const items = o.itemIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p))
@@ -204,7 +204,7 @@ export function StyleFriendModal({
                           <Arch aspect="aspect-[4/5]" bright={same}>
                             <FlatLay items={items} frameRatio={0.8} />
                           </Arch>
-                          <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{items.length} pieces</p>
+                          <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-label-xs text-ink/55">{items.length} pieces</p>
                         </button>
                       )
                     })}
@@ -226,7 +226,10 @@ export function StyleFriendModal({
                 <p className="text-xs text-ink/55">
                   For <b className="text-ink">{forDay}</b> · {chosenItems.map((i) => i.subtype ?? i.category).join(', ')}
                 </p>
-                <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={280} className="field field-sm mt-2" placeholder="Why this works (optional)" />
+                <label htmlFor="style-note" className="label mt-3">
+                  A note, optional
+                </label>
+                <input id="style-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={280} className="field field-sm" placeholder="Why this works" />
               </div>
             </div>
           )}

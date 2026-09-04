@@ -54,7 +54,7 @@ from `@/src/lib/upload`. Renders go through `useJobs().trackRender()`.
 | --- | --- |
 | Page container | `Screen` (`edges`, `padded`, `plain`); rooms use `edges={['top']}` and draw their own header |
 | Text | `T` with `role` (display, h1, h2, h3, lede, body, bodySm, caption, label, micro, stat) and `tone` (ink, muted, faint, brass, onBrass, danger, success) |
-| Room header / action bar | `RoomHeader`, `ActionBar` (+ `ACTION_BAR_HEIGHT` padding on the scroll view) from `Room.tsx` |
+| Room header / action row | `RoomHeader` (`right` is the header aside) and `ActionRow` from `Room.tsx`; `useBottomReserve()` for the scroll view's bottom padding |
 | Actions | `Button` variants primary (brass, one per screen), ghost, quiet, danger, icon; `size="sm"` for rows |
 | Garment in an arch | `GarmentTile` (label, sublabel, badge, selected, processing, photo, sweep) |
 | Any arch | `Arch` (variant niche / photo / mirror / plain) |
@@ -62,10 +62,20 @@ from `@/src/lib/upload`. Renders go through `useJobs().trackRender()`.
 | The week | `WeekStrip` |
 | Lenses / filters / options | `Tabs`, `Filter`, `Chip` from `Tabs.tsx` |
 | Inputs | `Field` (label, error, helper, password, compact) |
+| Anything tappable that isn't a `Button` | `Press` (0.97 in 150ms, `haptic`, `visual` for the hit slop, `wrapStyle` for the animated wrapper); `usePressScale()` for a hand-rolled pressable |
+| A sheet's frame | `SheetShell` from `Sheet.tsx` (`title`, `emphasis`, `lead`, `footer`, `busy`; `dense` for rows 16 apart) |
+| A surface | `Card` from `Bits.tsx` (padding 16, 20 for a feature card; `onLongPress` is the 320ms context menu) |
+| Inline message | `Alert` from `Bits.tsx` (error / warning / success, a wash, no border, no icon) |
+| A count or a state | `Badge` from `Bits.tsx` (brass or quiet; never a button) |
 | Small furniture | `SectionHead`, `Stat`, `Plaque`, `Hairline`, `LoadError`, `EmptyState` from `Bits.tsx` |
+| Context menu | `MenuSheet` (+ `MoreButton` for a room header) from `MenuSheet.tsx`; opened from a long press on a tile or a card |
+| Deferred delete | `UndoBar` (the message, an Undo, above the tab bar); `useUndoDelete` from `features/closet/UndoBar` |
+| Consent | `Check` (the one ticked box; a value is a `Chip`) |
+| The Mirror's frame | `MirrorFrame` from `Arch.tsx` (the Mirror hero only) |
+| Glyphs | `MoreGlyph`, `PlusGlyph`, `BellGlyph`, `ChevronGlyph`, `CheckGlyph`, `CrossGlyph` from `Glyphs.tsx`: 16 grid, 1.5px stroke, no fill, `color` |
 | Loading | `SkeletonBlock`, `ArchSkeleton` |
 | Notice | `useFlash()('Wear logged.')` |
-| Brand | `Wordmark`, `ArchMark` |
+| Brand | `Wordmark` (26 cap height on a door: the 88px floor), `ArchMark` |
 
 Tokens: `const { t } = useTheme()` then `t.ink`, `t.brass`, `alpha(t.ink, 0.45)`
 for washes; `space`, `gutter`, `radius` (3), `height` (44 / 36 / 32),
@@ -75,6 +85,31 @@ or the "here" marker.
 
 Lists of garments: `FlashList` from `@shopify/flash-list`, two columns, tile
 width `(screenWidth - gutter * 2 - 12) / 2`.
+
+## Actions on a page
+
+The owner's rule: **no floating action bars on pages.** Nothing is pinned
+above the tab bar with content scrolling under it. A screen's actions sit
+inline, in the page flow, directly under the thing they act on, the way the
+web lays them out:
+
+- `ActionRow` from `Room.tsx`: a hairline, 16 to the 44-tall controls, 12
+  between them, a block (32) above by default (`top` when the parent's gap
+  already supplies some of it; `plain` on a surface that rules itself). One
+  brass primary per row, `ghost` for the alternative, `quiet` for the escape.
+- Where it goes: under the act the clock is on (Today, a day), under the rail
+  (Mirror), under the board (Compose), under the hero (a piece), under the
+  frame or at the end of the form it completes (the store, a new trip, a
+  trip's capsule), under the plaque it acts on (the basket).
+- A room-level verb with no subject on the page (Add pieces, Style by hand,
+  Point at a piece, Log a day, Plan a trip) is a 36 control in the header
+  aside: `RoomHeader`'s `right`.
+- Scroll views end at the tab bar with the safe inset: `paddingBottom:
+  useBottomReserve()`. Anything that floats (Toast, UndoBar, JobTray, the
+  Today `MoreMenu`) anchors to the tab bar or the control that opened it,
+  never to a bar.
+- Sheets are the exception: `SheetShell`'s `footer` stays pinned with the
+  primary. That is a bottom sheet's own shape.
 
 ## Motion and touch
 
@@ -90,15 +125,17 @@ Haptics from `@/src/design/haptics`: `select()` for detents and choices,
 One per user action, same frame as the visual, never alone.
 
 Touch targets 44pt on iOS and 48dp on Android: visuals stay 44 / 36 / 32 and
-`hitSlop={hitSlopFor(visual)}` from `@/src/design/tokens` makes up the difference.
-`pressRetentionOffset={12}` on pressables. Long-press (320ms) opens a
+`hitSlopFor(visual)` from `@/src/design/tokens` makes up the difference to 48:
+`visual={n}` on a `Press`, `hitSlop={hitSlopFor(n)}` on a bare `Pressable`.
+`pressRetentionOffset={12}` on pressables (`Press` sets it). Long-press (320ms) opens a
 contextual menu on tiles and cards.
 
 ## Sheets
 
 Secondary flows are `formSheet` routes under `app/sheets/`, opened with
 `router.push('/sheets/<name>?...')`. A sheet has a `T role="h2"` title, its
-content, and its primary `Button` at the bottom. Destructive confirmations
+content, and its primary `Button` in the pinned footer (`SheetShell`'s
+`footer`), which does not scroll. Destructive confirmations
 are sheets too (never `Alert.alert` for anything that has copy worth
 writing). Native `Alert` is fine for a one-line permission nudge.
 
@@ -125,7 +162,7 @@ bone is for large text and rules, not body copy.
 ## Definition of done for a screen
 
 - Reads its data from the cache first, revalidates, handles `LoadError` and the empty state (an `EmptyState` with the one action).
-- One brass primary, in the `ActionBar` when the screen has a main verb.
+- One brass primary, in an inline `ActionRow` under its subject (or the header aside) when the screen has a main verb; never a floating bar.
 - Works with the keyboard up (`KeyboardAwareScrollView` from `react-native-keyboard-controller` on forms).
 - `npx tsc --noEmit` and `npx eslint .` clean in `mobile/`.
 - Deep-linkable: params come from the URL, never from navigation state alone.

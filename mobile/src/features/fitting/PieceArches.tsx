@@ -3,6 +3,7 @@ import type { WardrobeItem } from '@zauq/shared/types'
 import { Arch } from '@/src/components/Arch'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { T } from '@/src/components/Text'
+import { useTheme } from '@/src/design/theme'
 import { space } from '@/src/design/tokens'
 import { PIECES_WANTED } from './steps'
 
@@ -39,11 +40,13 @@ export function PieceArches({ items, width }: { items: WardrobeItem[]; width: nu
 }
 
 function EmptyArch({ width, label }: { width: number; label: string }) {
+  const { t } = useTheme()
   return (
     <View style={[styles.empty, { width }]} accessible accessibilityLabel={`${label}: empty`}>
       <Arch width={width}>
+        {/* Inside the niche the ink is the niche's own, whatever the theme. */}
         <View style={styles.slot}>
-          <T role="micro" tone="faint" style={styles.tracked}>
+          <T role="micro" style={[styles.tracked, { color: t.inNicheMuted }]}>
             {label}
           </T>
         </View>

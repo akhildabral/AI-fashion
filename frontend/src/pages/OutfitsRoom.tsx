@@ -12,9 +12,8 @@ import {
 } from "@zauq/shared/outfits";
 import { logWear } from "@zauq/shared/wearlog";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar } from "../components/ui";
+import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar, SectionHead, Chip, EmptyState, MoreMenu, MenuItem } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
-import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
 import { TryOnModal } from "../components/TryOnModal";
 import { AskCircleModal } from "../components/ComposeModals";
@@ -180,45 +179,39 @@ export function OutfitsRoom() {
 
       {/* Suggested: name the day, the engine composes from what's clean */}
       <section className="mt-8 animate-rise-1">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
-              Suggested
-            </p>
-            <h2 className="mt-1 font-display text-3xl font-medium text-ink">
-              What would you <em className="text-brass">wear for…</em>
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/closet/compose")}
-            className="btn-primary"
-          >
-            Style by hand
-          </button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {OCCASIONS.map((o) => (
-            <button
-              key={o.key}
-              type="button"
-              disabled={asking}
-              onClick={() => void ask(o.key)}
-              className={`chip ${occasion === o.key ? "chip-on" : ""}`}
-            >
-              {o.label}
+        <SectionHead
+          eyebrow="Suggested"
+          title={
+            <>
+              What would you <em className="text-brass-ink">wear for…</em>
+            </>
+          }
+          action={
+            <button type="button" onClick={() => navigate("/closet/compose")} className="btn-ghost btn-sm">
+              Style by hand
             </button>
+          }
+        />
+        <div className="flex flex-wrap gap-2">
+          {OCCASIONS.map((o) => (
+            <Chip key={o.key} disabled={asking} onClick={() => void ask(o.key)} on={occasion === o.key}>
+              {o.label}
+            </Chip>
           ))}
         </div>
         {asking && (
-          <div className="mt-6 flex items-center gap-3 text-sm text-ink/55">
-            <Spinner className="h-4 w-4" /> composing from what’s clean…
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" aria-busy="true" aria-label="Composing">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="card p-4">
+                <SkeletonBlock className="aspect-[5/4]" style={{ animationDelay: `${i * 80}ms` }} />
+                <SkeletonBlock className="mt-4 h-4 w-3/4" />
+                <SkeletonBlock className="mt-2 h-3 w-1/2 !bg-ink/[0.07]" />
+              </div>
+            ))}
           </div>
         )}
         {suggested && suggested.length === 0 && !asking && (
-          <p className="mt-6 font-display text-lg italic text-ink/55">
-            Nothing held together for that. Try another day, or add a piece.
-          </p>
+          <EmptyState className="mt-6" line="Nothing held together for that. Try another day, or add a piece." />
         )}
         {suggested && suggested.length > 0 && (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
@@ -227,16 +220,16 @@ export function OutfitsRoom() {
               return (
                 <article key={key} className="card animate-rise p-4">
                   <LookBoard items={s.items} />
-                  <p className="mt-3 font-display text-base italic leading-snug text-ink">
+                  <p className="mt-4 font-display text-base italic leading-snug text-ink">
                     {s.rationale}
                   </p>
                   <p className="mt-1 text-xs text-ink/50">{names(s.items)}</p>
                   {s.validation.warnings.length > 0 && (
-                    <p className="mt-1 text-[11px] text-ink/45">
+                    <p className="mt-1 text-xs text-ink/45">
                       {s.validation.warnings[0].message}
                     </p>
                   )}
-                  <div className="action-row mt-3">
+                  <div className="action-row mt-4">
                     <button
                       type="button"
                       disabled={busy === `keep:${key}`}
@@ -268,16 +261,15 @@ export function OutfitsRoom() {
 
       {/* Yours */}
       <section className="mt-12 animate-rise-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
-          Yours
-        </p>
-        <h2 className="mt-1 font-display text-3xl font-medium text-ink">
-          Kept and worn
-        </h2>
+        <SectionHead eyebrow="Yours" title="Kept and worn" />
         {outfits === null && !failed && (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" aria-busy="true" aria-label="Loading">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" aria-busy="true" aria-label="Loading">
             {[0, 1, 2].map((i) => (
-              <SkeletonBlock key={i} className="aspect-[4/3]" />
+              <div key={i} className="card p-4">
+                <SkeletonBlock className="aspect-[5/4]" style={{ animationDelay: `${i * 80}ms` }} />
+                <SkeletonBlock className="mt-4 h-4 w-3/4" />
+                <SkeletonBlock className="mt-2 h-3 w-1/2 !bg-ink/[0.07]" />
+              </div>
             ))}
           </div>
         )}
@@ -285,31 +277,30 @@ export function OutfitsRoom() {
           <LoadError className="min-h-[24vh]" message="Couldn’t load your outfits. Check your connection and try again." onRetry={() => { setFailed(false); void load() }} />
         )}
         {!failed && outfits && outfits.length === 0 && (
-          <div className="mt-6 max-w-lg">
-            <p className="font-display text-lg italic text-ink/60">
-              Nothing kept yet. Wear a brief, keep a suggestion, or compose one
-              by hand, and it lives here.
-            </p>
-            <Link to="/closet/compose" className="btn-ghost mt-4 inline-flex">
-              Compose the first
-            </Link>
-          </div>
+          <EmptyState
+            line="Nothing kept yet. Wear a brief, keep a suggestion, or compose one by hand, and it lives here."
+            action={
+              <Link to="/closet/compose" className="btn-ghost">
+                Compose the first
+              </Link>
+            }
+          />
         )}
         {outfits && outfits.length > 0 && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {outfits.map((o) => (
               <article key={o.id} className="card p-4">
                 <LookBoard items={o.items} />
-                <div className="mt-3">
+                <div className="mt-4">
                   <Provenance o={o} />
                   {o.rationale && (
-                    <p className="mt-1 font-display text-base italic leading-snug text-ink">
+                    <p className="mt-2 font-display text-base italic leading-snug text-ink">
                       {o.rationale}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-ink/50">{names(o.items)}</p>
                 </div>
-                <div className="action-row mt-3">
+                <div className="action-row mt-4">
                   <button
                     type="button"
                     disabled={busy === `wear:${o.id}`}
@@ -325,24 +316,13 @@ export function OutfitsRoom() {
                   >
                     See it on me
                   </button>
-                  <button type="button" onClick={() => setAskingCircle(o.id)} className="btn-quiet btn-quiet-sm">
-                    Ask the circle
-                  </button>
-                  <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="btn-quiet btn-quiet-sm" />
-                  <Link
-                    to={`/closet/compose?from=${o.id}`}
-                    className="btn-quiet btn-quiet-sm"
-                  >
-                    Adjust
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={busy === `rm:${o.id}`}
-                    onClick={() => void remove(o)}
-                    className="btn-quiet btn-quiet-sm !text-ink/40"
-                  >
-                    Let it go
-                  </button>
+                  {/* Everything that doesn't earn a button: behind one door. */}
+                  <MoreMenu align="right" up label="More for this outfit" className="ml-auto">
+                    <MenuItem onClick={() => setAskingCircle(o.id)}>Ask the circle</MenuItem>
+                    <MenuItem onClick={() => navigate(`/closet/compose?from=${o.id}`)}>Adjust</MenuItem>
+                    <ShareButton target={{ kind: "outfit", id: o.id, title: "An outfit from my closet", text: o.rationale ?? undefined }} onDone={(l) => l && flash(l)} className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink" />
+                    <MenuItem danger onClick={() => void remove(o)}>Let it go</MenuItem>
+                  </MoreMenu>
                 </div>
               </article>
             ))}

@@ -1,21 +1,23 @@
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
+import { PageShell } from '../components/ui'
 
 /** Dead links get an explanation instead of a silent teleport to Today. */
 export function NotFoundPage() {
   usePageTitle('Not found')
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="font-display text-6xl font-medium text-ink/15">404</p>
-      <h1 className="mt-3 font-display text-2xl font-medium text-ink">
-        This page doesn't exist
-      </h1>
-      <p className="mt-2 font-display text-sm italic text-ink/55">
-        the link may be old, mistyped, or something we've since moved
-      </p>
-      <Link to="/" className="btn-primary mt-6">
-        Back to Today
-      </Link>
-    </div>
+    <PageShell narrow>
+      {/* The head pair, then one italic line and the single way forward. */}
+      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+        <p className="animate-rise eyebrow">Not found</p>
+        <h1 className="page-title mt-2 animate-rise-1">
+          This page <em className="text-accent-text">doesn’t exist.</em>
+        </h1>
+        <p className="mt-3 max-w-md animate-rise-2 font-display text-xl italic text-ink/55">The link may be old, mistyped, or something we’ve since moved.</p>
+        <Link to="/" className="btn-primary mt-8 animate-rise-3">
+          Back to Today
+        </Link>
+      </div>
+    </PageShell>
   )
 }

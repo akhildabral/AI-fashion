@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
+import { SkeletonBlock } from '../components/ui'
 import { GoogleButton } from '../components/GoogleButton'
 import { DoorShell, Or, PasswordField, SignInLink } from '../components/DoorShell'
 import { getJoinInfo, joinWithCode, type JoinInfo } from '@zauq/shared/invites'
@@ -77,10 +78,14 @@ export function JoinPage() {
 
   if (state !== 'ready') {
     return (
-      <DoorShell eyebrow={eyebrow} title={title} lead={lead} foot={state === 'checking' ? undefined : <Link to="/landing" className="font-semibold text-brass underline-offset-4 hover:underline">Join the waitlist</Link>}>
+      <DoorShell eyebrow={eyebrow} title={title} lead={lead} foot={state === 'checking' ? undefined : <Link to="/landing" className="font-semibold text-accent-text underline-offset-4 hover:underline">Join the waitlist</Link>}>
         {state === 'checking' ? (
-          <div className="flex items-center gap-3 text-sm text-ink/60">
-            <Spinner className="h-5 w-5" /> Checking the invite…
+          // The shape of the form to come, not a spinner.
+          <div aria-busy="true" aria-label="Checking the invite">
+            <SkeletonBlock className="h-3 w-20" />
+            <SkeletonBlock className="mt-2 h-11 w-full !bg-ink/[0.07]" />
+            <SkeletonBlock className="mt-4 h-3 w-16" />
+            <SkeletonBlock className="mt-2 h-11 w-full !bg-ink/[0.07]" />
           </div>
         ) : undefined}
       </DoorShell>
@@ -95,11 +100,11 @@ export function JoinPage() {
         lead={`This link is for someone new. You can follow ${who} from their room.`}
         foot={
           info?.inviter.handle ? (
-            <Link to={`/u/${info.inviter.handle}`} className="font-semibold text-brass underline-offset-4 hover:underline">
+            <Link to={`/u/${info.inviter.handle}`} className="font-semibold text-accent-text underline-offset-4 hover:underline">
               Go to {who}’s room →
             </Link>
           ) : (
-            <Link to="/circle" className="font-semibold text-brass underline-offset-4 hover:underline">
+            <Link to="/circle" className="font-semibold text-accent-text underline-offset-4 hover:underline">
               Back to the Circle
             </Link>
           )
@@ -110,7 +115,7 @@ export function JoinPage() {
 
   return (
     <DoorShell eyebrow={eyebrow} title={title} lead={lead} foot={<span>Already a member? <SignInLink label="Sign in" /></span>}>
-      <form onSubmit={join} className="space-y-5">
+      <form onSubmit={join} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="firstName" className="label">

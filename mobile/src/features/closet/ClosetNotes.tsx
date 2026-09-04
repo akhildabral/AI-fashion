@@ -1,9 +1,12 @@
 // The closet, in the morning: one line when the basket is worth a load, one
 // when a wishlist piece is still on your mind. Quiet when there's nothing.
+// Each note is a plaque that is wholly a link: the label, the Bodoni line,
+// a brass arrow.
 import { router, type Href } from 'expo-router'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { Plaque } from '@/src/components/Bits'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
 import { space } from '@/src/design/tokens'
@@ -28,23 +31,18 @@ export function ClosetNotes({ riseFrom = 2 }: { riseFrom?: number }) {
     <View style={styles.list}>
       {notes.map((n, i) => (
         <Animated.View key={n.eyebrow} entering={rise(riseFrom + i)}>
-          <Pressable accessibilityRole="link" pressRetentionOffset={12} onPress={() => router.navigate(n.to)}>
-            <Plaque style={styles.plaque}>
+          <Press accessibilityRole="link" accessibilityLabel={`${n.eyebrow}. ${n.line}`} haptic="tap" onPress={() => router.navigate(n.to)}>
+            <Plaque label={n.eyebrow} style={styles.plaque}>
               <View style={styles.row}>
-                <View style={styles.text}>
-                  <T role="micro" tone="faint" style={styles.eyebrow}>
-                    {n.eyebrow}
-                  </T>
-                  <T role="lede" style={styles.line}>
-                    {n.line}
-                  </T>
-                </View>
-                <T role="body" tone="brass">
+                <T role="lede" style={styles.line}>
+                  {n.line}
+                </T>
+                <T role="body" tone="brass" accessible={false}>
                   →
                 </T>
               </View>
             </Plaque>
-          </Pressable>
+          </Press>
         </Animated.View>
       ))}
     </View>
@@ -52,13 +50,9 @@ export function ClosetNotes({ riseFrom = 2 }: { riseFrom?: number }) {
 }
 
 const styles = StyleSheet.create({
-  // mt-4 flex-col gap-2
+  // The notes 16 under the ledger, 8 apart.
   list: { marginTop: space.lg, gap: space.sm },
-  // plaque p-3.5 pl-5 gap-4 items-center
-  plaque: { padding: 14, paddingLeft: 20 },
+  plaque: { gap: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  text: { flex: 1 },
-  // text-[10px] tracking-[0.2em]
-  eyebrow: { letterSpacing: 2 },
-  line: { marginTop: 2 },
+  line: { flex: 1 },
 })

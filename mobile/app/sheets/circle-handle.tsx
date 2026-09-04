@@ -9,7 +9,7 @@ import { useFlash } from '@/src/components/Toast'
 import { useAuth } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
 import { qk } from '@/src/lib/query'
-import { SheetFrame } from '@/src/features/circle/SheetFrame'
+import { SheetShell } from '@/src/components/Sheet'
 
 const VALID = /^[a-z0-9_]{3,20}$/
 
@@ -47,12 +47,12 @@ export default function HandleSheet() {
   }
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title="Pick a handle"
       lead="Friends find you and @mention you by it. Lowercase letters, numbers and underscores."
-      action={<Button label="Save handle" block disabled={handle.length < 3} loading={save.isPending} onPress={submit} />}
+      footer={<Button label="Save handle" block disabled={handle.length < 3} loading={save.isPending} onPress={submit} />}
     >
       <Field label="Handle" value={value} onChangeText={setValue} error={error} autoCapitalize="none" autoCorrect={false} autoFocus maxLength={21} placeholder="yourname" returnKeyType="done" onSubmitEditing={submit} />
-    </SheetFrame>
+    </SheetShell>
   )
 }

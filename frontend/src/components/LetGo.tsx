@@ -41,29 +41,29 @@ export function LetGoModal({ item, onClose, onChanged, onNote }: { item: Wardrob
   return (
     <Modal open={item !== null} onClose={onClose} title={item ? `Let the ${item.subtype ?? item.category} go?` : 'Let it go'}>
       {item && !draft && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <p className="text-sm text-ink/60">It has been sitting. Three ways out, none of them final.</p>
-          <button type="button" disabled={busy !== null} onClick={() => void setState('lent-out')} className="card card-hover press p-4 text-left">
-            <span className="block font-display text-lg text-ink">Lend it out</span>
-            <span className="block text-xs text-ink/55">Goes to the basket as lent out; one tap brings it back.</span>
+          <button type="button" disabled={busy !== null} onClick={() => void setState('lent-out')} className="card card-hover press p-4 text-left disabled:cursor-not-allowed disabled:opacity-50">
+            <span className="block font-display text-xl font-medium text-ink">Lend it out</span>
+            <span className="mt-1 block text-xs text-ink/55">Goes to the basket as lent out; one tap brings it back.</span>
           </button>
-          <button type="button" disabled={busy !== null} onClick={() => void listing()} className="card card-hover press p-4 text-left">
-            <span className="block font-display text-lg text-ink">{busy === 'listing' ? 'Drafting…' : 'Draft a listing'}</span>
-            <span className="block text-xs text-ink/55">The stylist writes the resale post from the photo and the tags.</span>
+          <button type="button" disabled={busy !== null} onClick={() => void listing()} className="card card-hover press p-4 text-left disabled:cursor-not-allowed disabled:opacity-50">
+            <span className="block font-display text-xl font-medium text-ink">{busy === 'listing' ? 'Drafting…' : 'Draft a listing'}</span>
+            <span className="mt-1 block text-xs text-ink/55">The stylist writes the resale post from the photo and the tags.</span>
           </button>
-          <button type="button" disabled={busy !== null} onClick={() => void setState('retired')} className="card card-hover press p-4 text-left">
-            <span className="block font-display text-lg text-ink">Retire it</span>
-            <span className="block text-xs text-ink/55">Out of the rotation, kept in the ledger.</span>
+          <button type="button" disabled={busy !== null} onClick={() => void setState('retired')} className="card card-hover press p-4 text-left disabled:cursor-not-allowed disabled:opacity-50">
+            <span className="block font-display text-xl font-medium text-ink">Retire it</span>
+            <span className="mt-1 block text-xs text-ink/55">Out of the rotation, kept in the ledger.</span>
           </button>
         </div>
       )}
       {draft && (
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Listing draft</p>
-          <p className="mt-1 font-display text-xl text-ink">{draft.title}</p>
-          {draft.price && <p className="mt-1 text-sm text-brass">Ask {money(Number(draft.price) || 0)}</p>}
+          <p className="mt-2 font-display text-xl font-medium text-ink">{draft.title}</p>
+          {draft.price && <p className="mt-1 text-sm text-brass-ink">Ask {money(Number(draft.price) || 0)}</p>}
           <p className="mt-2 whitespace-pre-wrap text-sm text-ink/70">{draft.body}</p>
-          <div className="mt-4 flex gap-2">
+          <div className="action-row mt-4">
             <button
               type="button"
               onClick={() => void copyText(`${draft.title}\n\n${draft.body}${draft.price ? `\n\n${money(Number(draft.price) || 0)}` : ''}`).then((ok) => onNote(ok ? 'Listing copied. Paste it where you sell.' : 'Could not copy.'))}
@@ -71,7 +71,7 @@ export function LetGoModal({ item, onClose, onChanged, onNote }: { item: Wardrob
             >
               Copy the listing
             </button>
-            <button type="button" onClick={() => setDraft(null)} className="btn-ghost btn-sm">
+            <button type="button" onClick={() => setDraft(null)} className="btn-quiet btn-quiet-sm">
               Back
             </button>
           </div>

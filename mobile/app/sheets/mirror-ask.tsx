@@ -3,17 +3,18 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { createPoll, type PollAudience } from '@zauq/shared/polls'
+import { Alert } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { Screen } from '@/src/components/Screen'
+import { SheetShell } from '@/src/components/Sheet'
+import { GRID_GAP } from '@/src/components/Skeleton'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
-import { gutter } from '@/src/design/tokens'
+import { gutter, space } from '@/src/design/tokens'
 import { useTryOns } from '@/src/features/mirror/data'
 import { mirror } from '@/src/features/mirror/store'
 
@@ -30,7 +31,7 @@ export default function AskSheet() {
   const flash = useFlash()
   const tryOnsQ = useTryOns()
   const renders = ids.map((id) => (tryOnsQ.data?.tryOns ?? []).find((x) => x.id === id)).filter((x) => !!x)
-  const tileW = Math.floor((sw - gutter * 2 - 12 * Math.max(1, renders.length - 1)) / Math.max(2, renders.length))
+  const tileW = Math.floor((sw - gutter * 2 - GRID_GAP * Math.max(1, renders.length - 1)) / Math.max(2, renders.length))
 
   const [question, setQuestion] = useState('Which one should I wear?')
   const [audience, setAudience] = useState<PollAudience>('circle')
@@ -56,15 +57,12 @@ export default function AskSheet() {
   }
 
   return (
-    <Screen padded edges={['bottom']}>
+    <SheetShell title="Ask the circle" footer={<Button label={busy ? 'Sending…' : 'Ask the circle'} block loading={busy} disabled={busy || renders.length < 2} onPress={() => void ask()} />}>
       <Stack.Screen options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true, sheetCornerRadius: 3 }} />
-      <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={24}>
-        <T role="h2" accessibilityRole="header">
-          Ask the circle
-        </T>
+      <View style={styles.group}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
           {renders.map((r, i) => (
-            <GarmentTile key={r.id} photo width={tileW} aspect={3 / 4} imageUrl={r.imageUrl} badge={LETTERS[i]} accessibilityLabel={`Option ${LETTERS[i]}`} />
+            <GarmentTile key={r.id} photo width={tileW} aspect={4 / 5} imageUrl={r.imageUrl} badge={LETTERS[i]} accessibilityLabel={`Option ${LETTERS[i]}`} />
           ))}
         </ScrollView>
         {renders.length < 2 ? (
@@ -72,9 +70,11 @@ export default function AskSheet() {
             Pick two or more renders in the Mirror first.
           </T>
         ) : null}
+      </View>
+      <View style={styles.group}>
         <Field label="The question" value={question} onChangeText={setQuestion} returnKeyType="done" />
-        <View>
-          <T role="label" tone="faint" style={styles.label}>
+        <View style={styles.labelled}>
+          <T role="label" tone="faint">
             Who answers
           </T>
           <View style={styles.chips}>
@@ -86,20 +86,16 @@ export default function AskSheet() {
         <T role="caption" tone="faint">
           Open for 24 hours. You see the count; they see the pictures.
         </T>
-        {error ? (
-          <T role="bodySm" tone="danger" accessibilityLiveRegion="polite">
-            {error}
-          </T>
-        ) : null}
-        <Button label={busy ? 'Sending…' : 'Ask the circle'} block loading={busy} disabled={busy || renders.length < 2} onPress={() => void ask()} />
-      </KeyboardAwareScrollView>
-    </Screen>
+        {error ? <Alert>{error}</Alert> : null}
+      </View>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 24, paddingBottom: 24, gap: 16 },
-  strip: { flexDirection: 'row', gap: 12, paddingVertical: 2 },
-  label: { marginBottom: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // Elements 16 apart; a label 8 over what it labels.
+  group: { gap: space.lg },
+  labelled: { gap: space.sm },
+  strip: { flexDirection: 'row', gap: GRID_GAP, paddingVertical: 2 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 })

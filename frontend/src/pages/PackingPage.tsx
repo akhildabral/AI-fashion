@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Arch, GarmentTile, PageShell, Tabs, SkeletonBlock, LoadError } from '../components/ui'
+import { Alert, Arch, Chip, EmptyState, GarmentTile, PageHead, PageShell, SectionHead, Tabs, SkeletonBlock, LoadError } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { packForTrip, packLook } from '@zauq/shared/wardrobe'
 import { createTrip, getTrips, type Trip } from '@zauq/shared/brief'
@@ -33,15 +33,16 @@ function TripRow({ t, past }: { t: Trip; past?: boolean }) {
   const today = localDay(new Date())
   const on = !past && t.startDate <= today && t.endDate >= today
   return (
-    <Link to={`/trips/${t.id}`} className="plaque card-hover press flex items-center justify-between gap-3 p-4 pl-5">
+    // A whole-card link is a Card with the brass-tinted hover, never a plaque (a plaque is a fact, not a control).
+    <Link to={`/trips/${t.id}`} className="card card-hover press flex items-center justify-between gap-3 p-4">
       <div className="min-w-0">
-        <p className="font-display text-lg font-medium text-ink">{t.destination}</p>
+        <p className="font-display text-xl font-medium text-ink">{t.destination}</p>
         <p className="text-xs text-ink/55">
           {formatDay(t.startDate)} to {formatDay(t.endDate)} · {t.packedItemIds.length} pieces packed
         </p>
-        <p className="mt-1 font-display text-xs italic text-ink/45">{past ? 'what you packed, and what you wore' : on ? 'on now, the brief dresses you from the capsule' : 'the plan, and a checklist that remembers'}</p>
+        <p className="mt-1 font-display text-sm italic text-ink/45">{past ? 'what you packed, and what you wore' : on ? 'on now, the brief dresses you from the capsule' : 'the plan, and a checklist that remembers'}</p>
       </div>
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Open →</span>
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-label-lg text-accent-text">Open →</span>
     </Link>
   )
 }
@@ -156,20 +157,22 @@ export function PackingPage() {
 
   return (
     <PageShell>
-      <header>
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">Trips</p>
-        <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-          Pack from <em className="text-brass">your closet.</em>
-        </h1>
-        <p className="mt-3 max-w-xl animate-rise-1 text-sm text-ink/55">Where and when. Your stylist builds the capsule from clothes you own, plans each day, and lists the rest. Save it, and the trip keeps.</p>
-      </header>
+      <PageHead
+        eyebrow="Trips"
+        title={
+          <>
+            Pack from <em className="text-accent-text">your closet.</em>
+          </>
+        }
+        line="Where and when. Your stylist builds the capsule from clothes you own, plans each day, and lists the rest. Save it, and the trip keeps."
+      />
 
       {!tripsLoaded && (
-        <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading your trips">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2" aria-busy="true" aria-label="Loading your trips">
           {[0, 1].map((i) => (
-            <div key={i} className="plaque p-5">
+            <div key={i} className="card p-4">
               <SkeletonBlock className="h-5 w-2/3" />
-              <SkeletonBlock className="mt-3 h-4 w-1/2" />
+              <SkeletonBlock className="mt-3 h-4 w-1/2 !bg-ink/[0.07]" />
             </div>
           ))}
         </div>
@@ -180,10 +183,7 @@ export function PackingPage() {
       )}
 
       {tripsLoaded && !tripsFailed && trips.length === 0 && past.length === 0 && (
-        <div className="mt-8 max-w-lg animate-rise-2">
-          <p className="font-display text-2xl italic text-ink/70">No trips yet.</p>
-          <p className="mt-2 text-sm text-ink/55">Name a destination and dates below, and your stylist packs a capsule from your own closet.</p>
-        </div>
+        <EmptyState className="mt-8 animate-rise-2" line="No trips yet. Name a destination and dates below, and your stylist packs a capsule from your own closet." />
       )}
 
       {tripsLoaded && !tripsFailed && (trips.length > 0 || past.length > 0) && (
@@ -198,9 +198,9 @@ export function PackingPage() {
             ]}
           />
           {list.length === 0 ? (
-            <p className="mt-4 text-sm text-ink/50">{tab === 'upcoming' ? 'Nothing planned yet. Start one below.' : 'No trips have ended yet.'}</p>
+            <EmptyState className="mt-4" line={tab === 'upcoming' ? 'Nothing planned yet. Start one below.' : 'No trips have ended yet.'} />
           ) : (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {list.map((t, i) => (
                 <div key={t.id} className="rise-stagger" style={{ '--i': i } as CSSProperties}>
                   <TripRow t={t} past={tab === 'past'} />
@@ -211,9 +211,9 @@ export function PackingPage() {
         </section>
       )}
 
-      <form onSubmit={handleSubmit} className="card mt-8 animate-rise-2 p-5 sm:p-7">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">A new trip</p>
-        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+      <form onSubmit={handleSubmit} className="card mt-10 animate-rise-2 p-5">
+        <p className="eyebrow">A new trip</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="pack-destination" className="label">
               Destination
@@ -250,15 +250,20 @@ export function PackingPage() {
             {PLANS.map((p) => {
               const on = plans.includes(p.key)
               return (
-                <button key={p.key} type="button" onClick={() => setPlans((s) => (on ? s.filter((x) => x !== p.key) : [...s, p.key]))} aria-pressed={on} className="chip">
+                <Chip key={p.key} on={on} onClick={() => setPlans((s) => (on ? s.filter((x) => x !== p.key) : [...s, p.key]))}>
                   {p.label}
-                </button>
+                </Chip>
               )
             })}
           </div>
-          <input id="pack-activities" type="text" value={activities} onChange={(e) => setActivities(e.target.value)} className="field field-sm mt-3 max-w-md" placeholder="Anything else: a dinner, a conference…" aria-label="Other plans" />
         </div>
-        <button type="submit" disabled={loading} className="btn-primary mt-5">
+        <div className="mt-4 max-w-md">
+          <label htmlFor="pack-activities" className="label">
+            Anything else
+          </label>
+          <input id="pack-activities" type="text" value={activities} onChange={(e) => setActivities(e.target.value)} className="field" placeholder="a dinner, a conference…" />
+        </div>
+        <button type="submit" disabled={loading} className="btn-primary mt-8">
           {loading ? (
             <>
               <Spinner className="mr-2 h-4 w-4" />
@@ -268,22 +273,18 @@ export function PackingPage() {
             'Plan the capsule'
           )}
         </button>
-        {error && (
-          <p className="mt-4 alert-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Alert className="mt-4">{error}</Alert>}
       </form>
 
       {result && (
         <div className="mt-10 space-y-10">
           <section className="animate-rise">
-            <h2 className="font-display text-2xl font-medium text-ink">{result.forecast.location}</h2>
+            <SectionHead title={result.forecast.location} />
             {result.forecast.days.length > 0 && (
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
+              <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
                 {result.forecast.days.map((d) => (
                   <div key={d.date} className="plaque min-w-[7.5rem] shrink-0 p-3 pl-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(d.date)}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-label text-accent-text">{formatDay(d.date)}</p>
                     <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">
                       {tempRange(d.minC, d.maxC)}
                     </p>
@@ -299,15 +300,16 @@ export function PackingPage() {
           </section>
 
           <section className="animate-rise-1">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="font-display text-2xl font-medium text-ink">The capsule · {result.plan.capsule.length} pieces</h2>
-                <p className="mt-1 max-w-2xl text-sm text-ink/60">{result.plan.rationale}</p>
-              </div>
-              <button type="button" onClick={() => void handleSaveTrip()} disabled={savingTrip} className="btn-primary btn-sm">
-                {savingTrip ? 'Saving…' : 'Save the trip'}
-              </button>
-            </div>
+            <SectionHead
+              className="!mb-1"
+              title={`The capsule · ${result.plan.capsule.length} pieces`}
+              action={
+                <button type="button" onClick={() => void handleSaveTrip()} disabled={savingTrip} className="btn-primary btn-sm">
+                  {savingTrip ? 'Saving…' : 'Save the trip'}
+                </button>
+              }
+            />
+            <p className="max-w-2xl text-sm text-ink/60">{result.plan.rationale}</p>
             <p className="mt-1 text-xs text-ink/45">Save it to edit the capsule, tick things off, and have the brief dress you from it.</p>
             <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6">
               {result.plan.capsule.map((item) => (
@@ -320,8 +322,8 @@ export function PackingPage() {
 
           {result.plan.days.length > 0 && (
             <section className="animate-rise-2">
-              <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
-              <div className="card mt-4 px-5">
+              <SectionHead title="Day by day" />
+              <div className="card px-5">
                 {result.plan.days.map((day, i) => {
                   const looks = [
                     { id: 'main', items: day.items, removable: false },
@@ -343,7 +345,7 @@ export function PackingPage() {
                           <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
                             <div className="sm:w-32 sm:shrink-0">
                               {looks.length > 1 && (
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
+                                <p className="text-[11px] font-semibold uppercase tracking-label-sm text-accent-text">
                                   {['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][li] || `Look ${li + 1}`}
                                 </p>
                               )}
@@ -372,9 +374,9 @@ export function PackingPage() {
 
           {result.plan.essentials.length > 0 && (
             <section className="animate-rise-3">
-              <h2 className="font-display text-2xl font-medium text-ink">And the rest</h2>
-              <p className="mt-1 text-sm text-ink/55">Worth packing, not in the closet. They join the checklist once the trip is saved.</p>
-              <ul className="mt-3 flex flex-wrap gap-2">
+              <SectionHead className="!mb-1" title="And the rest" />
+              <p className="text-sm text-ink/55">Worth packing, not in the closet. They join the checklist once the trip is saved.</p>
+              <ul className="mt-4 flex flex-wrap gap-2">
                 {result.plan.essentials.map((e) => (
                   <li key={e} className="rounded-[3px] border border-dashed border-brass/40 px-3 py-1.5 text-sm text-ink/75">
                     {e}

@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { Arch, Modal, PageShell, Toast, useFlash, Tabs, SkeletonBlock } from '../components/ui'
-import { Spinner } from '../components/Spinner'
+import { Arch, ArchSkeleton, Chip, Modal, PageShell, Toast, useFlash, Tabs, SkeletonBlock, MoreMenu, MenuItem } from '../components/ui'
 import { Initials } from '../components/PeopleDrawer'
 import { GarmentThumb, LookCard, Plate } from '../components/CircleCards'
 import { StyleFriendModal } from '../components/StyleFriendModal'
@@ -208,38 +207,35 @@ export function UserProfilePage() {
       <Toast msg={toast} />
       {!profile && !error && (
         <div aria-busy="true" aria-label="Loading profile">
-          <SkeletonBlock className="h-14 w-64" />
-          <div className="mt-5 flex gap-6">
-            {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-10 w-16" />)}
+          <SkeletonBlock className="h-3 w-24" />
+          <SkeletonBlock className="mt-3 h-9 w-64" />
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonBlock key={i} className="h-24 w-full" />)}
           </div>
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
-            ))}
-          </div>
+          <ArchSkeleton count={5} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6" />
         </div>
       )}
       {error && (
-        <div className="rounded-[3px] border border-dashed border-ink/20 py-16 text-center text-ink/55">
-          <p>{error}</p>
-          <Link to="/circle" className="mt-3 inline-block text-sm font-semibold text-brass hover:underline">
-            ← Back to the Circle
+        <div className="py-16 text-center">
+          <p className="font-display text-2xl italic text-ink">{error}</p>
+          <Link to="/circle" className="btn-ghost mt-5 inline-flex">
+            Back to the Circle
           </Link>
         </div>
       )}
 
       {profile && (
         <>
-          {/* ---- mantel ---- */}
+          {/* ---- mantel: the tracked label over the Bodoni line ---- */}
           <header className="flex flex-wrap items-end justify-between gap-5">
             <div className="flex items-end gap-4">
-              <Initials handle={profile.user.handle} name={profile.user.name} className="h-10 w-10" />
+              <Initials handle={profile.user.handle} name={profile.user.name} className="h-10 w-10 text-xs" />
               <div>
-                <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
+                <p className="animate-rise eyebrow">
                   {profile.isMe ? 'Your room' : profile.isFriend ? 'A friend' : profile.followsYou ? 'Follows you' : 'In the circle'}
                 </p>
-                <h1 className="mt-1 animate-rise-1 font-display text-4xl font-medium text-ink sm:text-5xl">{profile.user.name}</h1>
-                <p className="mt-1.5 animate-rise-1 text-sm text-ink/55">
+                <h1 className="page-title mt-2 animate-rise-1">{profile.user.name}</h1>
+                <p className="mt-3 animate-rise-1 text-sm text-ink/55 [font-variant-numeric:tabular-nums]">
                   {profile.counts.followers} follower{profile.counts.followers === 1 ? '' : 's'}
                   <span className="mx-2 text-ink/25">·</span>following {profile.counts.following}
                   <span className="mx-2 text-ink/25">·</span>
@@ -248,7 +244,7 @@ export function UserProfilePage() {
               </div>
             </div>
             {!profile.isMe && (
-              <div className="flex gap-2">
+              <div className="action-row">
                 {!profile.blockedByMe && profile.publicItems.length >= 2 && (
                   <button type="button" onClick={() => setStyling(true)} className="btn-ghost">
                     Style them
@@ -259,27 +255,31 @@ export function UserProfilePage() {
                     {profile.isFollowing ? 'Following' : 'Follow'}
                   </button>
                 )}
-                <MoreMenu
-                  items={
-                    profile.blockedByMe
-                      ? [{ label: `Unblock ${who}`, onSelect: () => void safety('unblock') }]
-                      : [
-                          profile.mutedUntil
-                            ? { label: 'Unmute', onSelect: () => void safety('unmute') }
-                            : { label: 'Mute for 30 days', onSelect: () => void safety('mute') },
-                          ...(profile.followsYou ? [{ label: 'Remove as a follower', onSelect: () => void safety('remove') }] : []),
-                          { label: 'Report', onSelect: () => setReporting(true) },
-                          { label: `Block ${who}`, danger: true, onSelect: () => void safety('block') },
-                        ]
-                  }
-                />
+                <MoreMenu align="right" label="More about this person">
+                  {profile.blockedByMe ? (
+                    <MenuItem onClick={() => void safety('unblock')}>Unblock {who}</MenuItem>
+                  ) : (
+                    <>
+                      {profile.mutedUntil ? (
+                        <MenuItem onClick={() => void safety('unmute')}>Unmute</MenuItem>
+                      ) : (
+                        <MenuItem onClick={() => void safety('mute')}>Mute for 30 days</MenuItem>
+                      )}
+                      {profile.followsYou && <MenuItem onClick={() => void safety('remove')}>Remove as a follower</MenuItem>}
+                      <MenuItem onClick={() => setReporting(true)}>Report</MenuItem>
+                      <MenuItem danger onClick={() => void safety('block')}>
+                        Block {who}
+                      </MenuItem>
+                    </>
+                  )}
+                </MoreMenu>
               </div>
             )}
           </header>
 
           {profile.blockedByMe && (
-            <div className="mt-8 rounded-[3px] border border-dashed border-ink/20 px-6 py-14 text-center">
-              <p className="font-display text-2xl font-medium text-ink">You’ve blocked {who}</p>
+            <div className="mt-8 px-6 py-12 text-center">
+              <p className="font-display text-2xl font-medium italic text-ink">You’ve blocked {who}</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">They can’t see you, you won’t see them, and any follows between you are gone. Undo it from the menu above.</p>
             </div>
           )}
@@ -292,7 +292,7 @@ export function UserProfilePage() {
           {!profile.blockedByMe && (
           <>
           {/* ---- standing: earned, verified, never bought ---- */}
-          <section aria-label="Standing" className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <section aria-label="Standing" className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Standing n={profile.standing.picksWorn} title="A good eye" sub="picks that got worn" />
             <Standing n={profile.standing.recreated} title="Recreated" sub="looks copied into closets" />
             <Standing n={profile.standing.wouldWear} title="Would wear" sub="from the circle" />
@@ -300,9 +300,9 @@ export function UserProfilePage() {
           </section>
 
           {overlap && overlap.matchedCount > 0 && !profile.isMe && (
-            <div className="plaque mt-6 p-5">
+            <div className="plaque mt-8 p-5 pl-6">
               <Plate>From your own closet</Plate>
-              <p className="mt-1 font-display text-lg text-ink">
+              <p className="mt-2 font-display text-xl text-ink">
                 You could recreate {overlap.matchedCount} of their {overlap.theirCount} public piece{overlap.theirCount === 1 ? '' : 's'}.
               </p>
               <div className="mt-3 flex flex-wrap gap-4">
@@ -331,10 +331,10 @@ export function UserProfilePage() {
 
           {/* ---- looks ---- */}
           {lens === 'looks' && (
-            <div className="mx-auto mt-5 flex max-w-2xl flex-col gap-4 lg:mx-0">
+            <div className="mx-auto mt-4 flex max-w-2xl flex-col gap-4 lg:mx-0">
               {profile.looks.length === 0 && (
-                <div className="rounded-[3px] border border-dashed border-ink/20 px-6 py-14 text-center">
-                  <p className="font-display text-2xl font-medium text-ink">Nothing shared yet</p>
+                <div className="px-6 py-12 text-center">
+                  <p className="font-display text-2xl font-medium italic text-ink">Nothing shared yet</p>
                   <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">
                     {profile.isMe ? 'Share a look from the Circle and it hangs here.' : 'When they share a look, it hangs here.'}
                   </p>
@@ -355,18 +355,17 @@ export function UserProfilePage() {
           {lens === 'wardrobe' && (
             <>
               {profile.publicItems.length === 0 ? (
-                <div className="mt-5 rounded-[3px] border border-dashed border-ink/20 py-14 text-center text-sm text-ink/55">
-                  {profile.isMe ? (
+                <div className="mt-4 px-6 py-12 text-center">
+                  <p className="font-display text-2xl font-medium italic text-ink">{profile.isMe ? 'Your public wardrobe is empty' : 'Their public wardrobe is empty'}</p>
+                  {profile.isMe && (
                     <>
-                      <p>Your public wardrobe is empty. Make a piece public from its page in the Closet.</p>
-                      <Link to="/closet" className="btn-ghost btn-sm mt-4 inline-flex">Open the Closet</Link>
+                      <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">Make a piece public from its page in the Closet.</p>
+                      <Link to="/closet" className="btn-ghost mt-5 inline-flex">Open the Closet</Link>
                     </>
-                  ) : (
-                    'Their public wardrobe is empty.'
                   )}
                 </div>
               ) : (
-                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
                   {profile.publicItems.map((item, i) => {
                     return (
                       <figure
@@ -395,12 +394,15 @@ export function UserProfilePage() {
         <p className="text-sm text-ink/60">Tell the house what’s wrong. They won’t know it came from you.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {REPORT_REASONS.map((r) => (
-            <button key={r.key} type="button" onClick={() => setReason(r.key)} aria-pressed={reason === r.key} className="chip">
+            <Chip key={r.key} on={reason === r.key} onClick={() => setReason(r.key)}>
               {r.label}
-            </button>
+            </Chip>
           ))}
         </div>
-        <textarea value={detail} onChange={(e) => setDetail(e.target.value)} maxLength={500} rows={3} className="field mt-4 !h-auto" placeholder="Anything else that helps (optional)" />
+        <label htmlFor="profile-report-detail" className="label mt-4">
+          Anything else that helps, optional
+        </label>
+        <textarea id="profile-report-detail" value={detail} onChange={(e) => setDetail(e.target.value)} maxLength={500} rows={3} className="field !h-auto py-2.5" />
         <div className="action-row mt-5">
           <button type="button" disabled={!reason || sendingReport} onClick={() => void sendReport()} className="btn-primary">
             {sendingReport ? 'Sending…' : 'Send report'}
@@ -413,8 +415,14 @@ export function UserProfilePage() {
 
       <Modal open={recreate !== null} onClose={() => setRecreate(null)} title={`In your closet, ${who}’s look`}>
         {recreate && recreate.result === null && (
-          <div className="flex justify-center py-10 text-ink/50">
-            <Spinner className="h-6 w-6" />
+          <div aria-busy="true" aria-label="Reading your closet" className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="arch-bezel aspect-[5/6] w-16 animate-pulse opacity-50"><div className="arch-niche h-full w-full" /></div>
+                <SkeletonBlock className="h-4 flex-1" />
+                <div className="arch-bezel aspect-[5/6] w-16 animate-pulse opacity-50"><div className="arch-niche h-full w-full" /></div>
+              </div>
+            ))}
           </div>
         )}
         {recreate?.result && (
@@ -434,10 +442,10 @@ export function UserProfilePage() {
                 ))}
               </div>
             ) : (
-              <p className="rounded-[3px] border border-dashed border-ink/20 p-4 text-sm text-ink/55">Nothing in your closet matches this look yet.</p>
+              <p className="font-display text-lg italic text-ink/70">Nothing in your closet matches this look yet.</p>
             )}
             {recreate.result.pairs.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="action-row mt-5">
                 <button type="button" onClick={() => navigate(`/mirror?items=${recreate.result!.pairs.map((p) => p.match.id).join(',')}`)} className="btn-primary btn-sm">
                   See it on you
                 </button>
@@ -453,56 +461,13 @@ export function UserProfilePage() {
   )
 }
 
+/** An engraved fact: the plaque's label, figure, note — never a control. */
 function Standing({ n, title, sub }: { n: number; title: string; sub: string }) {
   return (
-    <div className={`plaque p-4 ${n === 0 ? 'opacity-60' : ''}`}>
-      <p className="font-display text-3xl font-medium leading-none text-ink [font-variant-numeric:tabular-nums]">{n}</p>
-      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brass">{title}</p>
-      <p className="text-[11px] text-ink/50">{sub}</p>
-    </div>
-  )
-}
-
-/** The "···" beside a person: the quiet actions, one list, closes on any choice or outside tap. */
-function MoreMenu({ items }: { items: { label: string; danger?: boolean; onSelect: () => void }[] }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-icon">
-        ···
-      </button>
-      {open && (
-        <div role="menu" className="card absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden py-1">
-          {items.map((it) => (
-            <button
-              key={it.label}
-              role="menuitem"
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                it.onSelect()
-              }}
-              className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-ink/5 ${it.danger ? 'text-red-600 dark:text-red-400' : 'text-ink/80'}`}
-            >
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className={`plaque p-4 pl-5 ${n === 0 ? 'opacity-60' : ''}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-label-xl text-accent-text">{title}</p>
+      <p className="mt-1 font-display text-3xl font-medium leading-[1.1] text-ink [font-variant-numeric:tabular-nums]">{n}</p>
+      <p className="mt-1 text-xs text-ink/50">{sub}</p>
     </div>
   )
 }

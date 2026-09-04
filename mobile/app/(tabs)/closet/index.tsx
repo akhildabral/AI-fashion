@@ -1,22 +1,23 @@
 // The Closet: every piece in its niche, two across. The mantel carries the
 // estate value; the rooms sit on a row of tabs; the collection is cut by
-// filters; the one brass verb, Add pieces, waits in the thumb zone.
+// filters; the one brass verb, Add pieces, sits in the head beside the title.
 import { FlashList } from '@shopify/flash-list'
 import { useQueryClient } from '@tanstack/react-query'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { money } from '@zauq/shared/money'
 import type { WardrobeItem, WardrobeListResponse } from '@zauq/shared/types'
 import { deleteWardrobeItem } from '@zauq/shared/wardrobe'
 import { Arch } from '@/src/components/Arch'
-import { EmptyState, LoadError, Plaque, SectionHead } from '@/src/components/Bits'
+import { Card, EmptyState, LoadError, Plaque, SectionHead, Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT, RoomHeader } from '@/src/components/Room'
+import { Press } from '@/src/components/Press'
+import { RoomHeader, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { ArchSkeleton } from '@/src/components/Skeleton'
 import { Filter } from '@/src/components/Tabs'
@@ -25,12 +26,12 @@ import { useFlash } from '@/src/components/Toast'
 import { useJobs } from '@/src/context/JobsProvider'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, hitSlopFor, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
 import { ClosetNotes } from '@/src/features/closet/ClosetNotes'
 import { cpwLabel, GRID_GAP, GRID_ROW_GAP, isNew, nameOf, tileWidth, title, useGaps, useInsights, useInvalidateCloset, useRitual, useWardrobe, type Insights } from '@/src/features/closet/data'
-import { Menu, type MenuItem } from '@/src/features/closet/Menu'
+import { MenuSheet, type MenuItem } from '@/src/components/MenuSheet'
 import { RoomTabs } from '@/src/features/closet/RoomTabs'
 import { shareCard } from '@/src/features/closet/share'
 import { UndoBar, useUndoDelete } from '@/src/features/closet/UndoBar'
@@ -46,21 +47,22 @@ const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'twins', label: 'Possible twins' },
 ]
 
-/** The web's `w-44 h-1.5` rotation meter: brass-hi to brass, left to right. */
+/** The rotation meter: brass-hi to brass, left to right, 176 x 6. */
 const METER_W = 176
 const METER_H = 6
 
-/** The starter state: four empty niches on the grid, and the one thing to do. */
+/** The starter state: four empty niches on the grid, and the one thing to do. What sits inside a niche uses the in-niche inks. */
 function Starter({ width }: { width: number }) {
+  const { t } = useTheme()
   const w = tileWidth(width, gutter)
   return (
     <Animated.View entering={rise(1)} style={styles.starter}>
       <View style={styles.starterGrid}>
         {[0, 1, 2, 3].map((i) => (
-          <Arch key={i} width={w} variant="plain">
+          <Arch key={i} width={w}>
             {i === 0 ? (
               <View style={styles.starterLabel}>
-                <T role="label" tone="faint">
+                <T role="label" style={{ color: t.inNicheMuted }}>
                   Your first piece
                 </T>
               </View>
@@ -92,6 +94,7 @@ export default function ClosetRoom() {
   const [menuFor, setMenuFor] = useState<WardrobeItem | null>(null)
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [refreshing, setRefreshing] = useState(false)
+  const bottom = useBottomReserve()
 
   // Tiles the upload queue just created land in the cache at once, ahead of
   // the refetch the queue also triggers.
@@ -202,14 +205,25 @@ export default function ClosetRoom() {
       ]
     : []
 
-  // The web's rhythm, top to bottom: the mantel (title, search, valuation)
-  // closed by a hairline at pb-7; the rooms at mt-6; the ledger at mt-6; the
-  // notes at mt-4; the collections at mt-8; the categories beneath; the twin
-  // plaque and the grid at mt-6.
+  // The rhythm, top to bottom: the mantel (the room's head, the search, the
+  // valuation, 16 apart) closed by a hairline a block beneath; the rooms; the
+  // ledger a block beneath; the notes 16 beneath; the collections a block
+  // beneath, the categories 8 under them; the twin plaque and the grid 16 on.
   const header = (
     <View style={styles.header}>
       <Animated.View entering={rise(0)}>
-        <RoomHeader eyebrow="The collection" title="Closet" lead={hasPieces ? `${list.length} pieces${stats ? ` · ${rotationPct}% in rotation this quarter` : ''}` : undefined} />
+        <RoomHeader
+          eyebrow="The collection"
+          title="Closet"
+          lead={hasPieces ? `${list.length} pieces${stats ? ` · ${rotationPct}% in rotation this quarter` : ''}` : undefined}
+          right={
+            <Button
+              label={!hasPieces ? 'Add your first piece' : jobs.upload.active ? `${Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…` : 'Add pieces'}
+              size="sm"
+              onPress={() => router.push('/sheets/closet-add')}
+            />
+          }
+        />
       </Animated.View>
 
       {hasPieces ? (
@@ -225,51 +239,43 @@ export default function ClosetRoom() {
           />
 
           {/* The valuation plate: the owned brass moment */}
-          <Pressable accessibilityRole="button" accessibilityLabel="Price your pieces" pressRetentionOffset={12} onPress={() => router.push('/sheets/closet-price')}>
-            <Plaque>
-              <T role="micro" tone="faint" style={styles.estateLabel}>
-                Estate value
-              </T>
-              {totalValue > 0 ? (
-                <>
-                  <T role="stat" tone="brass" style={styles.estateValue}>
-                    {money(totalValue)}
-                  </T>
-                  <View style={[styles.meter, { backgroundColor: alpha(t.ink, 0.1) }]}>
-                    <Svg width={METER_W} height={METER_H}>
-                      <Defs>
-                        <LinearGradient id="estate-meter" x1="0" y1="0" x2="1" y2="0">
-                          <Stop offset="0" stopColor={t.brassHi} />
-                          <Stop offset="1" stopColor={t.brass} />
-                        </LinearGradient>
-                      </Defs>
-                      <Rect width={(METER_W * Math.min(100, Math.max(0, rotationPct))) / 100} height={METER_H} rx={2} fill="url(#estate-meter)" />
-                    </Svg>
-                  </View>
-                  <T role="caption" tone="faint" style={styles.estateLine}>
-                    <T role="caption" tone="muted" style={styles.semi}>
-                      {rotationPct}%
-                    </T>{' '}
-                    worn this quarter{idleCapital > 0 ? ` · ${money(idleCapital)} idle` : ''}
-                    {unpriced > 0 ? <T role="caption" tone="brass" style={styles.semi}>{` · ${unpriced} unpriced`}</T> : null}
-                  </T>
-                </>
-              ) : (
-                <>
-                  <T role="h2" tone="muted">
-                    Add prices to see it
-                  </T>
-                  <T role="caption" tone="brass" style={[styles.semi, styles.estatePrice]}>
-                    Price {list.length} piece{list.length === 1 ? '' : 's'} →
-                  </T>
-                </>
-              )}
-            </Plaque>
-          </Pressable>
+          <Press accessibilityRole="button" accessibilityLabel="Price your pieces" haptic="tap" onPress={() => router.push('/sheets/closet-price')}>
+            {totalValue > 0 ? (
+              <Plaque label="Estate value" value={money(totalValue)} style={styles.estate}>
+                <View style={[styles.meter, { backgroundColor: alpha(t.ink, 0.1) }]}>
+                  <Svg width={METER_W} height={METER_H}>
+                    <Defs>
+                      <LinearGradient id="estate-meter" x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0" stopColor={t.brassHi} />
+                        <Stop offset="1" stopColor={t.brass} />
+                      </LinearGradient>
+                    </Defs>
+                    <Rect width={(METER_W * Math.min(100, Math.max(0, rotationPct))) / 100} height={METER_H} rx={2} fill="url(#estate-meter)" />
+                  </Svg>
+                </View>
+                <T role="caption" tone="faint">
+                  <T role="caption" tone="muted" style={styles.semi}>
+                    {rotationPct}%
+                  </T>{' '}
+                  worn this quarter{idleCapital > 0 ? ` · ${money(idleCapital)} idle` : ''}
+                  {unpriced > 0 ? <T role="caption" tone="muted" style={styles.semi}>{` · ${unpriced} unpriced`}</T> : null}
+                </T>
+              </Plaque>
+            ) : (
+              <Plaque label="Estate value" style={styles.estate}>
+                <T role="h2" tone="muted">
+                  Add prices to see it
+                </T>
+                <T role="label" tone="brass">
+                  Price {list.length} piece{list.length === 1 ? '' : 's'} →
+                </T>
+              </Plaque>
+            )}
+          </Press>
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={rise(2)} style={hasPieces ? styles.roomsAfterMantel : styles.roomsAfterTitle}>
+      <Animated.View entering={rise(2)} style={hasPieces ? styles.roomsAfterMantel : undefined}>
         <RoomTabs current="pieces" />
       </Animated.View>
 
@@ -278,26 +284,11 @@ export default function ClosetRoom() {
           {showLedger ? (
             <Animated.View entering={rise(3)} style={styles.ledgerWrap}>
               <Plaque style={styles.ledger}>
-                {[
-                  { v: `${rotationPct}%`, l: 'in rotation' },
-                  { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
-                  { v: stats.monthlyPayback > 0 ? money(stats.monthlyPayback) : '–', l: 'earned this month' },
-                  { v: String(stats.streak), l: 'day streak' },
-                ].map((s) => (
-                  <View key={s.l} style={styles.ledgerStat} accessible accessibilityLabel={`${s.v} ${s.l}`}>
-                    <T role="statSm">{s.v}</T>
-                    <T role="micro" tone="faint" style={styles.ledgerLabel}>
-                      {s.l}
-                    </T>
-                  </View>
-                ))}
-                {idleCapital > 0 ? (
-                  <Pressable accessibilityRole="button" hitSlop={hitSlopFor(16)} onPress={() => setCollection('orphans')} style={styles.ledgerIdle}>
-                    <T role="caption" tone="brass" style={styles.semi}>
-                      {money(idleCapital)} sitting idle →
-                    </T>
-                  </Pressable>
-                ) : null}
+                <Stat small value={`${rotationPct}%`} label="in rotation" />
+                <Stat small value={String(stats.wornThisQuarter)} label="wears this quarter" />
+                <Stat small value={stats.monthlyPayback > 0 ? money(stats.monthlyPayback) : '–'} label="earned this month" />
+                <Stat small value={String(stats.streak)} label="day streak" />
+                {idleCapital > 0 ? <Button label={`${money(idleCapital)} sitting idle →`} variant="quiet" size="sm" onPress={() => setCollection('orphans')} style={styles.ledgerIdle} /> : null}
               </Plaque>
             </Animated.View>
           ) : null}
@@ -320,21 +311,21 @@ export default function ClosetRoom() {
           </ScrollView>
 
           {twins > 0 && collection !== 'twins' ? (
-            <Pressable accessibilityRole="button" pressRetentionOffset={12} onPress={() => setCollection('twins')} style={styles.twinWrap}>
+            <Press accessibilityRole="button" haptic="tap" onPress={() => setCollection('twins')} wrapStyle={styles.twinWrap}>
               <Plaque style={styles.twinPlaque}>
                 <View style={styles.twinRow}>
-                  <T role="bodySm" tone="muted" style={{ flex: 1 }}>
+                  <T role="bodySm" tone="muted" style={styles.twinText}>
                     <T role="bodySm" style={styles.semi}>
                       {twins} {twins === 1 ? 'piece looks' : 'pieces look'} like {twins === 1 ? 'one' : 'ones'} you already have.
                     </T>{' '}
                     Decide on each: the same piece, or different.
                   </T>
-                  <T role="micro" tone="brass" style={styles.twinReview}>
+                  <T role="label" tone="brass" style={styles.twinReview}>
                     Review →
                   </T>
                 </View>
               </Plaque>
-            </Pressable>
+            </Press>
           ) : null}
         </>
       ) : null}
@@ -347,12 +338,12 @@ export default function ClosetRoom() {
         <SectionHead title="What the closet is missing" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gapRail} contentContainerStyle={styles.gapRow}>
           {gaps.data.map((g) => (
-            <View key={g.category} style={[styles.gapCard, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}>
+            <Card key={g.category} padding={space.ml} style={styles.gapCard}>
               <T role="h3">{title(g.wanted)}</T>
               <T role="bodySm" tone="muted">
                 Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
               </T>
-            </View>
+            </Card>
           ))}
         </ScrollView>
       </Animated.View>
@@ -364,7 +355,7 @@ export default function ClosetRoom() {
   return (
     <Screen edges={['top']}>
       {failed ? (
-        <View style={{ paddingHorizontal: gutter }}>
+        <View style={styles.failed}>
           {header}
           <LoadError message="Could not load your closet." onRetry={() => void wardrobe.refetch()} />
         </View>
@@ -376,7 +367,7 @@ export default function ClosetRoom() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={t.brass} />}
-          contentContainerStyle={{ paddingHorizontal: gutter - GRID_GAP / 2, paddingBottom: ACTION_BAR_HEIGHT + space.xl }}
+          contentContainerStyle={{ paddingHorizontal: gutter - GRID_GAP / 2, paddingBottom: bottom }}
           ListHeaderComponent={header}
           ListHeaderComponentStyle={styles.gridInset}
           ListFooterComponent={footer}
@@ -389,9 +380,7 @@ export default function ClosetRoom() {
             ) : !hasPieces ? (
               <Starter width={width} />
             ) : (
-              <T role="bodySm" tone="faint" align="center" style={styles.nothing}>
-                Nothing matches that filter.
-              </T>
+              <EmptyState title="Nothing matches that filter." />
             )
           }
           renderItem={({ item, index }) => (
@@ -413,66 +402,47 @@ export default function ClosetRoom() {
         />
       )}
 
-      <ActionBar>
-        <Button
-          label={!hasPieces ? 'Add your first piece' : jobs.upload.active ? `${Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…` : 'Add pieces'}
-          block
-          onPress={() => router.push('/sheets/closet-add')}
-        />
-      </ActionBar>
-
-      <Menu open={menuFor !== null} title={menuFor ? title(nameOf(menuFor)) : undefined} items={menuItems} onClose={() => setMenuFor(null)} />
+      <MenuSheet open={menuFor !== null} title={menuFor ? title(nameOf(menuFor)) : undefined} items={menuItems} onClose={() => setMenuFor(null)} />
       {undo.pending ? <UndoBar message={undo.pending.message} onUndo={undo.undo} /> : null}
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  // The grid's mt-6 sits under everything in the header.
-  header: { paddingBottom: space.xl },
-  // The mantel's column: search and valuation at gap-6; the title's own
-  // pb-4 already sits above.
-  mantel: { paddingTop: space.sm, gap: space.xl },
-  // The mantel closes at pb-7 (28) above the hairline the rooms draw.
-  roomsAfterMantel: { paddingTop: 28 },
-  roomsAfterTitle: { paddingTop: space.md },
+  // The grid 16 under everything in the header.
+  header: { paddingBottom: space.lg },
+  failed: { paddingHorizontal: gutter },
+  // The mantel's column: search and valuation, element to element.
+  mantel: { gap: space.lg },
+  // The mantel closes a block above the hairline the rooms draw.
+  roomsAfterMantel: { paddingTop: space.xxl },
   semi: { fontFamily: fonts.sansSemi },
-  // text-[10px] tracking-[0.22em]
-  estateLabel: { letterSpacing: 2.2 },
-  estateValue: { marginTop: space.xs },
-  estateLine: { marginTop: 6 },
-  estatePrice: { marginTop: space.xs },
-  meter: { height: METER_H, width: METER_W, overflow: 'hidden', marginTop: space.sm, borderRadius: radius },
-  // plaque mt-6 flex-wrap items-center gap-x-8 gap-y-2 p-4 pl-5
-  ledgerWrap: { paddingTop: space.xl },
-  ledger: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.xxl, rowGap: space.sm, padding: space.lg, paddingLeft: 20 },
-  ledgerStat: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm },
-  // text-[10px] tracking-[0.08em]
-  ledgerLabel: { letterSpacing: 0.8 },
+  // The figure, the meter 8 beneath, the line 8 beneath.
+  estate: { gap: space.sm },
+  meter: { height: METER_H, width: METER_W, overflow: 'hidden', borderRadius: radius },
+  // The ledger a block under the rooms: stats 32 across, 16 down.
+  ledgerWrap: { paddingTop: space.xxl },
+  ledger: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: space.xxl, rowGap: space.lg },
   ledgerIdle: { marginLeft: 'auto' },
   // The filter rows bleed to the screen edge; the tokens start on the gutter.
   filterRail: { marginHorizontal: -gutter },
   collections: { marginTop: space.xxl },
   categories: { marginTop: space.sm },
   filters: { flexDirection: 'row', gap: space.sm, paddingHorizontal: gutter },
-  // plaque mt-6 p-3 pl-4 gap-3
-  twinWrap: { paddingTop: space.xl },
+  twinWrap: { paddingTop: space.lg },
   twinPlaque: { padding: space.md, paddingLeft: space.lg },
   twinRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  // text-[10px] tracking-[0.18em]
-  twinReview: { letterSpacing: 1.8, flexShrink: 0 },
+  twinText: { flex: 1 },
+  twinReview: { flexShrink: 0 },
   gridInset: { paddingHorizontal: GRID_GAP / 2 },
-  // gap-3 across, gap-y-5 down
   cell: { paddingHorizontal: GRID_GAP / 2, paddingBottom: GRID_ROW_GAP },
-  // mt-12 under the filters: the header already gives 24.
-  nothing: { paddingTop: space.xl, paddingBottom: space.xl },
-  // mt-14 above the section, less the last row's gap-y-5.
-  gaps: { paddingTop: 56 - GRID_ROW_GAP, gap: space.lg },
+  // A group under the board, less the last row's gap; the rail 16 under the head.
+  gaps: { paddingTop: space.xxxl - GRID_ROW_GAP, gap: space.lg },
   gapRail: { marginHorizontal: -gutter },
   gapRow: { flexDirection: 'row', gap: space.lg, paddingHorizontal: gutter },
-  gapCard: { width: 220, padding: 20, gap: 6, borderWidth: hairline },
-  // mt-12 under the rooms: the header already gives 24. Aligned to the grid.
-  starter: { paddingTop: space.xl, paddingHorizontal: GRID_GAP / 2 },
+  gapCard: { width: 220, gap: space.sm },
+  // The starter board 16 under the rooms, aligned to the grid.
+  starter: { paddingTop: space.lg, paddingHorizontal: GRID_GAP / 2 },
   starterGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: GRID_GAP, rowGap: GRID_ROW_GAP },
   starterLabel: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 })

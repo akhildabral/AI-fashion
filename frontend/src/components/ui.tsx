@@ -20,19 +20,204 @@ export function PageShell({
   return <div className={`mx-auto ${width} px-4 py-8 sm:px-6 sm:py-10`}>{children}</div>
 }
 
+/** The tracked uppercase label: 10px / 600 / .28em / brass. Sits 8px above the
+ *  Bodoni line it labels. */
+export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <p className={`eyebrow ${className}`}>{children}</p>
+}
+
+/**
+ * The page head: an eyebrow over a Bodoni line at the section-head size
+ * (30 → 36 at sm), one italic brass clause in the title, an optional 15px
+ * supporting line, and a right-hand slot that wraps under on a phone.
+ */
+export function PageHead({
+  eyebrow,
+  title,
+  line,
+  aside,
+  className = '',
+}: {
+  eyebrow?: ReactNode
+  title: ReactNode
+  line?: ReactNode
+  aside?: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`flex animate-rise flex-wrap items-end justify-between gap-x-6 gap-y-4 ${className}`}>
+      <div className="min-w-0">
+        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        <h1 className={`page-title ${eyebrow ? 'mt-2' : ''}`}>{title}</h1>
+        {line && <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-ink/55">{line}</p>}
+      </div>
+      {aside}
+    </div>
+  )
+}
+
+/** A section head: a Bodoni title (24) with an optional eyebrow above and an
+ *  optional action pushed right. 16px below it, the body. */
 export function SectionHead({
   title,
+  eyebrow,
   action,
   className = '',
 }: {
   title: ReactNode
+  eyebrow?: ReactNode
   action?: ReactNode
   className?: string
 }) {
   return (
-    <div className={`mb-4 flex items-center justify-between gap-3 ${className}`}>
-      <h2 className="font-display text-2xl font-medium text-ink">{title}</h2>
+    <div className={`mb-4 flex items-end justify-between gap-4 ${className}`}>
+      <div className="min-w-0">
+        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        <h2 className={`section-title ${eyebrow ? 'mt-2' : ''}`}>{title}</h2>
+      </div>
       {action}
+    </div>
+  )
+}
+
+/** The empty state: one italic Bodoni line and the single action that fixes it. */
+export function EmptyState({
+  line,
+  action,
+  className = '',
+}: {
+  line: ReactNode
+  action?: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`max-w-lg ${className}`}>
+      <p className="empty-line">{line}</p>
+      {action && <div className="action-row mt-4">{action}</div>}
+    </div>
+  )
+}
+
+/** An inline message on a 10–12% wash of its own colour, directly above the
+ *  thing it concerns. No icon, no border. */
+export function Alert({
+  tone = 'error',
+  children,
+  className = '',
+}: {
+  tone?: 'error' | 'warning' | 'success'
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <p role={tone === 'error' ? 'alert' : 'status'} className={`alert-${tone} ${className}`}>
+      {children}
+    </p>
+  )
+}
+
+/** The invalid state of a field: one 12px danger line directly under the
+ *  field it belongs to. Point the field's aria-describedby at `id`. */
+export function FieldError({ id, children, className = '' }: { id: string; children: ReactNode; className?: string }) {
+  return (
+    <p id={id} role="alert" className={`field-error ${className}`}>
+      {children}
+    </p>
+  )
+}
+
+/** The tracked label above a row of chips or fields: 32 above it (block to
+ *  block), 8 below it — the row that follows carries `mt-2`. `first` drops
+ *  the 32 when it opens a card. */
+export function RowLabel({ children, first = false, className = '' }: { children: ReactNode; first?: boolean; className?: string }) {
+  return <p className={`${first ? '' : 'mt-8'} text-xs font-semibold uppercase tracking-label-lg text-ink/45 ${className}`}>{children}</p>
+}
+
+/** A count or a one-word state. Brass by default; `quiet` for an ink wash. Never a button. */
+export function Badge({
+  tone = 'brass',
+  children,
+  className = '',
+}: {
+  tone?: 'brass' | 'quiet'
+  children: ReactNode
+  className?: string
+}) {
+  return <span className={`${tone === 'quiet' ? 'badge-quiet' : 'badge-spark'} ${className}`}>{children}</span>
+}
+
+/** A chip picks a value: bordered off, brass fill when on. 36 tall. */
+export function Chip({
+  on = false,
+  onClick,
+  disabled,
+  children,
+  className = '',
+  title,
+}: {
+  on?: boolean
+  onClick?: () => void
+  disabled?: boolean
+  children: ReactNode
+  className?: string
+  title?: string
+}) {
+  return (
+    <button type="button" aria-pressed={on} disabled={disabled} onClick={onClick} title={title} className={`chip ${on ? 'chip-on' : ''} ${className}`}>
+      {children}
+    </button>
+  )
+}
+
+/** A 36px square bordered button. Default content is the ··· overflow glyph;
+ *  pass a 12–16px hand-drawn SVG for anything else. `label` is the accessible name. */
+export function IconButton({
+  label,
+  onClick,
+  children,
+  className = '',
+  ...rest
+}: {
+  label: string
+  onClick?: () => void
+  children?: ReactNode
+  className?: string
+  'aria-haspopup'?: 'menu'
+  'aria-expanded'?: boolean
+  disabled?: boolean
+}) {
+  return (
+    <button type="button" aria-label={label} onClick={onClick} className={`btn-icon ${className}`} {...rest}>
+      {children ?? <span className="text-lg leading-none tracking-tight">···</span>}
+    </button>
+  )
+}
+
+/** The engraved plaque: a tracked label, a Bodoni figure at the section-head
+ *  size, a note beside it. Never a control, never clickable. */
+export function Plaque({
+  label,
+  value,
+  note,
+  children,
+  className = '',
+}: {
+  label?: ReactNode
+  value?: ReactNode
+  note?: ReactNode
+  children?: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`plaque p-4 pl-5 ${className}`}>
+      {label && <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{label}</p>}
+      {value && (
+        <p className="mt-1 font-display text-4xl font-medium leading-[1.1] text-brass-ink [font-variant-numeric:tabular-nums]">
+          {value}
+          {note && <span className="font-sans text-sm font-normal text-ink/55"> {note}</span>}
+        </p>
+      )}
+      {children}
     </div>
   )
 }
@@ -107,11 +292,7 @@ export function GarmentTile({
       style={style}
       className={`press group relative block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'} ${className}`}
     >
-      {badge && (
-        <span className="badge-spark absolute right-2 top-2 z-[4] !px-2 !py-0.5 !text-[10px] !tracking-[0.12em]">
-          {badge}
-        </span>
-      )}
+      {badge && <Badge className="absolute right-2 top-2 z-[4]">{badge}</Badge>}
       <Arch aspect={aspect} bright={selected}>
         <img
           src={resolveImageUrl(imageUrl)}
@@ -130,11 +311,11 @@ export function GarmentTile({
       {(label || sublabel) && (
         <div className="px-1 pt-2 text-center">
           {label && (
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">
+            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/75">
               {label}
             </p>
           )}
-          {sublabel && <p className="truncate text-xs text-brass">{sublabel}</p>}
+          {sublabel && <p className="truncate text-xs text-brass-ink">{sublabel}</p>}
         </div>
       )}
     </button>
@@ -187,7 +368,7 @@ export function Modal({
         tabIndex={-1}
         className="relative flex max-h-[88vh] w-full max-w-lg animate-rise flex-col overflow-hidden rounded-[3px] border border-brass/30 bg-bone shadow-float outline-none"
       >
-        <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-ink/10 px-6 py-4">
           <p className="font-display text-xl font-medium text-ink">{title ?? 'Details'}</p>
           <button
             type="button"
@@ -200,7 +381,7 @@ export function Modal({
             </svg>
           </button>
         </div>
-        <div className="overflow-y-auto p-5">{children}</div>
+        <div className="overflow-y-auto p-6">{children}</div>
       </div>
     </div>,
     document.body,
@@ -208,10 +389,10 @@ export function Modal({
 }
 
 /** Small labelled stat — Bodoni figure over a tracked label. */
-export function Stat({ value, label }: { value: ReactNode; label: string }) {
+export function Stat({ value, label, accent = false, className = '' }: { value: ReactNode; label: string; accent?: boolean; className?: string }) {
   return (
-    <div>
-      <p className="font-display text-2xl font-medium leading-[1.2] text-ink [font-variant-numeric:tabular-nums]">
+    <div className={className}>
+      <p className={`font-display text-2xl font-medium leading-[1.2] [font-variant-numeric:tabular-nums] ${accent ? 'text-brass-ink' : 'text-ink'}`}>
         {value}
       </p>
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{label}</p>
@@ -415,14 +596,14 @@ export function MenuItem({
 }
 
 /** A single pulsing placeholder block — the atom of every skeleton. */
-export function SkeletonBlock({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-[3px] bg-ink/10 ${className}`} aria-hidden />
+export function SkeletonBlock({ className = '', style }: { className?: string; style?: CSSProperties }) {
+  return <div className={`animate-pulse rounded-[3px] bg-ink/10 ${className}`} style={style} aria-hidden />
 }
 
 /** A grid of pulsing arches, matching the app's garment/render grids. */
 export function ArchSkeleton({
   count = 6,
-  className = 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6',
+  className = 'grid-board',
   aspect = 'aspect-[5/6]',
 }: {
   count?: number
@@ -434,6 +615,37 @@ export function ArchSkeleton({
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className={`arch-bezel ${aspect} animate-pulse opacity-60`} style={{ animationDelay: `${i * 80}ms` }}>
           <div className="arch-niche h-full w-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The shape of a list of people or things while it loads: a 32px square
+ *  placeholder and one or two lines, on hairline-divided rows. `padded` insets
+ *  the rows 16px for a panel whose dividers run edge to edge. */
+export function RowSkeleton({
+  count = 3,
+  lines = 2,
+  padded = false,
+  label = 'Loading',
+  className = '',
+}: {
+  count?: number
+  lines?: 1 | 2
+  padded?: boolean
+  label?: string
+  className?: string
+}) {
+  return (
+    <div aria-busy="true" aria-label={label} className={className}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={`flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0 ${padded ? 'px-4' : ''}`}>
+          <SkeletonBlock className="h-8 w-8 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <SkeletonBlock className="h-4 w-32" />
+            {lines === 2 && <SkeletonBlock className="mt-1.5 h-3 w-48 !bg-ink/[0.07]" />}
+          </div>
         </div>
       ))}
     </div>
@@ -467,7 +679,7 @@ export function UndoBar({ message, onUndo }: { message: string; onUndo: () => vo
   return (
     <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-[3px] border border-brass/40 bg-surface px-4 py-2.5 text-sm text-ink shadow-float animate-rise" role="status">
       <span>{message}</span>
-      <button type="button" onClick={onUndo} className="press font-semibold text-brass hover:underline">
+      <button type="button" onClick={onUndo} className="press font-semibold text-brass-ink hover:underline">
         Undo
       </button>
     </div>

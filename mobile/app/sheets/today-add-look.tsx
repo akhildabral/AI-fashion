@@ -8,7 +8,7 @@ import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { todayKey, type LookSlotKind } from '@zauq/shared/brief'
 import { temp } from '@zauq/shared/units'
-import { Hairline } from '@/src/components/Bits'
+import { Alert, Hairline } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { Chip } from '@/src/components/Tabs'
@@ -16,8 +16,7 @@ import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn } from '@/src/design/motion'
-import { alpha, radius, space } from '@/src/design/tokens'
-import { useTheme } from '@/src/design/theme'
+import { space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { DAY_CHIPS, EVENT_WORD, longDay, normalizeTime } from '@/src/features/today/copy'
 import { SheetShell } from '@/src/features/today/SheetShell'
@@ -32,7 +31,6 @@ const PRESETS: { slot: LookSlotKind; label: string }[] = [
 ]
 
 export default function AddLookSheet() {
-  const { t } = useTheme()
   const params = useLocalSearchParams<{ date?: string }>()
   const date = typeof params.date === 'string' && DAY_KEY.test(params.date) ? params.date : todayKey()
   const isToday = date === todayKey()
@@ -97,13 +95,15 @@ export default function AddLookSheet() {
       footer={<Button label="Add look" block loading={add.isPending} disabled={busy} onPress={submit} />}
     >
       <View style={styles.group}>
-        <T role="label" tone="faint">
-          When
-        </T>
-        <View style={styles.chips}>
-          {PRESETS.map((p) => (
-            <Chip key={p.slot} label={p.label} on={slot === p.slot} onPress={() => setSlot(p.slot)} />
-          ))}
+        <View style={styles.labelled}>
+          <T role="label" tone="faint">
+            When
+          </T>
+          <View style={styles.chips}>
+            {PRESETS.map((p) => (
+              <Chip key={p.slot} label={p.label} on={slot === p.slot} onPress={() => setSlot(p.slot)} />
+            ))}
+          </View>
         </View>
         {slot === 'custom' ? (
           <Animated.View entering={fadeIn} style={styles.row}>
@@ -120,34 +120,30 @@ export default function AddLookSheet() {
           </View>
         )}
         <Field label="Occasion" value={occasion} onChangeText={setOccasion} placeholder="what it's for" autoCapitalize="sentences" returnKeyType="go" onSubmitEditing={submit} />
-        {error ? (
-          <View style={[styles.alert, { backgroundColor: alpha(t.danger, 0.1), borderRadius: radius }]} accessibilityLiveRegion="polite">
-            <T role="bodySm" tone="danger">
-              {error}
-            </T>
-          </View>
-        ) : null}
+        {error ? <Alert>{error}</Alert> : null}
       </View>
 
       <Hairline />
 
       <View style={styles.group}>
-        <T role="h3" accessibilityRole="header">
-          Not that kind of day?
-        </T>
-        <T role="bodySm" tone="muted">
-          {kind ? (
-            <>
-              Composed for{' '}
-              <T role="bodySm" style={styles.semi}>
-                {kind}
-              </T>
-              {current?.weather ? `, ${temp(current.weather.temperatureC)} and ${current.weather.description}` : ''}, from what’s clean in your closet.
-            </>
-          ) : (
-            `${dayName} is not composed yet. Pick a kind of day and the look is composed now.`
-          )}
-        </T>
+        <View style={styles.labelled}>
+          <T role="h3" accessibilityRole="header">
+            Not that kind of day?
+          </T>
+          <T role="bodySm" tone="muted">
+            {kind ? (
+              <>
+                Composed for{' '}
+                <T role="bodySm" style={styles.semi}>
+                  {kind}
+                </T>
+                {current?.weather ? `, ${temp(current.weather.temperatureC)} and ${current.weather.description}` : ''}, from what’s clean in your closet.
+              </>
+            ) : (
+              `${dayName} is not composed yet. Pick a kind of day and the look is composed now.`
+            )}
+          </T>
+        </View>
         <View style={styles.chips}>
           {DAY_CHIPS.map((c) => (
             <Chip
@@ -187,11 +183,12 @@ export default function AddLookSheet() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  group: { gap: space.md },
+  // Elements 16 apart; a label 8 over what it labels.
+  group: { gap: space.lg },
+  labelled: { gap: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   composeRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   time: { width: 128 },
-  alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
   semi: { fontFamily: fonts.sansSemi },
 })

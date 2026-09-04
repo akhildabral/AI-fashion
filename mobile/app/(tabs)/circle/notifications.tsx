@@ -7,14 +7,15 @@ import { useCallback, useEffect } from 'react'
 import { RefreshControl, StyleSheet, View } from 'react-native'
 import { getNotifications, markNotificationsRead, timeAgo } from '@zauq/shared/circle'
 import { EmptyState, LoadError } from '@/src/components/Bits'
+import { Press } from '@/src/components/Press'
 import { Screen } from '@/src/components/Screen'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline } from '@/src/design/tokens'
+import { alpha, gutter, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
-import { Initials, Press } from '@/src/features/circle/atoms'
+import { Initials } from '@/src/features/circle/atoms'
 import { digest, digestLine, type Digest } from '@/src/features/circle/notifications'
 
 export default function NotificationsScreen() {
@@ -64,7 +65,7 @@ export default function NotificationsScreen() {
           keyExtractor={(d) => d.key}
           renderItem={({ item, index }) => <Row d={item} first={index === 0} />}
           refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={t.brass} />}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: space.xxxl }}
         />
       )}
     </Screen>
@@ -90,9 +91,9 @@ function Row({ d, first }: { d: Digest; first: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  skeleton: { paddingHorizontal: gutter, paddingTop: 12 },
-  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  // The web's row: `flex items-center gap-3 px-4 py-3`
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingVertical: 12, minHeight: 56 },
+  skeleton: { paddingHorizontal: gutter, paddingTop: space.md },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  // A row on a hairline: 12 above and below, a 32 square, the line, the time.
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: gutter, paddingVertical: space.md, minHeight: 56 },
   text: { flex: 1 },
 })

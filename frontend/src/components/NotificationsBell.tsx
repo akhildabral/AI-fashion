@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { Spinner } from './Spinner'
+import { EmptyState, IconButton, RowSkeleton } from './ui'
 import { Initials } from './PeopleDrawer'
 import {
   getNotifications,
@@ -229,17 +229,15 @@ export function NotificationsBell() {
   const list = (
     <>
       {items === null && !failed && (
-        <div className="py-10 text-center text-ink/40">
-          <Spinner className="h-5 w-5" />
-        </div>
+        <RowSkeleton padded />
       )}
       {failed && (
         <div className="py-10 text-center">
-          <p className="text-sm text-ink/55">Couldn’t load these.</p>
-          <button type="button" onClick={loadNotifications} className="btn-quiet btn-quiet-sm mt-2 !text-brass">Try again</button>
+          <p className="text-sm text-ink/55">Couldn’t load these. Check your connection and try again.</p>
+          <button type="button" onClick={loadNotifications} className="btn-ghost btn-sm mt-3">Try again</button>
         </div>
       )}
-      {!failed && items && items.length === 0 && <p className="py-10 text-center text-sm text-ink/50">Nothing yet. When your circle reacts, it lands here.</p>}
+      {!failed && items && items.length === 0 && <EmptyState className="px-4 py-8" line="Nothing yet. When your circle reacts, it lands here." />}
       {items && items.length > 0 && (
         <ul>
           {digest(items).map((d) => {
@@ -266,8 +264,8 @@ export function NotificationsBell() {
         // Under the bell: a dropping panel, like the account menu.
         <div ref={panelRef} role="dialog" aria-label="What happened" style={{ top: place.top, right: place.right }} className="menu-pop fixed z-50 w-[380px] max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-[3px] border border-brass/30 bg-surface shadow-float">
           <div className="flex items-center justify-between border-b border-ink/10 px-4 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">What happened</p>
-            <Link to="/circle" onClick={() => setOpen(false)} className="text-xs font-semibold text-ink/50 hover:text-ink">
+            <p className="eyebrow">What happened</p>
+            <Link to="/circle" onClick={() => setOpen(false)} className="text-xs font-semibold text-ink/55 transition-colors hover:text-ink">
               The Circle →
             </Link>
           </div>
@@ -279,10 +277,12 @@ export function NotificationsBell() {
           <div className="absolute inset-0 bg-[rgb(14_13_11/0.55)]" aria-hidden />
           <div ref={panelRef} role="dialog" aria-label="What happened" className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-hidden rounded-t-[3px] border-t border-brass/40 bg-surface pb-[env(safe-area-inset-bottom)]">
             <div className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
-              <p className="font-display text-xl text-ink">What happened</p>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="btn-quiet !h-8 !w-8 !px-0">
-                ×
-              </button>
+              <p className="font-display text-2xl font-medium text-ink">What happened</p>
+              <IconButton label="Close" onClick={() => setOpen(false)}>
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                </svg>
+              </IconButton>
             </div>
             <div className="max-h-[calc(80vh-3.5rem)] overflow-y-auto">{list}</div>
           </div>
@@ -300,14 +300,14 @@ export function NotificationsBell() {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
-        className="press relative flex h-9 w-9 items-center justify-center rounded-[3px] border border-ink/15 text-ink/60 transition-colors hover:border-brass hover:text-ink"
+        className="btn-icon relative"
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
           <path d="M10 20a2 2 0 0 0 4 0" />
         </svg>
         {unread > 0 && (
-          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[9px] font-semibold text-on-brass">
+          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[10px] font-semibold text-on-brass [font-variant-numeric:tabular-nums]">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

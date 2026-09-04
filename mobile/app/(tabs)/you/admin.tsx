@@ -1,6 +1,6 @@
 // The admin desk: who is waiting, who is in, and what has been reported.
 // Only for admins; anyone else is sent back to the room. The web's tables
-// become cards: each `px-4 py-3` cell block is a card of the same padding.
+// become 16-padded cards, 12 apart.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -11,7 +11,7 @@ import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { Screen } from '@/src/components/Screen'
 import { SkeletonBlock } from '@/src/components/Skeleton'
-import { Filter, Tabs } from '@/src/components/Tabs'
+import { Chip, Tabs } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import { useAuth } from '@/src/context/AuthProvider'
@@ -27,7 +27,7 @@ import { routes } from '@/src/features/you/nav'
 
 type Tab = 'waitlist' | 'members' | 'reports'
 
-/** The web's `px-2.5 py-1 text-xs` status: a tinted pill in the status's colour. */
+/** The Badge: a one-word state on a 12% wash of its own colour, 3px, 10 x 2. */
 function StatusPill({ status }: { status: string }) {
   const { t } = useTheme()
   const tone = status === 'approved' ? t.success : status === 'suspended' ? t.danger : status === 'invited' ? t.brass : t.warning
@@ -229,9 +229,10 @@ export default function Admin() {
                         {u.role === 'admin' ? <Tag label="admin" /> : null}
                         {u.viaGoogle ? <Tag label="google" /> : null}
                       </View>
+                      {/* The plan is a value picked, so a Chip (brass when on), not a Filter. */}
                       <View style={[styles.plans, { borderTopColor: alpha(t.ink, 0.1) }]}>
                         {PLAN_IDS.map((p) => (
-                          <Filter key={p} label={p} on={u.plan === p} onPress={() => u.plan !== p && !busy && act.mutate({ id: u.id, path: `/admin/users/${u.id}/plan`, body: { plan: p } })} />
+                          <Chip key={p} label={p} on={u.plan === p} onPress={() => u.plan !== p && !busy && act.mutate({ id: u.id, path: `/admin/users/${u.id}/plan`, body: { plan: p } })} />
                         ))}
                       </View>
                       <T role="caption" tone="muted" style={styles.mt3}>
@@ -325,13 +326,13 @@ const styles = StyleSheet.create({
   strong: { fontFamily: fonts.sansMedium },
   inviteRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   list: { gap: space.md },
-  // The web's `px-4 py-3` table cell.
-  cell: { paddingHorizontal: space.lg, paddingVertical: space.md },
+  // A card in a feed: 16 all round.
+  cell: { padding: space.lg },
   resolved: { opacity: 0.5 },
   tags: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm },
-  pill: { paddingHorizontal: 10, paddingVertical: 4 },
+  pill: { paddingHorizontal: 10, paddingVertical: 2 },
   tag: { paddingHorizontal: 6, paddingVertical: 2 },
-  plans: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline },
+  plans: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md, paddingTop: space.md, borderTopWidth: hairline },
   invites: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
   detail: { marginTop: 2 },
   rowActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md },

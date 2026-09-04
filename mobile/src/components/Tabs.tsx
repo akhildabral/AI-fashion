@@ -2,27 +2,17 @@ import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import * as haptics from '@/src/design/haptics'
-import { PRESS_SCALE, timing } from '@/src/design/motion'
+import { timing } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
 import { control, fonts, track, tracking } from '@/src/design/type'
+import { usePressScale as usePress } from './Press'
 import { T } from './Text'
 
 export interface TabItem<K extends string = string> {
   key: K
   label: string
   count?: number
-}
-
-/** The press on a tab, filter or chip: the whole token to 0.97 in 150ms. */
-function usePress() {
-  const scale = useSharedValue(1)
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
-  return {
-    style,
-    onPressIn: () => scale.set(withTiming(PRESS_SCALE, timing.press)),
-    onPressOut: () => scale.set(withTiming(1, timing.press)),
-  }
 }
 
 /** A tab's label: 12px, .14em, uppercase, semibold. Fixed at every width. */

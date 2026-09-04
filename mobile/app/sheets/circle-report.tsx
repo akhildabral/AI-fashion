@@ -10,9 +10,9 @@ import { Chip } from '@/src/components/Tabs'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius } from '@/src/design/tokens'
+import { alpha, hairline, radius, space } from '@/src/design/tokens'
 import { fonts, fontScale } from '@/src/design/type'
-import { SheetFrame } from '@/src/features/circle/SheetFrame'
+import { SheetShell } from '@/src/components/Sheet'
 
 const TARGETS: ReportTarget[] = ['user', 'look', 'verdict', 'pick', 'comment']
 
@@ -39,23 +39,22 @@ export default function ReportSheet() {
   })
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title={label ? `Report ${label}` : 'Report'}
       lead="Tell the house what’s wrong. They won’t know it came from you."
-      action={
+      footer={
         <>
           <Button label="Send report" block disabled={!reason || !id} loading={send.isPending} onPress={() => send.mutate()} style={{ flex: 1 }} />
           <Button label="Cancel" variant="quiet" onPress={() => router.back()} />
         </>
       }
     >
-      {/* `mt-4 flex flex-wrap gap-2` */}
       <View style={styles.chips}>
         {REPORT_REASONS.map((r) => (
           <Chip key={r.key} label={r.label} on={reason === r.key} onPress={() => setReason(r.key)} />
         ))}
       </View>
-      {/* The web's three-row textarea (`field mt-4 !h-auto`), on the field's own chrome. */}
+      {/* The web's three-row textarea, on the field's own chrome: 16px text, 12 x 10 padding. */}
       <View style={[styles.detail, { borderColor: focused ? t.brass : alpha(t.ink, 0.18), backgroundColor: t.surface, borderRadius: radius }]}>
         <TextInput
           maxFontSizeMultiplier={fontScale.uiMax}
@@ -73,13 +72,13 @@ export default function ReportSheet() {
           style={[styles.detailInput, { color: t.ink, fontFamily: fonts.sans }]}
         />
       </View>
-    </SheetFrame>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  detail: { borderWidth: hairline, paddingHorizontal: 12, paddingVertical: 10, marginTop: 4 },
-  // 16px so iOS never zooms the field; three lines at `text-base`.
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  detail: { borderWidth: hairline, paddingHorizontal: space.md, paddingVertical: 10 },
+  // 16px so iOS never zooms the field; three lines of body.
   detailInput: { fontSize: 16, lineHeight: 24, minHeight: 72, paddingVertical: 0 },
 })

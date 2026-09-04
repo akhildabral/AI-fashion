@@ -12,6 +12,7 @@ import { LogBox } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { TAB_BAR_HEIGHT } from '@/src/components/Room'
 import { ToastProvider } from '@/src/components/Toast'
 import { AuthProvider, useAuth } from '@/src/context/AuthProvider'
 import { JobsProvider } from '@/src/context/JobsProvider'
@@ -66,7 +67,7 @@ function Shell() {
   usePushRouting(fitted)
 
   return (
-    <ToastProvider bottomOffset={fitted ? 56 : 0}>
+    <ToastProvider bottomOffset={fitted ? TAB_BAR_HEIGHT : 0}>
       <StatusBar style={t.statusBar} />
       <LockGate active={signedIn}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bone } }}>

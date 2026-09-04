@@ -6,13 +6,14 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "../lib/usePageTitle";
 import { useProfile } from "../context/useProfile";
 import { useAuth } from "../context/useAuth";
-import { Arch, Toast, useFlash } from "../components/ui";
+import { Arch, ArchSkeleton, Badge, Chip, PageShell, RowLabel, SkeletonBlock, Toast, useFlash } from "../components/ui";
 import { FlatLay } from "../components/CircleCards";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
@@ -139,31 +140,31 @@ function title(s: string): string {
 
 /* ---------- small pieces ---------- */
 
+// The head pair: the tracked label, the Bodoni line 8 below it, the italic lede 12 below that.
 function Who({ children }: { children: ReactNode }) {
   return (
-    <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
+    <p className="animate-rise eyebrow">
       {children}
     </p>
   );
 }
 function Ask({ children }: { children: ReactNode }) {
   return (
-    <h1 className="mt-3 max-w-[16ch] animate-rise-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl lg:text-6xl">
+    <h1 className="page-title mt-2 max-w-[16ch] animate-rise-1">
       {children}
     </h1>
   );
 }
 function Lead({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-4 max-w-[44ch] animate-rise-1 font-display text-lg italic leading-snug text-ink/60 sm:text-xl">
+    <p className="mt-3 max-w-[44ch] animate-rise-1 font-display text-xl italic leading-snug text-ink/60">
       {children}
     </p>
   );
 }
+/** One row of actions: the primary first, the quiet escape after, all on 44. */
 function Actions({ children }: { children: ReactNode }) {
-  return (
-    <div className="mt-7 flex flex-wrap items-center gap-3">{children}</div>
-  );
+  return <div className="action-row mt-8">{children}</div>;
 }
 function Later({
   onClick,
@@ -173,40 +174,9 @@ function Later({
   children?: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="press px-1 py-2 text-sm text-ink/45 transition-colors hover:text-ink/70"
-    >
+    <button type="button" onClick={onClick} className="btn-quiet">
       {children}
     </button>
-  );
-}
-function Chip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={`chip ${on ? "chip-on" : ""}`}
-    >
-      {children}
-    </button>
-  );
-}
-function RowLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
-      {children}
-    </p>
   );
 }
 
@@ -603,9 +573,14 @@ export function FittingPage() {
 
   if (profileLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-ink/50">
-        <Spinner className="h-6 w-6" />
-      </div>
+      <PageShell>
+        <div aria-busy="true" aria-label="Loading the fitting">
+          <SkeletonBlock className="h-3 w-20" />
+          <SkeletonBlock className="mt-3 h-9 w-72" />
+          <SkeletonBlock className="mt-3 h-5 w-96 max-w-full !bg-ink/[0.07]" />
+          <SkeletonBlock className="mt-8 h-11 w-40" />
+        </div>
+      </PageShell>
     );
   }
 
@@ -616,9 +591,9 @@ export function FittingPage() {
     <div className="min-h-[100dvh]">
       <Toast msg={toast} />
 
-      {/* the thread */}
+      {/* the thread: chrome under the header, on the header's own measure */}
       <div className="sticky top-16 z-20 bg-bone/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-shell items-center gap-4 px-4 py-3 sm:px-6">
           <div className="relative h-0.5 flex-1 bg-ink/10">
             <div
               className="absolute left-0 top-0 h-full transition-[width] duration-700 ease-[cubic-bezier(.23,1,.32,1)]"
@@ -637,7 +612,7 @@ export function FittingPage() {
             </div>
           </div>
           <p
-            className="min-w-[12ch] text-right font-display text-sm italic text-brass"
+            className="min-w-[12ch] text-right font-display text-sm italic text-accent-text"
             aria-live="polite"
           >
             {WORDS[step]}
@@ -645,7 +620,9 @@ export function FittingPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <PageShell>
+      {/* The two-column room: the sitting, and the dossier as a 340 aside that stacks last below lg. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
         <main className="min-h-[56dvh]" key={step}>
           {/* 0 threshold */}
           {name === "threshold" && (
@@ -682,7 +659,7 @@ export function FittingPage() {
                 first.
               </Lead>
               <div
-                className="mt-7 grid animate-rise-2 gap-3 sm:grid-cols-3"
+                className="mt-8 grid animate-rise-2 gap-4 sm:grid-cols-3"
                 role="group"
               >
                 {INTENTS.map(([k, b, s]) => (
@@ -725,7 +702,7 @@ export function FittingPage() {
                 first.
               </Lead>
               <div
-                className="mt-6 flex animate-rise-2 flex-wrap gap-2"
+                className="mt-8 flex animate-rise-2 flex-wrap gap-2"
                 role="group"
               >
                 {OCCASIONS.map(([k, l]) => (
@@ -769,7 +746,7 @@ export function FittingPage() {
                 This decides the shapes the stylist reaches for. Changeable any
                 time.
               </Lead>
-              <div className="mt-7 grid max-w-xl animate-rise-2 grid-cols-3 gap-4">
+              <div className="mt-8 grid max-w-xl animate-rise-2 grid-cols-3 gap-4">
                 {(
                   [
                     [
@@ -799,9 +776,11 @@ export function FittingPage() {
                     className="press text-center"
                   >
                     <Arch aspect="aspect-[5/6]" bright={dressing === k}>
+                      {/* Drawn inside the niche: brass-lo reads on the lit vitrine in both themes. */}
                       <svg
                         viewBox="0 0 24 24"
-                        className="relative z-[1] mx-auto h-full w-1/2 text-brass-lo"
+                        className="relative z-[1] mx-auto h-full w-1/2"
+                        style={{ color: "var(--c-brass-lo)" }}
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.2"
@@ -811,7 +790,7 @@ export function FittingPage() {
                       </svg>
                     </Arch>
                     <span
-                      className={`mt-2 block text-[11px] font-semibold uppercase tracking-[0.14em] ${dressing === k ? "text-brass" : "text-ink/55"}`}
+                      className={`mt-2 block text-[11px] font-semibold uppercase tracking-label-xs ${dressing === k ? "text-accent-text" : "text-ink/70"}`}
                     >
                       {l}
                     </span>
@@ -843,9 +822,7 @@ export function FittingPage() {
                   : "Keep going, the stylist is taking notes."}
               </Lead>
               {!pairs && (
-                <div className="mt-10 text-ink/40">
-                  <Spinner className="h-5 w-5" />
-                </div>
+                <ArchSkeleton count={2} aspect="aspect-[3/4]" className="mt-8 grid max-w-2xl grid-cols-2 gap-4" />
               )}
               {pairs && pairs.length === 0 && (
                 <Actions>
@@ -861,7 +838,7 @@ export function FittingPage() {
               {pairs && tasteIndex >= 0 && (
                 <div
                   key={pairs[tasteIndex].id}
-                  className="mt-7 grid max-w-2xl animate-rise-2 grid-cols-[1fr_auto_1fr] items-center gap-4"
+                  className="mt-8 grid max-w-2xl animate-rise-2 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4"
                 >
                   {(["left", "right"] as const).map((side, i) => (
                     <Fragment key={side}>
@@ -885,7 +862,7 @@ export function FittingPage() {
                             className="relative z-[1] h-full w-full object-cover"
                           />
                         </Arch>
-                        <span className="mt-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/60">
+                        <span className="mt-2 block text-[11px] font-semibold uppercase tracking-label-xs text-ink/70">
                           {pairs[tasteIndex][side].label}
                         </span>
                       </button>
@@ -932,10 +909,10 @@ export function FittingPage() {
                 Proportions decide what falls right. Nothing here is shown to
                 anyone.
               </Lead>
-              <div className="mt-7 max-w-xl animate-rise-2">
-                <p className="font-display text-6xl leading-none text-ink [font-variant-numeric:tabular-nums]">
+              <div className="mt-8 max-w-xl animate-rise-2">
+                <p className="font-display text-4xl font-medium leading-[1.04] text-ink [font-variant-numeric:tabular-nums]">
                   {height}
-                  <span className="ml-2 font-sans text-xs uppercase tracking-[0.2em] text-ink/45">
+                  <span className="ml-2 font-sans text-xs font-semibold uppercase tracking-label-lg text-ink/45">
                     cm
                   </span>
                 </p>
@@ -951,13 +928,13 @@ export function FittingPage() {
                     ["--p" as string]: `${((height - 140) / 70) * 100}%`,
                   }}
                 />
-                <div className="mt-2 flex justify-between text-[10px] tracking-[0.14em] text-ink/40">
+                <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-label-sm text-ink/40 [font-variant-numeric:tabular-nums]">
                   <span>140</span>
                   <span>175</span>
                   <span>210</span>
                 </div>
                 <RowLabel>Build</RowLabel>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {BUILDS.map((b) => (
                     <Chip key={b} on={build === b} onClick={() => setBuild(b)}>
                       {title(b)}
@@ -1014,7 +991,7 @@ export function FittingPage() {
                 ).map(([k, label, opts]) => (
                   <div key={k}>
                     <RowLabel>{label}</RowLabel>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {opts.map((o) => (
                         <Chip
                           key={o}
@@ -1062,7 +1039,7 @@ export function FittingPage() {
               </Lead>
               <div className="animate-rise-2">
                 <RowLabel>Skin tone</RowLabel>
-                <div className="mt-3 flex flex-wrap gap-2.5">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {TONES.map(([k, c]) => (
                     <button
                       key={k}
@@ -1076,7 +1053,7 @@ export function FittingPage() {
                   ))}
                 </div>
                 <RowLabel>Never on me</RowLabel>
-                <div className="mt-3 flex flex-wrap gap-2.5">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {COLOURS.map(([k, c]) => {
                     const on = avoid.has(k);
                     return (
@@ -1138,7 +1115,7 @@ export function FittingPage() {
                 Only for the rare gap the closet can’t fill. The stylist never
                 sends you shopping otherwise.
               </Lead>
-              <div className="mt-6 flex animate-rise-2 flex-wrap gap-2">
+              <div className="mt-8 flex animate-rise-2 flex-wrap gap-2">
                 {BUDGETS.map(([k, l]) => (
                   <Chip
                     key={k}
@@ -1174,35 +1151,37 @@ export function FittingPage() {
                 each day.
               </Lead>
               <form
-                className="mt-6 flex max-w-lg animate-rise-2 gap-2"
+                className="mt-8 flex max-w-lg animate-rise-2 items-end gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void askWeather();
                 }}
               >
-                <label htmlFor="fit-city" className="sr-only">
-                  Your city
-                </label>
-                <input
-                  id="fit-city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="field !text-base"
-                  placeholder="Your city"
-                  autoComplete="address-level2"
-                  autoFocus
-                />
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="fit-city" className="label">
+                    Your city
+                  </label>
+                  <input
+                    id="fit-city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="field"
+                    placeholder="e.g. Dubai"
+                    autoComplete="address-level2"
+                    autoFocus
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={weatherBusy || !city.trim()}
-                  className="btn-primary !px-4 disabled:opacity-50"
+                  className="btn-ghost shrink-0"
                 >
                   {weatherBusy ? <Spinner className="h-4 w-4" /> : "Check"}
                 </button>
               </form>
               {weather && (
-                <div className="mt-4 inline-flex animate-rise items-center gap-3 rounded-[3px] border border-brass bg-iris-soft px-4 py-2.5 text-sm text-ink">
-                  <span className="font-display text-2xl text-brass">
+                <div className="mt-4 inline-flex animate-rise items-center gap-3 rounded-[3px] border border-brass/30 bg-iris-soft px-4 py-2.5 text-sm text-ink">
+                  <span className="font-display text-2xl font-medium text-accent-text [font-variant-numeric:tabular-nums]">
                     {weather.temperatureC}°
                   </span>
                   <span>
@@ -1238,23 +1217,23 @@ export function FittingPage() {
                 given to you; you can change it any time from your profile.
               </Lead>
               {claimed ? (
-                <p className="mt-6 animate-rise-2 text-sm text-ink/60">
+                <p className="mt-8 animate-rise-2 text-sm text-ink/60">
                   You go by <b className="text-ink">{user?.name ?? user?.firstName ?? claimed}</b>
                   {'. '}Your address is <span className="text-ink/45">/u/{claimed}</span>.
                 </p>
               ) : (
                 <form
-                  className="mt-6 max-w-lg animate-rise-2"
+                  className="mt-8 max-w-lg animate-rise-2"
                   onSubmit={(e) => {
                     e.preventDefault();
                     void claim();
                   }}
                 >
-                  <div className="flex items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-3 focus-within:border-iris/70 focus-within:ring-2 focus-within:ring-iris/20">
+                  <label htmlFor="fit-handle" className="label">
+                    Your address
+                  </label>
+                  <div className="flex h-11 items-center gap-1 rounded-[3px] border border-ink/15 bg-surface px-4 focus-within:border-iris/70 focus-within:ring-2 focus-within:ring-iris/20">
                     <span className="text-ink/40">@</span>
-                    <label htmlFor="fit-handle" className="sr-only">
-                      Handle
-                    </label>
                     <input
                       id="fit-handle"
                       value={handle}
@@ -1266,14 +1245,14 @@ export function FittingPage() {
                             .slice(0, 20),
                         )
                       }
-                      className="w-full border-0 bg-transparent py-3 text-base text-ink outline-none placeholder:text-ink/35"
+                      className="h-full w-full border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink/35 sm:text-sm"
                       placeholder="your_name"
                       autoCapitalize="none"
                       autoFocus
                     />
                   </div>
                   <p
-                    className={`mt-2 text-sm ${handleState.ok ? "text-brass" : "text-ink/50"}`}
+                    className={`mt-2 text-sm ${handleState.ok ? "text-accent-text" : "text-ink/50"}`}
                     aria-live="polite"
                   >
                     {handleState.msg}
@@ -1325,7 +1304,7 @@ export function FittingPage() {
                 onChange={(e) => void onPhoto(e)}
                 className="hidden"
               />
-              <div className="mt-7 max-w-[260px] animate-rise-2">
+              <div className="mt-8 max-w-[260px] animate-rise-2">
                 <div className="arch-bezel aspect-[3/4]">
                   <div
                     className="relative h-full w-full overflow-hidden rounded-[inherit]"
@@ -1349,7 +1328,7 @@ export function FittingPage() {
                 </div>
               </div>
               {!photoUrl && (
-                <label className="mt-5 flex max-w-lg animate-rise-3 cursor-pointer items-start gap-3 text-sm text-ink/70">
+                <label className="mt-4 flex max-w-lg animate-rise-3 cursor-pointer items-start gap-3 text-sm text-ink/70">
                   <input
                     type="checkbox"
                     checked={consent}
@@ -1425,7 +1404,7 @@ export function FittingPage() {
                 onChange={(e) => void onPieces(e)}
                 className="hidden"
               />
-              <div className="mt-7 grid max-w-xl animate-rise-2 grid-cols-3 gap-4">
+              <div className="mt-8 grid max-w-xl animate-rise-2 grid-cols-3 gap-4">
                 {[0, 1, 2].map((i) => {
                   const it = shown[i];
                   return it ? (
@@ -1433,10 +1412,11 @@ export function FittingPage() {
                       <img
                         src={resolveImageUrl(it.imageUrl)}
                         alt={it.subtype ?? it.category}
-                        className={`relative z-[1] h-full w-full object-contain p-[8%] transition duration-500 ${it.status === "processing" ? "scale-95 opacity-40 blur-[2px]" : ""}`}
+                        className={`relative z-[1] h-full w-full object-contain p-[7%] transition duration-500 ${it.status === "processing" ? "scale-95 opacity-40 blur-[2px]" : ""}`}
                       />
+                      {/* Anything drawn inside the niche takes the theme-invariant niche ink. */}
                       {it.status === "processing" && (
-                        <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-brass">
+                        <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-label-xl text-[var(--text-in-niche)]">
                           developing
                         </span>
                       )}
@@ -1444,7 +1424,7 @@ export function FittingPage() {
                   ) : (
                     <div key={i} className="arch-bezel aspect-[5/6] opacity-50">
                       <div className="arch-niche flex h-full w-full items-center justify-center">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/40">
+                        <span className="relative z-[1] text-[10px] font-semibold uppercase tracking-label-xl text-[var(--text-in-niche-muted)]">
                           {["Top", "Bottom", "Shoes"][i]}
                         </span>
                       </div>
@@ -1522,7 +1502,7 @@ export function FittingPage() {
                     ? "Your stylist has your measure. Three pieces in the closet, and the first look hangs here."
                     : DRESSING_LINES[revealLine]}
               </Lead>
-              <div className="mt-7 max-w-2xl animate-rise-2">
+              <div className="mt-8 max-w-2xl animate-rise-2">
                 {/* A wide board is a 3px rectangle with a hairline, never an arch. */}
                 <div className="rect-frame">
                   <div className="arch-niche relative aspect-[5/4] w-full">
@@ -1564,7 +1544,7 @@ export function FittingPage() {
                                 className="arch-bezel h-24 w-20 opacity-40"
                               >
                                 <div className="arch-niche flex h-full w-full items-center justify-center">
-                                  <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-ink/40">
+                                  <span className="relative z-[1] text-[9px] font-semibold uppercase tracking-label-xl text-[var(--text-in-niche-muted)]">
                                     {slot}
                                   </span>
                                 </div>
@@ -1586,20 +1566,19 @@ export function FittingPage() {
                   </div>
                 </div>
                 {revealed && (
-                  <div className="plaque mt-5 animate-rise p-5 pl-6">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
+                  <div className="plaque mt-8 animate-rise p-5 pl-6">
+                    <p className="eyebrow">
                       The morning ritual
                     </p>
-                    <p className="mt-1 font-display text-lg italic text-ink">
+                    <p className="mt-2 font-display text-xl italic text-ink">
                       {brief?.mode === "brief"
                         ? "Want this waiting for you at 7 tomorrow?"
                         : "Once the closet has its three, want the look waiting for you at 7?"}
                     </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <div className="action-row mt-4">
                       {ritualSet ? (
-                        <span className="btn-ghost !border-brass/50 !text-brass">
-                          Set for 7:00
-                        </span>
+                        // A settled state is a badge, not a button.
+                        <Badge>Set for 7:00</Badge>
                       ) : (
                         <button
                           type="button"
@@ -1636,11 +1615,11 @@ export function FittingPage() {
           className="mt-10 lg:sticky lg:top-20 lg:mt-0 lg:self-start"
           aria-live="polite"
         >
-          <div className="card p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">
+          <div className="card p-4">
+            <p className="eyebrow">
               Your stylist’s notes
             </p>
-            <p className="mt-1 font-display text-2xl font-medium text-ink">
+            <p className="mt-2 font-display text-2xl font-medium text-ink">
               {user?.firstName ? `${user.firstName}.` : "A new client."}
             </p>
             {notes.length === 0 ? (
@@ -1652,8 +1631,8 @@ export function FittingPage() {
                 {notes.map((n, i) => (
                   <li
                     key={n}
-                    className="animate-rise relative pl-4 text-sm leading-snug text-ink/70"
-                    style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                    className="rise-stagger relative pl-4 text-sm leading-snug text-ink/70"
+                    style={{ "--i": i } as CSSProperties}
                   >
                     <span
                       aria-hidden
@@ -1667,6 +1646,7 @@ export function FittingPage() {
           </div>
         </aside>
       </div>
+      </PageShell>
     </div>
   );
 }

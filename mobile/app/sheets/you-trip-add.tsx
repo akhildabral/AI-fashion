@@ -2,21 +2,23 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { useWindowDimensions } from 'react-native'
 import { getTrip, updateTrip } from '@zauq/shared/brief'
 import { getWardrobe } from '@zauq/shared/wardrobe'
 import { EmptyState, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
-import { SkeletonBlock } from '@/src/components/Skeleton'
+import { ArchSkeleton } from '@/src/components/Skeleton'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
-import { space } from '@/src/design/tokens'
+import { gutter, space } from '@/src/design/tokens'
 import { qk, queryClient } from '@/src/lib/query'
 import { PieceGrid } from '@/src/features/you/Pieces'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function TripAddSheet() {
   const router = useRouter()
   const flash = useFlash()
+  const { width } = useWindowDimensions()
   const { id = '' } = useLocalSearchParams<{ id: string }>()
   const [picked, setPicked] = useState<string[]>([])
   const tripQ = useQuery({ queryKey: qk.trip(id), queryFn: () => getTrip(id), enabled: !!id })
@@ -41,11 +43,12 @@ export default function TripAddSheet() {
 
   const failed = (tripQ.isError || wardrobeQ.isError) && !pieces
   return (
-    <SheetShell title="Add from the closet" foot={pieces && pieces.length > 0 ? <Button label={picked.length ? `Pack ${picked.length} more` : 'Pack'} block disabled={picked.length === 0} loading={add.isPending} onPress={() => add.mutate()} /> : null}>
+    <SheetShell dense title="Add from the closet" footer={pieces && pieces.length > 0 ? <Button label={picked.length ? `Pack ${picked.length} more` : 'Pack'} block disabled={picked.length === 0} loading={add.isPending} onPress={() => add.mutate()} /> : null}>
       {failed ? (
         <LoadError message="Could not open the closet." onRetry={() => { void tripQ.refetch(); void wardrobeQ.refetch() }} />
       ) : !pieces ? (
-        <SkeletonBlock height={200} />
+        // The shape of the closet arriving: eight arches, four across.
+        <ArchSkeleton count={8} columns={4} width={width - gutter * 2} />
       ) : pieces.length === 0 ? (
         <EmptyState title="Everything you own is already packed." />
       ) : (

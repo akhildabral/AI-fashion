@@ -3,28 +3,32 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from 'react-native'
+import { StyleSheet, View, useWindowDimensions } from 'react-native'
 import { getMyRecentLooks } from '@zauq/shared/circle'
 import { getOutfits } from '@zauq/shared/outfits'
 import { createPoll, type PollAudience, type PollOptionInput } from '@zauq/shared/polls'
 import { getNetwork } from '@zauq/shared/social'
 import { getTryOns } from '@zauq/shared/tryon'
 import { getWardrobe } from '@zauq/shared/wardrobe'
+import { Alert, EmptyState } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { LookBoard, type FlatLayItem } from '@/src/components/LookBoard'
+import { Press } from '@/src/components/Press'
+import { SheetShell } from '@/src/components/Sheet'
+import { ArchSkeleton } from '@/src/components/Skeleton'
 import { Chip, Tabs } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { gutter, radius } from '@/src/design/tokens'
+import { gutter, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
-import { Dashed, InlineError, PhotoArch, Press } from '@/src/features/circle/atoms'
+import { PhotoArch } from '@/src/features/circle/atoms'
 import { invalidateFeeds } from '@/src/features/circle/cache'
 import { ck } from '@/src/features/circle/keys'
-import { SheetFrame, SheetLabel } from '@/src/features/circle/SheetFrame'
+import { SheetLabel } from '@/src/features/circle/SheetLabel'
 
 type Source = 'outfits' | 'looks' | 'renders' | 'pieces'
 
@@ -157,10 +161,10 @@ export default function AskSheet() {
   const cell = Math.floor((width - gutter * 2 - GRID_GAP * (cols - 1)) / cols)
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title="Ask the circle"
       lead="Two or three of anything. Ask everyone, a few friends, or just a link."
-      action={
+      footer={
         <>
           <Button label={`Ask (${chosen.length}/3)`} block disabled={chosen.length < 2} loading={ask.isPending} onPress={submit} style={{ flex: 1 }} />
           <Button label="Cancel" variant="quiet" onPress={() => router.back()} />
@@ -170,15 +174,9 @@ export default function AskSheet() {
       <SheetLabel>Ask with</SheetLabel>
       <Tabs items={SOURCES} value={source} onChange={setSource} />
       {loading ? (
-        <View style={styles.busy}>
-          <ActivityIndicator color={t.brass} />
-        </View>
+        <ArchSkeleton count={6} columns={cols} width={width - gutter * 2} />
       ) : pool.length === 0 ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            {empty[source]}
-          </T>
-        </Dashed>
+        <EmptyState title={empty[source]} />
       ) : (
         <View style={styles.grid}>
           {pool.map((c) => {
@@ -191,7 +189,7 @@ export default function AskSheet() {
                   {idx >= 0 ? (
                     // `right-1.5 top-1.5 h-6 w-6 text-[11px] font-bold`
                     <View style={[styles.letter, { backgroundColor: t.brass, borderRadius: radius }]}>
-                      <T style={{ fontFamily: fonts.sansBold, fontSize: 11, lineHeight: 14, color: t.onBrass }} maxFontSizeMultiplier={1}>
+                      <T role="label" style={{ fontFamily: fonts.sansSemi, color: t.onBrass, letterSpacing: 0 }} maxFontSizeMultiplier={1}>
                         {'ABC'[idx]}
                       </T>
                     </View>
@@ -206,7 +204,7 @@ export default function AskSheet() {
         </View>
       )}
 
-      <Field value={question} onChangeText={setQuestion} maxLength={140} placeholder="Which one should I wear? (optional)" accessibilityLabel="The question" />
+      <Field label="The question" value={question} onChangeText={setQuestion} maxLength={140} placeholder="Which one should I wear? (optional)" accessibilityLabel="The question" />
 
       <SheetLabel>Ask</SheetLabel>
       <View style={styles.chips}>
@@ -243,8 +241,8 @@ export default function AskSheet() {
           <Chip key={e.key} label={e.label} on={expiry === e.key} onPress={() => setExpiry(e.key)} />
         ))}
       </View>
-      {error ? <InlineError message={error} /> : null}
-    </SheetFrame>
+      {error ? <Alert>{error}</Alert> : null}
+    </SheetShell>
   )
 }
 
@@ -252,8 +250,6 @@ const GRID_GAP = 12
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
-  busy: { paddingVertical: 40, alignItems: 'center' },
   letter: { position: 'absolute', top: 6, right: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  // `mt-2 flex flex-wrap gap-2`
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 })

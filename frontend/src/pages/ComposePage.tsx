@@ -11,10 +11,9 @@ import {
 } from "@zauq/shared/outfits";
 import { logWear } from "@zauq/shared/wearlog";
 import { RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash, ArchSkeleton } from "../components/ui";
+import { PageShell, Toast, useFlash, ArchSkeleton, Arch, Chip, Tabs, LoadError, EmptyState } from "../components/ui";
 import { TryOnModal } from "../components/TryOnModal";
 import { LookBoard } from "../components/LookBoard";
-import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
 import type { WardrobeItem } from "@zauq/shared/types";
 
@@ -219,7 +218,7 @@ export function ComposePage() {
             ) : (
               <div className="rect-frame aspect-[5/4]">
                 <div className="arch-niche flex h-full w-full items-center justify-center px-8 text-center">
-                  <span className="font-display text-lg italic text-ink/45">
+                  <span className="font-display text-lg italic text-[var(--text-in-niche-muted)]">
                     The board is empty.
                   </span>
                 </div>
@@ -230,18 +229,12 @@ export function ComposePage() {
             className={`mt-4 font-display text-lg italic leading-snug ${line.tone === "warn" ? "text-[rgb(var(--c-danger))]" : line.tone === "good" ? "text-ink" : "text-ink/50"}`}
             aria-live="polite"
           >
-            {validation === null && chosen.length > 0 ? (
-              <span className="inline-flex items-center gap-2 text-ink/50">
-                <Spinner className="h-3.5 w-3.5" /> reading it…
-              </span>
-            ) : (
-              line.text
-            )}
+            {validation === null && chosen.length > 0 ? <span className="text-ink/50">Reading it…</span> : line.text}
           </p>
           {picked.length > 0 && (
-            <div className="mt-3">
+            <div className="mt-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">In the outfit</p>
-              <div className="mt-2 flex flex-wrap gap-2.5">
+              <div className="mt-2 flex flex-wrap gap-3">
                 {picked.map((i) => (
                   <button
                     key={i.id}
@@ -251,16 +244,14 @@ export function ComposePage() {
                     aria-label={`Remove ${i.subtype ?? i.category}`}
                     title={`Remove ${i.subtype ?? i.category}`}
                   >
-                    <div className="arch-bezel aspect-[5/6]">
-                      <div className="arch-niche h-full w-full">
-                        <img
-                          src={resolveImageUrl(i.imageUrl)}
-                          alt={i.subtype ?? i.category}
-                          loading="lazy"
-                          className="relative z-[1] h-full w-full object-contain p-[10%]"
-                        />
-                      </div>
-                    </div>
+                    <Arch aspect="aspect-[5/6]">
+                      <img
+                        src={resolveImageUrl(i.imageUrl)}
+                        alt={i.subtype ?? i.category}
+                        loading="lazy"
+                        className="relative z-[1] h-full w-full object-contain p-[10%]"
+                      />
+                    </Arch>
                     <span
                       aria-hidden
                       className="absolute -right-1.5 -top-1.5 z-[2] flex h-5 w-5 items-center justify-center rounded-[3px] border border-bone/20 bg-ink/85 text-bone transition-colors group-hover:bg-[rgb(var(--c-danger))]"
@@ -277,24 +268,19 @@ export function ComposePage() {
               </div>
             </div>
           )}
-          <div className="mt-5">
+          <div className="mt-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
               For
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {EVENTS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEventType(e)}
-                  className={`chip ${eventType === e ? "chip-on" : ""}`}
-                >
+                <Chip key={e} onClick={() => setEventType(e)} on={eventType === e}>
                   {EVENT_LABEL[e]}
-                </button>
+                </Chip>
               ))}
             </div>
           </div>
-          <div className="action-row mt-5">
+          <div className="action-row mt-6">
             <button
               type="button"
               disabled={
@@ -303,7 +289,7 @@ export function ComposePage() {
                 (validation ? !validation.ok : true)
               }
               onClick={() => void save()}
-              className="btn-primary disabled:opacity-50"
+              className="btn-primary"
             >
               {busy === "save" ? "Keeping…" : "Keep it"}
             </button>
@@ -311,7 +297,7 @@ export function ComposePage() {
               type="button"
               disabled={chosen.length < 2 || busy !== null}
               onClick={() => void wearToday()}
-              className="btn-ghost disabled:opacity-50"
+              className="btn-ghost"
             >
               Wearing it today
             </button>
@@ -327,7 +313,7 @@ export function ComposePage() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="btn-quiet !text-ink/40"
+              className="btn-quiet"
             >
               Back
             </button>
@@ -336,45 +322,32 @@ export function ComposePage() {
 
         {/* The rail */}
         <div className="animate-rise-2">
-          <div
-            className="flex flex-wrap gap-2"
-            role="tablist"
-            aria-label="Piece type"
-          >
-            {SLOTS.map((s) => {
-              const n = (closet ?? []).filter(s.test).length;
-              if (n === 0) return null;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={slot === s.key}
-                  onClick={() => setSlot(s.key)}
-                  className="tab press"
-                >
-                  {s.label}
-                  <span className="count">{n}</span>
-                </button>
-              );
-            })}
-          </div>
+          <Tabs
+            label="Piece type"
+            value={slot}
+            onChange={setSlot}
+            items={SLOTS.filter((s) => (closet ?? []).filter(s.test).length > 0).map((s) => ({ key: s.key, label: s.label, count: (closet ?? []).filter(s.test).length }))}
+          />
           {closet === null && !closetFailed && (
             <ArchSkeleton count={10} className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:gap-6" />
           )}
           {closetFailed && (
-            <div className="mt-8">
-              <p className="text-sm text-ink/60">Couldn’t load your closet. Check your connection.</p>
-              <button type="button" onClick={() => { setClosetFailed(false); getWardrobe().then((r) => { setCloset(r.items.filter((i) => i.status === 'ready' && !i.suppressed)) }).catch(() => setClosetFailed(true)) }} className="btn-ghost btn-sm mt-3">Try again</button>
-            </div>
+            <LoadError
+              className="min-h-[24vh]"
+              message="Couldn’t load your closet. Check your connection and try again."
+              onRetry={() => { setClosetFailed(false); getWardrobe().then((r) => { setCloset(r.items.filter((i) => i.status === 'ready' && !i.suppressed)) }).catch(() => setClosetFailed(true)) }}
+            />
           )}
           {closet && closet.length === 0 && (
-            <div className="mt-6 max-w-md">
-              <p className="font-display text-lg italic text-ink/60">Your closet is empty. Add a few pieces first, then style them by hand here.</p>
-              <button type="button" onClick={() => navigate('/closet')} className="btn-primary mt-4">
-                Add pieces
-              </button>
-            </div>
+            <EmptyState
+              className="mt-6"
+              line="Your closet is empty. Add a few pieces first, then style them by hand here."
+              action={
+                <button type="button" onClick={() => navigate('/closet')} className="btn-primary">
+                  Add pieces
+                </button>
+              }
+            />
           )}
           {closet && closet.length > 0 && (
             <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:gap-6">
@@ -394,22 +367,18 @@ export function ComposePage() {
                         : (i.subtype ?? i.category)
                     }
                   >
-                    <div
-                      className={`arch-bezel aspect-[5/6] transition ${on ? "brightness-110 ring-2 ring-iris ring-offset-2 ring-offset-bone" : ""} ${dirty ? "opacity-50" : ""}`}
-                    >
-                      <div className="arch-niche h-full w-full">
-                        <img
-                          src={resolveImageUrl(i.imageUrl)}
-                          alt={i.subtype ?? i.category}
-                          className="relative z-[1] h-full w-full object-contain p-[8%]"
-                          loading="lazy"
-                        />
-                      </div>
-                    </div>
+                    <Arch aspect="aspect-[5/6]" bright={on} className={`transition-opacity ${dirty ? "opacity-50" : ""}`}>
+                      <img
+                        src={resolveImageUrl(i.imageUrl)}
+                        alt={i.subtype ?? i.category}
+                        className="relative z-[1] h-full w-full object-contain p-[7%]"
+                        loading="lazy"
+                      />
+                    </Arch>
                     <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/55">
                       {i.subtype ?? i.category}
                       {dirty && (
-                        <span className="ml-1 text-brass">
+                        <span className="ml-1 text-brass-ink">
                           · {i.state === "in-wash" ? "in the wash" : i.state}
                         </span>
                       )}
@@ -418,7 +387,7 @@ export function ComposePage() {
                 );
               })}
               {inSlot.length === 0 && (
-                <p className="col-span-full text-sm text-ink/50">
+                <p className="empty-line col-span-full">
                   Nothing of this kind in the closet yet.
                 </p>
               )}

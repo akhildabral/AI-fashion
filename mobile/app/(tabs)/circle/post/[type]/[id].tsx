@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getPost, type PostTarget } from '@zauq/shared/circle'
 import { LoadError, SectionHead } from '@/src/components/Bits'
 import { Screen } from '@/src/components/Screen'
-import { gutter } from '@/src/design/tokens'
+import { gutter, space } from '@/src/design/tokens'
 import { useTheme } from '@/src/design/theme'
 import { qk } from '@/src/lib/query'
 import { CardSkeleton, PostCard } from '@/src/features/circle/cards'
@@ -55,7 +55,8 @@ export default function PostScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: 12, gap: 24 },
-  notes: { gap: 12 },
+  // The card, then the notes a block (32) beneath; the head and its list 16 apart.
+  content: { paddingHorizontal: gutter, paddingTop: space.md, gap: space.xxl },
+  notes: { gap: space.lg },
   sticky: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 })

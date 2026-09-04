@@ -6,7 +6,7 @@ import { getWardrobe } from '@zauq/shared/wardrobe'
 import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '@zauq/shared/brief'
 import type { WardrobeItem } from '@zauq/shared/types'
-import { GarmentTile, PageShell, Modal, Filter, LoadError } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Filter, LoadError, PageHead, Tabs, SectionHead, ArchSkeleton, Alert, Stat, Plaque } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { useJobs } from '../context/useJobs'
 import { LetGoModal } from '../components/LetGo'
@@ -217,118 +217,130 @@ export function ClosetPage() {
         )}
 
         {/* ---------------- The mantel: name · valuation · actions ---------------- */}
-        <div className="flex animate-rise flex-col gap-6 border-b border-ink/10 pb-7 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">The collection</p>
-            <h1 className="mt-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">Closet</h1>
-            <p className="mt-2 text-sm text-ink/50">
+        <PageHead
+          eyebrow="The collection"
+          title={
+            <>
+              The closet, <em className="text-brass-ink">drawn to scale.</em>
+            </>
+          }
+          line={
+            <>
               {list.length} pieces
               {stats && <> · {rotationPct}% in rotation this quarter</>}
-            </p>
-          </div>
-
-          {/* Valuation plate — the owned brass moment */}
-          {totalValue > 0 && (
-            <div className="flex items-end gap-8">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
-                <p className="font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
-                  {inr(totalValue)}
-                </p>
-                <div className="mt-2 h-1.5 w-44 overflow-hidden rounded-[2px] bg-ink/10">
-                  <div
-                    className="h-full rounded-[2px]"
-                    style={{
-                      width: `${rotationPct}%`,
-                      background: 'linear-gradient(90deg, var(--c-brass-hi), var(--c-brass))',
-                    }}
-                  />
-                </div>
-                <p className="mt-1.5 text-[11px] text-ink/45">
-                  <span className="font-semibold text-ink/70">{rotationPct}%</span> worn this quarter
-                  {idleCapital > 0 && <> · {inr(idleCapital)} idle</>}
-                  {unpriced > 0 && (
-                    <>
-                      {' · '}
-                      <button type="button" onClick={() => setPricing(true)} className="press font-semibold text-brass hover:underline">
-                        {unpriced} unpriced
-                      </button>
-                    </>
-                  )}
-                </p>
-              </div>
+            </>
+          }
+          aside={
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <label className="relative">
+                <span className="sr-only">Search your closet</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search the closet"
+                  className="field field-sm w-40 sm:w-52"
+                />
+              </label>
+              <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={handleFileChange} className="hidden" />
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+              <button
+                type="button"
+                onClick={() => setAddChooserOpen(true)}
+                className="btn-primary btn-sm"
+              >
+                {jobs.upload.active ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" /> {Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…
+                  </>
+                ) : (
+                  'Add pieces'
+                )}
+              </button>
             </div>
-          )}
-          {totalValue === 0 && list.length > 0 && (
-            <button type="button" onClick={() => setPricing(true)} className="press text-left">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
-              <p className="font-display text-2xl font-medium text-ink/50">Add prices to see it</p>
-              <p className="mt-1 text-[11px] font-semibold text-brass">Price {list.length} piece{list.length === 1 ? '' : 's'} →</p>
-            </button>
-          )}
+          }
+        />
 
-          <div className="flex items-center gap-2">
-            <label className="relative">
-              <span className="sr-only">Search your closet</span>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search"
-                className="field w-40 sm:w-52"
-              />
-            </label>
-            <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={handleFileChange} className="hidden" />
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
-            <button
-              type="button"
-              onClick={() => setAddChooserOpen(true)}
-              className="btn-primary whitespace-nowrap !px-5"
-            >
-              {jobs.upload.active ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" /> {Math.max(0, jobs.upload.total - jobs.upload.done - jobs.upload.failed)} left…
-                </>
-              ) : (
-                'Add item'
-              )}
+        {/* Valuation plate — the owned brass moment */}
+        {totalValue > 0 && (
+          <Plaque className="mt-6 flex animate-rise-1 flex-wrap items-end justify-between gap-x-8 gap-y-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
+              <p className="mt-1 font-display text-4xl font-medium leading-[1.1] text-brass-ink [font-variant-numeric:tabular-nums]">
+                {inr(totalValue)}
+              </p>
+              <div className="mt-3 h-1.5 w-44 overflow-hidden rounded-[3px] bg-ink/10">
+                <div
+                  className="h-full rounded-[3px]"
+                  style={{
+                    width: `${rotationPct}%`,
+                    background: 'linear-gradient(90deg, var(--c-brass-hi), var(--c-brass))',
+                  }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-ink/45">
+                <span className="font-semibold text-ink/70">{rotationPct}%</span> worn this quarter
+                {idleCapital > 0 && <> · {inr(idleCapital)} idle</>}
+                {unpriced > 0 && (
+                  <>
+                    {' · '}
+                    <button type="button" onClick={() => setPricing(true)} className="press font-semibold text-brass-ink hover:underline">
+                      {unpriced} unpriced
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
+            {/* What the closet is doing — the ledger's truth. Only once there's
+                real wear behind it; all-zeros is just noise. */}
+            {stats && (stats.wornThisQuarter > 0 || stats.streak > 0 || idleCapital > 0) && (
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+                <Stat value={`${rotationPct}%`} label="In rotation" />
+                <Stat value={stats.wornThisQuarter} label="Wears this quarter" />
+                <Stat value={stats.monthlyPayback > 0 ? inr(stats.monthlyPayback) : '—'} label="Earned this month" />
+                <Stat value={stats.streak} label="Day streak" />
+                {idleCapital > 0 && (
+                  <button type="button" onClick={() => setCollection('orphans')} className="btn-quiet btn-quiet-sm">
+                    {inr(idleCapital)} sitting idle
+                  </button>
+                )}
+              </div>
+            )}
+          </Plaque>
+        )}
+        {totalValue === 0 && list.length > 0 && (
+          <Plaque className="mt-6 flex animate-rise-1 flex-wrap items-center justify-between gap-x-8 gap-y-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
+              <p className="mt-1 font-display text-2xl italic text-ink/60">Add prices to see it.</p>
+            </div>
+            <button type="button" onClick={() => setPricing(true)} className="btn-ghost btn-sm">
+              Price {list.length} piece{list.length === 1 ? '' : 's'}
             </button>
-          </div>
-        </div>
+          </Plaque>
+        )}
 
         <ClosetRooms current="pieces" />
 
-        {uploadError && (
-          <p className="mt-4 alert-error" role="alert">
-            {uploadError}
-          </p>
-        )}
+        {uploadError && <Alert className="mt-4">{uploadError}</Alert>}
 
         {/* ---------------- Loading / error / empty ---------------- */}
-        {loading && (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60">
-                <div className="arch-niche h-full w-full" />
-              </div>
-            ))}
-          </div>
-        )}
+        {loading && <ArchSkeleton count={10} className="grid-board mt-6" />}
         {!loading && error && <LoadError message={error} onRetry={loadWardrobe} />}
         {!loading && !error && list.length === 0 && (
           <div className="mx-auto mt-12 max-w-md text-center">
             <div className="arch-bezel mx-auto w-56" style={{ aspectRatio: '5 / 6' }}>
               <div className="arch-niche flex h-full w-full items-center justify-center">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink/30">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-in-niche-muted)]">
                   Your first piece
                 </span>
               </div>
             </div>
-            <h2 className="mt-6 font-display text-2xl font-medium text-ink">Your collection begins here.</h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">
+            <p className="empty-line mt-6">Your collection begins here.</p>
+            <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-ink/55">
               Drag a photo anywhere, or add a few. Flat-lays and hangers work best. Each garment is
               extracted and framed on its own.
             </p>
-            <button type="button" onClick={() => setAddChooserOpen(true)} className="btn-primary mt-6 !px-6">
+            <button type="button" onClick={() => setAddChooserOpen(true)} className="btn-primary mt-6">
               Add your first piece
             </button>
           </div>
@@ -337,48 +349,17 @@ export function ClosetPage() {
         {/* ---------------- GALLERY ---------------- */}
         {!loading && !error && list.length > 0 && (
           <>
-            {/* What the closet is doing — the ledger's truth, kept as a slim strip.
-                Only once there's real wear behind it; all-zeros is just noise. */}
-            {stats && (stats.wornThisQuarter > 0 || stats.streak > 0 || idleCapital > 0) && (
-              <div className="plaque mt-6 flex animate-rise-1 flex-wrap items-center gap-x-8 gap-y-2 p-4 pl-5">
-                {[
-                  { v: `${rotationPct}%`, l: 'in rotation' },
-                  { v: String(stats.wornThisQuarter), l: 'wears this quarter' },
-                  { v: stats.monthlyPayback > 0 ? inr(stats.monthlyPayback) : '—', l: 'earned this month' },
-                  { v: String(stats.streak), l: 'day streak' },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <span className="font-display text-xl font-semibold text-ink [font-variant-numeric:tabular-nums]">{s.v}</span>
-                    <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-ink/45">{s.l}</span>
-                  </div>
-                ))}
-                {idleCapital > 0 && (
-                  <button type="button" onClick={() => setCollection('orphans')} className="press ml-auto text-[11px] font-semibold text-brass hover:underline">
-                    {inr(idleCapital)} sitting idle →
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* Collections — the wardrobe cut different ways, scannable as tabs */}
-            <div className="tabs mt-8 animate-rise" role="tablist" aria-label="Collections">
-              {COLLECTIONS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={collection === c.id}
-                  onClick={() => setCollection(c.id)}
-                  className="tab"
-                >
-                  {c.label}
-                  {collectionCounts[c.id] > 0 && <span className="count">{collectionCounts[c.id]}</span>}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              className="mt-8 animate-rise"
+              label="Collections"
+              value={collection}
+              onChange={setCollection}
+              items={COLLECTIONS.map((c) => ({ key: c.id, label: c.label, count: collectionCounts[c.id] > 0 ? collectionCounts[c.id] : undefined }))}
+            />
 
             {/* Category filters — narrow the collection by kind */}
-            <div className="mt-4 flex animate-rise-2 flex-wrap items-center gap-x-1 gap-y-1.5">
+            <div className="mt-4 flex animate-rise-2 flex-wrap items-center gap-x-1 gap-y-1">
               <Filter on={category === null} onClick={() => setCategory(null)} count={list.length}>
                 All
               </Filter>
@@ -391,18 +372,20 @@ export function ClosetPage() {
 
             {/* The gallery wall */}
             {sorted.length === 0 ? (
-              <p className="mt-12 text-center text-sm text-ink/45">Nothing matches that filter.</p>
+              <p className="empty-line py-12 text-center">Nothing in the closet matches that.</p>
             ) : (
               <>
               {twins > 0 && collection !== 'twins' && (
-                <button type="button" onClick={() => setCollection('twins')} className="plaque press mt-6 flex w-full items-center justify-between gap-3 p-3 pl-4 text-left text-sm">
-                  <span className="text-ink/70">
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <p className="text-sm text-ink/70">
                     <b className="font-semibold text-ink">{twins} {twins === 1 ? 'piece looks' : 'pieces look'} like {twins === 1 ? 'one' : 'ones'} you already have.</b> Decide on each: the same piece, or different.
-                  </span>
-                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Review →</span>
-                </button>
+                  </p>
+                  <button type="button" onClick={() => setCollection('twins')} className="btn-ghost btn-sm">
+                    Review
+                  </button>
+                </div>
               )}
-              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6">
+              <div className="grid-board mt-6">
                 {sorted.map((item, i) => (
                   <GarmentTile
                     key={item.id}
@@ -422,15 +405,15 @@ export function ClosetPage() {
 
             {/* What the closet is missing — the gaps, as the reason to add. */}
             {gaps.length > 0 && (
-              <div className="mt-14 animate-rise">
-                <h2 className="font-display text-2xl font-medium text-ink">What the closet is missing</h2>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-12 animate-rise">
+                <SectionHead title="What the closet is missing" />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {gaps.map((g) => (
-                    <div key={g.category} className="card p-5">
+                    <div key={g.category} className="card p-4">
                       <p className="font-display text-xl font-medium text-ink">
                         {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
                       </p>
-                      <p className="mt-1.5 text-sm text-ink/55">
+                      <p className="mt-2 text-[13px] text-ink/55">
                         Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
                       </p>
                     </div>
@@ -443,20 +426,17 @@ export function ClosetPage() {
 
         {/* Add chooser */}
         <Modal open={addChooserOpen} onClose={() => setAddChooserOpen(false)} title="Add to your collection">
-          <div className="space-y-3">
+          <div className="flex flex-col gap-4">
             <button
               type="button"
               onClick={() => {
                 setAddChooserOpen(false)
                 cameraRef.current?.click()
               }}
-              className="press flex w-full items-center justify-between rounded-[3px] border border-ink/12 px-5 py-4 text-left transition-colors hover:border-brass"
+              className="card card-hover press block w-full p-4 text-left"
             >
-              <span>
-                <span className="block text-sm font-semibold text-ink">Take a photo</span>
-                <span className="block text-xs text-ink/50">Use your camera now</span>
-              </span>
-              <span className="text-ink/30">→</span>
+              <span className="block text-sm font-semibold text-ink">Take a photo</span>
+              <span className="mt-1 block text-xs text-ink/50">Use your camera now</span>
             </button>
             <button
               type="button"
@@ -464,13 +444,10 @@ export function ClosetPage() {
                 setAddChooserOpen(false)
                 inputRef.current?.click()
               }}
-              className="press flex w-full items-center justify-between rounded-[3px] border border-ink/12 px-5 py-4 text-left transition-colors hover:border-brass"
+              className="card card-hover press block w-full p-4 text-left"
             >
-              <span>
-                <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
-                <span className="block text-xs text-ink/50">Flat-lays and hangers keep true proportions</span>
-              </span>
-              <span className="text-ink/30">→</span>
+              <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
+              <span className="mt-1 block text-xs text-ink/50">Flat-lays and hangers keep true proportions</span>
             </button>
           </div>
         </Modal>

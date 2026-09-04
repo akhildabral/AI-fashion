@@ -1,13 +1,15 @@
 // What else is on this morning: a trip coming up, and the circle's three
-// most recent notes. Each is one card with one place to go. TodayPage.tsx:
-// `card p-4`, a tracked brass eyebrow, a two-line 14px note at ink/75, 12 apart.
-import { Pressable, StyleSheet } from 'react-native'
+// most recent notes. Each is one card with one place to go: a tracked brass
+// eyebrow over a two-line note, 12 apart.
+import { StyleSheet } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { FeedCard, Trip } from '@zauq/shared/brief'
+import { Card } from '@/src/components/Bits'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, space } from '@/src/design/tokens'
 import { tripDay, tripIsOn, tripIsTomorrow } from './copy'
 import { go, paths } from './nav'
 
@@ -51,24 +53,20 @@ function cardPath(card: FeedCard): string {
   return paths.circle
 }
 
-/** One nudge: the web's `card card-hover press p-4`. */
+/** One nudge: a card that is wholly a link, so it presses and taps like one. */
 function NudgeCard({ eyebrow, line, accessibilityLabel, onPress }: { eyebrow: string; line: string; accessibilityLabel: string; onPress: () => void }) {
   const { t } = useTheme()
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      pressRetentionOffset={12}
-      onPress={onPress}
-      style={[styles.card, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.1), borderRadius: radius }]}
-    >
-      <T role="micro" tone="brass" style={styles.eyebrow}>
-        {eyebrow}
-      </T>
-      <T role="bodySm" numberOfLines={2} style={{ color: alpha(t.ink, 0.75) }}>
-        {line}
-      </T>
-    </Pressable>
+    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} haptic="tap" onPress={onPress}>
+      <Card style={styles.card}>
+        <T role="micro" tone="brass">
+          {eyebrow}
+        </T>
+        <T role="bodySm" numberOfLines={2} style={{ color: alpha(t.ink, 0.75) }}>
+          {line}
+        </T>
+      </Card>
+    </Press>
   )
 }
 
@@ -101,6 +99,6 @@ export function Nudges({ cards, index = 0 }: { cards: FeedCard[]; index?: number
 
 const styles = StyleSheet.create({
   list: { gap: space.md },
-  card: { borderWidth: hairline, padding: space.lg, gap: space.xs },
-  eyebrow: { letterSpacing: 1.8 },
+  // The eyebrow 8 over its line.
+  card: { gap: space.sm },
 })

@@ -39,7 +39,7 @@ export function JobTray() {
       key: 'upload',
       node: (
         <button type="button" onClick={() => navigate('/closet')} className="press flex w-full items-center gap-3 text-left">
-          <Spinner className="h-4 w-4 shrink-0" />
+          <Spinner className="h-4 w-4 shrink-0 text-brass-ink" />
           <span className="min-w-0">
             <span className="block text-sm font-semibold text-ink">
               Adding {upload.total} {upload.total === 1 ? 'piece' : 'pieces'}
@@ -57,7 +57,7 @@ export function JobTray() {
       key: 'processing',
       node: (
         <button type="button" onClick={() => navigate('/closet')} className="press flex w-full items-center gap-3 text-left">
-          <span className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-brass/70" />
+          <span aria-hidden className="h-2 w-2 shrink-0 animate-pulse rounded-[2px] bg-brass" />
           <span className="text-sm text-ink/80">
             {processingCount} {processingCount === 1 ? 'piece' : 'pieces'} developing…
           </span>
@@ -70,7 +70,7 @@ export function JobTray() {
       key: `render-${r.id}`,
       node: (
         <button type="button" onClick={() => navigate(`/mirror?render=${r.id}`)} className="press flex w-full items-center gap-3 text-left">
-          <Spinner className="h-4 w-4 shrink-0" />
+          <Spinner className="h-4 w-4 shrink-0 text-brass-ink" />
           <span className="text-sm text-ink/80">{RENDER_LINES[line]}</span>
         </button>
       ),
@@ -89,7 +89,7 @@ export function JobTray() {
           className="press flex w-full items-center justify-between gap-3 text-left"
         >
           <span className="text-sm font-semibold text-ink">Your look is ready</span>
-          <span className="text-brass">→</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass-ink">Open</span>
         </button>
       ),
     })
@@ -105,7 +105,7 @@ export function JobTray() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[3px] border border-brass/30 bg-surface shadow-float animate-rise sm:left-auto sm:right-4"
+      className="fixed bottom-6 left-4 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[3px] border border-brass/30 bg-surface shadow-float animate-rise sm:left-auto sm:right-6"
       role="status"
       aria-live="polite"
     >

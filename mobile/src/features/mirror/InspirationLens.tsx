@@ -1,14 +1,13 @@
 // The Inspiration lens: an ask, two looks on a model, and on each the three
 // doors: see it on you, make it from your closet, keep it or throw it back.
-// The "Two looks" verb sits in the room's action bar; this is the rest.
-// Spacing follows the web's InspirationLens value for value.
+// The "Two looks" verb sits in the action row under this lens; this is the rest.
 import { Image } from 'expo-image'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { InspirationLook } from '@zauq/shared/looks'
 import { Arch } from '@/src/components/Arch'
-import { Plaque } from '@/src/components/Bits'
+import { Alert, Plaque, SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
@@ -16,13 +15,13 @@ import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { fadeIn, fadeOut, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline } from '@/src/design/tokens'
+import { alpha, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 import { CHIPS, WAIT_LINES, type Inspiration } from './inspiration'
 
-/** The Plaque's own padding (20, and 24 on the engraved edge). */
-const PLAQUE_INSET = 44
+/** The Plaque's own padding: 16, and 20 on the engraved edge. */
+const PLAQUE_INSET = space.lg + space.ml
 
 export function InspirationLens({ width, inspiration, onCloset }: { width: number; inspiration: Inspiration; onCloset: (look: InspirationLook) => void }) {
   const { t } = useTheme()
@@ -37,19 +36,13 @@ export function InspirationLens({ width, inspiration, onCloset }: { width: numbe
   }, [generating])
 
   return (
-    <View>
-      <T role="micro" tone="faint">
-        Inspiration
-      </T>
-      <T role="h2" style={styles.title}>
-        A look{' '}
-        <T role="h2" tone="brass" italic>
-          for the fun of it.
+    <View style={styles.wrap}>
+      <View style={styles.head}>
+        <SectionHead label="Inspiration" title="A look" emphasis="for the fun of it." />
+        <T role="bodySm" tone="muted">
+          Not from your closet. A mood, a place, an evening, or a surprise. Two looks on a model; see them on you, or make them from what you own.
         </T>
-      </T>
-      <T role="bodySm" tone="muted" style={styles.lead}>
-        Not from your closet. A mood, a place, an evening, or a surprise. Two looks on a model; see them on you, or make them from what you own.
-      </T>
+      </View>
 
       <View style={styles.form}>
         <Field
@@ -61,33 +54,29 @@ export function InspirationLens({ width, inspiration, onCloset }: { width: numbe
           returnKeyType="go"
           onSubmitEditing={generate}
         />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
+          {CHIPS.map((c) => (
+            <Chip
+              key={c.key}
+              label={c.label}
+              on={chip === c.key && !ask}
+              onPress={() => {
+                setChip(c.key)
+                setAsk('')
+              }}
+            />
+          ))}
+        </ScrollView>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
-        {CHIPS.map((c) => (
-          <Chip
-            key={c.key}
-            label={c.label}
-            on={chip === c.key && !ask}
-            onPress={() => {
-              setChip(c.key)
-              setAsk('')
-            }}
-          />
-        ))}
-      </ScrollView>
 
       {generating ? (
-        <Animated.View key={line} entering={fadeIn} exiting={fadeOut} style={styles.note}>
+        <Animated.View key={line} entering={fadeIn} exiting={fadeOut}>
           <T role="lede" tone="muted">
             {WAIT_LINES[line]}
           </T>
         </Animated.View>
       ) : null}
-      {error ? (
-        <T role="bodySm" tone="danger" accessibilityLiveRegion="polite" style={styles.note}>
-          {error}
-        </T>
-      ) : null}
+      {error ? <Alert>{error}</Alert> : null}
 
       {looks.length > 0 ? (
         <View style={styles.looks}>
@@ -101,7 +90,7 @@ export function InspirationLens({ width, inspiration, onCloset }: { width: numbe
 
       {kept.length > 0 ? (
         <View style={[styles.kept, { borderTopColor: alpha(t.ink, 0.1) }]}>
-          <T role="micro" tone="faint">
+          <T role="label" tone="faint">
             Kept
           </T>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.keptStrip}>
@@ -109,7 +98,7 @@ export function InspirationLens({ width, inspiration, onCloset }: { width: numbe
               <GarmentTile
                 key={k.id}
                 width={96}
-                aspect={3 / 4}
+                aspect={4 / 5}
                 photo
                 imageUrl={k.imageUrl}
                 label={k.outfit.title ?? k.occasion}
@@ -146,24 +135,24 @@ function LookCard({
   const pieces = look.outfit.pieces ?? []
   const archW = width - PLAQUE_INSET
   return (
-    <Plaque>
-      <Arch width={archW} aspect={3 / 4} variant="photo">
+    <Plaque style={styles.card}>
+      <Arch width={archW} aspect={4 / 5} variant="photo">
         {look.imageUrl ? (
           <Image source={{ uri: resolveImageUrl(look.imageUrl) }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" accessibilityLabel={title} />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.noPicture]}>
-            <T role="bodySm" tone="muted" align="center" style={{ fontFamily: fonts.serifItalic }}>
+            <T role="lede" tone="muted" align="center">
               The picture didn’t come; the pieces did.
             </T>
           </View>
         )}
       </Arch>
-      <T role="h2" style={styles.cardTitle}>
-        {title}
-      </T>
-      <T role="bodySm" tone="muted" style={[styles.rationale, { fontFamily: fonts.serifItalic }]}>
-        {look.rationale}
-      </T>
+      <View style={styles.cardText}>
+        <T role="h3">{title}</T>
+        <T role="lede" tone="muted">
+          {look.rationale}
+        </T>
+      </View>
       {pieces.length > 0 ? (
         <View style={styles.pieces}>
           {pieces.map((p, i) => (
@@ -178,7 +167,7 @@ function LookCard({
       ) : null}
       <View style={styles.actions}>
         <Button label={seeing ? 'Dressing you…' : 'See it on me'} variant="ghost" size="sm" loading={seeing} disabled={busy} onPress={onSee} />
-        <Button label="From my closet" variant="ghost" size="sm" disabled={busy} onPress={onCloset} />
+        <Button label="From my closet" variant="quiet" size="sm" disabled={busy} onPress={onCloset} />
         <Chip label={look.verdict === 'keep' ? 'Kept' : 'Keep'} on={look.verdict === 'keep'} onPress={() => onVerdict('keep')} />
         <Chip label="Not for me" on={look.verdict === 'no'} onPress={() => onVerdict('no')} />
       </View>
@@ -187,18 +176,19 @@ function LookCard({
 }
 
 const styles = StyleSheet.create({
-  // The web's mt-2 / mt-2 / mt-4 / mt-3 / mt-3 / mt-6 / mt-8 pt-5.
-  title: { marginTop: 8 },
-  lead: { marginTop: 8 },
-  form: { marginTop: 16 },
-  chips: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingBottom: 2 },
-  note: { marginTop: 12 },
-  looks: { marginTop: 24, gap: 16 },
-  noPicture: { alignItems: 'center', justifyContent: 'center', padding: 16 },
-  cardTitle: { marginTop: 12 },
-  rationale: { marginTop: 4 },
-  pieces: { gap: 4, marginTop: 12 },
-  actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 8, marginTop: 16 },
-  kept: { marginTop: 32, borderTopWidth: hairline, paddingTop: 20 },
-  keptStrip: { flexDirection: 'row', gap: 12, paddingTop: 12, paddingBottom: 2 },
+  // The lens: its parts 16 apart; the head's lead 8 under the section head.
+  wrap: { gap: space.lg },
+  head: { gap: space.sm },
+  form: { gap: space.lg },
+  chips: { flexDirection: 'row', gap: space.sm, paddingBottom: 2 },
+  looks: { marginTop: space.lg, gap: space.lg },
+  noPicture: { alignItems: 'center', justifyContent: 'center', padding: space.lg },
+  // A card: the picture, the words 16 beneath at 8 apart, the pieces, the action row.
+  card: { gap: space.lg },
+  cardText: { gap: space.sm },
+  pieces: { gap: space.xs },
+  actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: space.lg, rowGap: space.sm },
+  // A block, a hairline, then 16; the label 8 over its strip.
+  kept: { marginTop: space.lg, borderTopWidth: hairline, paddingTop: space.lg, gap: space.sm },
+  keptStrip: { flexDirection: 'row', gap: space.md, paddingBottom: 2 },
 })

@@ -6,21 +6,23 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { clearLookPhoto, getMyRecentLooks, setLookPhotoFromRender, shareLook, unshareLook, type MyLook } from '@zauq/shared/circle'
 import { getTryOns } from '@zauq/shared/tryon'
+import { EmptyState, LoadError } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline } from '@/src/design/tokens'
+import { alpha, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { apiUpload } from '@/src/lib/api'
 import { qk } from '@/src/lib/query'
 import { imageForm, PermissionDenied, pickImages } from '@/src/lib/upload'
-import { Dashed, GarmentThumb, PhotoArch, Press } from '@/src/features/circle/atoms'
+import { GarmentThumb, PhotoArch } from '@/src/features/circle/atoms'
 import { invalidateFeeds } from '@/src/features/circle/cache'
 import { ck } from '@/src/features/circle/keys'
-import { MenuSheet } from '@/src/features/circle/MenuSheet'
-import { SheetFrame } from '@/src/features/circle/SheetFrame'
+import { MenuSheet } from '@/src/components/MenuSheet'
+import { SheetShell } from '@/src/components/Sheet'
 
 function dayLabel(iso: string): string {
   const d = new Date(iso)
@@ -100,29 +102,21 @@ export default function ShareLookSheet() {
   const list = looks.data?.looks
 
   return (
-    <SheetFrame title="Share a look" lead="Your recent wears. Put one on the circle as the pieces, or add a photo of you in it." busy={looks.isPending && !list}>
-      {looks.isError && !list ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            Couldn’t load your recent wears.
-          </T>
-          <Button label="Try again" variant="ghost" size="sm" onPress={() => void looks.refetch()} />
-        </Dashed>
-      ) : null}
+    <SheetShell dense title="Share a look" lead="Your recent wears. Put one on the circle as the pieces, or add a photo of you in it." busy={looks.isPending && !list}>
+      {looks.isError && !list ? <LoadError message="Couldn’t load your recent wears." onRetry={() => void looks.refetch()} /> : null}
       {list && list.length === 0 ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            Nothing logged in the last two weeks.
-          </T>
-          <Button
-            label="Wear today’s brief"
-            size="sm"
-            onPress={() => {
-              router.back()
-              router.push('/(tabs)/today')
-            }}
-          />
-        </Dashed>
+        <EmptyState
+          title="Nothing logged in the last two weeks."
+          action={
+            <Button
+              label="Wear today’s brief"
+              onPress={() => {
+                router.back()
+                router.push('/(tabs)/today')
+              }}
+            />
+          }
+        />
       ) : null}
       {list?.map((l, i) => (
         // The web's list: `gap-3`, each after the first `border-t pt-3`
@@ -150,12 +144,12 @@ export default function ShareLookSheet() {
           <View style={styles.links}>
             {l.photoUrl ? (
               <>
-                <Press accessibilityRole="button" accessibilityLabel="Change photo" onPress={() => setPhotoFor(l.id)}>
+                <Press accessibilityRole="button" accessibilityLabel="Change photo" visual={16} onPress={() => setPhotoFor(l.id)}>
                   <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
                     Change photo
                   </T>
                 </Press>
-                <Press accessibilityRole="button" accessibilityLabel="Remove photo" onPress={() => removePhoto(l.id)}>
+                <Press accessibilityRole="button" accessibilityLabel="Remove photo" visual={16} onPress={() => removePhoto(l.id)}>
                   <T role="caption" tone="faint" style={{ fontFamily: fonts.sansSemi }}>
                     Remove photo
                   </T>
@@ -163,13 +157,13 @@ export default function ShareLookSheet() {
               </>
             ) : (
               <>
-                <Press accessibilityRole="button" accessibilityLabel="Add a photo" onPress={() => setPhotoFor(l.id)}>
+                <Press accessibilityRole="button" accessibilityLabel="Add a photo" visual={16} onPress={() => setPhotoFor(l.id)}>
                   <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
                     Add a photo
                   </T>
                 </Press>
                 {ready.length > 0 ? (
-                  <Press accessibilityRole="button" accessibilityLabel="Use a Mirror render" onPress={() => setPickingRender(pickingRender === l.id ? null : l.id)}>
+                  <Press accessibilityRole="button" accessibilityLabel="Use a Mirror render" visual={16} onPress={() => setPickingRender(pickingRender === l.id ? null : l.id)}>
                     <T role="caption" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
                       {pickingRender === l.id ? 'Cancel' : 'Use a Mirror render'}
                     </T>
@@ -194,21 +188,20 @@ export default function ShareLookSheet() {
         title="A photo of you in it"
         onClose={() => setPhotoFor(null)}
         items={[
-          { label: 'Take a photo', onSelect: () => photoFor && addPhoto(photoFor, 'camera') },
-          { label: 'Choose from your photos', onSelect: () => photoFor && addPhoto(photoFor, 'library') },
+          { label: 'Take a photo', onPress: () => photoFor && addPhoto(photoFor, 'camera') },
+          { label: 'Choose from your photos', onPress: () => photoFor && addPhoto(photoFor, 'library') },
         ]}
       />
-    </SheetFrame>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  look: { gap: 8 },
-  // `flex items-center gap-3`; the thumbs `w-11 gap-1.5`
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  look: { gap: space.sm },
+  // The thumbs, the day and the line, the Share: 12 apart; the thumbs 6 apart.
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   thumbs: { flexDirection: 'row', gap: 6 },
-  // `mt-2 gap-x-3 gap-y-1 pl-0.5`, kept 32 tall for the thumb
-  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4, paddingLeft: 2, minHeight: 32, alignItems: 'center' },
-  // `mt-2 gap-2 pb-1`
-  renders: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
+  // The quiet links, 12 apart, on a 32 line.
+  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: space.md, rowGap: space.xs, paddingLeft: 2, minHeight: 32, alignItems: 'center' },
+  renders: { flexDirection: 'row', gap: space.sm, paddingBottom: space.xs },
 })

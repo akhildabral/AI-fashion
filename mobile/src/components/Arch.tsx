@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Redu
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { EASE_OUT, duration } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, archFoot, bezel as bezelWidths, hairline, radius, rgbaParts } from '@/src/design/tokens'
+import { alpha, arch as archRatios, archFoot, bezel as bezelWidths, hairline, radius, rgbaParts } from '@/src/design/tokens'
 
 export type ArchVariant = 'niche' | 'photo' | 'mirror' | 'plain'
 
@@ -100,6 +100,19 @@ function Sweep({ width, height: h }: { width: number; height: number }) {
         <Rect x={width * 0.3} y={-h} width={width * 0.4} height={h * 3} fill="url(#sweep)" />
       </Svg>
     </Animated.View>
+  )
+}
+
+/**
+ * The Mirror's hero: a 3px brass bezel around the dark reflective surface,
+ * always at 2/3, a standing figure. Pass `height` only to override the ratio
+ * for a fixed box.
+ */
+export function MirrorFrame({ width, height, children, style }: { width: number; height?: number; children?: ReactNode; style?: object }) {
+  return (
+    <Arch width={width} height={height ?? Math.round(width / archRatios.mirror.ratio)} variant="mirror" style={style}>
+      {children}
+    </Arch>
   )
 }
 

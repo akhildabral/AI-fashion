@@ -1,9 +1,9 @@
-import { money } from '@zauq/shared/money'
+import { money, currencySymbol } from '@zauq/shared/money'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { addCandidate, deleteWardrobeItem, getVerdict, updateWardrobeItem, type VerdictResponse } from '@zauq/shared/wardrobe'
-import { PageShell, Toast, useFlash } from '../components/ui'
+import { PageShell, Toast, useFlash, Eyebrow, Arch, Plaque } from '../components/ui'
 import { LookBoard } from '../components/LookBoard'
 import { resolveImageUrl } from '../lib/api'
 import type { WardrobeItem } from '@zauq/shared/types'
@@ -169,11 +169,11 @@ export function StorePage() {
       {stage === 'viewfinder' && (
         <div className="animate-rise grid gap-8 sm:grid-cols-[minmax(0,1fr)_260px] sm:grid-rows-[auto_auto] sm:items-start sm:gap-x-10 sm:gap-y-6 md:grid-cols-[minmax(0,1fr)_300px] md:gap-x-12">
           <div className="min-w-0 sm:col-start-1 sm:row-start-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
-            <h1 className="mt-1 font-display text-5xl font-medium leading-[1.0] text-ink sm:text-6xl">
-              Hold it <em className="text-brass">up.</em>
+            <Eyebrow>In the store</Eyebrow>
+            <h1 className="page-title mt-2">
+              Hold it <em className="text-brass-ink">up.</em>
             </h1>
-            <p className="mt-4 max-w-md font-display text-lg italic text-ink/60">One clear shot of the piece; the label can wait. Your closet answers in a moment.</p>
+            <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-ink/55">One clear shot of the piece; the label can wait. Your closet answers in a moment.</p>
             <div className="action-row mt-6">
               <button type="button" onClick={() => camera.current?.click()} className="btn-primary">
                 Open the camera
@@ -199,21 +199,21 @@ export function StorePage() {
             </div>
           </div>
           <div className="min-w-0 sm:col-start-1 sm:row-start-2">
-            <ol className="max-w-md space-y-3 border-t border-ink/10 pt-6 text-sm text-ink/60">
+            <ol className="max-w-md space-y-4 border-t border-ink/10 pt-6 text-sm text-ink/60">
               <li className="flex gap-3">
-                <span className="w-5 shrink-0 font-display text-base text-brass">1</span>
+                <span className="w-5 shrink-0 font-display text-base text-brass-ink">1</span>
                 <span>
                   <b className="font-semibold text-ink">One shot.</b> The same reading that catalogues your closet reads the piece: colour, cut, warmth.
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="w-5 shrink-0 font-display text-base text-brass">2</span>
+                <span className="w-5 shrink-0 font-display text-base text-brass-ink">2</span>
                 <span>
                   <b className="font-semibold text-ink">The closet answers.</b> How many outfits it unlocks, what it goes with, and what each wear would cost.
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="w-5 shrink-0 font-display text-base text-brass">3</span>
+                <span className="w-5 shrink-0 font-display text-base text-brass-ink">3</span>
                 <span>
                   <b className="font-semibold text-ink">Keep it in mind, pass, or buy.</b> A kept piece waits on your wishlist and nudges you in a fortnight.
                 </span>
@@ -226,16 +226,17 @@ export function StorePage() {
       {/* Reading */}
       {stage === 'reading' && (
         <div className="animate-rise">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
-          <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">Reading the piece…</h1>
+          <Eyebrow>In the store</Eyebrow>
+          <h1 className="page-title mt-2">Reading the piece…</h1>
           <p className="mt-3 font-display text-lg italic text-ink/60" aria-live="polite">
             {READING_LINES[line]}
           </p>
-          <div className="arch-bezel mt-8 aspect-[3/4] max-w-[320px]">
-            <div className="arch-niche relative h-full w-full">
+          <div className="mt-8 max-w-[320px]">
+            <Arch aspect="aspect-[3/4]">
               {preview && <img src={preview} alt="" className="relative z-[1] h-full w-full object-cover opacity-60 blur-[1px]" />}
               <span className="animate-filament absolute left-1/2 top-0 z-[2] h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-brass/70 to-transparent" />
-            </div>
+              <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-in-niche)]">developing</span>
+            </Arch>
           </div>
         </div>
       )}
@@ -243,10 +244,10 @@ export function StorePage() {
       {/* Failed */}
       {stage === 'failed' && (
         <div className="animate-rise">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">In the store</p>
-          <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink">That one didn’t read.</h1>
-          <p className="mt-3 max-w-md font-display text-lg italic text-ink/60">Try a shot with the whole piece in frame, on a plain background if you can.</p>
-          <div className="mt-6 flex gap-3">
+          <Eyebrow>In the store</Eyebrow>
+          <h1 className="page-title mt-2">That one didn’t read.</h1>
+          <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-ink/55">Try a shot with the whole piece in frame, on a plain background if you can.</p>
+          <div className="action-row mt-6">
             <button type="button" onClick={() => void pass().then(reset)} className="btn-primary">
               Try again
             </button>
@@ -257,40 +258,40 @@ export function StorePage() {
       {/* Verdict */}
       {stage === 'verdict' && v && piece && (
         <div>
-          <p className="animate-rise text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{label}</p>
-          <h1 className="mt-1 animate-rise-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
+          <Eyebrow className="animate-rise">{label}</Eyebrow>
+          <h1 className="page-title mt-2 animate-rise-1">
             {v.verdict.outfits >= 3 ? (
               <>
-                It <em className="text-brass">earns its place.</em>
+                It <em className="text-brass-ink">earns its place.</em>
               </>
             ) : v.verdict.outfits > 0 ? (
               <>
-                It <em className="text-brass">could work.</em>
+                It <em className="text-brass-ink">could work.</em>
               </>
             ) : (
               <>
-                Not <em className="text-brass">yet.</em>
+                Not <em className="text-brass-ink">yet.</em>
               </>
             )}
           </h1>
-          <div className="mt-5 flex animate-rise-2 items-end gap-3">
-            <span className="font-display text-7xl leading-none text-brass [font-variant-numeric:tabular-nums]">
-              <CountUp to={v.verdict.outfits} />
-            </span>
-            <span className="pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink/50">outfit{v.verdict.outfits === 1 ? '' : 's'} with what you own</span>
+          <div className="mt-6 animate-rise-2">
+            <Plaque
+              label="The verdict"
+              value={<CountUp to={v.verdict.outfits} />}
+              note={`outfit${v.verdict.outfits === 1 ? '' : 's'} with what you own`}
+            >
+              <p className="mt-2 text-sm text-ink/60">
+                Pairs with <b className="text-ink">{v.verdict.pairs} of your {v.verdict.closetSize}</b> pieces.
+                {v.verdict.outfits === 0 && v.verdict.closetSize > 0 && ' The closet needs a bottom or shoes that meet it halfway.'}
+              </p>
+            </Plaque>
           </div>
-          <p className="mt-2 animate-rise-2 text-sm text-ink/60">
-            Pairs with <b className="text-ink">{v.verdict.pairs} of your {v.verdict.closetSize}</b> pieces.
-            {v.verdict.outfits === 0 && v.verdict.closetSize > 0 && ' The closet needs a bottom or shoes that meet it halfway.'}
-          </p>
 
           {/* The piece and its outfits */}
-          <div className="mt-6 grid animate-rise-3 grid-cols-[96px_1fr] gap-4">
-            <div className="arch-bezel aspect-[5/6]">
-              <div className="arch-niche h-full w-full">
-                <img src={resolveImageUrl(piece.imageUrl)} alt={label} className="relative z-[1] h-full w-full object-contain p-[8%]" />
-              </div>
-            </div>
+          <div className="mt-8 grid animate-rise-3 grid-cols-[96px_1fr] gap-4">
+            <Arch aspect="aspect-[5/6]">
+              <img src={resolveImageUrl(piece.imageUrl)} alt={label} className="relative z-[1] h-full w-full object-contain p-[7%]" />
+            </Arch>
             <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
               {v.outfits.map((o, i) => (
                 <div key={i} className="w-[220px] flex-none">
@@ -302,29 +303,27 @@ export function StorePage() {
           </div>
 
           {v.closest && (
-            <div className="plaque mt-5 animate-rise-3 p-4 pl-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Worth knowing</p>
+            <Plaque className="mt-6 animate-rise-3" label="Worth knowing">
               <p className="mt-1 text-sm text-ink">
                 Closest thing you own: the {[v.closest.item.primaryColor, v.closest.item.subtype ?? v.closest.item.category].filter(Boolean).join(' ')}
                 {v.closest.wears > 0 ? `, worn ${v.closest.wears}×` : ', never worn'}.{' '}
                 <span className="text-ink/55">{v.closest.likeness >= 6 ? 'Close to a duplicate.' : 'Not a duplicate.'}</span>
               </p>
-            </div>
+            </Plaque>
           )}
           {v.unlockLine && (
-            <div className="plaque mt-3 animate-rise-3 p-4 pl-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">It would unlock more</p>
+            <Plaque className="mt-4 animate-rise-3" label="It would unlock more">
               <p className="mt-1 text-sm text-ink">{v.unlockLine}</p>
-            </div>
+            </Plaque>
           )}
 
           {/* Where and how much — optional, one line */}
-          <div className="mt-5 grid animate-rise-3 grid-cols-[1fr_120px] gap-2">
+          <div className="mt-8 grid animate-rise-3 grid-cols-[1fr_120px] gap-2">
             <input value={store} onChange={(e) => setStore(e.target.value)} className="field" placeholder="Where you saw it (optional)" />
-            <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" className="field" placeholder="₹ price" />
+            <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" className="field" placeholder={`${currencySymbol()} price`} />
           </div>
 
-          <div className="action-row mt-5 animate-rise-3">
+          <div className="action-row mt-4 animate-rise-3">
             <button type="button" disabled={busy} onClick={() => void keep()} className="btn-primary">
               Keep in mind
             </button>
@@ -335,8 +334,8 @@ export function StorePage() {
               I’m buying it
             </button>
           </div>
-          <label className="mt-3 flex animate-rise-3 items-center gap-2 text-xs text-ink/50">
-            <input type="checkbox" checked={nudge === '2w'} onChange={(e) => setNudge(e.target.checked ? '2w' : 'none')} className="h-3.5 w-3.5 accent-iris" />
+          <label className="mt-4 flex animate-rise-3 items-center gap-2 text-xs text-ink/50">
+            <input type="checkbox" checked={nudge === '2w'} onChange={(e) => setNudge(e.target.checked ? '2w' : 'none')} className="h-4 w-4 accent-iris" />
             Nudge me in two weeks if it’s still on my mind
           </label>
         </div>
@@ -345,11 +344,11 @@ export function StorePage() {
       {/* Kept */}
       {stage === 'kept' && piece && (
         <div className="animate-rise">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Wishlist</p>
-          <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
-            Kept <em className="text-brass">in mind.</em>
+          <Eyebrow>Wishlist</Eyebrow>
+          <h1 className="page-title mt-2">
+            Kept <em className="text-brass-ink">in mind.</em>
           </h1>
-          <p className="mt-3 max-w-md font-display text-lg italic text-ink/60">
+          <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-ink/55">
             The {label} is in your wishlist with its verdict{price ? `, ${inr(Number(price))}` : ''}
             {store.trim() ? `, seen at ${store.trim()}` : ''}. The stylist reads it too: if the brief is ever one piece short, it says which.
           </p>
@@ -367,11 +366,11 @@ export function StorePage() {
       {/* Bought */}
       {stage === 'bought' && piece && (
         <div className="animate-rise">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Closet · Pieces</p>
-          <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
-            In the <em className="text-brass">closet.</em>
+          <Eyebrow>Closet · Pieces</Eyebrow>
+          <h1 className="page-title mt-2">
+            In the <em className="text-brass-ink">closet.</em>
           </h1>
-          <p className="mt-3 max-w-md font-display text-lg italic text-ink/60">The {label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.</p>
+          <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-ink/55">The {label} is a piece now. Its outfits are in the Outfits room, and tomorrow’s brief already knows it’s there.</p>
           <div className="action-row mt-6">
             <button type="button" onClick={() => navigate(`/closet/compose?pin=${piece.id}`)} className="btn-primary">
               Wear it first with…

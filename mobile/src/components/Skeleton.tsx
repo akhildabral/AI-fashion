@@ -25,26 +25,29 @@ export function SkeletonBlock({ width = '100%', height = 16, style }: { width?: 
   return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: alpha(t.ink, 0.1) }, pulse, style]} />
 }
 
-function ArchCell({ width, index }: { width: number; index: number }) {
+function ArchCell({ width, aspect, index }: { width: number; aspect: number; index: number }) {
   const pulse = usePulse(index)
   return (
     <Animated.View style={[pulse, styles.cell, { width }]}>
-      <Arch width={width} bezel={false} variant="plain" />
+      <Arch width={width} aspect={aspect} bezel={false} variant="plain" />
     </Animated.View>
   )
 }
 
-/** A grid of empty arches while garments load, at 60% so it reads as absent rather than empty. */
-export function ArchSkeleton({ count = 4, width, columns = 2 }: { count?: number; width: number; columns?: number }) {
-  const cell = (width - 12 * (columns - 1)) / columns
+/** A grid of empty arches while garments load, at 60% so it reads as absent rather than empty. Two columns, 12 apart, at 5/6 unless told otherwise. */
+export function ArchSkeleton({ count = 4, width, columns = 2, aspect = 5 / 6 }: { count?: number; width: number; columns?: number; aspect?: number }) {
+  const cell = Math.floor((width - GRID_GAP * (columns - 1)) / columns)
   return (
-    <View style={[styles.grid, { gap: 12 }]} accessibilityState={{ busy: true }}>
+    <View style={[styles.grid, { gap: GRID_GAP }]} accessibilityLabel="Loading" accessibilityState={{ busy: true }}>
       {Array.from({ length: count }).map((_, i) => (
-        <ArchCell key={i} width={cell} index={i} />
+        <ArchCell key={i} width={cell} aspect={aspect} index={i} />
       ))}
     </View>
   )
 }
+
+/** The gap inside every board: 12, the same across and down. */
+export const GRID_GAP = 12
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },

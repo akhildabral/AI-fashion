@@ -73,7 +73,7 @@ export default function Push() {
       }
     >
       <View style={styles.group}>
-        <T role="micro" tone="faint" style={styles.tracked}>
+        <T role="label" tone="faint">
           Which hour
         </T>
         <View style={styles.chips} accessibilityRole="radiogroup">
@@ -95,8 +95,8 @@ export default function Push() {
 }
 
 const styles = StyleSheet.create({
-  group: { gap: space.md },
+  // Label to line: 8.
+  group: { gap: space.sm },
   chips: { flexDirection: 'row', gap: space.sm },
   center: { alignSelf: 'center' },
-  tracked: { letterSpacing: 2 },
 })

@@ -1,7 +1,7 @@
 // A new trip: a destination and dates become a capsule packed from the
 // closet. Preview it day by day, add a look where a day needs two, then save
 // it and the trip becomes a page. The web's PackingPage form and preview:
-// `card p-5`, the preview 40 below and its sections 40 apart.
+// a form card, the preview a group (40) below and its sections 40 apart.
 import { useMutation } from '@tanstack/react-query'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -14,7 +14,7 @@ import { SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { ActionBar, ACTION_BAR_HEIGHT } from '@/src/components/Room'
+import { ActionRow, useBottomReserve } from '@/src/components/Room'
 import { Screen } from '@/src/components/Screen'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
@@ -50,6 +50,7 @@ export default function NewTrip() {
   const flash = useFlash()
   const { t } = useTheme()
   const { width } = useWindowDimensions()
+  const bottom = useBottomReserve()
   const today = dayKey(new Date())
   const [destination, setDestination] = useState('')
   const [startDate, setStartDate] = useState(today)
@@ -139,7 +140,7 @@ export default function NewTrip() {
     <>
       <Stack.Screen options={{ headerShown: true, title: 'A new trip' }} />
       <Screen>
-        <KeyboardAwareScrollView bottomOffset={40} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView bottomOffset={40} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.body, { paddingBottom: bottom }]} showsVerticalScrollIndicator={false}>
           <Card padding="form">
             <T role="micro" tone="brass">
               A new trip
@@ -259,31 +260,34 @@ export default function NewTrip() {
               ) : null}
             </View>
           ) : null}
+
+          {/* the form's verb at its end; once there is a plan, the plan's */}
+          <ActionRow>
+            {result ? (
+              <>
+                <Button label="Save the trip" block style={styles.grow} loading={save.isPending} disabled={pack.isPending} onPress={() => save.mutate()} />
+                <Button label="Replan" variant="ghost" loading={pack.isPending} disabled={save.isPending} onPress={submit} />
+              </>
+            ) : (
+              <Button label="Plan the capsule" block loading={pack.isPending} onPress={submit} />
+            )}
+          </ActionRow>
         </KeyboardAwareScrollView>
-        <ActionBar>
-          {result ? (
-            <>
-              <Button label="Replan" variant="ghost" loading={pack.isPending} disabled={save.isPending} onPress={submit} />
-              <Button label="Save the trip" block style={styles.grow} loading={save.isPending} disabled={pack.isPending} onPress={() => save.mutate()} />
-            </>
-          ) : (
-            <Button label="Plan the capsule" block loading={pack.isPending} onPress={submit} />
-          )}
-        </ActionBar>
       </Screen>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: ACTION_BAR_HEIGHT + space.xl },
-  // The web's `mt-3 grid gap-4` under the card's label.
-  fields: { marginTop: space.md, gap: space.lg },
+  body: { paddingHorizontal: gutter, paddingTop: space.md },
+  // The fields 8 under the card's label (label to line), 16 apart.
+  fields: { marginTop: space.sm, gap: space.lg },
   dates: { flexDirection: 'row', gap: space.lg },
   half: { flex: 1 },
   other: { marginTop: space.md },
-  preview: { marginTop: 40, gap: 40 },
-  lead: { marginTop: space.xs },
+  preview: { marginTop: space.xxxl, gap: space.xxxl },
+  // A section head and its line: 8.
+  lead: { marginTop: space.sm },
   afterHead: { marginTop: space.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP, marginTop: space.lg },
   day: { paddingVertical: space.lg },

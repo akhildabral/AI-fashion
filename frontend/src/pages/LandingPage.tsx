@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
-import { Arch } from '../components/ui'
+import { Alert, Arch } from '../components/ui'
 import { money } from '@zauq/shared/money'
 
 // The front door. A walk through the rooms — the morning, the mirror, the
@@ -61,9 +61,9 @@ function Doors({ compact = false }: { compact?: boolean }) {
           {busy ? <Spinner className="h-4 w-4" /> : 'Join the waitlist'}
         </button>
       </form>
-      {error && <p className="alert-error">{error}</p>}
+      {error && <Alert>{error}</Alert>}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <button type="button" onClick={() => setCodeOpen((v) => !v)} className="press font-semibold text-brass underline-offset-4 hover:underline">
+        <button type="button" onClick={() => setCodeOpen((v) => !v)} className="press font-semibold text-accent-text underline-offset-4 hover:underline">
           Have an invite? Come in →
         </button>
         <span className="text-ink/45">Invite-only while we grow.</span>
@@ -102,13 +102,14 @@ function BeforeAfter() {
   )
 }
 
+/** A room: an eyebrow, a Bodoni line, one sentence, and a photograph. 1 → 2 columns at md, gap 40, the picture side alternating. */
 function Room({ k, title, line, children, flip = false }: { k: string; title: React.ReactNode; line: string; children: React.ReactNode; flip?: boolean }) {
   return (
     <section className="border-t border-ink/10 py-12 sm:py-16">
       <div className={`grid items-center gap-10 md:grid-cols-2 ${flip ? 'md:[&>*:first-child]:order-2' : ''}`}>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{k}</p>
-          <h2 className="mt-2 font-display text-3xl font-medium leading-[1.04] text-ink sm:text-4xl [text-wrap:balance]">{title}</h2>
+          <p className="eyebrow">{k}</p>
+          <h2 className="page-title mt-2 [text-wrap:balance]">{title}</h2>
           <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink/60">{line}</p>
         </div>
         <div>{children}</div>
@@ -117,9 +118,10 @@ function Room({ k, title, line, children, flip = false }: { k: string; title: Re
   )
 }
 
+/** A scene is a photograph: a 3px rectangle with a hairline, never an arch. */
 function Photo({ name, alt, tall = false, children }: { name: string; alt: string; tall?: boolean; children?: React.ReactNode }) {
   return (
-    <div className={`relative overflow-hidden rounded-[3px] bg-surface ${tall ? 'aspect-[3/4]' : 'aspect-[4/3]'}`}>
+    <div className={`relative overflow-hidden rounded-[3px] border border-ink/10 bg-surface ${tall ? 'aspect-[3/4]' : 'aspect-[4/3]'}`}>
       <img src={`${A}/${name}.webp`} alt={alt} width={1024} height={1024} loading="lazy" className="h-full w-full object-cover" />
       {children}
     </div>
@@ -136,15 +138,16 @@ const OUTFIT = [
 export function LandingPage() {
   usePageTitle('Every morning, an outfit')
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      {/* ---- hero: the mirror, and the doors ---- */}
+    // The marketing measure: 1152 wide, the shell's own padding; sections 48 → 64 apart.
+    <div className="mx-auto max-w-shell px-4 sm:px-6">
+      {/* ---- hero: the mirror, and the doors. The copy is deliberately the wider half. ---- */}
       <section className="grid items-center gap-10 py-12 md:grid-cols-[1.05fr_0.95fr] md:py-20">
         <div>
-          <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">A personal stylist for the clothes you own</p>
+          <p className="animate-rise text-[11px] font-semibold uppercase tracking-eyebrow-wide text-accent-text">A personal stylist for the clothes you own</p>
           <h1 className="mt-4 animate-rise-1 font-display text-5xl font-medium leading-[0.98] tracking-[-0.01em] text-ink sm:text-6xl lg:text-7xl [text-wrap:balance]">
-            Every morning, an outfit. <em className="text-brass">Already waiting.</em>
+            Every morning, an outfit. <em className="text-accent-text">Already waiting.</em>
           </h1>
-          <p className="mt-5 max-w-lg animate-rise-2 font-display text-lg italic text-ink/60 sm:text-xl">It knows your closet. It lays out the look, shows it on you, and keeps score of what you wear.</p>
+          <p className="mt-5 max-w-lg animate-rise-2 font-display text-xl italic text-ink/60">It knows your closet. It lays out the look, shows it on you, and keeps score of what you wear.</p>
           <div className="mt-8 animate-rise-3">
             <Doors />
           </div>
@@ -157,30 +160,30 @@ export function LandingPage() {
       </section>
 
       {/* ---- the morning ---- */}
-      <Room k="The morning" title={<>Open the app. <em className="text-brass">It’s laid out.</em></>} line="For the day you have and the weather outside, from what’s clean.">
+      <Room k="The morning" title={<>Open the app. <em className="text-accent-text">It’s laid out.</em></>} line="For the day you have and the weather outside, from what’s clean.">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {OUTFIT.map(([n, label]) => (
             <div key={n}>
               <Arch aspect="aspect-[3/4]" className="w-full">
                 <img src={`${A}/${n}.webp`} alt={label} width={480} height={600} loading="lazy" className="relative z-[1] h-full w-full object-contain p-[9%]" />
               </Arch>
-              <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/55">{label}</p>
+              <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-label-xs text-ink/70">{label}</p>
             </div>
           ))}
         </div>
       </Room>
 
       {/* ---- the mirror ---- */}
-      <Room flip k="The mirror" title={<>See it on you <em className="text-brass">first.</em></>} line="Any outfit, on your own photo. Drag the seam.">
+      <Room flip k="The mirror" title={<>See it on you <em className="text-accent-text">first.</em></>} line="Any outfit, on your own photo. Drag the seam.">
         <BeforeAfter />
       </Room>
 
       {/* ---- the ledger ---- */}
-      <Room k="The ledger" title={<>Your closet, <em className="text-brass">working.</em></>} line="Every wear logged. Every piece earning its keep.">
+      <Room k="The ledger" title={<>Your closet, <em className="text-accent-text">working.</em></>} line="Every wear logged. Every piece earning its keep.">
         <Photo name="closet" alt="A wardrobe lit by one lamp" tall>
           <div className="plaque absolute inset-x-4 bottom-4 p-4 pl-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Your closet is working</p>
-            <p className="mt-1 font-display text-4xl font-medium text-brass [font-variant-numeric:tabular-nums]">
+            <p className="text-[10px] font-semibold uppercase tracking-label-xl text-ink/45">Your closet is working</p>
+            <p className="mt-1 font-display text-4xl font-medium leading-[1.1] text-accent-text [font-variant-numeric:tabular-nums]">
               {money(41460, { currency: 'AED' })} <span className="font-sans text-sm font-normal text-ink/55">earned back this month</span>
             </p>
           </div>
@@ -188,19 +191,19 @@ export function LandingPage() {
       </Room>
 
       {/* ---- the store ---- */}
-      <Room flip k="The store" title={<>Point your camera <em className="text-brass">at it.</em></>} line="Does it go with what you own? Your closet answers before you pay.">
+      <Room flip k="The store" title={<>Point your camera <em className="text-accent-text">at it.</em></>} line="Does it go with what you own? Your closet answers before you pay.">
         <Photo name="store" alt="A phone held up to a coat in a boutique">
           <div className="card absolute inset-x-4 bottom-4 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">In the store</p>
+            <p className="text-[10px] font-semibold uppercase tracking-label-xl text-accent-text">In the store</p>
             <p className="mt-1 font-display text-lg text-ink">
-              Goes with <em className="text-brass">7 of your pieces</em>. Unlocks 4 outfits.
+              Goes with <em className="text-accent-text">7 of your pieces</em>. Unlocks 4 outfits.
             </p>
           </div>
         </Photo>
       </Room>
 
       {/* ---- the circle ---- */}
-      <Room k="The circle" title={<>A few people <em className="text-brass">you trust.</em></>} line="Ask which. Let a friend dress you. Invite-only, five invites each.">
+      <Room k="The circle" title={<>A few people <em className="text-accent-text">you trust.</em></>} line="Ask which. Let a friend dress you. Invite-only, five invites each.">
         <Photo name="friends" alt="Two friends comparing outfits on a phone" />
       </Room>
 
@@ -209,9 +212,9 @@ export function LandingPage() {
         <Photo name="morning" alt="An outfit laid out on a chair at dawn">
           <span className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">The first morning</span>
         </Photo>
-        <p className="mt-10 text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">How it gets in</p>
-        <h2 className="mt-2 font-display text-3xl font-medium leading-[1.04] text-ink sm:text-4xl">
-          Invite-only, <em className="text-brass">on purpose.</em>
+        <p className="mt-10 eyebrow">How it gets in</p>
+        <h2 className="page-title mt-2">
+          Invite-only, <em className="text-accent-text">on purpose.</em>
         </h2>
         <ol className="mt-6 grid gap-4 sm:grid-cols-3">
           {[
@@ -220,7 +223,7 @@ export function LandingPage() {
             ['3', 'Tomorrow, an outfit is waiting.'],
           ].map(([n, t]) => (
             <li key={n} className="border-t border-ink/20 pt-3">
-              <span className="font-display text-2xl text-brass">{n}</span>
+              <span className="font-display text-2xl font-medium text-accent-text">{n}</span>
               <p className="mt-1 text-[15px] text-ink/75">{t}</p>
             </li>
           ))}
@@ -243,7 +246,7 @@ export function LandingPage() {
           </Link>
           <span>
             Already a member?{' '}
-            <Link to="/login" className="font-semibold text-brass underline-offset-4 hover:underline">
+            <Link to="/login" className="font-semibold text-accent-text underline-offset-4 hover:underline">
               Sign in
             </Link>
           </span>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
 import { generateLooks, getLooks, recreateLook, setLookVerdict, tryOnLook, type InspirationLook, type RecreateLookResponse } from '@zauq/shared/looks'
 import type { TryOn } from '@zauq/shared/types'
-import { Arch, Modal } from './ui'
+import { Arch, Modal, SectionHead, Chip, Alert, SkeletonBlock } from './ui'
 import { Spinner } from './Spinner'
 
 const CHIPS: { key: string; label: string; ask?: string }[] = [
@@ -113,13 +113,18 @@ export function InspirationLens({
 
   return (
     <section>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Inspiration</p>
-      <h2 className="mt-2 font-display text-3xl font-medium leading-none text-ink">
-        A look <em className="text-brass">for the fun of it.</em>
-      </h2>
-      <p className="mt-2 max-w-xl text-sm text-ink/55">Not from your closet. A mood, a place, an evening, or a surprise. Two looks on a model; see them on you, or make them from what you own.</p>
+      <SectionHead
+        eyebrow="Inspiration"
+        className="!mb-0"
+        title={
+          <>
+            A look <em className="text-brass-ink">for the fun of it.</em>
+          </>
+        }
+      />
+      <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink/55">Not from your closet. A mood, a place, an evening, or a surprise. Two looks on a model; see them on you, or make them from what you own.</p>
 
-      <form onSubmit={(e) => void submit(e)} className="mt-4">
+      <form onSubmit={(e) => void submit(e)} className="mt-6">
         <label htmlFor="inspire-ask" className="sr-only">
           A mood, a place, an occasion
         </label>
@@ -135,22 +140,18 @@ export function InspirationLens({
             )}
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {CHIPS.map((c) => (
-            <button key={c.key} type="button" disabled={busy === 'ask'} onClick={() => { setChip(c.key); setAsk('') }} className={`chip ${chip === c.key && !ask ? 'chip-on' : ''}`}>
+            <Chip key={c.key} disabled={busy === 'ask'} onClick={() => { setChip(c.key); setAsk('') }} on={chip === c.key && !ask}>
               {c.label}
-            </button>
+            </Chip>
           ))}
         </div>
-        {error && (
-          <p className="mt-3 alert-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Alert className="mt-4">{error}</Alert>}
       </form>
 
       {looks.length > 0 && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:gap-6">
           {looks.map((look) => (
             <LookCard key={look.id} look={look} busy={busy} hasPhoto={hasPhoto} onSee={() => void seeOnMe(look)} onCloset={() => void fromCloset(look)} onVerdict={(v) => void verdict(look, v)} />
           ))}
@@ -158,9 +159,9 @@ export function InspirationLens({
       )}
 
       {kept.length > 0 && (
-        <div className="mt-8 border-t border-ink/10 pt-5">
+        <div className="mt-10 border-t border-ink/10 pt-6">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Kept</p>
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
             {kept.map((k) => (
               <button key={k.id} type="button" onClick={() => setLooks((ls) => (ls.some((l) => l.id === k.id) ? ls : [k, ...ls]))} className="press w-24 shrink-0 text-left" title={k.outfit.title ?? k.occasion}>
                 <Arch className="arch-photo" aspect="aspect-[3/4]">
@@ -178,9 +179,14 @@ export function InspirationLens({
           <div>
             <p className="font-display text-lg italic text-ink/70">{closetFor.outfit.title ?? closetFor.occasion}</p>
             {!closet ? (
-              <p className="mt-3 flex items-center gap-2 text-sm text-ink/55">
-                <Spinner className="h-4 w-4" /> Looking through your closet…
-              </p>
+              <div className="mt-4" aria-busy="true" aria-label="Looking through your closet">
+                <SkeletonBlock className="h-4 w-2/3" />
+                <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {[0, 1, 2, 3].map((i) => (
+                    <SkeletonBlock key={i} className="aspect-[5/6]" style={{ animationDelay: `${i * 80}ms` }} />
+                  ))}
+                </div>
+              </div>
             ) : (
               <>
                 <p className="mt-2 text-sm text-ink/70">
@@ -195,21 +201,21 @@ export function InspirationLens({
                         <img src={resolveImageUrl(p.item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[7%]" />
                       </Arch>
                       <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/70">{p.item.subtype ?? p.item.category}</p>
-                      <p className="truncate text-[10px] text-brass">{p.band === 'sure' ? 'yours' : `close · for the ${p.piece.subtype}`}</p>
+                      <p className="truncate text-[10px] text-brass-ink">{p.band === 'sure' ? 'yours' : `close · for the ${p.piece.subtype}`}</p>
                     </div>
                   ))}
                   {closet.missing.map((m, i) => (
                     <div key={i} className="text-center">
                       <Arch aspect="aspect-[5/6]">
-                        {/* The niche is bone in both themes; the ink token is not. */}
-                        <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight" style={{ color: '#6b5f4a' }}>{m.color} {m.subtype}</span>
+                        {/* The niche stays light in both themes: theme-invariant ink inside it. */}
+                        <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight text-[var(--text-in-niche-muted)]">{m.color} {m.subtype}</span>
                       </Arch>
                       <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/70">{m.subtype}</p>
                       <p className="truncate text-[10px] text-[rgb(var(--c-danger))]">missing</p>
                     </div>
                   ))}
                 </div>
-                <div className="action-row mt-5">
+                <div className="action-row mt-6">
                   {closet.itemIds.length > 0 && (
                     <button type="button" onClick={() => navigate(`/mirror?items=${closet.itemIds.join(',')}`)} className="btn-primary btn-sm">
                       Your version, on the rail
@@ -237,7 +243,7 @@ function LookCard({ look, busy, hasPhoto, onSee, onCloset, onVerdict }: { look: 
   const title = look.outfit.title ?? look.occasion
   const pieces = look.outfit.pieces ?? []
   return (
-    <article className="plaque p-4">
+    <article className="card p-4">
       <Arch className="arch-photo" aspect="aspect-[3/4]">
         {look.imageUrl ? (
           <img src={resolveImageUrl(look.imageUrl)} alt={title} className="h-full w-full object-cover" />
@@ -245,10 +251,10 @@ function LookCard({ look, busy, hasPhoto, onSee, onCloset, onVerdict }: { look: 
           <span className="grid h-full place-items-center p-4 text-center font-display text-sm italic text-ink/50">The picture didn’t come; the pieces did.</span>
         )}
       </Arch>
-      <h3 className="mt-3 font-display text-2xl font-medium leading-tight text-ink">{title}</h3>
-      <p className="mt-1 font-display text-sm italic text-ink/55">{look.rationale}</p>
+      <h3 className="mt-4 font-display text-2xl font-medium leading-tight text-ink">{title}</h3>
+      <p className="mt-2 font-display text-sm italic text-ink/55">{look.rationale}</p>
       {pieces.length > 0 && (
-        <ul className="mt-3 grid gap-1 text-xs text-ink/70">
+        <ul className="mt-4 grid gap-1 text-xs text-ink/70">
           {pieces.map((p, i) => (
             <li key={i}>
               <b className="font-semibold text-ink">{p.category === 'accessory' ? 'Extra' : p.category[0].toUpperCase() + p.category.slice(1)}</b> · {p.color} {p.subtype}
@@ -264,12 +270,12 @@ function LookCard({ look, busy, hasPhoto, onSee, onCloset, onVerdict }: { look: 
         <button type="button" disabled={busy !== null} onClick={onCloset} className="btn-ghost btn-sm">
           From my closet
         </button>
-        <button type="button" onClick={() => onVerdict('keep')} className={`chip ${look.verdict === 'keep' ? 'chip-on' : ''}`}>
+        <Chip onClick={() => onVerdict('keep')} on={look.verdict === 'keep'}>
           {look.verdict === 'keep' ? 'Kept' : 'Keep'}
-        </button>
-        <button type="button" onClick={() => onVerdict('no')} className={`chip ${look.verdict === 'no' ? 'chip-on' : ''}`}>
+        </Chip>
+        <Chip onClick={() => onVerdict('no')} on={look.verdict === 'no'}>
           Not for me
-        </button>
+        </Chip>
       </div>
     </article>
   )

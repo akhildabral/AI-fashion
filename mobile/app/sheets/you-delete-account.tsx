@@ -9,7 +9,7 @@ import { T } from '@/src/components/Text'
 import { useAuth } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
 import { space } from '@/src/design/tokens'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function DeleteAccountSheet() {
   const router = useRouter()
@@ -36,9 +36,9 @@ export default function DeleteAccountSheet() {
   }
 
   return (
-    <SheetShell
+    <SheetShell dense
       title="Delete the account"
-      foot={
+      footer={
         <>
           <Button label="Delete everything" variant="danger" disabled={!ok} loading={busy} onPress={() => void go()} />
           <Button label="Keep my account" variant="quiet" disabled={busy} onPress={() => router.back()} />

@@ -118,7 +118,8 @@ export function LockGate({ active, children }: LockGateProps) {
           <Screen edges={['top', 'bottom']} padded>
             <View style={styles.body}>
               <ArchMark size={56} variant="script" />
-              <Wordmark />
+              {/* A 26 cap height keeps the 3.5:1 wordmark above its 88px floor. */}
+              <Wordmark size={26} />
               {enabled ? (
                 <>
                   <T role="body" tone="muted" align="center" style={styles.line}>

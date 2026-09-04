@@ -10,7 +10,7 @@ import * as haptics from '@/src/design/haptics'
 import { apiFetch } from '@/src/lib/api'
 import { queryClient } from '@/src/lib/query'
 import { youKeys } from '@/src/features/you/keys'
-import { SheetShell } from '@/src/features/you/SheetShell'
+import { SheetShell } from '@/src/components/Sheet'
 
 export default function AdminResetSheet() {
   const router = useRouter()
@@ -34,9 +34,9 @@ export default function AdminResetSheet() {
   })
 
   return (
-    <SheetShell
+    <SheetShell dense
       title="Reset a password"
-      foot={
+      footer={
         <>
           <Button label="Set the password" disabled={!ok} loading={reset.isPending} onPress={() => reset.mutate()} />
           <Button label="Cancel" variant="quiet" disabled={reset.isPending} onPress={() => router.back()} />

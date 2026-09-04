@@ -4,6 +4,7 @@ import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { DoorShell, SignInLink } from '../components/DoorShell'
+import { FieldError } from '../components/ui'
 
 // Forgot your password: one field, one button, then "check your inbox".
 
@@ -37,7 +38,7 @@ export function ForgotPage() {
         eyebrow="Check your inbox"
         title={
           <>
-            The link is <em className="text-brass">on its way.</em>
+            The link is <em className="text-accent-text">on its way.</em>
           </>
         }
         lead={sent}
@@ -48,7 +49,7 @@ export function ForgotPage() {
           {again ? (
             <span className="text-ink/45">sent again.</span>
           ) : (
-            <button type="button" disabled={busy} onClick={() => void send()} className="font-semibold text-brass underline-offset-4 hover:underline">
+            <button type="button" disabled={busy} onClick={() => void send()} className="font-semibold text-accent-text underline-offset-4 hover:underline disabled:opacity-50">
               send it again.
             </button>
           )}
@@ -62,24 +63,20 @@ export function ForgotPage() {
       eyebrow="Forgot your password"
       title={
         <>
-          We’ll send you <em className="text-brass">a way in.</em>
+          We’ll send you <em className="text-accent-text">a way in.</em>
         </>
       }
       lead="A link that lets you choose a new one. It lasts an hour."
       foot={<SignInLink />}
     >
-      <form onSubmit={send} className="space-y-5">
+      <form onSubmit={send} className="space-y-4">
         <div>
           <label htmlFor="email" className="label">
             Email
           </label>
-          <input id="email" type="email" autoComplete="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} className="field" placeholder="you@example.com" />
+          <input id="email" type="email" autoComplete="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} className="field" placeholder="you@example.com" aria-invalid={error ? true : undefined} aria-describedby={error ? 'email-error' : undefined} />
+          {error && <FieldError id="email-error">{error}</FieldError>}
         </div>
-        {error && (
-          <p className="text-xs text-red-500 dark:text-red-300" role="alert">
-            {error}
-          </p>
-        )}
         <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? <Spinner className="h-4 w-4" /> : 'Send me a link'}
         </button>

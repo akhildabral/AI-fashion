@@ -1,6 +1,6 @@
 // Plan & usage, read-only on the phone: the plan's name and the meters. The
 // plan itself is managed from the web account (store policy, plan §1). The
-// web's BillingPage top half: h1, the `p-6` card 24 below, meters 24 below
+// web's BillingPage top half: the h1, the card 24 below, meters 24 below
 // the plan line and 16 apart.
 import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
@@ -44,7 +44,7 @@ export default function Plan() {
           {q.isError && !summary ? (
             <LoadError message="Could not load your plan." onRetry={() => void q.refetch()} />
           ) : !summary ? (
-            <Card padding={24} style={styles.card}>
+            <Card padding="form" style={styles.card}>
               <SkeletonBlock width={96} height={16} />
               <SkeletonBlock width={160} height={28} style={styles.mt2} />
               <View style={styles.meters}>
@@ -58,11 +58,13 @@ export default function Plan() {
             </Card>
           ) : (
             <>
-              <Card padding={24} style={styles.card}>
+              <Card padding="form" style={styles.card}>
                 <T role="micro" tone="faint">
                   Current plan
                 </T>
-                <T role="h2">{summary.label}</T>
+                <T role="h2" style={styles.mt2}>
+                  {summary.label}
+                </T>
                 {summary.planStatus === 'grace' ? (
                   <T role="bodySm" style={[styles.mt1, { color: t.warning }]}>
                     A payment failed. Update your payment method, or your plan will lapse.

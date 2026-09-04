@@ -1,7 +1,6 @@
 // The Closet's rooms: one row that says where you are and what's waiting in
 // the others. Pieces, the outfits they make, the basket, and the wishlist.
-// Drawn the way the web does: the mantel closes on a hairline, the tabs sit
-// mt-6 beneath it.
+// The mantel closes on a hairline; the tabs sit 16 beneath it.
 import { router } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 import { Tabs } from '@/src/components/Tabs'
@@ -39,5 +38,5 @@ export function RoomTabs({ current }: { current: Room }) {
 }
 
 const styles = StyleSheet.create({
-  rail: { borderTopWidth: hairline, paddingTop: space.xl },
+  rail: { borderTopWidth: hairline, paddingTop: space.lg },
 })

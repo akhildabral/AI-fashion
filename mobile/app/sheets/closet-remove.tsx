@@ -1,19 +1,19 @@
 // Remove a piece and its record. There is no way back, so it is asked here,
-// in a sheet, in words. Params: id.
+// in a sheet, in words: never a system alert. Params: id.
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { deleteWardrobeItem } from '@zauq/shared/wardrobe'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
-import { Screen } from '@/src/components/Screen'
+import { SheetShell } from '@/src/components/Sheet'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
-import { gutter, space } from '@/src/design/tokens'
+import { space } from '@/src/design/tokens'
 import { nameOf, title, useInvalidateCloset, usePiece } from '@/src/features/closet/data'
 
-/** The piece beside the question, at the web's w-16 thumb and 4/5. */
+/** The piece beside the question, a 64 thumb at 4/5. */
 const THUMB_W = 64
 
 export default function RemovePieceSheet() {
@@ -42,31 +42,28 @@ export default function RemovePieceSheet() {
   }
 
   return (
-    <Screen edges={['bottom']}>
+    <SheetShell
+      title={`Remove the ${item ? nameOf(item) : 'piece'}?`}
+      footer={
+        <>
+          <Button label="Yes, remove it" variant="danger" block style={styles.grow} loading={busy} onPress={() => void remove()} />
+          <Button label="Keep it" variant="quiet" disabled={busy} onPress={() => router.back()} />
+        </>
+      }
+    >
       <Stack.Screen options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', sheetGrabberVisible: true, sheetCornerRadius: 3 }} />
-      <View style={styles.content}>
-        <T role="h2" accessibilityRole="header">
-          Remove the {item ? nameOf(item) : 'piece'}?
+      <View style={styles.row}>
+        {item ? <GarmentTile imageUrl={item.imageUrl} width={THUMB_W} aspect={4 / 5} /> : null}
+        <T role="bodySm" tone="muted" style={styles.line}>
+          Its record goes with it: every wear, every outfit it was part of. There is no way back. To keep the ledger and lose the rotation, let it go instead.
         </T>
-        <View style={styles.row}>
-          {item ? <GarmentTile imageUrl={item.imageUrl} width={THUMB_W} aspect={4 / 5} /> : null}
-          <T role="bodySm" tone="muted" style={styles.line}>
-            Its record goes with it: every wear, every outfit it was part of. There is no way back. To keep the ledger and lose the rotation, let it go instead.
-          </T>
-        </View>
-        <View style={styles.actions}>
-          <Button label="Yes, remove it" variant="danger" block loading={busy} onPress={() => void remove()} />
-          <Button label="Keep it" variant="quiet" block disabled={busy} onPress={() => router.back()} />
-        </View>
       </View>
-    </Screen>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: gutter, paddingTop: space.xl, paddingBottom: space.lg },
-  // The modal's p-5 under its title; the plaque's gap-3
-  row: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginTop: 20 },
+  grow: { flex: 1 },
+  row: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   line: { flex: 1, minWidth: 0 },
-  actions: { gap: space.sm, marginTop: space.xl },
 })

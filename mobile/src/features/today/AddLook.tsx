@@ -61,8 +61,9 @@ export function AddLook({ date, isToday, index = 0 }: { date: string; isToday: b
 }
 
 const styles = StyleSheet.create({
-  section: { borderTopWidth: hairline, paddingTop: space.xl, gap: space.md },
-  text: { gap: space.xs },
+  // A hairline, then 16; the eyebrow 8 over its line, the chips 16 beneath.
+  section: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.lg },
+  text: { gap: space.sm },
   tracked: { letterSpacing: 2.8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
 })

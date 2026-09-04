@@ -5,8 +5,8 @@
 // The web's rhythm, value by value: the card is `p-4` (16); the handle row
 // sits at the top; the caption, the board and the foot each follow at 12
 // (`mt-3`); the foot is a hairline with the verbs first and the reactions
-// after, in `text-xs font-semibold`, brass when on.
-import { MaterialIcons } from '@expo/vector-icons'
+// after, in `text-xs font-semibold`, brass when on. The card's overflow is
+// a 320ms hold, which opens the same menu the web keeps behind `···`.
 import { router } from 'expo-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native'
@@ -17,6 +17,7 @@ import { timeAgo, timeLeft, type CirclePost, type LookPost, type PickPost, type 
 import { Arch } from '@/src/components/Arch'
 import { Button } from '@/src/components/Button'
 import { FlatLay, LookBoard } from '@/src/components/LookBoard'
+import { Press } from '@/src/components/Press'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
@@ -24,9 +25,9 @@ import { EASE_OUT } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, height, radius } from '@/src/design/tokens'
 import { fonts, fontScale } from '@/src/design/type'
-import { ActionChip, CARD_PAD, Card, Count, GarmentThumb, Initials, PhotoArch, Plate, Press } from './atoms'
+import { ActionChip, CARD_PAD, Card, Count, GarmentThumb, Initials, PhotoArch, Plate } from './atoms'
 import type { CardActions } from './hooks'
-import { MenuSheet, MoreButton, type MenuItem } from './MenuSheet'
+import { MenuSheet, type MenuItem } from '@/src/components/MenuSheet'
 import { userHref } from './notifications'
 
 /* ---------- atoms ---------- */
@@ -35,12 +36,27 @@ function mirrorHref(items: PostItem[]) {
   return `/(tabs)/mirror?items=${items.map((i) => i.id).join(',')}` as never
 }
 
-/** The handle row: a 36 square of initials, the name in `text-sm font-semibold`, the meta in `text-xs`, the kicker, the "···". */
-function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string | null; name: string; label?: string; meta: string; plate: string; menu: ReactNode }) {
+/**
+ * The handle row: a 32 square of initials, the name in `text-sm
+ * font-semibold`, the meta in `text-xs`, the kicker. The card's menu, opened
+ * by a hold on the card, is also offered here as an accessibility action so
+ * a screen reader reaches it without the gesture.
+ */
+function PostHeader({ handle, name, label, meta, plate, onMore }: { handle: string | null; name: string; label?: string; meta: string; plate: string; onMore?: () => void }) {
   const open = handle ? () => router.push(userHref(handle)) : undefined
   return (
     <View style={styles.head}>
-      <Press accessibilityRole="button" accessibilityLabel={name} disabled={!open} onPress={open}>
+      <Press
+        accessibilityRole="button"
+        accessibilityLabel={name}
+        accessibilityHint={onMore ? 'Hold the card for more' : undefined}
+        accessibilityActions={onMore ? [{ name: 'longpress', label: 'More' }] : undefined}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'longpress') onMore?.()
+        }}
+        disabled={!open && !onMore}
+        onPress={open}
+      >
         <Initials handle={handle} name={name} />
       </Press>
       <View style={styles.headText}>
@@ -52,9 +68,17 @@ function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string
         </T>
       </View>
       <Plate>{plate}</Plate>
-      {menu}
     </View>
   )
+}
+
+/** A card's context menu: open from a long press, closed on any choice. */
+function useCardMenu(items: MenuItem[], title: string) {
+  const [open, setOpen] = useState(false)
+  return {
+    onLongPress: items.length > 0 ? () => setOpen(true) : undefined,
+    sheet: <MenuSheet open={open} title={title} items={items} onClose={() => setOpen(false)} />,
+  }
 }
 
 function reactionLine(r: ReactionSummary, verb = 'would wear this'): string | null {
@@ -76,15 +100,15 @@ function Reactions({ target, id, reactions, actions, skipWouldWear = false }: { 
   const toggle = (k: ReactionKind) => actions.react(target, id, mine === k ? null : k)
   return (
     <>
-      {!skipWouldWear ? <ActionChip icon="favorite-border" iconOn="favorite" label="Would wear" count={counts.would_wear} on={mine === 'would_wear'} onPress={() => toggle('would_wear')} accessibilityLabel="Would wear" /> : null}
-      <ActionChip icon="bolt" label="Bold" count={counts.bold} on={mine === 'bold'} onPress={() => toggle('bold')} accessibilityLabel="Bold" />
-      <ActionChip icon="star-border" iconOn="star" label="Love" count={counts.love} on={mine === 'love'} onPress={() => toggle('love')} accessibilityLabel="Love" />
+      {!skipWouldWear ? <ActionChip label="Would wear" count={counts.would_wear} on={mine === 'would_wear'} onPress={() => toggle('would_wear')} /> : null}
+      <ActionChip label="Bold" count={counts.bold} on={mine === 'bold'} onPress={() => toggle('bold')} />
+      <ActionChip label="Love" count={counts.love} on={mine === 'love'} onPress={() => toggle('love')} />
     </>
   )
 }
 
 function NotesButton({ count, onPress }: { count: number; onPress: () => void }) {
-  return <ActionChip icon="chat-bubble-outline" label={count > 0 ? undefined : 'Note'} count={count} onPress={onPress} accessibilityLabel={count > 0 ? `${count} notes` : 'Add a note'} />
+  return <ActionChip label={count === 1 ? 'Note' : 'Notes'} count={count} onPress={onPress} accessibilityLabel={count > 0 ? `${count} notes` : 'Add a note'} />
 }
 
 /**
@@ -119,7 +143,12 @@ function LookHero({ items, photoUrl, width, onDouble }: { items: PostItem[]; pho
   const fire = () => {
     if (!onDouble) return
     haptics.tap()
-    pulse.set(withSequence(withTiming(1, { duration: 140, easing: EASE_OUT }), withDelay(320, withTiming(0, { duration: 260, easing: EASE_OUT }))))
+    pulse.set(
+      withSequence(
+        withTiming(1, { duration: 140, easing: EASE_OUT, reduceMotion: ReduceMotion.System }),
+        withDelay(320, withTiming(0, { duration: 260, easing: EASE_OUT, reduceMotion: ReduceMotion.System })),
+      ),
+    )
     onDouble()
   }
   const toggle = () => setExpanded((v) => !v)
@@ -142,10 +171,13 @@ function LookHero({ items, photoUrl, width, onDouble }: { items: PostItem[]; pho
   // The web's `w-12` strip thumbs.
   const thumb = 48
 
+  // The double tap answers with the word, on a brass 3px square: no circle, no icon.
   const overlay = (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.pulse, pulseStyle]}>
-      <View style={[styles.pulseDisc, { backgroundColor: alpha(t.brass, 0.85) }]}>
-        <MaterialIcons name="favorite" size={30} color={t.onBrass} />
+      <View style={[styles.pulsePlate, { backgroundColor: alpha(t.brass, 0.92), borderRadius: radius }]}>
+        <T role="label" tone="onBrass">
+          Would wear
+        </T>
       </View>
     </Animated.View>
   )
@@ -199,20 +231,21 @@ export function LookCard({ post, actions }: { post: LookPost; actions: CardActio
   const line = reactionLine(post.reactions)
   const on = post.reactions.mine === 'would_wear'
   const menu: MenuItem[] = []
-  if (!post.isMine) menu.push({ label: post.saved ? 'Remove from your board' : 'Save to your board', onSelect: () => actions.save(post.id, !post.saved) })
-  if (post.isMine) menu.push({ label: 'Share the page', onSelect: () => void actions.share('look', post.id, 'Wore this today') })
-  if (!post.isMine && post.handle) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => void actions.mute(post.handle as string) })
-  if (!post.isMine) menu.push({ label: 'Report', onSelect: () => actions.report('look', post.id, `${post.name}’s look`) })
-  if (post.isMine) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown('look', post.id) })
+  if (!post.isMine) menu.push({ label: post.saved ? 'Remove from your board' : 'Save to your board', onPress: () => actions.save(post.id, !post.saved) })
+  if (post.isMine) menu.push({ label: 'Share the page', onPress: () => void actions.share('look', post.id, 'Wore this today') })
+  if (!post.isMine && post.handle) menu.push({ label: `Mute ${post.name} for a while`, onPress: () => void actions.mute(post.handle as string) })
+  if (!post.isMine) menu.push({ label: 'Report', onPress: () => actions.report('look', post.id, `${post.name}’s look`) })
+  if (post.isMine) menu.push({ label: 'Take it down', danger: true, onPress: () => void actions.takeDown('look', post.id) })
+  const more = useCardMenu(menu, `${post.name}’s look`)
 
   return (
-    <Card tone={post.featured ? 'brass' : 'plain'}>
+    <Card tone={post.featured ? 'brass' : 'plain'} onLongPress={more.onLongPress}>
       <PostHeader
         handle={post.handle}
         name={post.name}
         meta={`Outfit of the day${post.eventType ? ` · ${post.eventType}` : ''} · ${timeAgo(post.at)}`}
         plate={post.featured ? 'Featured' : 'Look'}
-        menu={<MoreButton items={menu} title={`${post.name}’s look`} />}
+        onMore={more.onLongPress}
       />
       <LookHero items={post.items} photoUrl={post.photoUrl} width={inner} onDouble={post.isMine || on ? undefined : () => actions.react('look', post.id, 'would_wear')} />
       {line ? (
@@ -240,9 +273,10 @@ export function LookCard({ post, actions }: { post: LookPost; actions: CardActio
       >
         {!post.isMine ? <Reactions target="look" id={post.id} reactions={post.reactions} actions={actions} skipWouldWear /> : null}
         <NotesButton count={post.comments} onPress={() => actions.open('look', post.id)} />
-        {!post.isMine && post.items.length > 0 ? <ActionChip icon="autorenew" label="Recreate" onPress={() => actions.recreate(post.name, post.items)} accessibilityLabel="Recreate from my closet" /> : null}
-        {!post.isMine ? <ActionChip icon="bookmark-border" iconOn="bookmark" on={post.saved} onPress={() => actions.save(post.id, !post.saved)} accessibilityLabel={post.saved ? 'Remove from your board' : 'Save to your board'} /> : null}
+        {!post.isMine && post.items.length > 0 ? <ActionChip label="Recreate" onPress={() => actions.recreate(post.name, post.items)} accessibilityLabel="Recreate from my closet" /> : null}
+        {!post.isMine ? <ActionChip label={post.saved ? 'Saved' : 'Save'} on={post.saved} onPress={() => actions.save(post.id, !post.saved)} accessibilityLabel={post.saved ? 'Remove from your board' : 'Save to your board'} /> : null}
       </CardFoot>
+      {more.sheet}
     </Card>
   )
 }
@@ -259,11 +293,12 @@ export function VerdictCard({ post, actions }: { post: VerdictPost; actions: Car
   const optW = Math.floor((inner - OPTION_GAP * (options.length - 1)) / options.length)
 
   const menu: MenuItem[] = []
-  if (post.isMine && !post.settled) menu.push({ label: 'Share the vote page', onSelect: () => void actions.share('verdict', post.id, post.question) })
-  if (post.isMine && !post.settled) menu.push({ label: 'Settle it now', onSelect: () => void actions.settle(post.id) })
-  if (!post.isMine && post.handle) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => void actions.mute(post.handle as string) })
-  if (!post.isMine) menu.push({ label: 'Report', onSelect: () => actions.report('verdict', post.id, `${post.name}’s verdict`) })
-  if (post.isMine) menu.push({ label: 'Take it down', danger: true, onSelect: () => void actions.takeDown('verdict', post.id) })
+  if (post.isMine && !post.settled) menu.push({ label: 'Share the vote page', onPress: () => void actions.share('verdict', post.id, post.question) })
+  if (post.isMine && !post.settled) menu.push({ label: 'Settle it now', onPress: () => void actions.settle(post.id) })
+  if (!post.isMine && post.handle) menu.push({ label: `Mute ${post.name} for a while`, onPress: () => void actions.mute(post.handle as string) })
+  if (!post.isMine) menu.push({ label: 'Report', onPress: () => actions.report('verdict', post.id, `${post.name}’s verdict`) })
+  if (post.isMine) menu.push({ label: 'Take it down', danger: true, onPress: () => void actions.takeDown('verdict', post.id) })
+  const more = useCardMenu(menu, `${post.name}’s verdict`)
 
   const meta = post.isMine
     ? `Your verdict${post.audience === 'friends' ? ` · asked ${post.askedOf.slice(0, 2).join(' and ')}${post.askedOf.length > 2 ? ` +${post.askedOf.length - 2}` : ''}` : post.audience === 'link' ? ' · by link' : ''} · ${post.settled ? 'settled' : timeLeft(post.expiresAt)}`
@@ -283,8 +318,8 @@ export function VerdictCard({ post, actions }: { post: VerdictPost; actions: Car
         : 'Tap the one they should wear.'
 
   return (
-    <Card>
-      <PostHeader handle={post.handle} name={post.name} meta={meta} plate={post.settled ? 'Verdict is in' : 'Verdict'} menu={<MoreButton items={menu} title={`${post.name}’s verdict`} />} />
+    <Card onLongPress={more.onLongPress}>
+      <PostHeader handle={post.handle} name={post.name} meta={meta} plate={post.settled ? 'Verdict is in' : 'Verdict'} onMore={more.onLongPress} />
       <T role="h3" style={styles.question}>
         {post.question}
       </T>
@@ -347,6 +382,7 @@ export function VerdictCard({ post, actions }: { post: VerdictPost; actions: Car
         {!post.isMine ? <Reactions target="verdict" id={post.id} reactions={post.reactions} actions={actions} /> : null}
         <NotesButton count={post.comments} onPress={() => actions.open('verdict', post.id)} />
       </CardFoot>
+      {more.sheet}
     </Card>
   )
 }
@@ -361,10 +397,11 @@ export function PickCard({ post, actions }: { post: PickPost; actions: CardActio
   const worn = !!post.wornLogId || !!post.wornAt
 
   const menu: MenuItem[] = []
-  if (post.handle && !byMe) menu.push({ label: `Mute ${post.name} for a while`, onSelect: () => void actions.mute(post.handle as string) })
-  if (!byMe) menu.push({ label: 'Report', onSelect: () => actions.report('pick', post.id, `${post.name}’s pick`) })
-  if (byMe && !post.wornAt) menu.push({ label: 'Take it back', danger: true, onSelect: () => void actions.withdraw(post.id) })
-  if (!byMe) menu.push({ label: 'Dismiss', danger: true, onSelect: () => void actions.dismiss(post.id) })
+  if (post.handle && !byMe) menu.push({ label: `Mute ${post.name} for a while`, onPress: () => void actions.mute(post.handle as string) })
+  if (!byMe) menu.push({ label: 'Report', onPress: () => actions.report('pick', post.id, `${post.name}’s pick`) })
+  if (byMe && !post.wornAt) menu.push({ label: 'Take it back', danger: true, onPress: () => void actions.withdraw(post.id) })
+  if (!byMe) menu.push({ label: 'Dismiss', danger: true, onPress: () => void actions.dismiss(post.id) })
+  const more = useCardMenu(menu, byMe ? `Your pick for ${post.name}` : `${post.name}’s pick`)
 
   const forLine = post.forDay ? ` · for ${post.forDay}` : ''
   const meta = byMe ? `you styled a look for ${post.name}${forLine} · ${timeAgo(post.at)}` : `styled a look for you${forLine} · ${timeAgo(post.at)}`
@@ -381,11 +418,11 @@ export function PickCard({ post, actions }: { post: PickPost; actions: CardActio
         : null
 
   return (
-    <Card tone={byMe ? 'plain' : 'soft'}>
-      <PostHeader handle={post.handle} name={post.name} label={byMe ? `For ${post.name}` : undefined} meta={meta} plate={byMe ? 'Your pick' : 'For you'} menu={<MoreButton items={menu} title={byMe ? `Your pick for ${post.name}` : `${post.name}’s pick`} />} />
+    <Card tone={byMe ? 'plain' : 'soft'} onLongPress={more.onLongPress}>
+      <PostHeader handle={post.handle} name={post.name} label={byMe ? `For ${post.name}` : undefined} meta={meta} plate={byMe ? 'Your pick' : 'For you'} onMore={more.onLongPress} />
       {post.note ? (
         // The caption: `font-display italic text-base`.
-        <T role="lede" tone="muted" style={[styles.line, styles.note]}>
+        <T role="lede" tone="muted" style={styles.line}>
           {`“${post.note}”`}
         </T>
       ) : null}
@@ -453,10 +490,11 @@ export function PickCard({ post, actions }: { post: PickPost; actions: CardActio
         title="The photo of you in it"
         onClose={() => setPhotoMenu(false)}
         items={[
-          { label: 'Take a photo', onSelect: () => void actions.photo(post, 'camera') },
-          { label: 'Choose from your photos', onSelect: () => void actions.photo(post, 'library') },
+          { label: 'Take a photo', onPress: () => void actions.photo(post, 'camera') },
+          { label: 'Choose from your photos', onPress: () => void actions.photo(post, 'library') },
         ]}
       />
+      {more.sheet}
     </Card>
   )
 }
@@ -603,12 +641,11 @@ const styles = StyleSheet.create({
   // `mx-4 mt-3`, the strip `mt-3 gap-2`, the names `mt-2.5 gap-x-4 gap-y-1 px-0.5`
   hero: { paddingHorizontal: CARD_PAD, paddingTop: 12, gap: 12 },
   pulse: { alignItems: 'center', justifyContent: 'center' },
-  pulseDisc: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  pulsePlate: { paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   strip: { flexDirection: 'row', gap: 8 },
   names: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, paddingHorizontal: 2, marginTop: -2 },
   // `px-4 pt-3`
   line: { paddingHorizontal: CARD_PAD, paddingTop: 12 },
-  note: { fontSize: 16, lineHeight: 24 },
   question: { paddingHorizontal: CARD_PAD, paddingTop: 12 },
   options: { flexDirection: 'row', gap: OPTION_GAP, paddingHorizontal: CARD_PAD, paddingTop: 12, alignItems: 'flex-start' },
   // `mt-2 h-1`, then `mt-1.5 px-0.5`

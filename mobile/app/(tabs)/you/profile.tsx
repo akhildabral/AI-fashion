@@ -1,7 +1,7 @@
 // You: the fitting's answers, editable with the fitting's own controls and
 // saved as you change them; the practical facts; and the account beside them.
 // The web's ProfilePage: header, the tabs 24 below, the section 24 below
-// that as a `card p-5`, and the aside 32 under it with its panels 20 apart.
+// that as a card, and the aside a block (32) under it, its panels 32 apart.
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -11,7 +11,6 @@ import { CURRENCIES, guessCurrency } from '@zauq/shared/money'
 import { setHandle } from '@zauq/shared/social'
 import type { StyleProfile } from '@zauq/shared/types'
 import { setCurrentUnits } from '@zauq/shared/units'
-import { Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { RoomHeader } from '@/src/components/Room'
@@ -163,29 +162,29 @@ function FitSection({ profile, save }: { profile: Prof; save: SaveFn }) {
         </Wrap>
       </Card>
       <View style={styles.aside}>
-        {/* Where the web keeps its PhotoManager: the reflection lives in the Mirror on the phone. */}
-        <Plaque>
+        {/* Where the web keeps its PhotoManager: the reflection lives in the Mirror on the phone. A card, since it carries a control. */}
+        <Card padding="form">
           <T role="micro" tone="faint">
             Your reflection
           </T>
-          <T role="h3" style={styles.mt1}>
+          <T role="h3" style={styles.mt2}>
             The photo the Mirror dresses.
           </T>
-          <T role="bodySm" tone="muted" style={styles.mt1}>
+          <T role="bodySm" tone="muted" style={styles.mt2}>
             Add, swap or remove it in the Mirror. It never leaves your account.
           </T>
-          <View style={[styles.mt3, styles.start]}>
+          <View style={[styles.mt4, styles.start]}>
             <Button label="Manage in the Mirror" variant="ghost" size="sm" onPress={() => router.push(routes.mirror)} />
           </View>
-        </Plaque>
-        <Plaque>
+        </Card>
+        <Card padding="form">
           <T role="micro" tone="faint">
             Nothing here is shown to anyone
           </T>
-          <T role="bodySm" tone="muted" style={styles.mt1}>
+          <T role="bodySm" tone="muted" style={styles.mt2}>
             Your measure and your photo stay between you and the stylist. Friends see your name, your room and the pieces you make public.
           </T>
-        </Plaque>
+        </Card>
       </View>
     </>
   )
@@ -249,17 +248,17 @@ function TasteSection({ profile, save }: { profile: Prof; save: SaveFn }) {
         </Wrap>
       </Card>
       <View style={styles.aside}>
-        <Plaque>
+        <Card padding="form">
           <T role="micro" tone="faint">
             How this is used
           </T>
-          <T role="bodySm" tone="muted" style={styles.mt1}>
+          <T role="bodySm" tone="muted" style={styles.mt2}>
             Struck colours never come back in a brief. Your tone steers the shades. The days you dress for decide what the week is composed around.
           </T>
-          <View style={styles.mt3}>
+          <View style={styles.mt4}>
             <TextLink label="The record, where the numbers live →" onPress={() => router.push(routes.journal())} />
           </View>
-        </Plaque>
+        </Card>
       </View>
     </>
   )
@@ -488,20 +487,21 @@ const styles = StyleSheet.create({
   header: { paddingBottom: 0 },
   // The web's `font-display text-sm italic`: Bodoni italic at 14 on a 20 line.
   whisper: { fontFamily: fonts.serifItalic },
-  // The web's `mt-*`, literally.
+  // The rhythm: 4 inside a line pair, 8 label to line, 16 element to element, 24 to the tabs, 32 block to block.
   mt1: { marginTop: space.xs },
   mt2: { marginTop: space.sm },
-  mt3: { marginTop: space.md },
-  mt5: { marginTop: 20 },
+  mt3: { marginTop: space.sm },
+  mt4: { marginTop: space.lg },
+  mt5: { marginTop: space.lg },
   mt6: { marginTop: space.xl },
-  mt7: { marginTop: space.xl + space.xs },
+  mt7: { marginTop: space.xxl },
   mt8: { marginTop: space.xxl },
   centered: { alignItems: 'center' },
   narrow: { maxWidth: 384 },
   start: { alignSelf: 'flex-start' },
   grow: { flex: 1 },
-  // The web's aside: `mt-8 flex-col gap-5`.
-  aside: { marginTop: space.xxl, gap: 20 },
+  // The aside a block under the section, its panels a block apart.
+  aside: { marginTop: space.xxl, gap: space.xxl },
   swatches: { gap: 10 },
   sizeHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.md },
   sizeField: { width: 80 },
@@ -511,5 +511,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   deleteRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44, paddingVertical: space.sm, borderTopWidth: hairline },
   code: { fontVariant: ['tabular-nums'] },
-  addressNote: { marginTop: 6 },
+  addressNote: { marginTop: space.sm },
 })

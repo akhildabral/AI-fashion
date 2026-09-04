@@ -5,22 +5,25 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { dressSuggest, getNetwork, sendPick, type NetworkEntry } from '@zauq/shared/social'
+import { Alert, EmptyState } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
+import { Press } from '@/src/components/Press'
+import { SheetShell } from '@/src/components/Sheet'
+import { ArchSkeleton } from '@/src/components/Skeleton'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { gutter, radius } from '@/src/design/tokens'
+import { gutter, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
-import { Dashed, InlineError, Press } from '@/src/features/circle/atoms'
 import { invalidateFeeds } from '@/src/features/circle/cache'
 import { ck } from '@/src/features/circle/keys'
 import { PersonRow } from '@/src/features/circle/PersonRow'
-import { SheetFrame, SheetLabel } from '@/src/features/circle/SheetFrame'
+import { SheetLabel } from '@/src/features/circle/SheetLabel'
 
 const MAX = 8
 
@@ -87,14 +90,8 @@ export default function StyleFriendSheet() {
 
   if (!friend) {
     return (
-      <SheetFrame title="Style a friend" lead="Friends you follow each other with, and anyone who came in on your invite." busy={people.isPending && !people.data}>
-        {people.data && people.data.following.length === 0 ? (
-          <Dashed>
-            <T role="bodySm" tone="muted" align="center">
-              Follow a few people first; they’ll appear here.
-            </T>
-          </Dashed>
-        ) : null}
+      <SheetShell dense title="Style a friend" lead="Friends you follow each other with, and anyone who came in on your invite." busy={people.isPending && !people.data}>
+        {people.data && people.data.following.length === 0 ? <EmptyState title="Follow a few people first; they’ll appear here." /> : null}
         {people.data?.following.map((p, i) => (
           <PersonRow
             key={p.handle}
@@ -110,16 +107,16 @@ export default function StyleFriendSheet() {
             }
           />
         ))}
-      </SheetFrame>
+      </SheetShell>
     )
   }
 
   const anchorPiece = anchor ? byId.get(anchor) : undefined
 
   return (
-    <SheetFrame
+    <SheetShell dense
       title={`Dress ${friend.name}`}
-      action={
+      footer={
         <>
           <Button label={`Send it to ${friend.name}`} block disabled={selected.length < 2} loading={send.isPending} onPress={() => send.mutate()} style={{ flex: 1 }} />
           {!initialHandle ? (
@@ -142,7 +139,7 @@ export default function StyleFriendSheet() {
           <Chip key={d.key} label={d.label} on={day === d.key} onPress={() => setDay(d.key)} />
         ))}
       </View>
-      {day === 'occasion' ? <Field value={occasion} onChangeText={setOccasion} maxLength={40} placeholder="a wedding, a dinner…" compact autoFocus accessibilityLabel="The occasion" /> : null}
+      {day === 'occasion' ? <Field label="The occasion" value={occasion} onChangeText={setOccasion} maxLength={40} placeholder="a wedding, a dinner…" compact autoFocus accessibilityLabel="The occasion" /> : null}
 
       <SheetLabel
         right={
@@ -153,19 +150,9 @@ export default function StyleFriendSheet() {
       >
         Their public closet
       </SheetLabel>
-      {closet.isError ? <InlineError message={closet.error instanceof Error ? closet.error.message : 'Could not open their closet.'} /> : null}
-      {closet.isPending && !closet.data ? (
-        <T role="caption" tone="faint">
-          One moment…
-        </T>
-      ) : null}
-      {closet.data && pieces.length < 2 ? (
-        <Dashed>
-          <T role="bodySm" tone="muted" align="center">
-            They haven’t made enough pieces public yet.
-          </T>
-        </Dashed>
-      ) : null}
+      {closet.isError ? <Alert>{closet.error instanceof Error ? closet.error.message : 'Could not open their closet.'}</Alert> : null}
+      {closet.isPending && !closet.data ? <ArchSkeleton count={8} columns={cols} width={width - gutter * 2} /> : null}
+      {closet.data && pieces.length < 2 ? <EmptyState title="They haven’t made enough pieces public yet." /> : null}
       {closet.data && pieces.length >= 2 ? (
         <>
           {anchorPiece ? (
@@ -180,7 +167,7 @@ export default function StyleFriendSheet() {
               const dimmed = anchor !== null && !lit && idx < 0 && anchor !== p.id
               return (
                 <View key={p.id} style={{ width: cell, opacity: dimmed ? 0.5 : 1 }}>
-                  <GarmentTile imageUrl={p.imageUrl} width={cell} aspect={4 / 5} selected={idx >= 0 || lit} badge={idx >= 0 ? String(idx + 1) : null} label={p.subtype ?? p.category} onPress={() => toggle(p.id)} accessibilityLabel={`${idx >= 0 ? 'Remove' : 'Choose'} ${p.subtype ?? p.category}`} />
+                  <GarmentTile imageUrl={p.imageUrl} width={cell} selected={idx >= 0 || lit} badge={idx >= 0 ? String(idx + 1) : null} label={p.subtype ?? p.category} onPress={() => toggle(p.id)} accessibilityLabel={`${idx >= 0 ? 'Remove' : 'Choose'} ${p.subtype ?? p.category}`} />
                 </View>
               )
             })}
@@ -229,7 +216,7 @@ export default function StyleFriendSheet() {
               </T>
               {` · ${chosenItems.map((i) => i.subtype ?? i.category).join(', ')}`}
             </T>
-            <Field value={note} onChangeText={setNote} maxLength={280} placeholder="Why this works (optional)" compact accessibilityLabel="A note" />
+            <Field label="A note" value={note} onChangeText={setNote} maxLength={280} placeholder="Why this works (optional)" compact accessibilityLabel="A note" />
           </View>
         </View>
       ) : null}
@@ -238,17 +225,16 @@ export default function StyleFriendSheet() {
           Pick at least two pieces to send a look.
         </T>
       ) : null}
-    </SheetFrame>
+    </SheetShell>
   )
 }
 
 const styles = StyleSheet.create({
-  // `mt-2 flex flex-wrap gap-2`
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // `mt-3 grid-cols-4 gap-2`
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // `mt-2 flex gap-3 pb-1`, each `w-24`
-  suggestions: { flexDirection: 'row', gap: 12, paddingBottom: 4 },
-  // `mt-4 flex items-center gap-3`, the board `w-20`
-  preview: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  // Four across, 8 apart.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  // The suggested boards, 12 apart, each 96 wide.
+  suggestions: { flexDirection: 'row', gap: space.md, paddingBottom: space.xs },
+  // The chosen pieces on an 80 board beside the note.
+  preview: { flexDirection: 'row', alignItems: 'center', gap: space.md },
 })

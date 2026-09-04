@@ -1,12 +1,13 @@
 import { useMutation } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { weatherFor } from '@zauq/shared/fitting'
 import { temp } from '@zauq/shared/units'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn } from '@/src/design/motion'
@@ -115,29 +116,30 @@ export default function City() {
       ) : null}
 
       <View style={styles.group}>
-        <T role="micro" tone="faint" style={styles.tracked}>
+        {/* The Label over a control: 11, .18em, 8 above its row. */}
+        <T role="label" tone="faint">
           Skin tone
         </T>
         <View style={styles.swatches} accessibilityRole="radiogroup">
           {TONES.map(([k, colour]) => {
             const on = tone === k
             return (
-              <Pressable
+              <Press
                 key={k}
                 accessibilityRole="radio"
                 accessibilityLabel={title(k)}
                 accessibilityState={{ selected: on, checked: on }}
-                pressRetentionOffset={12}
                 onPress={() => {
                   haptics.select()
                   const nextTone = on ? null : k
                   setTone(nextTone)
                   patch({ tone: nextTone })
                 }}
-                style={[styles.ring, { borderRadius: radius + 2, borderColor: on ? t.brass : 'transparent' }]}
               >
-                <View style={[styles.swatch, { backgroundColor: colour, borderColor: alpha(t.ink, 0.15), borderRadius: radius }]} />
-              </Pressable>
+                <View style={[styles.ring, { borderRadius: radius, borderColor: on ? t.brass : 'transparent' }]}>
+                  <View style={[styles.swatch, { backgroundColor: colour, borderColor: alpha(t.ink, 0.15), borderRadius: radius }]} />
+                </View>
+              </Press>
             )
           })}
         </View>
@@ -156,9 +158,8 @@ const styles = StyleSheet.create({
   answer: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space.md, borderWidth: hairline, paddingHorizontal: space.lg, paddingVertical: 10 },
   answerLine: { flexShrink: 1 },
   semi: { fontFamily: fonts.sansSemi },
-  // The row label `mt-6`, the swatches `mt-3 gap-2.5`.
-  group: { gap: space.md },
-  tracked: { letterSpacing: 2 },
+  // The label, its swatches 8 beneath, the note 8 beneath that.
+  group: { gap: space.sm },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   // `ring-2 ring-offset-2`: a 2px brass ring 2 outside the swatch.
   ring: { borderWidth: 2, padding: 2, margin: -4 },

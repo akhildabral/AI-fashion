@@ -1,11 +1,12 @@
 import { Link, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { View } from 'react-native'
 import { getJoinInfo, type JoinInfo } from '@zauq/shared/invites'
 import { Hairline } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { DoorShell } from '@/src/components/DoorShell'
 import { Field } from '@/src/components/Field'
+import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import { clientFields, useAuth, type SessionResponse } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
@@ -79,9 +80,13 @@ export default function Join() {
   )
 
   if (state === 'checking') {
+    // The shape of the form arriving: the fields and their button.
     return (
       <DoorShell eyebrow="One moment" title="Checking" emphasis="the door.">
-        <ActivityIndicator />
+        <SkeletonBlock height={44} />
+        <SkeletonBlock height={44} />
+        <SkeletonBlock height={44} />
+        <SkeletonBlock height={44} width="60%" />
       </DoorShell>
     )
   }

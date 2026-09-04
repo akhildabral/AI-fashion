@@ -125,8 +125,8 @@ export function Header() {
                       Admin
                     </Link>
                   )}
-                  <div className="my-1 border-t border-ink/10" />
-                  <button type="button" role="menuitem" onClick={handleLogout} className="block w-full px-4 py-2 text-left text-sm text-ink/75 transition-colors hover:bg-bone hover:text-ink">
+                  <div className="my-1.5 border-t border-ink/10" />
+                  <button type="button" role="menuitem" onClick={handleLogout} className="block w-full px-4 py-2 text-left text-sm text-[rgb(var(--c-danger))] transition-colors hover:bg-[rgb(var(--c-danger)/0.08)]">
                     Log out
                   </button>
                 </div>

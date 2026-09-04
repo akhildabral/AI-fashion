@@ -1,12 +1,12 @@
 import { Image } from 'expo-image'
 import { Pressable, StyleSheet, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
-import { PRESS_SCALE, timing } from '@/src/design/motion'
+import Animated from 'react-native-reanimated'
 import { useTheme } from '@/src/design/theme'
 import { alpha, radius } from '@/src/design/tokens'
 import { track, tracking } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 import { Arch } from './Arch'
+import { LONG_PRESS_MS, usePressScale } from './Press'
 import { T } from './Text'
 
 export interface GarmentTileProps {
@@ -51,14 +51,13 @@ export function GarmentTile({
   testID,
 }: GarmentTileProps) {
   const { t } = useTheme()
-  const scale = useSharedValue(1)
-  const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
+  const press = usePressScale()
   const uri = imageUrl ? resolveImageUrl(imageUrl) : undefined
   const interactive = !!(onPress || onLongPress)
   const inset = width < 64 ? '11%' : '7%'
 
   const tile = (
-    <Animated.View style={pressed}>
+    <Animated.View style={press.style}>
       <Arch width={width} aspect={aspect} variant={photo ? 'photo' : 'niche'} selected={selected} sweep={sweep}>
         {uri ? (
           <Image
@@ -111,14 +110,10 @@ export function GarmentTile({
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
       onLongPress={onLongPress}
-      delayLongPress={320}
+      delayLongPress={LONG_PRESS_MS}
       pressRetentionOffset={12}
-      onPressIn={() => {
-        scale.set(withTiming(PRESS_SCALE, timing.press))
-      }}
-      onPressOut={() => {
-        scale.set(withTiming(1, timing.press))
-      }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={{ width }}
     >
       {tile}

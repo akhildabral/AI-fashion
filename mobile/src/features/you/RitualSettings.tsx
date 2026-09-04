@@ -1,13 +1,12 @@
 // The morning ritual and the nudges: one switch and an hour for this device,
 // the evening layout, and the event pushes. Talks to the server through
 // `push.ts`; reads its state from the `push` query. Laid out as the web's
-// RitualSettings: one plaque, the switch beside the heading, the hour row 16
-// below, the evening 20 below behind a hairline; the event pushes (native
-// only) in a second plaque.
+// RitualSettings, on cards rather than plaques (a plaque is never a
+// control): the switch beside the heading, the hour row 16 below, the
+// evening 24 below behind a hairline; the event pushes in a second card.
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
-import { Plaque } from '@/src/components/Bits'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
@@ -16,7 +15,7 @@ import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, space } from '@/src/design/tokens'
 import { qk, queryClient } from '@/src/lib/query'
-import { BrassSwitch, TextLink, ToggleRow } from './Furniture'
+import { BrassSwitch, Card, TextLink, ToggleRow } from './Furniture'
 import { disableRitual, enableRitual, getPushStatus, hourLabel, pushAvailable, RITUAL_HOURS, sendTestPush, subscribedHere, updatePushSettings, type PushStatus } from './push'
 
 const FALLBACK: PushStatus = { devices: 0, hour: 7, timezone: null, eveningPush: false, events: { circle: true, renders: true }, subscriptions: [] }
@@ -118,11 +117,11 @@ export function RitualSettings() {
 
   if (isPending && !status) {
     return (
-      <Plaque>
+      <Card padding="form">
         <SkeletonBlock width={140} height={12} />
         <SkeletonBlock height={30} style={styles.mt1} />
         <SkeletonBlock width="80%" height={20} style={styles.mt1} />
-      </Plaque>
+      </Card>
     )
   }
   const s = status ?? FALLBACK
@@ -137,7 +136,7 @@ export function RitualSettings() {
 
   return (
     <View style={styles.wrap}>
-      <Plaque>
+      <Card padding="form">
         <View style={styles.head}>
           <View style={styles.grow}>
             <T role="micro" tone="faint">
@@ -176,27 +175,27 @@ export function RitualSettings() {
           </View>
           <BrassSwitch value={evening} disabled={!available || s.devices === 0} onChange={toggleEvening} label="Nudge me when tomorrow is laid out" />
         </View>
-      </Plaque>
+      </Card>
 
-      <Plaque>
+      <Card padding="form">
         <T role="micro" tone="faint">
           Also tell me when
         </T>
         <ToggleRow first label="The circle reacts" line="Reactions, comments, picks and verdicts." value={events.circle} disabled={!available || s.devices === 0} onChange={(v) => toggleEvent('circle', v)} />
         <ToggleRow label="A reflection is ready" line="A render finished while you were away." value={events.renders} disabled={!available || s.devices === 0} onChange={(v) => toggleEvent('renders', v)} />
-      </Plaque>
+      </Card>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 20 },
+  wrap: { gap: space.xxl },
   grow: { flex: 1 },
   mt1: { marginTop: space.xs },
   mt4: { marginTop: space.lg },
-  line: { marginTop: 6 },
+  line: { marginTop: space.sm },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg },
   hours: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm, marginTop: space.lg },
   at: { marginRight: space.xs },
-  evening: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg, marginTop: 20, paddingTop: space.lg, borderTopWidth: hairline },
+  evening: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg, marginTop: space.xl, paddingTop: space.lg, borderTopWidth: hairline },
 })

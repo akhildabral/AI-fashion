@@ -1,35 +1,36 @@
 // The furniture around the feed: who wore what today, people with your
 // taste, you in the circle, and the quiet room when nothing hangs yet.
-import { MaterialIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { type ReactNode } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import type { Lens, LookPost } from '@zauq/shared/circle'
 import type { SocialMe, StyleTwin } from '@zauq/shared/social'
 import { Arch } from '@/src/components/Arch'
-import { Stat } from '@/src/components/Bits'
+import { EmptyState, Stat } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
+import { PlusGlyph } from '@/src/components/Glyphs'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, radius } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
-import { CARD_PAD, Card, Dashed, GarmentThumb, Initials, PhotoArch, Plate, Press } from './atoms'
+import { CARD_PAD, Card, GarmentThumb, Initials, PhotoArch, Plate } from './atoms'
 import { userHref } from './notifications'
 
 /** The web's `w-16` rail thumb. The label beneath may run a little wider so "Share yours" never truncates. */
 const RAIL_W = 64
 const RAIL_LABEL_W = 76
 
-/** A rail thumb: the person when there's a photo, else the lead piece. */
+/** A rail thumb: the person when there's a photo, else the lead piece. Both at 4/5, so the rail sits level. */
 function RailThumb({ look }: { look: LookPost }) {
   if (look.photoUrl) return <PhotoArch uri={look.photoUrl} width={RAIL_W} aspect={4 / 5} />
-  return <GarmentThumb item={look.items[0]} width={RAIL_W} />
+  return <GarmentThumb item={look.items[0]} width={RAIL_W} aspect={4 / 5} />
 }
 
 /** A rail tile: the arch, its label 6 beneath (`mt-1.5 text-[11px] text-ink/55`), wrapping to a second line rather than clipping. */
 function RailTile({ label, accessibilityLabel, onPress, children }: { label: string; accessibilityLabel: string; onPress: () => void; children: ReactNode }) {
   return (
-    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={styles.railTile}>
+    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} wrapStyle={styles.railTile}>
       <View style={styles.railItem}>
         {children}
         <T role="caption" tone="faint" numberOfLines={2} align="center" style={styles.railLabel}>
@@ -53,8 +54,9 @@ export function TodayRail({ today, onShare }: { today: LookPost[] | null; onShar
         ) : (
           <View style={{ opacity: 0.5 }}>
             <Arch width={RAIL_W} aspect={4 / 5}>
+              {/* Inside the niche the ink is the niche's own, whatever the theme. */}
               <View style={styles.plus}>
-                <MaterialIcons name="add" size={18} color={t.brassLo} />
+                <PlusGlyph size={18} color={t.inNicheMuted} />
               </View>
             </Arch>
           </View>
@@ -83,7 +85,7 @@ export function SuggestedRail({ people, onFollow, onDismiss, onSeeAll }: { peopl
     <Card style={styles.suggested}>
       <View style={styles.suggestedHead}>
         <Plate>Kindred taste</Plate>
-        <Press accessibilityRole="button" accessibilityLabel="Hide these suggestions" hitSlop={8} onPress={onDismiss}>
+        <Press accessibilityRole="button" accessibilityLabel="Hide these suggestions" visual={16} onPress={onDismiss}>
           <T role="caption" tone="faint">
             Hide
           </T>
@@ -159,12 +161,13 @@ export function HandleNudge({ onPick }: { onPick: () => void }) {
           So friends can find you and @mention you.
         </T>
       </View>
-      <Button label="Choose" variant="primary" size="sm" onPress={onPick} />
+      {/* Ghost: the room's one brass verb is "Invite a friend" below. */}
+      <Button label="Choose" variant="ghost" size="sm" onPress={onPick} />
     </Card>
   )
 }
 
-/** The quiet room (the web's `EmptyFeed`): a dashed panel, `px-6 py-14`, the one thing to do beneath. */
+/** The quiet room (the web's `EmptyFeed`), as the system has it on a phone: one italic Bodoni line, a line beneath, and the one thing to do. No box. */
 export function EmptyFeed({ lens, circleSize, onFind, onShare, onInvite }: { lens: Lens; circleSize: number | null; onFind: () => void; onShare: () => void; onInvite: () => void }) {
   const copy: Record<Lens, { title: string; body: string }> = {
     foryou: {
@@ -178,21 +181,21 @@ export function EmptyFeed({ lens, circleSize, onFind, onShare, onInvite }: { len
   const c = copy[lens]
   const social = lens === 'foryou' || lens === 'following'
   return (
-    <Dashed style={styles.empty}>
-      <T role="h2" align="center">
-        {c.title}
-      </T>
-      <T role="bodySm" tone="muted" align="center" style={styles.emptyBody}>
-        {c.body}
-      </T>
-      {social && circleSize === 0 ? (
-        <View style={styles.emptyActions}>
-          <Button label="Invite a friend" onPress={onInvite} />
-          <Button label="Find people already here" variant="quiet" onPress={onFind} />
-        </View>
-      ) : null}
-      {social && circleSize !== 0 ? <Button label="Share a look" onPress={onShare} style={styles.emptyAction} /> : null}
-    </Dashed>
+    <EmptyState
+      title={c.title}
+      line={c.body}
+      style={styles.empty}
+      action={
+        !social ? undefined : circleSize === 0 ? (
+          <View style={styles.emptyActions}>
+            <Button label="Invite a friend" onPress={onInvite} />
+            <Button label="Find people already here" variant="quiet" onPress={onFind} />
+          </View>
+        ) : (
+          <Button label="Share a look" onPress={onShare} />
+        )
+      }
+    />
   )
 }
 
@@ -223,9 +226,7 @@ const styles = StyleSheet.create({
   youButton: { flex: 1 },
   nudge: { marginHorizontal: gutter, padding: CARD_PAD, flexDirection: 'row', alignItems: 'center', gap: 12 },
   nudgeText: { flex: 1, gap: 2 },
-  // `px-6 py-14`; the body `mt-2 max-w-sm`; the actions `mt-5 gap-x-4 gap-y-2`
-  empty: { marginHorizontal: gutter, marginTop: 4, paddingVertical: 56, paddingHorizontal: 24 },
-  emptyBody: { maxWidth: 300 },
-  emptyActions: { alignItems: 'center', gap: 8, marginTop: 12 },
-  emptyAction: { marginTop: 12 },
+  // The line, its note 8 beneath, the action 16 beneath that; 32 of air above and below.
+  empty: { marginHorizontal: gutter },
+  emptyActions: { alignItems: 'center', gap: space.sm },
 })

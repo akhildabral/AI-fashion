@@ -3,6 +3,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 const MIN_ZOOM = 1
 const MAX_ZOOM = 5
 
+// The lightbox sits on a fixed near-black scrim in both themes (a darkened
+// room, not the page), so its chrome uses the brand's bone rather than the
+// themed ink.
+const ON_SCRIM = 'text-[#ECE5D8]'
+
 /**
  * Fullscreen zoomable image preview. Wheel / buttons / double-click to zoom,
  * drag to pan while zoomed, Esc or backdrop click to close.
@@ -69,7 +74,7 @@ export function ImageLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0E0D0B]/90 p-4 backdrop-blur-[2px]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -79,14 +84,16 @@ export function ImageLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-[3px] bg-white/15 text-xl text-white transition hover:bg-white/30"
+        className={`press absolute right-6 top-6 z-10 flex h-9 w-9 items-center justify-center rounded-[3px] border border-[#ECE5D8]/20 transition-colors hover:border-brass ${ON_SCRIM}`}
       >
-        ×
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        </svg>
       </button>
 
-      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[3px] bg-white/15 px-2 py-1">
+      <div className={`absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[3px] border border-[#ECE5D8]/20 px-1 ${ON_SCRIM}`}>
         <ZoomButton label="Zoom out" onClick={(e) => { e.stopPropagation(); changeZoom(zoom - 0.5) }}>−</ZoomButton>
-        <span className="min-w-[3.5rem] text-center text-sm tabular-nums text-white/90">
+        <span className="min-w-[3.5rem] text-center text-[13px] tabular-nums opacity-90">
           {Math.round(zoom * 100)}%
         </span>
         <ZoomButton label="Zoom in" onClick={(e) => { e.stopPropagation(); changeZoom(zoom + 0.5) }}>+</ZoomButton>
@@ -128,7 +135,7 @@ function ZoomButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-[3px] text-lg text-white transition hover:bg-white/20"
+      className="press flex h-9 w-9 items-center justify-center rounded-[3px] font-display text-lg transition-colors hover:text-brass-ink"
     >
       {children}
     </button>

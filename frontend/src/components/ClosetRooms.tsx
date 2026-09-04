@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getBasket, getWishlist } from "@zauq/shared/wardrobe";
+import { PageHead } from "./ui";
 
 // The Closet's rooms: one row that says where you are and what's waiting in
 // the others. Pieces, the outfits they make, the basket (what's out of
@@ -35,27 +36,25 @@ export function ClosetRooms({ current }: { current: Room }) {
   }, [current]);
 
   return (
-    <div className="mt-6 flex animate-rise-1 items-end justify-between gap-x-4 border-b border-ink/10">
-      <nav aria-label="Closet rooms" className="tabs min-w-0 !border-b-0">
-        {ROOMS.map((r) => {
-          const badge = r.key === "basket" ? counts.basket : r.key === "wishlist" ? counts.wishlist : 0;
-          return (
-            <NavLink
-              key={r.key}
-              to={r.to}
-              end
-              aria-current={current === r.key ? "page" : undefined}
-              aria-selected={current === r.key}
-              role="tab"
-              className="tab press"
-            >
-              {r.label}
-              {badge > 0 && current !== r.key && <span className="count tabular-nums !text-brass">{badge}</span>}
-            </NavLink>
-          );
-        })}
-      </nav>
-    </div>
+    <nav aria-label="Closet rooms" role="tablist" className="tabs mt-8 animate-rise-1">
+      {ROOMS.map((r) => {
+        const badge = r.key === "basket" ? counts.basket : r.key === "wishlist" ? counts.wishlist : 0;
+        return (
+          <NavLink
+            key={r.key}
+            to={r.to}
+            end
+            aria-current={current === r.key ? "page" : undefined}
+            aria-selected={current === r.key}
+            role="tab"
+            className="tab press"
+          >
+            {r.label}
+            {badge > 0 && current !== r.key && <span className="count tabular-nums !text-brass-ink">{badge}</span>}
+          </NavLink>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -64,20 +63,12 @@ export function RoomMantel({
   eyebrow,
   title,
   line,
+  aside,
 }: {
   eyebrow: string;
-  title: string;
-  line?: string;
+  title: React.ReactNode;
+  line?: React.ReactNode;
+  aside?: React.ReactNode;
 }) {
-  return (
-    <div className="animate-rise border-b border-ink/10 pb-7">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">
-        {eyebrow}
-      </p>
-      <h1 className="mt-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-        {title}
-      </h1>
-      {line && <p className="mt-2 text-sm text-ink/50">{line}</p>}
-    </div>
-  );
+  return <PageHead eyebrow={eyebrow} title={title} line={line} aside={aside} />;
 }

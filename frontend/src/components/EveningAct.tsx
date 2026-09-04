@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { composeEvening, wearBrief, type BriefResponse } from '@zauq/shared/brief'
 import { LookBoard } from './LookBoard'
 import { Spinner } from './Spinner'
+import { Eyebrow } from './ui'
 
 // Act two. From six, or whenever the day has a second half: the second look
 // that keeps what you're wearing and changes the least. After the morning is
@@ -43,11 +44,11 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
     // Before six: a label on its own row, then the field and the button
     // sharing one, the field taking whatever width is left.
     return (
-      <div className="mt-6 border-t border-ink/10 pt-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">This evening</p>
-        <p className="mt-1 text-sm text-ink/55">Going somewhere after? Say where, and the second look is laid out from what you’re already wearing.</p>
+      <div className="mt-10 border-t border-ink/10 pt-6">
+        <Eyebrow>This evening</Eyebrow>
+        <p className="mt-2 text-sm text-ink/55">Going somewhere after? Say where, and the second look is laid out from what you’re already wearing.</p>
         <form
-          className="mt-3 flex max-w-xl gap-2"
+          className="mt-4 flex max-w-xl gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             void compose()
@@ -64,11 +65,11 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
 
   return (
     <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">This evening</p>
+      <Eyebrow>This evening</Eyebrow>
       {!ev && (
         <>
-          <h2 className="mt-1 font-display text-3xl font-medium leading-[1.0] text-ink sm:text-4xl">
-            Something on <em className="text-brass">tonight?</em>
+          <h2 className="section-title mt-2">
+            Something on <em className="text-brass-ink">tonight?</em>
           </h2>
           <p className="mt-3 max-w-md font-display text-lg italic text-ink/55">The second look keeps what you’re wearing and changes the least.</p>
           <form
@@ -87,14 +88,14 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
       )}
       {ev && (
         <>
-          <h2 className="mt-1 font-display text-3xl font-medium leading-[1.0] text-ink sm:text-4xl">
+          <h2 className="section-title mt-2">
             {ev.wornLogId ? (
               <>
-                Tonight, <em className="text-brass">worn.</em>
+                Tonight, <em className="text-brass-ink">worn.</em>
               </>
             ) : (
               <>
-                Tonight, <em className="text-brass">wear this.</em>
+                Tonight, <em className="text-brass-ink">wear this.</em>
               </>
             )}
           </h2>
@@ -103,16 +104,16 @@ export function EveningAct({ data, onUpdated, onNote, compact = false }: { data:
             {'  ·  '}
             <span className="font-display italic text-ink/70">{ev.rationale}</span>
           </p>
-          <div className="mt-5 max-w-3xl">
+          <div className="mt-6 max-w-3xl">
             <LookBoard items={ev.items} />
           </div>
-          <div className="action-row mt-5">
+          <div className="action-row mt-6">
             {!ev.wornLogId ? (
               <button type="button" disabled={busy !== null} onClick={() => void wear()} className="btn-primary">
                 {busy === 'wear' ? 'Logging…' : 'Wearing it'}
               </button>
             ) : (
-              <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass">Logged for tonight</span>
+              <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass-ink">Logged for tonight</span>
             )}
             <button type="button" onClick={() => navigate(`/mirror?items=${ev.itemIds.join(',')}`)} className="btn-ghost">
               See it on you

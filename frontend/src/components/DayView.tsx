@@ -5,9 +5,9 @@ import { getBrief, getWeek, planDay, todayKey, type BriefResponse, type WeekDay 
 import { LookBoard } from './LookBoard'
 import { LookAct, AddLook } from './LookAct'
 import { ShareButton } from './ShareButton'
-import { Spinner } from './Spinner'
 import { resolveImageUrl } from '../lib/api'
 import { EVENT_LABEL } from '@zauq/shared/outfits'
+import { Eyebrow, Chip, SkeletonBlock, LoadError, Arch, Plaque } from './ui'
 
 // A day that isn't today. Past: what you wore, the recap, share it. Future:
 // name the day and the look is composed now; or rest it.
@@ -84,29 +84,27 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
   // ---- past: the recap ----
   if (past) {
     return (
-      <div className="animate-rise lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
+      <div className="room-split animate-rise">
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{eyebrow}</p>
+        <Eyebrow>{eyebrow}</Eyebrow>
         {pastLoading && (
-          <div className="mt-6 text-ink/45">
-            <Spinner className="h-5 w-5" />
+          <div className="mt-2" aria-busy="true" aria-label="Loading">
+            <SkeletonBlock className="h-9 w-64 max-w-[80%]" />
+            <SkeletonBlock className="mt-3 h-4 w-48 !bg-ink/[0.07]" />
           </div>
         )}
         {!pastLoading && pastFailed && (
-          <div className="mt-6">
-            <p className="text-sm text-ink/60">Couldn’t load that day.</p>
-            <button type="button" onClick={() => setNonce((n) => n + 1)} className="btn-ghost btn-sm mt-3">Try again</button>
-          </div>
+          <LoadError className="min-h-[24vh]" message="Couldn’t load that day. Check your connection and try again." onRetry={() => setNonce((n) => n + 1)} />
         )}
         {!pastLoading && !pastFailed && !day && (
           <>
-            <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">Nothing on record.</h1>
+            <h1 className="page-title mt-2">Nothing on record.</h1>
             <p className="mt-3 font-display text-lg italic text-ink/55">No look was worn or logged that day.</p>
           </>
         )}
         {day && !day.worn && (
           <>
-            <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
+            <h1 className="page-title mt-2">
               {day.rest ? 'A home day.' : 'Nothing logged.'}
             </h1>
             <p className="mt-3 font-display text-lg italic text-ink/55">{day.rest ? 'A rest. The streak stayed honest.' : 'The look for that day was never worn, or never logged.'}</p>
@@ -114,15 +112,15 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
         )}
         {day && day.worn && (
           <>
-            <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
-              You wore <em className="text-brass">this.</em>
+            <h1 className="page-title mt-2">
+              You wore <em className="text-brass-ink">this.</em>
             </h1>
             {day.eventType && <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">{EVENT_LABEL[day.eventType] ?? day.eventType}</p>}
             <div className="mt-6 max-w-3xl">
               <LookBoard items={day.items} />
             </div>
-            <div className="action-row mt-5">
-              {day.wearLogId && <ShareButton target={{ kind: 'look', id: day.wearLogId, title: 'What I wore', text: `What I wore on ${longDay(date)}.`, url: day.shared ? `${window.location.origin}/look/${day.wearLogId}` : undefined }} onDone={(l) => l && onNote?.(l)} className="btn-primary !text-sm" label="Share it" />}
+            <div className="action-row mt-6">
+              {day.wearLogId && <ShareButton target={{ kind: 'look', id: day.wearLogId, title: 'What I wore', text: `What I wore on ${longDay(date)}.`, url: day.shared ? `${window.location.origin}/look/${day.wearLogId}` : undefined }} onDone={(l) => l && onNote?.(l)} className="btn-primary" label="Share it" />}
               <button type="button" onClick={() => navigate(`/mirror?items=${day.itemIds.join(',')}`)} className="btn-ghost">
                 See it on you
               </button>
@@ -135,27 +133,24 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
       </div>
       {/* The rail: that day's facts */}
       {day && day.worn && (
-        <aside className="mt-8 lg:mt-0 lg:self-start">
-          <div className="plaque p-5 pl-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">That day</p>
-            <ul className="mt-3 divide-y divide-ink/10">
+        <aside className="mt-10 lg:mt-0 lg:self-start">
+          <Plaque label="That day">
+            <ul className="mt-2 divide-y divide-ink/10">
               {day.items.map((it) => (
                 <li key={it.id} className="flex items-center gap-3 py-2">
-                  <div className="arch-bezel w-10 flex-none aspect-[5/6]">
-                    <div className="arch-niche flex h-full w-full items-center justify-center">
-                      <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                    </div>
-                  </div>
+                  <Arch aspect="aspect-[5/6]" className="w-10 flex-none">
+                    <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                  </Arch>
                   <span className="text-sm capitalize text-ink/80">{it.subtype ?? it.category}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-ink/50">
+            <p className="mt-4 text-xs text-ink/50">
               {day.eventType ? `${EVENT_LABEL[day.eventType] ?? day.eventType} · ` : ''}
               {day.shared ? 'shared to your circle' : 'kept to yourself'}
               {day.photoUrl ? ' · with a photo' : ''}
             </p>
-          </div>
+          </Plaque>
         </aside>
       )}
       </div>
@@ -168,36 +163,36 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
   const look = b?.mode === 'brief' ? b.brief : null
   const current = rest ? 'rest' : look?.eventType ?? null
   return (
-    <div className="animate-rise lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 xl:gap-16">
+    <div className="room-split animate-rise">
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">{eyebrow}</p>
-      <h1 className="mt-1 font-display text-4xl font-medium leading-[1.0] text-ink sm:text-5xl">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h1 className="page-title mt-2">
         {laidOut && look ? (
           <>
-            Laid <em className="text-brass">out.</em>
+            Laid <em className="text-brass-ink">out.</em>
           </>
         ) : rest ? (
           <>
-            A home <em className="text-brass">day.</em>
+            A home <em className="text-brass-ink">day.</em>
           </>
         ) : (
           <>
-            What kind of <em className="text-brass">day?</em>
+            What kind of <em className="text-brass-ink">day?</em>
           </>
         )}
       </h1>
       <div className="mt-4 flex flex-wrap gap-2">
         {DAY_CHIPS.map((c) => (
-          <button key={c.key} type="button" disabled={busy !== null} onClick={() => void plan({ eventType: c.key })} className={`chip ${current === c.key && !look?.occasion ? 'chip-on' : ''}`}>
+          <Chip key={c.key} disabled={busy !== null} onClick={() => void plan({ eventType: c.key })} on={current === c.key && !look?.occasion}>
             {busy === c.key ? '…' : c.label}
-          </button>
+          </Chip>
         ))}
-        <button type="button" disabled={busy !== null} onClick={() => void plan({ rest: true })} className={`chip ${rest ? 'chip-on' : ''}`}>
+        <Chip disabled={busy !== null} onClick={() => void plan({ rest: true })} on={rest}>
           {busy === 'rest' ? '…' : 'Home day'}
-        </button>
+        </Chip>
       </div>
       <form
-        className="mt-3 flex max-w-md gap-2"
+        className="mt-4 flex max-w-md gap-2"
         onSubmit={(e) => {
           e.preventDefault()
           if (occasion.trim()) void plan({ occasion: occasion.trim() })
@@ -210,18 +205,19 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
       </form>
 
       {b === null && (
-        <div className="mt-6 flex items-center gap-2 text-sm text-ink/50">
-          <Spinner className="h-4 w-4" /> reading the day…
+        <div className="mt-6" aria-busy="true" aria-label="Reading the day">
+          <SkeletonBlock className="h-4 w-64 max-w-[80%]" />
+          <SkeletonBlock className="mt-6 aspect-[5/4] max-w-3xl" />
         </div>
       )}
-      {rest && <p className="mt-5 font-display text-lg italic text-ink/55">No look, no push. The streak stays honest.</p>}
-      {b?.mode === 'starter' && <p className="mt-5 font-display text-lg italic text-ink/55">The closet needs a few more clean pieces to plan this day.</p>}
-      {b?.mode === 'unplanned' && <p className="mt-5 font-display text-lg italic text-ink/55">Nothing planned. Name the day and the look is composed now; the morning push will confirm it.</p>}
+      {rest && <p className="mt-6 font-display text-lg italic text-ink/55">No look, no push. The streak stays honest.</p>}
+      {b?.mode === 'starter' && <p className="mt-6 font-display text-lg italic text-ink/55">The closet needs a few more clean pieces to plan this day.</p>}
+      {b?.mode === 'unplanned' && <p className="mt-6 font-display text-lg italic text-ink/55">Nothing planned. Name the day and the look is composed now; the morning push will confirm it.</p>}
       {look && (
         <>
-          <p className="mt-5 text-[15px] leading-relaxed text-ink/55">
+          <p className="mt-6 text-[15px] leading-relaxed text-ink/55">
             {look.weather && (
-              <span className="font-semibold text-brass">
+              <span className="font-semibold text-brass-ink">
                 {temp(look.weather.temperatureC)} · {look.weather.description}
                 {'  ·  '}
               </span>
@@ -229,10 +225,10 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
             <span className="font-display italic text-ink/70">{look.rationale}</span>
           </p>
           {look.occasion && <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">{look.occasion}</p>}
-          <div className="mt-5 max-w-3xl">
+          <div className="mt-6 max-w-3xl">
             <LookBoard items={look.items} />
           </div>
-          <div className="action-row mt-5">
+          <div className="action-row mt-6">
             <button type="button" onClick={() => navigate(`/mirror?items=${look.itemIds.join(',')}`)} className="btn-ghost">
               See it on you
             </button>
@@ -251,29 +247,26 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
     </div>
     {/* The rail: the forecast and the pieces */}
     {look && (
-      <aside className="mt-8 lg:mt-0 lg:self-start">
-        <div className="plaque p-5 pl-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{longDay(date)}</p>
+      <aside className="mt-10 lg:mt-0 lg:self-start">
+        <Plaque label={longDay(date)}>
           {look.weather ? (
-            <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
-              {temp(look.weather.temperatureC)} <span className="font-sans text-xs font-semibold normal-case text-ink/55">{look.weather.description}</span>
+            <p className="mt-1 font-display text-4xl font-medium leading-[1.1] text-brass-ink [font-variant-numeric:tabular-nums]">
+              {temp(look.weather.temperatureC)} <span className="font-sans text-sm font-normal text-ink/55">{look.weather.description}</span>
             </p>
           ) : (
             <p className="mt-1 text-sm text-ink/55">Add your city in the fitting for the forecast.</p>
           )}
-          <ul className="mt-3 divide-y divide-ink/10 border-t border-ink/10">
+          <ul className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
             {look.items.map((it) => (
               <li key={it.id} className="flex items-center gap-3 py-2">
-                <div className="arch-bezel w-10 flex-none aspect-[5/6]">
-                  <div className="arch-niche flex h-full w-full items-center justify-center">
-                    <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
-                  </div>
-                </div>
+                <Arch aspect="aspect-[5/6]" className="w-10 flex-none">
+                  <img src={resolveImageUrl(it.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[10%]" />
+                </Arch>
                 <span className="text-sm capitalize text-ink/80">{it.subtype ?? it.category}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </Plaque>
       </aside>
     )}
     </div>

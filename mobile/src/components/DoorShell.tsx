@@ -29,7 +29,8 @@ export function DoorShell({ eyebrow, title, emphasis, lead, children, foot }: Do
       <KeyboardAwareScrollView bottomOffset={40} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Animated.View entering={rise(0)} style={styles.brand}>
           <ArchMark size={40} />
-          <Wordmark size={18} />
+          {/* 26 cap height is about 91px wide: the brand's 88px floor, and the size the sign-in door and the lock use. */}
+          <Wordmark size={26} />
         </Animated.View>
         <Animated.View entering={rise(1)} style={styles.head}>
           <T role="label" tone="brass">

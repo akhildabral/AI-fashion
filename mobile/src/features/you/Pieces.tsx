@@ -5,10 +5,10 @@ import { Image } from 'expo-image'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Arch } from '@/src/components/Arch'
 import { GarmentTile } from '@/src/components/GarmentTile'
+import { EmptyState } from '@/src/components/Bits'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
-import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, space } from '@/src/design/tokens'
+import { gutter, space } from '@/src/design/tokens'
 import { resolveImageUrl } from '@/src/lib/api'
 
 export interface PieceLike {
@@ -20,7 +20,7 @@ export interface PieceLike {
 
 export const pieceName = (i: { subtype: string | null; category: string }) => i.subtype?.trim() || i.category
 
-/** Small arches in a row: a look's pieces at a glance. */
+/** Small arches in a row: a look's pieces at a glance, each the standard garment tile at 5/6. */
 export function MiniPieces({ items, size = 48, dim, empty = 'Pieces no longer in your closet.' }: { items: PieceLike[]; size?: number; dim?: boolean; empty?: string }) {
   if (items.length === 0)
     return (
@@ -31,7 +31,7 @@ export function MiniPieces({ items, size = 48, dim, empty = 'Pieces no longer in
   return (
     <View style={[styles.mini, dim && { opacity: 0.7 }]}>
       {items.map((it) => (
-        <Arch key={it.id} width={size} aspect={4 / 5}>
+        <Arch key={it.id} width={size}>
           <Image source={{ uri: resolveImageUrl(it.imageUrl) }} contentFit="contain" cachePolicy="disk" transition={200} accessible accessibilityLabel={pieceName(it)} style={styles.miniImage} />
         </Arch>
       ))}
@@ -64,7 +64,6 @@ export function PieceGrid({
   width?: number
   sublabel?: (item: PieceLike) => string | null | undefined
 }) {
-  const { t } = useTheme()
   const { width: screen } = useWindowDimensions()
   const w = width ?? screen - gutter * 2
   const tile = Math.floor((w - gap * (columns - 1)) / columns)
@@ -79,7 +78,6 @@ export function PieceGrid({
             <GarmentTile
               imageUrl={it.imageUrl}
               width={tile}
-              aspect={4 / 5}
               label={pieceName(it)}
               sublabel={sublabel?.(it) ?? null}
               selected={on}
@@ -94,20 +92,14 @@ export function PieceGrid({
           </View>
         )
       })}
-      {items.length === 0 ? (
-        <View style={[styles.empty, { borderColor: alpha(t.ink, 0.2), borderRadius: radius, width: w }]}>
-          <T role="bodySm" tone="muted" align="center">
-            Nothing here yet.
-          </T>
-        </View>
-      ) : null}
+      {items.length === 0 ? <EmptyState title="Nothing here yet." style={{ width: w }} /> : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   mini: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  miniImage: { position: 'absolute', left: '10%', right: '10%', top: '10%', bottom: '8%' },
+  // A cut-out under 64pt sits at 11%, so nothing touches the bezel.
+  miniImage: { position: 'absolute', left: '11%', right: '11%', top: '11%', bottom: '11%' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  empty: { borderWidth: 1, borderStyle: 'dashed', padding: space.xl },
 })

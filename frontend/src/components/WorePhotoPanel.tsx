@@ -3,7 +3,7 @@ import { pinFile, resolveImageUrl } from '../lib/api'
 import type { EventType } from '@zauq/shared/types'
 import { confirmWearPhoto, getWearPhoto, readWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '@zauq/shared/wear-photo'
 import { Spinner } from './Spinner'
-import { Arch } from './ui'
+import { Arch, Alert, Chip } from './ui'
 
 /**
  * "This is what I wore." One photo in; every garment found in it comes back
@@ -93,11 +93,7 @@ export function WorePhotoPanel({
       <div>
         <p className="text-sm text-ink/70">A photo of you in it, or of the pieces laid out. The closet reads which are yours; new ones can join it.</p>
         <input ref={fileRef} type="file" accept="image/*" onChange={(e) => void onFile(e)} className="hidden" />
-        {error && (
-          <p className="mt-3 alert-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Alert className="mt-4">{error}</Alert>}
         <div className="action-row mt-4">
           <button type="button" disabled={stage === 'reading'} onClick={() => fileRef.current?.click()} className="btn-primary btn-sm">
             {stage === 'reading' ? (
@@ -129,26 +125,22 @@ export function WorePhotoPanel({
       )}
 
       {alreadyLogged && rows.length > 0 && (
-        <div className="mt-5 border-t border-ink/10 pt-4">
+        <div className="mt-6 border-t border-ink/10 pt-4">
           <p className="label">The day was already logged</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setMode('instead')} className={`chip ${mode === 'instead' ? 'chip-on' : ''}`}>
+            <Chip onClick={() => setMode('instead')} on={mode === 'instead'}>
               This is what I wore instead
-            </button>
-            <button type="button" onClick={() => setMode('also')} className={`chip ${mode === 'also' ? 'chip-on' : ''}`}>
+            </Chip>
+            <Chip onClick={() => setMode('also')} on={mode === 'also'}>
               As well as what was logged
-            </button>
+            </Chip>
           </div>
         </div>
       )}
       {!alreadyLogged && hasSuggestion && rows.length > 0 && <p className="mt-4 text-xs text-ink/45">Logged as the day’s look, in place of what was laid out. The suggestion stays on record.</p>}
 
-      {error && (
-        <p className="mt-3 alert-error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="action-row mt-5">
+      {error && <Alert className="mt-4">{error}</Alert>}
+      <div className="action-row mt-6">
         <button type="button" disabled={stage === 'saving' || kept === 0} onClick={() => void save()} className="btn-primary btn-sm">
           {stage === 'saving' ? 'Logging…' : kept === 0 ? 'Log the day' : `Log the day · ${kept} ${kept === 1 ? 'piece' : 'pieces'}`}
         </button>
@@ -190,7 +182,7 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           : ''
 
   return (
-    <li className="plaque p-3">
+    <li className="card p-4">
       <div className="flex items-start gap-3">
         {/* The crop is a photograph: lit by itself, no vitrine glow. The
             piece beside it is a cut-out, and sits in its niche as everywhere. */}
@@ -203,36 +195,36 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           </Arch>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">{row.description}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brass-ink">{row.description}</p>
           <p className="mt-1 text-sm text-ink">{line}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-2">
             {d.action === 'use' && row.band === 'near' && chosen && (
               <>
-                <button type="button" onClick={() => onChange({ ...d, open: false })} className="chip chip-on">
+                <Chip on onClick={() => onChange({ ...d, open: false })}>
                   Yes, that one
-                </button>
-                <button type="button" onClick={() => onChange({ index: row.index, action: 'add', open: true })} className="chip">
+                </Chip>
+                <Chip onClick={() => onChange({ index: row.index, action: 'add', open: true })}>
                   Not mine
-                </button>
+                </Chip>
               </>
             )}
             {d.action === 'use' && row.band === 'sure' && (
-              <button type="button" onClick={() => onChange({ ...d, open: !d.open })} className="chip">
+              <Chip onClick={() => onChange({ ...d, open: !d.open })}>
                 {d.open ? 'Keep it' : 'Not that one'}
-              </button>
+              </Chip>
             )}
             {d.action !== 'use' && (
               <>
-                <button type="button" onClick={() => onChange({ index: row.index, action: 'add', open: d.open })} className={`chip ${d.action === 'add' ? 'chip-on' : ''}`}>
+                <Chip on={d.action === 'add'} onClick={() => onChange({ index: row.index, action: 'add', open: d.open })}>
                   Add to the closet
-                </button>
-                <button type="button" onClick={() => onChange({ index: row.index, action: 'skip', open: d.open })} className={`chip ${d.action === 'skip' ? 'chip-on' : ''}`}>
+                </Chip>
+                <Chip on={d.action === 'skip'} onClick={() => onChange({ index: row.index, action: 'skip', open: d.open })}>
                   Skip
-                </button>
+                </Chip>
                 {row.matches.length > 0 && (
-                  <button type="button" onClick={() => onChange({ ...d, open: !d.open })} className="chip">
+                  <Chip onClick={() => onChange({ ...d, open: !d.open })}>
                     {d.open ? 'Hide mine' : 'One of mine'}
-                  </button>
+                  </Chip>
                 )}
               </>
             )}
@@ -240,7 +232,7 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           {d.open && row.matches.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {row.matches.map((m) => (
-                <button key={m.itemId} type="button" onClick={() => onChange({ index: row.index, action: 'use', itemId: m.itemId, open: false })} className={`press flex items-center gap-2 border p-1 pr-3 text-left text-xs ${d.itemId === m.itemId ? 'border-brass' : 'border-ink/15'}`}>
+                <button key={m.itemId} type="button" onClick={() => onChange({ index: row.index, action: 'use', itemId: m.itemId, open: false })} aria-pressed={d.itemId === m.itemId} className={`press flex items-center gap-2 rounded-[3px] border p-1 pr-3 text-left text-xs transition-colors hover:border-brass/50 ${d.itemId === m.itemId ? 'border-brass' : 'border-ink/15'}`}>
                   <Arch className="w-10 shrink-0" aspect="aspect-[4/5]">
                     <img src={resolveImageUrl(m.item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[7%]" />
                   </Arch>
@@ -251,9 +243,9 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
                 </button>
               ))}
               {d.action === 'use' && (
-                <button type="button" onClick={() => onChange({ index: row.index, action: 'add', open: false })} className="chip self-center">
+                <Chip className="self-center" onClick={() => onChange({ index: row.index, action: 'add', open: false })}>
                   None of these
-                </button>
+                </Chip>
               )}
             </div>
           )}

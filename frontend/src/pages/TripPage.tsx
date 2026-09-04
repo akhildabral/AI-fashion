@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Arch, GarmentTile, Modal, PageShell, Toast, useFlash, SkeletonBlock } from '../components/ui'
-import { Spinner } from '../components/Spinner'
+import { Arch, ArchSkeleton, EmptyState, GarmentTile, LoadError, Modal, PageHead, PageShell, SectionHead, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, setTripLookItems, swapTripItem, updateTrip, type TripPage as TripPageData } from '@zauq/shared/brief'
 import { getWardrobe } from '@zauq/shared/wardrobe'
@@ -56,12 +55,8 @@ function AddPieceModal({ exclude, onClose, onAdd }: { exclude: Set<string>; onCl
   }, [exclude])
   return (
     <Modal open onClose={onClose} title="Add from the closet">
-      {pieces === null && (
-        <div className="py-8 text-center text-ink/40">
-          <Spinner className="h-5 w-5" />
-        </div>
-      )}
-      {pieces && pieces.length === 0 && <p className="rounded-[3px] border border-dashed border-ink/20 p-5 text-center text-sm text-ink/60">Everything you own is already packed.</p>}
+      {pieces === null && <ArchSkeleton count={8} aspect="aspect-[4/5]" className="grid grid-cols-4 gap-2 sm:grid-cols-6" />}
+      {pieces && pieces.length === 0 && <EmptyState line="Everything you own is already packed." />}
       {pieces && pieces.length > 0 && (
         <div className="grid max-h-[46vh] grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6">
           {pieces.map((p) => {
@@ -71,7 +66,7 @@ function AddPieceModal({ exclude, onClose, onAdd }: { exclude: Set<string>; onCl
                 <Arch aspect="aspect-[4/5]" bright={on}>
                   <img src={resolveImageUrl(p.imageUrl)} alt="" loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
                 </Arch>
-                <p className="mt-1 truncate text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-ink/55">{name(p)}</p>
+                <p className="mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-label-xs text-ink/55">{name(p)}</p>
               </button>
             )
           })}
@@ -262,17 +257,12 @@ export function TripPage() {
   if (error) {
     return (
       <PageShell>
-        <p className="alert-error" role="alert">
-          {error}
-        </p>
-        <div className="mt-6 flex gap-3">
-          <button type="button" onClick={() => { setError(null); void load() }} className="btn-primary">
-            Try again
-          </button>
-          <Link to="/trips" className="btn-ghost inline-flex">
+        <LoadError message={error} onRetry={() => { setError(null); void load() }} />
+        <p className="text-center">
+          <Link to="/trips" className="btn-quiet">
             All trips
           </Link>
-        </div>
+        </p>
       </PageShell>
     )
   }
@@ -280,14 +270,10 @@ export function TripPage() {
     return (
       <PageShell>
         <div aria-busy="true" aria-label="Loading the trip">
-          <SkeletonBlock className="h-4 w-28" />
-          <SkeletonBlock className="mt-3 h-12 w-2/3" />
-          <SkeletonBlock className="mt-3 h-4 w-40" />
-          <div className="mt-8 grid grid-cols-3 gap-4 sm:grid-cols-5 lg:grid-cols-6 lg:gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
-            ))}
-          </div>
+          <SkeletonBlock className="h-3 w-24" />
+          <SkeletonBlock className="mt-3 h-9 w-2/3" />
+          <SkeletonBlock className="mt-3 h-4 w-40 !bg-ink/[0.07]" />
+          <ArchSkeleton count={6} className="mt-8 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6" />
         </div>
       </PageShell>
     )
@@ -305,49 +291,55 @@ export function TripPage() {
   return (
     <PageShell>
       <Toast msg={toast} />
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
+      <PageHead
+        eyebrow={
+          <>
             <Link to="/trips" className="hover:underline">
               Trips
             </Link>{' '}
             · {past ? 'past' : on ? 'on now' : 'upcoming'}
-          </p>
-          <h1 className="mt-1.5 animate-rise-1 font-display text-5xl font-medium leading-none text-ink sm:text-6xl">
-            {trip.destination}, <em className="text-brass">{nights(trip.startDate, trip.endDate)} days.</em>
-          </h1>
-          <p className="mt-3 animate-rise-1 text-sm text-ink/55">
+          </>
+        }
+        title={
+          <>
+            {trip.destination}, <em className="text-accent-text">{nights(trip.startDate, trip.endDate)} days.</em>
+          </>
+        }
+        line={
+          <>
             {formatDay(trip.startDate)} to {formatDay(trip.endDate)}
             {trip.activities ? ` · ${trip.activities}` : ''}
-          </p>
-        </div>
-        <div className="action-row animate-rise-1">
-          {!past && (
-            <Link to="/" className="btn-ghost">
-              Today’s brief
-            </Link>
-          )}
-          {confirmRemove ? (
-            <>
-              <button type="button" onClick={() => void remove()} className="btn-ghost !border-[rgb(var(--c-danger))]/60 !text-[rgb(var(--c-danger))]">
-                Yes, remove it
+          </>
+        }
+        aside={
+          <div className="action-row">
+            {!past && (
+              <Link to="/" className="btn-ghost">
+                Today’s brief
+              </Link>
+            )}
+            {confirmRemove ? (
+              <>
+                <button type="button" onClick={() => void remove()} className="btn-danger">
+                  Yes, remove it
+                </button>
+                <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet">
+                  Keep it
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => setConfirmRemove(true)} className="btn-quiet">
+                Remove the trip
               </button>
-              <button type="button" onClick={() => setConfirmRemove(false)} className="btn-quiet">
-                Keep it
-              </button>
-            </>
-          ) : (
-            <button type="button" onClick={() => setConfirmRemove(true)} className="btn-quiet">
-              Remove the trip
-            </button>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+        }
+      />
 
       {recap && (
         <section className="plaque mt-8 animate-rise-2 p-5 pl-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Looking back</p>
-          <p className="mt-1 font-display text-2xl text-ink">
+          <p className="eyebrow">Looking back</p>
+          <p className="mt-2 font-display text-2xl font-medium text-ink">
             {recap.worn} of {recap.packed} pieces worn.
             {recap.unworn.length === 0 ? ' Packed exactly right.' : recap.unworn.length === recap.packed ? ' Nothing was logged on the road.' : ` The ${recap.unworn.map(name).slice(0, 3).join(', ')} never left the case.`}
           </p>
@@ -365,12 +357,12 @@ export function TripPage() {
       )}
 
       {plan && plan.forecast.days.length > 0 && (
-        <section className="mt-8 animate-rise-2">
-          <h2 className="font-display text-2xl font-medium text-ink">{plan.forecast.location}</h2>
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
+        <section className="mt-10 animate-rise-2">
+          <SectionHead title={plan.forecast.location} />
+          <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none]">
             {plan.forecast.days.map((d) => (
               <div key={d.date} className="plaque min-w-[7.5rem] shrink-0 p-3 pl-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">{formatDay(d.date)}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-label text-accent-text">{formatDay(d.date)}</p>
                 <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">
                   {tempRange(d.minC, d.maxC)}
                 </p>
@@ -386,29 +378,30 @@ export function TripPage() {
       )}
 
       <section className="mt-10 animate-rise-2">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="font-display text-2xl font-medium text-ink">The capsule · {capsule.length} pieces</h2>
-            {plan?.rationale && <p className="mt-1 max-w-2xl text-sm text-ink/60">{plan.rationale}</p>}
-            {!past && <p className="mt-1 text-xs text-ink/45">“Not this” swaps in the closest piece you own. Unpack takes it out.</p>}
-          </div>
-          {!past && (
-            <button type="button" onClick={() => setAdding(true)} className="btn-ghost btn-sm">
-              Add from the closet
-            </button>
-          )}
-        </div>
+        <SectionHead
+          className={plan?.rationale || !past ? '!mb-1' : ''}
+          title={`The capsule · ${capsule.length} pieces`}
+          action={
+            !past ? (
+              <button type="button" onClick={() => setAdding(true)} className="btn-ghost btn-sm">
+                Add from the closet
+              </button>
+            ) : undefined
+          }
+        />
+        {plan?.rationale && <p className="max-w-2xl text-sm text-ink/60">{plan.rationale}</p>}
+        {!past && <p className="mt-1 text-xs text-ink/45">“Not this” swaps in the closest piece you own. Unpack takes it out.</p>}
         <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6">
           {capsule.map((item) => (
             <div key={item.id} className={`min-w-0 ${swapping === item.id ? 'opacity-50' : ''}`}>
               <GarmentTile imageUrl={item.imageUrl} label={name(item)} />
               {!past && (
                 <div className="mt-1 flex justify-center gap-1">
-                  <button type="button" disabled={swapping !== null} onClick={() => void notThis(item)} className="press text-[11px] font-semibold text-brass hover:underline disabled:opacity-40">
+                  <button type="button" disabled={swapping !== null} onClick={() => void notThis(item)} className="press text-[11px] font-semibold text-accent-text hover:underline disabled:opacity-50">
                     Not this
                   </button>
                   <span className="text-[11px] text-ink/25">·</span>
-                  <button type="button" disabled={swapping !== null || capsule.length <= 1} onClick={() => void unpack(item)} className="press text-[11px] font-semibold text-ink/45 hover:text-ink hover:underline disabled:opacity-40">
+                  <button type="button" disabled={swapping !== null || capsule.length <= 1} onClick={() => void unpack(item)} className="press text-[11px] font-semibold text-ink/55 hover:text-ink hover:underline disabled:opacity-50">
                     Unpack
                   </button>
                 </div>
@@ -420,8 +413,8 @@ export function TripPage() {
 
       {days.length > 0 && (
         <section className="mt-10 animate-rise-3">
-          <h2 className="font-display text-2xl font-medium text-ink">Day by day</h2>
-          <div className="card mt-4 px-5">
+          <SectionHead title="Day by day" />
+          <div className="card px-5">
             {days.map((day, i) => (
               <article key={day.label} className="border-t border-ink/10 py-4 first:border-t-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -440,7 +433,7 @@ export function TripPage() {
                     <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
                       <div className="sm:w-40 sm:shrink-0">
                         {(day.looks.length > 1 || look.label || look.time) && (
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brass">
+                          <p className="text-[11px] font-semibold uppercase tracking-label-sm text-accent-text">
                             {look.label || ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][li] || `Look ${li + 1}`}
                             {look.time && <span className="ml-1.5 normal-case tracking-normal text-ink/40">{look.time}</span>}
                           </p>
@@ -481,24 +474,26 @@ export function TripPage() {
 
       {!past && (
         <section className="mt-10 animate-rise-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="font-display text-2xl font-medium text-ink">Checklist</h2>
-            <p className="text-xs text-ink/45">
-              {ticked} of {total} packed · it remembers
-            </p>
-          </div>
-          {/* Progress — the case filling up */}
-          <div className="mt-3 h-1.5 overflow-hidden rounded-[2px] bg-ink/10" role="progressbar" aria-valuenow={ticked} aria-valuemax={total}>
-            <div className="h-full rounded-[2px] bg-brass transition-[width] duration-300" style={{ width: `${total ? Math.round((ticked / total) * 100) : 0}%` }} />
+          <SectionHead
+            title="Checklist"
+            action={
+              <p className="text-xs text-ink/45 [font-variant-numeric:tabular-nums]">
+                {ticked} of {total} packed · it remembers
+              </p>
+            }
+          />
+          {/* Progress: the case filling up */}
+          <div className="h-1.5 overflow-hidden rounded-[3px] bg-ink/10" role="progressbar" aria-valuenow={ticked} aria-valuemax={total}>
+            <div className="h-full rounded-[3px] bg-brass transition-[width] duration-300 ease-out" style={{ width: `${total ? Math.round((ticked / total) * 100) : 0}%` }} />
           </div>
           {/* Packed by kind, then the things to pick up */}
-          <div className="mt-5 flex flex-col gap-5">
+          <div className="mt-8 flex flex-col gap-8">
             {checklistGroups(capsule).map(([label, items]) => {
               const done = items.filter((it) => checked.has(`item-${it.id}`)).length
               return (
                 <div key={label}>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">
-                    {label} <span className="text-ink/30">{done}/{items.length}</span>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-label-xs text-ink/45">
+                    {label} <span className="text-ink/30 [font-variant-numeric:tabular-nums]">{done}/{items.length}</span>
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {items.map((item) => {
@@ -517,8 +512,8 @@ export function TripPage() {
             })}
             {(plan?.essentials ?? []).length > 0 && (
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-brass">
-                  To pick up <span className="text-brass/50">{(plan?.essentials ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.essentials.length}</span>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-label-xs text-accent-text">
+                  To pick up <span className="opacity-50 [font-variant-numeric:tabular-nums]">{(plan?.essentials ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.essentials.length}</span>
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {(plan?.essentials ?? []).map((extra) => {
@@ -536,8 +531,8 @@ export function TripPage() {
             )}
             {(plan?.custom ?? []).length > 0 && (
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">
-                  Yours <span className="text-ink/30">{(plan?.custom ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.custom?.length}</span>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-label-xs text-ink/45">
+                  Yours <span className="text-ink/30 [font-variant-numeric:tabular-nums]">{(plan?.custom ?? []).filter((e) => checked.has(`extra-${e}`)).length}/{plan?.custom?.length}</span>
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {(plan?.custom ?? []).map((extra) => {
@@ -556,7 +551,10 @@ export function TripPage() {
             )}
             {/* Add your own — one place to track the whole trip */}
             <form className="flex max-w-md gap-2" onSubmit={(e) => { e.preventDefault(); void addItem() }}>
-              <input value={newItem} onChange={(e) => setNewItem(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="Add your own — passport, meds, a gift…" />
+              <label htmlFor="trip-own-item" className="sr-only">
+                Add your own
+              </label>
+              <input id="trip-own-item" value={newItem} onChange={(e) => setNewItem(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="Add your own: passport, meds, a gift…" />
               <button type="submit" disabled={savingItem || !newItem.trim()} className="btn-ghost btn-sm shrink-0">{savingItem ? 'Adding…' : 'Add'}</button>
             </form>
           </div>

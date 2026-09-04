@@ -3,7 +3,6 @@
 import { useRouter } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { Plaque } from '@/src/components/Bits'
 import { Wordmark } from '@/src/components/Brand'
 import { Button } from '@/src/components/Button'
 import { Screen } from '@/src/components/Screen'
@@ -55,8 +54,9 @@ export default function YouRoom() {
         </Animated.View>
 
         {!progress.complete ? (
+          // A card, not a plaque: it carries the links to what is still open.
           <Animated.View entering={rise(1)}>
-            <Plaque>
+            <Card padding="form">
               <View style={styles.progressHead}>
                 <T role="micro" tone="faint">
                   Complete your fitting
@@ -78,7 +78,7 @@ export default function YouRoom() {
                     <TextLink key={s.key} label={`${s.label} →`} onPress={() => go(s.section)} />
                   ))}
               </View>
-            </Plaque>
+            </Card>
           </Animated.View>
         ) : null}
 
@@ -111,17 +111,19 @@ export default function YouRoom() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: space.xl },
+  // Blocks 32 apart: the identity, the fitting, the doors, the foot.
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: space.xxl },
   identity: { flexDirection: 'row', alignItems: 'flex-end', gap: space.lg, paddingTop: space.sm },
-  who: { flex: 1, gap: 4 },
-  // The web's `text-[10px] tracking-[0.28em]`, as RoomHeader sets it.
+  who: { flex: 1, gap: space.xs },
+  // The eyebrow's .28em, as RoomHeader sets it.
   eyebrow: { letterSpacing: 2.8 },
   progressHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.md },
-  track: { height: 6, borderRadius: radius, overflow: 'hidden', marginTop: space.md },
+  // The label, its bar 8 beneath, the line 8 beneath that, the links 16 on.
+  track: { height: 6, borderRadius: radius, overflow: 'hidden', marginTop: space.sm },
   fill: { height: '100%', borderRadius: radius },
   progressLine: { marginTop: space.sm },
-  missing: { marginTop: space.md, gap: space.md },
-  foot: { gap: space.md, paddingTop: space.sm },
+  missing: { marginTop: space.lg, gap: space.md },
+  foot: { gap: space.md },
   version: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   // The mark at the faint wash the version beside it uses (ink/45).
   faintMark: { opacity: 0.45 },

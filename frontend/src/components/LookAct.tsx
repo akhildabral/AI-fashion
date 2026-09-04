@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { wearBrief, removeLook, composeLook, type LookSlot, type LookSlotKind } from '@zauq/shared/brief'
 import { LookBoard } from './LookBoard'
 import { Spinner } from './Spinner'
+import { Chip, Eyebrow } from './ui'
 
 // One look in the day's timeline — an afternoon, an evening, or a custom
 // ritual. Renders its own board and logs itself as a separate wear. The first
@@ -77,39 +78,39 @@ export function LookAct({
   }
 
   return (
-    <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
+    <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">
+        <Eyebrow>
           {title}
           {time && <span className="ml-2 text-ink/40">{time}</span>}
-        </p>
+        </Eyebrow>
         {look.worn && (
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/40">Logged</span>
         )}
       </div>
-      <h2 className="mt-1 font-display text-2xl font-medium leading-[1.05] text-ink sm:text-3xl">
+      <h2 className="section-title mt-2">
         {look.worn ? (
-          <>You <em className="text-brass">wore this.</em></>
+          <>You <em className="text-brass-ink">wore this.</em></>
         ) : look.occasion ? (
-          <>For <em className="text-brass">{look.occasion.toLowerCase()}.</em></>
+          <>For <em className="text-brass-ink">{look.occasion.toLowerCase()}.</em></>
         ) : (
-          <>Then, <em className="text-brass">wear this.</em></>
+          <>Then, <em className="text-brass-ink">wear this.</em></>
         )}
       </h2>
       {look.rationale && (
-        <p className="mt-2 max-w-2xl font-display text-lg italic text-ink/55">{look.rationale}</p>
+        <p className="mt-3 max-w-2xl font-display text-lg italic text-ink/55">{look.rationale}</p>
       )}
-      <div className="mt-5 max-w-3xl">
+      <div className="mt-6 max-w-3xl">
         <LookBoard items={look.items} />
       </div>
-      <div className="action-row mt-5">
+      <div className="action-row mt-6">
         {!planning &&
           (!look.worn ? (
             <button type="button" disabled={busy !== null} onClick={() => void wear()} className="btn-primary">
               {busy === 'wear' ? <><Spinner className="mr-2 h-4 w-4" /> Logging…</> : 'Wearing it'}
             </button>
           ) : (
-            <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass">
+            <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass-ink">
               Logged for {title.toLowerCase()}
             </span>
           ))}
@@ -166,30 +167,24 @@ export function AddLook({
   }
 
   return (
-    <section className="mt-8 border-t border-ink/10 pt-6">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-brass">Add a look</p>
-      <p className="mt-1 text-sm text-ink/55">
+    <section className="mt-10 border-t border-ink/10 pt-6">
+      <Eyebrow>Add a look</Eyebrow>
+      <p className="mt-2 text-sm text-ink/55">
         Another outfit for later today — an event, a change, or a ritual of its own.
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {PRESETS.map((p) => (
-          <button
-            key={p.slot}
-            type="button"
-            disabled={busy !== null}
-            onClick={() => void add({ slot: p.slot }, p.slot)}
-            className="chip"
-          >
+          <Chip key={p.slot} disabled={busy !== null} onClick={() => void add({ slot: p.slot }, p.slot)}>
             {busy === p.slot ? 'Composing…' : p.label}
-          </button>
+          </Chip>
         ))}
-        <button type="button" disabled={busy !== null} onClick={() => setCustomOpen((v) => !v)} className="chip">
+        <Chip disabled={busy !== null} onClick={() => setCustomOpen((v) => !v)} on={customOpen}>
           Custom…
-        </button>
+        </Chip>
       </div>
       {customOpen && (
         <form
-          className="mt-3 flex max-w-2xl flex-wrap items-center gap-2"
+          className="mt-4 flex max-w-2xl flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             void add(
@@ -200,7 +195,7 @@ export function AddLook({
         >
           <input value={label} onChange={(e) => setLabel(e.target.value)} className="field field-sm w-40" placeholder="Ceremony" />
           <input value={time} onChange={(e) => setTime(e.target.value)} type="time" className="field field-sm w-32" aria-label="Time" />
-          <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="what it's for" />
+          <input value={occasion} onChange={(e) => setOccasion(e.target.value)} className="field field-sm min-w-0 flex-1" placeholder="what it’s for" />
           <button type="submit" disabled={busy !== null} className="btn-primary btn-sm shrink-0">
             {busy === 'custom' ? <Spinner className="h-4 w-4" /> : 'Add look'}
           </button>

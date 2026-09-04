@@ -1,10 +1,10 @@
 import { type ReactNode } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
-import { PRESS_SCALE, timing } from '@/src/design/motion'
+import { ActivityIndicator, Pressable, StyleSheet, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native'
+import Animated from 'react-native-reanimated'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
+import { alpha, dark, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
 import { control, fonts } from '@/src/design/type'
+import { usePressScale } from './Press'
 import { T } from './Text'
 
 type Variant = 'primary' | 'ghost' | 'quiet' | 'danger' | 'icon'
@@ -19,9 +19,11 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   block?: boolean
   /** An icon element for `variant="icon"` or a leading glyph. */
   icon?: ReactNode
-  /** An icon button that sits in an action bar beside 44pt actions takes their height. */
+  /** An icon button that sits in an action row beside 44pt actions takes their height. */
   tall?: boolean
-  style?: ViewStyle
+  /** On the Mirror's glass, which is dark in both themes: the label and border take the night palette's ink. */
+  onGlass?: boolean
+  style?: StyleProp<ViewStyle>
 }
 
 /** Padding X per variant: primary 24, ghost and danger 20, quiet 4; every small button 20. Never vertical. */
@@ -46,32 +48,34 @@ export function Button({
   block = false,
   icon,
   tall = false,
+  onGlass = false,
   disabled,
   style,
   accessibilityLabel,
   ...rest
 }: ButtonProps) {
   const { t } = useTheme()
-  const scale = useSharedValue(1)
-  const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
+  const press = usePressScale()
   const h = variant === 'icon' ? (tall ? height.action : height.secondary) : size === 'sm' ? height.secondary : height.action
   const off = disabled || loading
+  const ink = onGlass ? dark.ink : t.ink
 
   const fill =
     variant === 'primary'
       ? { backgroundColor: t.brass }
       : variant === 'ghost' || variant === 'danger'
-        ? { borderWidth: hairline, borderColor: alpha(variant === 'danger' ? t.danger : t.ink, 0.28) }
+        ? { borderWidth: hairline, borderColor: alpha(variant === 'danger' ? t.danger : ink, 0.28) }
         : variant === 'icon'
-          ? { borderWidth: hairline, borderColor: alpha(t.ink, 0.2), width: h }
+          ? { borderWidth: hairline, borderColor: alpha(ink, 0.2), width: h }
           : {}
-  const tone = variant === 'primary' ? 'onBrass' : variant === 'danger' ? 'danger' : variant === 'quiet' ? 'muted' : 'ink'
+  const tone = variant === 'primary' ? 'onBrass' : variant === 'danger' ? 'danger' : onGlass ? 'inherit' : variant === 'quiet' ? 'muted' : 'ink'
+  const glassInk = onGlass && variant !== 'primary' && variant !== 'danger' ? { color: variant === 'quiet' ? alpha(dark.ink, 0.6) : dark.ink } : null
   // 14 on a 44 control, 13 on a 36 one; primary is semibold, the rest medium.
   const text = h === height.action ? control.md : control.sm
   const face = variant === 'primary' ? fonts.sansSemi : fonts.sansMedium
 
   return (
-    <Animated.View style={[pressed, block && styles.block]}>
+    <Animated.View style={[press.style, block && styles.block]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
@@ -79,27 +83,20 @@ export function Button({
         disabled={off}
         hitSlop={hitSlopFor(h)}
         pressRetentionOffset={12}
-        onPressIn={() => {
-          scale.set(withTiming(PRESS_SCALE, timing.press))
-        }}
-        onPressOut={() => {
-          scale.set(withTiming(1, timing.press))
-        }}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
         {...rest}
         style={[styles.base, { height: h, paddingHorizontal: paddingFor(variant, size), borderRadius: radius, opacity: off ? 0.5 : 1 }, fill, block && styles.block, style]}
       >
-        {loading ? (
-          <ActivityIndicator color={variant === 'primary' ? t.onBrass : t.ink} />
-        ) : (
-          <View style={styles.row}>
-            {icon}
-            {label ? (
-              <T role="bodySm" tone={tone} style={[text, { fontFamily: face }]} numberOfLines={1}>
-                {label}
-              </T>
-            ) : null}
-          </View>
-        )}
+        {/* In flight, the button keeps its label and takes the spinner; nothing else on the screen moves. */}
+        <View style={styles.row}>
+          {loading ? <ActivityIndicator size="small" color={variant === 'primary' ? t.onBrass : ink} /> : icon}
+          {label ? (
+            <T role="bodySm" tone={tone} style={[text, { fontFamily: face }, glassInk]} numberOfLines={1}>
+              {label}
+            </T>
+          ) : null}
+        </View>
       </Pressable>
     </Animated.View>
   )

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { PageShell, Modal, SkeletonBlock } from '../components/ui'
+import { Alert, PageShell, PageHead, Modal, SectionHead, SkeletonBlock, LoadError } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../context/useAuth'
@@ -64,6 +64,7 @@ async function loadRazorpay(): Promise<void> {
   })
 }
 
+/** A meter: the figure tabular, the bar flat brass, the warning as coloured text on its own wash. */
 function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: string }) {
   const pct = meter.limit > 0 ? Math.min(100, Math.round((meter.used / meter.limit) * 100)) : 0
   const full = meter.used >= meter.limit
@@ -74,7 +75,7 @@ function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: str
       <div className="flex items-baseline justify-between text-sm">
         <span className="text-ink/80">{label}</span>
         <span
-          className="tabular-nums"
+          className="[font-variant-numeric:tabular-nums]"
           style={tone ? { color: `rgb(${tone})`, fontWeight: 500 } : { color: 'rgb(var(--c-ink) / 0.6)' }}
         >
           {meter.used} / {meter.limit} {per}
@@ -86,11 +87,7 @@ function MeterBar({ label, meter, per }: { label: string; meter: Meter; per: str
           style={{ width: `${pct}%`, background: tone ? `rgb(${tone})` : 'rgb(var(--c-iris))' }}
         />
       </div>
-      {near && (
-        <p className="mt-1 text-xs" style={{ color: 'rgb(var(--c-warning))' }}>
-          Almost out for this cycle.
-        </p>
-      )}
+      {near && <Alert tone="warning" className="mt-2">Almost out for this cycle.</Alert>}
     </div>
   )
 }
@@ -109,7 +106,7 @@ export function BillingPage() {
       setSummary(await apiFetch<BillingSummary>('/billing/summary'))
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load billing info')
+      setError(err instanceof Error ? err.message : 'Couldn’t load your plan. Check your connection and try again.')
     }
   }, [])
 
@@ -179,17 +176,20 @@ export function BillingPage() {
   if (!summary && !error) {
     return (
       <PageShell narrow>
-        <SkeletonBlock className="h-12 w-64" />
-        <div className="mt-6 rounded-[3px] border border-ink/10 bg-surface p-6" aria-busy="true" aria-label="Loading your plan">
-          <SkeletonBlock className="h-4 w-24" />
-          <SkeletonBlock className="mt-2 h-7 w-40" />
-          <div className="mt-6 flex flex-col gap-5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i}>
-                <SkeletonBlock className="h-4 w-full" />
-                <SkeletonBlock className="mt-2 h-2 w-full" />
-              </div>
-            ))}
+        <div aria-busy="true" aria-label="Loading your plan">
+          <SkeletonBlock className="h-3 w-24" />
+          <SkeletonBlock className="mt-3 h-9 w-64" />
+          <div className="card mt-8 p-5">
+            <SkeletonBlock className="h-3 w-24" />
+            <SkeletonBlock className="mt-2 h-7 w-40" />
+            <div className="mt-6 flex flex-col gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i}>
+                  <SkeletonBlock className="h-4 w-full !bg-ink/[0.07]" />
+                  <SkeletonBlock className="mt-2 h-2 w-full" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </PageShell>
@@ -203,13 +203,19 @@ export function BillingPage() {
 
   return (
     <PageShell narrow>
-      <h1 className="font-display text-5xl font-medium leading-none text-ink sm:text-6xl">Plan &amp; usage</h1>
+      <PageHead
+        eyebrow="Membership"
+        title={
+          <>
+            Plan &amp; <em className="text-accent-text">usage.</em>
+          </>
+        }
+      />
 
-      {notice && (
-        <p className="mt-4 rounded-[3px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>
-      )}
-      {error && (
-        <div className="mt-4 alert-error !py-3 flex items-center justify-between gap-3">
+      {notice && <Alert tone="success" className="mt-8">{notice}</Alert>}
+      {error && !summary && <LoadError message={error} onRetry={() => { setError(null); void load() }} />}
+      {error && summary && (
+        <div className="alert-error mt-8 flex items-center justify-between gap-3">
           <span>{error}</span>
           <button type="button" onClick={() => { setError(null); void load() }} className="btn-quiet btn-quiet-sm shrink-0">Try again</button>
         </div>
@@ -217,16 +223,11 @@ export function BillingPage() {
 
       {summary && (
         <>
-          <div className="mt-6 rounded-[3px] border border-ink/10 bg-surface p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="card mt-8 animate-rise-2 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div>
-                <p className="text-xs uppercase tracking-[0.12em] text-ink/50">Current plan</p>
-                <p className="font-display text-2xl font-medium text-ink">{summary.label}</p>
-                {summary.planStatus === 'grace' && (
-                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                    A payment failed. Update your payment method, or your plan will lapse.
-                  </p>
-                )}
+                <p className="eyebrow">Current plan</p>
+                <p className="mt-2 font-display text-2xl font-medium text-ink">{summary.label}</p>
                 {summary.planStatus === 'cancelled' && periodEnd && (
                   <p className="mt-1 text-sm text-ink/60">Cancelled. Active until {periodEnd}.</p>
                 )}
@@ -250,6 +251,10 @@ export function BillingPage() {
                 </button>
               )}
             </div>
+            {/* The alert sits directly above the thing it concerns: the plan's meters. */}
+            {summary.planStatus === 'grace' && (
+              <Alert tone="warning" className="mt-4">A payment failed. Update your payment method, or your plan will lapse.</Alert>
+            )}
 
             <div className="mt-6 grid gap-4">
               <MeterBar
@@ -271,22 +276,17 @@ export function BillingPage() {
           </div>
 
           {user?.role !== 'admin' && summary.plan !== 'premium' && summary.plan !== 'founder' && (
-            <>
-              <h2 className="mt-10 font-display text-2xl font-medium text-ink">Upgrade</h2>
+            <section className="mt-10 animate-rise-3">
+              <SectionHead title="Upgrade" />
               {!summary.billingConfigured && (
-                <p className="mt-2 rounded-[3px] bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                  Payments aren’t switched on yet. Plans will be purchasable soon.
-                </p>
+                <Alert tone="warning" className="mb-4">Payments aren’t switched on yet. Plans will be purchasable soon.</Alert>
               )}
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Only the tiers above the one you are on. */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Only the tiers above the one you are on. Ghost, not brass: three cards make one row, and a row holds at most one primary. */}
                 {PLANS.filter((p) => PLANS.findIndex((x) => x.id === p.id) > PLANS.findIndex((x) => x.id === summary.plan)).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex flex-col rounded-[3px] border border-ink/10 bg-surface p-6"
-                  >
-                    <p className="font-display text-xl font-medium text-ink">{p.name}</p>
-                    <p className="mt-1 text-2xl font-semibold text-ink">{p.price}</p>
+                  <div key={p.id} className="card flex flex-col p-5">
+                    <p className="font-display text-2xl font-medium text-ink">{p.name}</p>
+                    <p className="mt-1 font-display text-xl text-ink [font-variant-numeric:tabular-nums]">{p.price}</p>
                     <ul className="mt-3 flex-1 space-y-1 text-sm text-ink/70">
                       {p.perks.map((perk) => (
                         <li key={perk}>· {perk}</li>
@@ -296,14 +296,14 @@ export function BillingPage() {
                       type="button"
                       disabled={!summary.billingConfigured || busy === p.id}
                       onClick={() => void upgrade(p.id)}
-                      className="btn-dark btn-sm mt-4"
+                      className="btn-ghost btn-sm mt-4"
                     >
                       {busy === p.id ? 'Opening checkout…' : `Get ${p.name}`}
                     </button>
                   </div>
                 ))}
               </div>
-            </>
+            </section>
           )}
         </>
       )}
@@ -311,12 +311,12 @@ export function BillingPage() {
         <p className="text-sm text-ink/70">
           Your plan stays active until {periodEnd ?? 'the period ends'}. You can come back any time.
         </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <button type="button" className="btn-quiet" onClick={() => setConfirmCancel(false)}>
-            Keep it
-          </button>
+        <div className="action-row mt-6">
           <button type="button" className="btn-danger" onClick={() => void cancelPlan()}>
             Cancel plan
+          </button>
+          <button type="button" className="btn-quiet" onClick={() => setConfirmCancel(false)}>
+            Keep it
           </button>
         </div>
       </Modal>

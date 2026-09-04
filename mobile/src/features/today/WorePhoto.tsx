@@ -4,19 +4,20 @@
 // row a plaque padded 12, the crop and the match 64 wide at 4:5, the chips
 // 8 beneath the line, the closet's matches 12 beneath.
 import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import type { EventType } from '@zauq/shared/types'
 import { confirmWearPhoto, getWearPhoto, type ConfirmWearPhotoResponse, type PhotoRow, type RowDecision, type WearPhotoJob } from '@zauq/shared/wear-photo'
-import { Plaque } from '@/src/components/Bits'
+import { Alert, Plaque } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
+import { Press } from '@/src/components/Press'
 import { Chip } from '@/src/components/Tabs'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, hairline, height, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { apiUpload } from '@/src/lib/api'
 import { imageForm, PermissionDenied, pickImages, type PickSource } from '@/src/lib/upload'
@@ -128,13 +129,7 @@ export function WorePhoto({
   }
 
   const reading = stage === 'reading' || (stage === 'pick' && source !== null)
-  const alert = error ? (
-    <View style={[styles.alert, { backgroundColor: alpha(t.danger, 0.1), borderRadius: radius }]} accessibilityLiveRegion="polite">
-      <T role="bodySm" tone="danger">
-        {error}
-      </T>
-    </View>
-  ) : null
+  const alert = error ? <Alert>{error}</Alert> : null
 
   if (stage === 'pick' || stage === 'reading') {
     return (
@@ -245,7 +240,7 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
         <GarmentTile imageUrl={row.cropUrl} width={THUMB} aspect={THUMB_ASPECT} photo accessibilityLabel={row.description} />
         {chosen && d.action === 'use' ? <GarmentTile imageUrl={chosen.item.imageUrl} width={THUMB} aspect={THUMB_ASPECT} accessibilityLabel={nameOf(chosen.item)} /> : null}
         <View style={styles.cardText}>
-          <T role="micro" tone="brass" style={styles.tracked}>
+          <T role="micro" tone="brass">
             {row.description}
           </T>
           <T role="bodySm">{line}</T>
@@ -272,16 +267,13 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
           {row.matches.map((m) => {
             const on = d.itemId === m.itemId && d.action === 'use'
             return (
-              <Pressable
+              <Press
                 key={m.itemId}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={nameOf(m.item)}
-                pressRetentionOffset={12}
-                onPress={() => {
-                  haptics.select()
-                  onChange({ index: row.index, action: 'use', itemId: m.itemId, open: false })
-                }}
+                haptic="select"
+                onPress={() => onChange({ index: row.index, action: 'use', itemId: m.itemId, open: false })}
                 style={[styles.match, { borderColor: on ? t.brass : alpha(t.ink, 0.15), borderRadius: radius }]}
               >
                 <GarmentTile imageUrl={m.item.imageUrl} width={40} aspect={THUMB_ASPECT} />
@@ -293,7 +285,7 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
                     {m.reasons.join(', ') || 'the same kind'}
                   </T>
                 </View>
-              </Pressable>
+              </Press>
             )
           })}
           {d.action === 'use' ? (
@@ -310,18 +302,15 @@ function RowCard({ row, decision, onChange }: { row: PhotoRow; decision: Decisio
 const styles = StyleSheet.create({
   reading: { gap: space.sm },
   rows: { gap: space.md },
-  // `plaque p-3`; the row `items-start gap-3`; the chips `mt-2`; the matches `mt-3`.
+  // A dense plaque, 12 all round; the row, the chips and the matches 8 apart.
   card: { padding: space.md, paddingLeft: space.md, gap: space.sm },
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   cardText: { flex: 1, minWidth: 0, gap: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   matches: { gap: space.sm, paddingTop: space.xs },
-  // `border p-1 pr-3 text-xs gap-2`.
-  match: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: hairline, padding: space.xs, paddingRight: space.md, minHeight: 44 },
+  match: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: hairline, padding: space.xs, paddingRight: space.md, minHeight: height.action },
   matchText: { flex: 1, gap: 2 },
-  // `mt-5 border-t pt-4`, the label `mb-1.5`.
+  // A hairline, then 16; the label 8 over its chips.
   logged: { borderTopWidth: hairline, paddingTop: space.lg, gap: space.sm },
-  alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
-  tracked: { letterSpacing: 1.8 },
   semi: { fontFamily: fonts.sansSemi },
 })

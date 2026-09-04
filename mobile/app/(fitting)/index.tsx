@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { ArchMark } from '@/src/components/Brand'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
+import { Press } from '@/src/components/Press'
 import { T } from '@/src/components/Text'
 import { useAuth } from '@/src/context/AuthProvider'
 import * as haptics from '@/src/design/haptics'
@@ -16,7 +17,7 @@ import { hrefOf, INTENTS, type Intent } from '@/src/features/fitting/steps'
 /**
  * Step 1, the threshold: a name and the one thing that matters most. The
  * web's threshold and intent screens in one sitting: the intents are its
- * `card p-5` choices, a Bodoni title over one line, brass-edged when chosen.
+ * 20-padded card choices, an h3 over one line, brass-edged when chosen.
  */
 export default function Threshold() {
   const router = useRouter()
@@ -83,27 +84,24 @@ export default function Threshold() {
           {INTENTS.map(([k, label, line]) => {
             const on = intent === k
             return (
-              <Pressable
+              <Press
                 key={k}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: on, checked: on }}
                 accessibilityLabel={`${label}. ${line}`}
-                pressRetentionOffset={12}
                 onPress={() => {
                   haptics.select()
                   setIntent(k)
                   patch({ intent: k })
                 }}
-                style={[
-                  styles.card,
-                  { borderRadius: radius, borderColor: on ? t.brass : alpha(t.ink, 0.1), backgroundColor: on ? alpha(t.brassSoft, 0.4) : t.surface },
-                ]}
               >
-                <T role="h2">{label}</T>
-                <T role="bodySm" tone="muted">
-                  {line}
-                </T>
-              </Pressable>
+                <View style={[styles.card, { borderRadius: radius, borderColor: on ? t.brass : alpha(t.ink, 0.1), backgroundColor: on ? alpha(t.brassSoft, 0.4) : t.surface }]}>
+                  <T role="h3">{label}</T>
+                  <T role="bodySm" tone="muted">
+                    {line}
+                  </T>
+                </View>
+              </Press>
             )
           })}
         </View>
@@ -117,5 +115,5 @@ const styles = StyleSheet.create({
   group: { gap: space.sm },
   // `grid gap-3`; each `card p-5`, the line `mt-2`.
   cards: { gap: space.md, paddingTop: space.xs },
-  card: { padding: 20, gap: space.sm, borderWidth: hairline },
+  card: { padding: space.ml, gap: space.xs, borderWidth: hairline },
 })
