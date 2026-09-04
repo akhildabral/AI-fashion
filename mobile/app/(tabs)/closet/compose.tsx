@@ -10,7 +10,7 @@ import { EVENT_LABEL, saveOutfit, validateOutfit, type Validation } from '@zauq/
 import type { WardrobeItem } from '@zauq/shared/types'
 import { logWear } from '@zauq/shared/wearlog'
 import { Arch } from '@/src/components/Arch'
-import { EmptyState, Hairline, LoadError } from '@/src/components/Bits'
+import { EmptyState, Hairline, LoadError, VerdictNotes } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { LookBoard } from '@/src/components/LookBoard'
@@ -54,6 +54,8 @@ function conflicts(a: WardrobeItem, b: WardrobeItem): boolean {
 function verdictLine(v: Validation | null, n: number): { text: string; tone: 'faint' | 'ink' | 'danger' } {
   if (n === 0) return { text: 'Tap pieces to start. A top and a bottom, or a dress, is enough.', tone: 'faint' }
   if (!v) return { text: 'Reading it…', tone: 'faint' }
+  // The stylist's own line on the picks, when the backend offers one; the rules it bent or broke follow as alerts beneath.
+  if (v.opinion) return { text: v.opinion, tone: v.violations.length ? 'danger' : 'ink' }
   if (v.violations.length) return { text: v.violations[0].message, tone: 'danger' }
   if (v.warnings.length) return { text: `Holds together. ${v.warnings[0].message}`, tone: 'ink' }
   if (v.pairQuality >= 8) return { text: 'This sings. The pieces were made for each other.', tone: 'ink' }
@@ -190,6 +192,7 @@ export default function Compose() {
           <T role="lede" tone={line.tone} accessibilityLiveRegion="polite">
             {line.text}
           </T>
+          {validation?.opinion && chosen.length > 0 ? <VerdictNotes verdict={validation} /> : null}
           {picked.length > 0 ? (
             <View style={styles.labelled}>
               <T role="label" tone="faint">

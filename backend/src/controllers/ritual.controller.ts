@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
+import { closetGapsFor } from '../services/pairing.service';
 
 // The "earned, not gamified" numbers. Everything here derives from the wear
 // log and item prices — nothing is a point, everything is a fact.
@@ -106,44 +107,23 @@ export async function ritualStats(req: Request, res: Response) {
   });
 }
 
-// Gap-filler lite: which single purchase unlocks the most new outfits?
-// Pure combinatorics over the closet — a complete outfit needs a top, a
-// bottom, and footwear, so the marginal value of one item in category c is
-// the product of the other two categories' counts.
-const GAP_WANTED: Record<string, string> = {
-  top: 'a versatile white shirt',
-  bottom: 'a dark pair of jeans',
-  footwear: 'a white sneaker',
-};
-
+// Gap-filler: which single purchase unlocks the most new outfits? A ghost
+// piece per slot × colour × formality band is dropped into the real closet
+// and the outfits it would join are enumerated and validated — so the answer
+// depends on what's actually hanging there, not on category counts.
 export async function closetGaps(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const items = await prisma.wardrobeItem.findMany({
+  const closet = await prisma.wardrobeItem.findMany({
     where: {
       userId: req.user.id,
+      owned: true,
       suppressed: false,
       status: 'ready',
       state: 'clean',
+      twinOfId: null,
+      category: { not: 'other' },
     },
-    select: { category: true },
   });
-  const count = (c: string) => items.filter((i) => i.category === c).length;
-  const n = { top: count('top'), bottom: count('bottom'), footwear: count('footwear') };
-
-  const combos = (t: number, b: number, f: number) => t * b * f;
-  const now = combos(n.top, n.bottom, n.footwear);
-  const suggestions = (['top', 'bottom', 'footwear'] as const)
-    .map((cat) => {
-      const plus = { ...n, [cat]: n[cat] + 1 };
-      return {
-        category: cat,
-        wanted: GAP_WANTED[cat],
-        unlocks: combos(plus.top, plus.bottom, plus.footwear) - now,
-      };
-    })
-    .filter((s) => s.unlocks > 0)
-    .sort((a, b) => b.unlocks - a.unlocks)
-    .slice(0, 2);
-
-  res.json({ suggestions, outfitsPossible: now });
+  const { suggestions, outfitsPossible } = closetGapsFor(closet);
+  res.json({ suggestions, outfitsPossible });
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Arch, ArchSkeleton, EmptyState, GarmentTile, LoadError, Modal, PageHead, PageShell, SectionHead, Toast, useFlash, SkeletonBlock } from '../components/ui'
+import { Alert, Arch, ArchSkeleton, EmptyState, GarmentTile, LoadError, Modal, PageHead, PageShell, SectionHead, Toast, useFlash, SkeletonBlock } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, setTripLookItems, swapTripItem, updateTrip, type TripPage as TripPageData } from '@zauq/shared/brief'
 import { getWardrobe } from '@zauq/shared/wardrobe'
@@ -428,6 +428,11 @@ export function TripPage() {
                     </button>
                   )}
                 </div>
+                {day.verdict?.ok === false && (
+                  <Alert tone="warning" className="mt-4">
+                    {[...(day.verdict.violations ?? []), ...(day.verdict.warnings ?? [])].map((r) => r?.message).filter(Boolean).join(' · ') || 'Nothing in the closet makes this complete.'}
+                  </Alert>
+                )}
                 <div className="mt-3 flex flex-col gap-3">
                   {day.looks.map((look, li) => (
                     <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">

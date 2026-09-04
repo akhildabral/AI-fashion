@@ -11,7 +11,7 @@ import {
 } from "@zauq/shared/outfits";
 import { logWear } from "@zauq/shared/wearlog";
 import { RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash, ArchSkeleton, Arch, Chip, Tabs, LoadError, EmptyState } from "../components/ui";
+import { PageShell, Toast, useFlash, ArchSkeleton, Arch, Chip, Tabs, LoadError, EmptyState, VerdictNotes } from "../components/ui";
 import { TryOnModal } from "../components/TryOnModal";
 import { LookBoard } from "../components/LookBoard";
 import { resolveImageUrl } from "../lib/api";
@@ -58,6 +58,10 @@ function verdictLine(
       tone: "quiet",
     };
   if (!v) return { text: "Reading it…", tone: "quiet" };
+  // The stylist's own line on the picks, when the backend offers one; the
+  // rules it bent or broke follow as alerts beneath.
+  if (v.opinion)
+    return { text: v.opinion, tone: v.violations.length ? "warn" : "good" };
   if (v.violations.length)
     return { text: v.violations[0].message, tone: "warn" };
   if (v.warnings.length)
@@ -231,6 +235,7 @@ export function ComposePage() {
           >
             {validation === null && chosen.length > 0 ? <span className="text-ink/50">Reading it…</span> : line.text}
           </p>
+          {validation?.opinion && chosen.length > 0 && <VerdictNotes verdict={validation} className="mt-4" />}
           {picked.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">In the outfit</p>

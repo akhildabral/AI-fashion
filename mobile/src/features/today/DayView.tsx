@@ -11,7 +11,7 @@ import Animated from 'react-native-reanimated'
 import { getWeek, shiftKey, todayKey, type LookSlot } from '@zauq/shared/brief'
 import { EVENT_LABEL } from '@zauq/shared/outfits'
 import { temp } from '@zauq/shared/units'
-import { LoadError, Plaque } from '@/src/components/Bits'
+import { LoadError, Plaque, VerdictNotes } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { MoreGlyph } from '@/src/components/Glyphs'
 import { Field } from '@/src/components/Field'
@@ -251,7 +251,7 @@ function FutureDay({ date, laidOut }: { date: string; laidOut: boolean }) {
         {look ? (
           <Animated.View key={look.itemIds.join('-')} entering={fadeIn} style={styles.sections}>
             {looks.map((l, i) => (
-              <View key={l.id} style={i === 0 ? styles.laidOut : null}>
+              <View key={l.id} style={styles.laidOut}>
                 <LookAct
                   look={l}
                   state={i === 0 ? 'current' : 'future'}
@@ -273,6 +273,7 @@ function FutureDay({ date, laidOut }: { date: string; laidOut: boolean }) {
                     ) : undefined
                   }
                 />
+                <VerdictNotes verdict={l.verdict ?? (i === 0 ? look.verdict : undefined)} style={styles.verdict} />
                 {i === 0 && laidOut ? (
                   <T role="caption" tone="faint">
                     The morning push will say it was laid out tonight.
@@ -321,6 +322,8 @@ const styles = StyleSheet.create({
   occasionRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.lg, rowGap: space.sm },
   laidOut: { gap: space.md },
+  // The verdict sits a block (16) under the look; the row gap supplies 12.
+  verdict: { marginTop: space.xs },
   plaque: { gap: space.md },
   pieceRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
   piece: { textTransform: 'capitalize', flex: 1 },

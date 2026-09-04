@@ -14,20 +14,28 @@ import {
   suggestOutfits,
   tagGarment,
   type DetectedGarment,
-  type SuggestedOutfit, type GarmentTags } from '../services/wardrobe.service';
+  type GarmentTags } from '../services/wardrobe.service';
 import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGarment } from '../services/cleanup.service';
 import { fingerprintOf, matchPiece, SURE_AT } from '../services/closet-match.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
 import { planPacking } from '../services/packing.service';
 import { outfitsAround } from '../services/pairing.service';
+import type { RecentWear } from '../services/validator.service';
 import {
-  validateOutfit,
-  type RecentWear,
-  type ValidationResult,
-} from '../services/validator.service';
+  composeWithRetry,
+  enumerateFromPool,
+  honestRationale,
+  prefilterPool,
+  validateAndRank,
+  verdictOf,
+  type ValidatedOutfit,
+  type Verdict,
+} from '../services/compose.service';
+import { favouriteOutfitFor, loadTasteProfile, tasteFormalityTarget, type TasteProfileData } from '../services/taste.service';
+import { recordFeedback } from '../services/taste-events';
+import { classifyOccasion, readOccasion } from '../lib/occasion';
 import { extractPalette } from '../lib/color';
-import { EVENT_TYPES, ITEM_STATES, type EventType } from '../lib/attributes';
-import { wearSignalBonus } from '../lib/wear-signal';
+import { EVENT_FORMALITY, EVENT_TYPES, ITEM_STATES, currentSeason, type EventType } from '../lib/attributes';
 import { env } from '../config/env';
 import { HttpError } from '../middleware/error';
 
@@ -549,12 +557,22 @@ export async function loadStyleableWardrobe(userId: string) {
   const notForYou = profile?.styleFor === 'female' ? 'mens' : profile?.styleFor === 'male' ? 'womens' : null;
   const [items, logs, polls, tryOns] = await Promise.all([
     prisma.wardrobeItem.findMany({
-      where: { userId, owned: true, status: { not: 'processing' }, state: 'clean', suppressed: false, ...(notForYou ? { NOT: { cutFor: notForYou } } : {}) },
+      where: {
+        userId,
+        owned: true,
+        status: { not: 'processing' },
+        state: 'clean',
+        suppressed: false,
+        // A swatch tagged "other" is not a slot; an unanswered twin is not a second piece yet.
+        category: { not: 'other' },
+        twinOfId: null,
+        ...(notForYou ? { NOT: { cutFor: notForYou } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.wearLog.findMany({
       where: { userId },
-      select: { itemIds: true, suggestedItemIds: true, woreInstead: true },
+      select: { itemIds: true, suggestedItemIds: true, woreInstead: true, wornOn: true },
       take: 500,
       orderBy: { wornOn: 'desc' },
     }),
@@ -578,8 +596,13 @@ export async function loadStyleableWardrobe(userId: string) {
   // on the chair, and what was reached for instead.
   const passedOver = new Map<string, number>();
   const chosenInstead = new Map<string, number>();
+  const lastWorn = new Map<string, Date>();
   for (const log of logs) {
-    for (const id of log.itemIds) wearCounts.set(id, (wearCounts.get(id) ?? 0) + 1);
+    for (const id of log.itemIds) {
+      wearCounts.set(id, (wearCounts.get(id) ?? 0) + 1);
+      const prev = lastWorn.get(id);
+      if (!prev || log.wornOn > prev) lastWorn.set(id, log.wornOn);
+    }
     if (!log.woreInstead) continue;
     for (const id of log.suggestedItemIds) if (!log.itemIds.includes(id)) passedOver.set(id, (passedOver.get(id) ?? 0) + 1);
     for (const id of log.itemIds) if (!log.suggestedItemIds.includes(id)) chosenInstead.set(id, (chosenInstead.get(id) ?? 0) + 1);
@@ -603,12 +626,18 @@ export async function loadStyleableWardrobe(userId: string) {
     }
   }
 
+  // Rides along on every item so validateAndRank can tell "no shoes chosen"
+  // from "no clean shoes to choose" without a second query.
+  const closetHasFootwear = items.some((i) => i.category === 'footwear');
+  const now = Date.now();
   return items.map((item) => ({
     ...item,
     wearCount: wearCounts.get(item.id) ?? 0,
     pollWins: pollWins.get(item.id) ?? 0,
     passedOver: passedOver.get(item.id) ?? 0,
     chosenInstead: chosenInstead.get(item.id) ?? 0,
+    lastWornDays: lastWorn.has(item.id) ? Math.floor((now - lastWorn.get(item.id)!.getTime()) / 86_400_000) : null,
+    closetHasFootwear,
   }));
 }
 
@@ -633,71 +662,77 @@ export async function loadRecentWear(userId: string): Promise<RecentWear[]> {
   return [...recent, ...disliked];
 }
 
-export interface ValidatedOutfit extends SuggestedOutfit {
-  validation: ValidationResult;
+// The ranking lives with the rest of the composition flow; re-exported so
+// every existing caller keeps its import.
+export { validateAndRank, type ValidatedOutfit };
+
+/** The taste profile, or null: a cold or missing record never fails a request. */
+export async function tasteFor(userId: string): Promise<TasteProfileData | null> {
+  try {
+    return await loadTasteProfile(userId);
+  } catch {
+    return null;
+  }
 }
 
-// LLM proposes, rules validate: hard-failed candidates are dropped (unless
-// nothing passes — then the least-bad ones are returned with their violations
-// attached so the client can say why they're a stretch), the rest are ranked
-// by validator score plus a revealed-preference bonus for well-worn pieces.
-export function validateAndRank(
-  outfits: SuggestedOutfit[],
-  opts: {
-    eventType?: EventType;
-    weather?: Weather | null;
-    recentWear: RecentWear[];
-    wearCounts?: Map<string, number>;
-    pollWins?: Map<string, number>;
-    /** From days corrected by a photo: laid out but not worn, and worn instead. */
-    wearSignals?: Map<string, { passedOver: number; chosenInstead: number }>;
-  },
-): ValidatedOutfit[] {
-  const validated = outfits.map((o) => {
-    const validation = validateOutfit(o.items, {
-      eventType: opts.eventType,
-      weather: opts.weather ?? undefined,
-      recentWear: opts.recentWear,
-    });
-    const preferenceBonus = o.items.reduce(
-      (sum, item) =>
-        sum +
-        Math.min(opts.wearCounts?.get(item.id) ?? 0, 5) * 2 +
-        // Friend-approved pieces (clear poll wins) get an extra nudge.
-        Math.min(opts.pollWins?.get(item.id) ?? 0, 3) * 3 +
-        wearSignalBonus(opts.wearSignals?.get(item.id)),
-      0,
-    );
-    return { ...o, validation: { ...validation, score: validation.score + preferenceBonus } };
-  });
-  const passing = validated.filter((o) => o.validation.ok);
-  const pool = passing.length > 0 ? passing : validated;
-  return pool.sort((a, b) => b.validation.score - a.validation.score);
+/** The signals `validateAndRank` reads off the styleable pool, as maps. */
+export function poolSignals(items: StyleableItem[]) {
+  return {
+    wearCounts: new Map(items.map((i) => [i.id, i.wearCount])),
+    pollWins: new Map(items.map((i) => [i.id, i.pollWins])),
+    wearSignals: new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }])),
+    hasCleanFootwear: items.some((i) => i.category === 'footwear'),
+  };
 }
 
 const outfitSchema = z.object({
   occasion: z.string().min(2).max(300),
-  eventType: z.enum(EVENT_TYPES).default('work'),
+  // Explicit when sent; otherwise read from the occasion, then work.
+  eventType: z.enum(EVENT_TYPES).optional(),
   // A piece every outfit must be built around ("Goes with", the store verdict).
   pin: z.string().uuid().optional(),
   count: z.number().int().min(1).max(4).optional(),
 });
 
+/** An outfit as the Outfits room reads it, plus the verdict and an honest line. */
+function withVerdict(o: ValidatedOutfit, eventType: EventType, weather?: Weather | null): ValidatedOutfit & { verdict: Verdict } {
+  return { ...o, rationale: honestRationale(o.validation, o.items, eventType, o.why, weather), verdict: verdictOf(o.validation) };
+}
+
 export async function mixAndMatch(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { occasion, eventType, pin, count } = outfitSchema.parse(req.body);
-  const items = await loadStyleableWardrobe(req.user.id);
-  const recentWear = await loadRecentWear(req.user.id);
+  const userId = req.user.id;
+  const { occasion, pin, count } = outfitSchema.parse(req.body);
+  const eventType: EventType = req.body?.eventType ?? (await readOccasion(userId, occasion))?.eventType ?? classifyOccasion(occasion) ?? 'work';
+  const items = await loadStyleableWardrobe(userId);
+  const recentWear = await loadRecentWear(userId);
+  const taste = await tasteFor(userId);
   const pinned = pin ? items.find((i) => i.id === pin) : undefined;
   if (pin && !pinned) throw new HttpError(400, 'That piece is not available to style right now');
-  const context = `Occasion: ${occasion} (${eventType} setting)` + (pinned ? `. EVERY outfit MUST include the item with id=${pinned.id} (${pinned.subtype ?? pinned.category}).` : '');
-  const proposed = await suggestOutfits(items, context, count ?? 2);
-  const suggested = pinned ? proposed.filter((o) => o.items.some((i) => i.id === pinned.id)) : proposed;
-  const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
-  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
-  const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const outfits = validateAndRank(suggested, { eventType, recentWear, wearCounts, pollWins, wearSignals });
-  res.json({ outfits });
+
+  const formalityTarget = tasteFormalityTarget(taste, eventType, EVENT_FORMALITY[eventType]);
+  const season = currentSeason();
+  let pool = prefilterPool(items, { eventType, formalityTarget, season });
+  // The pin is in the pool whatever the filter says: the person chose it.
+  if (pinned && !pool.some((i) => i.id === pinned.id)) pool = [pinned, ...pool];
+  const favourite = favouriteOutfitFor(taste, { eventType });
+  const wanted = Math.max(count ?? 2, eventType === 'occasion' || eventType === 'evening' ? 5 : 4);
+  const context =
+    `Occasion: ${occasion} (${eventType} setting, formality target ${formalityTarget}/5).` +
+    (pinned ? ` EVERY candidate MUST include the item with id=${pinned.id} (${pinned.subtype ?? pinned.category}) — build the rest of the outfit around it, obeying every rule.` : '');
+  const rank = { eventType, recentWear, ...poolSignals(items), taste, formalityTarget, season };
+  const suggest = async (constraints: string[]) => {
+    const proposed = await suggestOutfits(pool, context, wanted, { taste, favourite, constraints });
+    const kept = pinned ? proposed.filter((o) => o.items.some((i) => i.id === pinned.id)) : proposed;
+    return kept.length > 0 ? kept : proposed;
+  };
+  // When the model cannot dress the day (or the pin) by the rules, the
+  // pairer enumerates around the pin — or the pool — before the least-bad
+  // candidate ships with an honest verdict.
+  const composed = await composeWithRetry(suggest, rank, { fallback: () => enumerateFromPool(pool, { eventType, season, pin: pinned ?? null, limit: wanted }) });
+  if (!composed) throw new HttpError(502, 'Could not assemble an outfit from your wardrobe');
+  const outfits = composed.ranked.slice(0, count ?? composed.ranked.length).map((o) => withVerdict(o, eventType));
+  res.json({ outfits, eventType });
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -746,7 +781,7 @@ export async function packLook(req: Request, res: Response) {
   const seen = new Set<string>();
   let best: { itemIds: string[]; score: number } | null = null;
   for (const piece of capsule) {
-    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8 })) {
+    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8, availableStates: ['clean', 'packed'] })) {
       const key = [...o.itemIds].sort().join('|');
       if (seen.has(key) || same(o.itemIds)) continue;
       seen.add(key);
@@ -822,6 +857,9 @@ export async function itemFeedback(req: Request, res: Response) {
       break;
   }
 
+  // The taste layer hears every correction, adjustment or not.
+  void recordFeedback(req.user.id, { itemId: id, signal });
+
   if (Object.keys(data).length === 0) {
     // Nothing to move (user-set field, or no value yet) — still a 200: the
     // feedback was heard even when no adjustment applies.
@@ -861,10 +899,9 @@ export async function whatToWearToday(req: Request, res: Response) {
   const context =
     `Dressing for today's weather in ${weather.location}: ${weather.temperatureC}°C, ` +
     `${weather.description}. The setting is ${eventType}. Choose weather-appropriate items.`;
-  const suggested = await suggestOutfits(items, context);
-  const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
-  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
-  const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const outfits = validateAndRank(suggested, { eventType, weather, recentWear, wearCounts, pollWins, wearSignals });
+  const taste = await tasteFor(req.user.id);
+  const pool = prefilterPool(items, { eventType, weather, formalityTarget: tasteFormalityTarget(taste, eventType, EVENT_FORMALITY[eventType]) });
+  const suggested = await suggestOutfits(pool, context, 4, { taste });
+  const outfits = validateAndRank(suggested, { eventType, weather, recentWear, ...poolSignals(items), taste }).map((o) => withVerdict(o, eventType, weather));
   res.json({ weather, outfits });
 }

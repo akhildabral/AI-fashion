@@ -1,4 +1,5 @@
 import { apiFetch } from './api'
+import type { OutfitVerdict } from './types'
 
 export interface BriefItem {
   id: string
@@ -28,6 +29,10 @@ export interface Brief {
   weather: BriefWeather | null
   trip?: { destination: string; endDate: string } | null
   items: BriefItem[]
+  /** The stylist's verdict on the look; absent on older responses. */
+  verdict?: OutfitVerdict
+  /** One line on the member's own picks (POST /brief/plan). */
+  opinion?: string
 }
 
 export interface EveningLook {
@@ -36,6 +41,7 @@ export interface EveningLook {
   itemIds: string[]
   items: BriefItem[]
   wornLogId?: string | null
+  verdict?: OutfitVerdict
 }
 
 export type LookSlotKind = 'morning' | 'afternoon' | 'evening' | 'custom'
@@ -53,6 +59,7 @@ export interface LookSlot {
   items: BriefItem[]
   worn: boolean
   wornLook: { items: BriefItem[]; photoUrl: string | null; instead: boolean } | null
+  verdict?: OutfitVerdict
 }
 
 export interface BriefResponse {
@@ -249,6 +256,7 @@ export interface TripPlan {
     note: string
     itemIds: string[]
     looks?: { id: string; label?: string | null; time?: string | null; occasion?: string | null; itemIds: string[] }[]
+    verdict?: OutfitVerdict
   }[]
 }
 
@@ -275,7 +283,7 @@ export interface TripDayLook {
 export interface TripPage {
   trip: Trip
   capsule: import('./types').WardrobeItem[]
-  days: { label: string; note: string; items: import('./types').WardrobeItem[]; looks: TripDayLook[] }[]
+  days: { label: string; note: string; items: import('./types').WardrobeItem[]; looks: TripDayLook[]; verdict?: OutfitVerdict }[]
   /** Once the trip is over: what was packed and never worn. */
   recap: { packed: number; worn: number; unworn: import('./types').WardrobeItem[] } | null
 }

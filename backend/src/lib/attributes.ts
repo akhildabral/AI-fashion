@@ -32,27 +32,226 @@ export function formalityScoreFor(formality: string | null | undefined): number 
   return FORMALITY_SCORES[formality.toLowerCase()] ?? null;
 }
 
-// Subtype keywords that override the category default for layer role.
-const MID_LAYER_KEYWORDS = ['sweater', 'jumper', 'cardigan', 'hoodie', 'sweatshirt', 'pullover', 'fleece', 'vest', 'gilet'];
+// Subtype keywords that override the category default for layer role. The
+// keyword wins over the category: a blazer tagged "top" is still a layer, and
+// a jumpsuit tagged "bottom" is still a one-piece.
+const MID_LAYER_KEYWORDS = ['sweater', 'jumper', 'cardigan', 'hoodie', 'sweatshirt', 'pullover', 'fleece', 'vest', 'gilet', 'blazer', 'waistcoat', 'overshirt', 'shacket'];
+// Mid layers that never read as outerwear, checked before the outer list
+// ("waistcoat" contains "coat").
+const MID_FIRST = /waistcoat|overshirt|shacket|blazer|cardigan/;
+const OUTER_KEYWORDS = ['parka', 'puffer', 'overcoat', 'peacoat', 'raincoat', 'trench', 'anorak', 'windbreaker', 'bomber', 'jacket', 'coat'];
+const ONE_PIECE_KEYWORDS = ['jumpsuit', 'romper', 'playsuit', 'overall', 'dungaree', 'kaftan', 'gown', 'dress'];
+// "dress shirt", "dress trousers", "dress shoes": the word is an adjective there.
+const DRESS_AS_ADJECTIVE = /dress[- ]?(shirt|pant|trouser|shoe|sock|boot)/;
+// Layers that can stand alone as the top of an outfit (a sweater over jeans);
+// a blazer, waistcoat or overshirt wants a base top under it.
+const STANDALONE_MID = /sweater|jumper|hoodie|sweatshirt|pullover|fleece|turtleneck|roll[- ]?neck|knit|cardigan/;
 
-export function layerRoleFor(category: string, subtype?: string | null): LayerRole | null {
+export function deriveLayerRole(category: string, subtype?: string | null): LayerRole | null {
   const sub = (subtype ?? '').toLowerCase();
+  if (category === 'footwear') return 'footwear';
+  if (category === 'accessory') return 'accessory';
+  if (category === 'other') return null;
+  if (sub && !DRESS_AS_ADJECTIVE.test(sub) && ONE_PIECE_KEYWORDS.some((k) => sub.includes(k))) return 'one-piece';
+  // "vest top" is a tank in British English; a plain "vest" is a layer.
+  if (sub && !/vest top|tank/.test(sub)) {
+    if (MID_FIRST.test(sub)) return 'mid';
+    if (OUTER_KEYWORDS.some((k) => sub.includes(k))) return 'outer';
+    if (MID_LAYER_KEYWORDS.some((k) => sub.includes(k))) return 'mid';
+  }
   switch (category) {
     case 'top':
-      return MID_LAYER_KEYWORDS.some((k) => sub.includes(k)) ? 'mid' : 'base';
+      return 'base';
     case 'outerwear':
       return 'outer';
     case 'bottom':
       return 'bottom';
-    case 'footwear':
-      return 'footwear';
-    case 'accessory':
-      return 'accessory';
     case 'dress':
       return 'one-piece';
     default:
       return null;
   }
+}
+
+/** Kept for existing callers; same table as deriveLayerRole. */
+export function layerRoleFor(category: string, subtype?: string | null): LayerRole | null {
+  return deriveLayerRole(category, subtype);
+}
+
+/** A mid layer that reads as a top on its own (knitwear), not one that needs a shirt under it. */
+export function midStandsAlone(subtype?: string | null): boolean {
+  return STANDALONE_MID.test((subtype ?? '').toLowerCase());
+}
+
+/** A base that layers under a one-piece: a fine knit, a turtleneck, a bodysuit. */
+export function layersUnderOnePiece(subtype?: string | null, texture?: string | null): boolean {
+  const sub = (subtype ?? '').toLowerCase();
+  return /turtleneck|roll[- ]?neck|polo[- ]?neck|bodysuit|knit|thermal|long[- ]sleeve/.test(sub) || (texture ?? '').toLowerCase() === 'knit';
+}
+
+function detail(details: unknown, key: string): string {
+  if (!details || typeof details !== 'object') return '';
+  const v = (details as Record<string, unknown>)[key];
+  return typeof v === 'string' ? v.toLowerCase() : '';
+}
+
+// Tops that don't finish an outfit on their own in a dressed setting: they
+// want a layer over them.
+const NEEDS_LAYER_KEYWORDS = /camisole|\bcami\b|tank|vest top|\bslip\b|bralette|bandeau|tube top|strapless|halter/;
+const SHEER = /sheer|mesh|lace|see[- ]through|organza|chiffon|fishnet/;
+
+export function deriveNeedsLayer(
+  subtype?: string | null,
+  details?: unknown,
+  material?: string | null,
+  formalityScore?: number | null,
+): boolean {
+  const sub = (subtype ?? '').toLowerCase();
+  const mat = (material ?? '').toLowerCase();
+  const note = detail(details, 'materialNote');
+  if (NEEDS_LAYER_KEYWORDS.test(sub)) return true;
+  if (SHEER.test(sub) || SHEER.test(mat) || SHEER.test(note)) return true;
+  const sleeve = detail(details, 'sleeve');
+  const sleeveless = /sleeveless|strapless|none|spaghetti|thin strap/.test(sleeve);
+  if (/crop/.test(sub) && sleeveless && (formalityScore ?? 0) >= 4) return true;
+  return false;
+}
+
+// Footwear formality ladder, 1–5. The garment-level formality tag is too
+// coarse for shoes: "smart-casual sneakers" still sit two steps under
+// trousers cut for the office. Compound keywords first, then singles.
+const SHOE_FORMALITY: [RegExp, number][] = [
+  [/flip[- ]?flop|slider|\bslide|thong sandal|pool sandal|croc/, 1],
+  [/running|gym shoe|training shoe|trainer shoe|athletic|cleat|football boot|hiking|hiker|trail/, 1],
+  [/combat|work boot|snow boot|wellington|welly|rain boot|duck boot|moon boot/, 2],
+  [/heeled sandal|heel sandal|strappy sandal|evening sandal/, 3],
+  [/sneaker|trainer|canvas|plimsoll|skate|tennis shoe|high[- ]?top|slip-on sneaker/, 2],
+  [/sandal|espadrille|clog|boat shoe|deck shoe|birkenstock/, 2],
+  [/chelsea|ankle boot|chukka|desert boot|heeled boot|knee[- ]?high|riding boot/, 3],
+  [/boot/, 3],
+  [/loafer|mule|moccasin|driving shoe|ballet|flat|mary jane|wedge/, 3],
+  [/derby|brogue|monk|dress shoe|slingback|kitten heel|block heel|d'orsay/, 4],
+  [/stiletto|high heel|platform heel|court shoe/, 5],
+  [/oxford|pump|heel/, 4],
+];
+
+/** 1–5 for a recognised footwear subtype; null when the subtype says nothing. */
+export function deriveShoeFormality(subtype?: string | null): number | null {
+  const sub = (subtype ?? '').toLowerCase();
+  if (!sub) return null;
+  const hit = SHOE_FORMALITY.find(([re]) => re.test(sub));
+  return hit ? hit[1] : null;
+}
+
+/** Shoe formality with the garment formality as the fallback for unknown subtypes. */
+export function shoeFormalityOf(subtype: string | null | undefined, formalityScore: number | null | undefined): number | null {
+  return deriveShoeFormality(subtype) ?? formalityScore ?? null;
+}
+
+const OPEN_TOE = /sandal|flip[- ]?flop|slider|\bslide|thong|peep[- ]?toe|open[- ]?toe|espadrille|birkenstock|croc/;
+
+export function isOpenToe(subtype?: string | null, details?: unknown): boolean {
+  const sub = (subtype ?? '').toLowerCase();
+  if (OPEN_TOE.test(sub)) return true;
+  const toe = detail(details, 'toe');
+  return /open|peep/.test(toe);
+}
+
+const WEATHERPROOF = /wellington|welly|rain boot|duck boot|snow boot|gore-?tex|waterproof|hiking|hiker|work boot|combat|chelsea/;
+const WEATHERPROOF_MATERIAL = /rubber|leather|gore|waxed|nylon|synthetic/;
+
+export function isWeatherproof(subtype?: string | null, material?: string | null): boolean {
+  const sub = (subtype ?? '').toLowerCase();
+  const mat = (material ?? '').toLowerCase();
+  if (WEATHERPROOF.test(sub)) return true;
+  if (isOpenToe(sub)) return false;
+  return /boot/.test(sub) && WEATHERPROOF_MATERIAL.test(mat);
+}
+
+/** A closed boot with real warmth — the wrong thing on a hot day. */
+export function isHeavyBoot(subtype?: string | null, warmthValue?: number | null): boolean {
+  const sub = (subtype ?? '').toLowerCase();
+  if (!/boot/.test(sub) || /ankle boot|chelsea|desert|chukka/.test(sub)) return false;
+  return (warmthValue ?? 4) >= 4;
+}
+
+// --- Seasons ------------------------------------------------------------
+export const SEASONS = ['spring', 'summer', 'fall', 'winter'] as const;
+export type Season = (typeof SEASONS)[number];
+export type Hemisphere = 'north' | 'south';
+
+const ALL_YEAR = /^(all|all[- ]year|year[- ]round|any|always)$/i;
+const SEASON_ALIAS: Record<string, Season> = { autumn: 'fall', spring: 'spring', summer: 'summer', fall: 'fall', winter: 'winter' };
+
+/** The season a month (1–12) falls in, for the given hemisphere. */
+export function seasonForMonth(month: number, hemisphere: Hemisphere = 'north'): Season {
+  const m = hemisphere === 'south' ? ((month + 5) % 12) + 1 : month;
+  if (m === 12 || m <= 2) return 'winter';
+  if (m <= 5) return 'spring';
+  if (m <= 8) return 'summer';
+  return 'fall';
+}
+
+export function currentSeason(date: Date = new Date(), hemisphere: Hemisphere = 'north'): Season {
+  return seasonForMonth(date.getMonth() + 1, hemisphere);
+}
+
+/**
+ * Does an item's season list allow wearing it now? An empty list means
+ * all-year. `when` is a month (1–12), a date, or { month | date, hemisphere, season }.
+ */
+export function seasonAllows(
+  season: string[] | null | undefined,
+  when: number | Date | { month?: number; date?: Date; hemisphere?: Hemisphere; season?: Season } = {},
+): boolean {
+  if (!season || season.length === 0) return true;
+  // The catalogue writes "all" for a year-round piece.
+  if (season.some((s) => ALL_YEAR.test(s))) return true;
+  let current: Season;
+  if (typeof when === 'number') current = seasonForMonth(when);
+  else if (when instanceof Date) current = currentSeason(when);
+  else if (when.season) current = when.season;
+  else if (when.month) current = seasonForMonth(when.month, when.hemisphere);
+  else current = currentSeason(when.date ?? new Date(), when.hemisphere);
+  const allowed = season.map((s) => SEASON_ALIAS[s.toLowerCase()] ?? s.toLowerCase());
+  return allowed.includes(current);
+}
+
+// --- Pool hygiene ---------------------------------------------------------
+export interface StyleableShape {
+  category: string;
+  status?: string | null;
+  state?: string | null;
+  suppressed?: boolean | null;
+  owned?: boolean | null;
+  twinOfId?: string | null;
+  twinResolvedAt?: Date | null;
+}
+
+/** A wearable slot: a fabric swatch or a receipt tagged "other" never dresses anyone. */
+export function isWearableCategory(category: string | null | undefined): boolean {
+  return !!category && category !== 'other';
+}
+
+/** A twin flagged on arrival and not yet answered: not two pieces until the person says so. */
+export function hasUnresolvedTwin(item: { twinOfId?: string | null; twinResolvedAt?: Date | null }): boolean {
+  return item.twinOfId != null && item.twinResolvedAt == null;
+}
+
+/**
+ * Can this item go into a suggestion pool? Category must be wearable, the
+ * catalogue must be done, the piece clean (or in one of `states`), not
+ * suppressed, not an unanswered twin, and owned when ownership is known.
+ */
+export function isStyleable(item: StyleableShape, opts: { states?: readonly string[] } = {}): boolean {
+  if (!isWearableCategory(item.category)) return false;
+  if (item.status != null && item.status !== 'ready') return false;
+  if (item.suppressed) return false;
+  if (item.owned === false) return false;
+  if (hasUnresolvedTwin(item)) return false;
+  const states = opts.states ?? ['clean'];
+  if (item.state != null && !states.includes(item.state)) return false;
+  return true;
 }
 
 // Warmth on a 0–10 TOG-like scale, additive across layers.

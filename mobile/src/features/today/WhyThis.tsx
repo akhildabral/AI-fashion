@@ -8,7 +8,7 @@ import Animated from 'react-native-reanimated'
 import type { Brief, BriefResponse } from '@zauq/shared/brief'
 import { EVENT_LABEL } from '@zauq/shared/outfits'
 import { temp } from '@zauq/shared/units'
-import { Alert, Card, SectionHead } from '@/src/components/Bits'
+import { Alert, Card, SectionHead, VerdictNotes } from '@/src/components/Bits'
 import { T } from '@/src/components/Text'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
@@ -44,6 +44,8 @@ export function WhyThis({ brief, data, index = 3 }: { brief: Brief; data: BriefR
           </View>
         ))}
       </Card>
+      {/* The stylist's verdict: the rules the look bends or breaks, under the facts. */}
+      <VerdictNotes verdict={brief.verdict} />
       {notes ? (
         <View style={styles.notes}>
           {data.weatherNote ? <Alert tone="warning">{`Weather moved · ${data.weatherNote}`}</Alert> : null}

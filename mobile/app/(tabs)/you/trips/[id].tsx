@@ -8,7 +8,7 @@ import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-nat
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { addChecklistItem, addTripLook, deleteTrip, getTrip, removeChecklistItem, removeTripLook, replanTripDay, swapTripItem, updateTrip, type TripPage } from '@zauq/shared/brief'
 import type { WardrobeItem } from '@zauq/shared/types'
-import { LoadError, Plaque, SectionHead } from '@/src/components/Bits'
+import { Alert, LoadError, Plaque, SectionHead } from '@/src/components/Bits'
 import { Button } from '@/src/components/Button'
 import { Field } from '@/src/components/Field'
 import { GarmentTile } from '@/src/components/GarmentTile'
@@ -331,6 +331,11 @@ export default function TripScreen() {
                       </View>
                       {!past ? <TextLink label={busy === `day-${i}` ? '…' : '+ Add a look'} disabled={busy !== null} onPress={() => void addLook(i)} /> : null}
                     </View>
+                    {day.verdict?.ok === false ? (
+                      <Alert tone="warning" style={styles.mt4}>
+                        {[...(day.verdict.violations ?? []), ...(day.verdict.warnings ?? [])].map((r) => r?.message).filter(Boolean).join(' · ') || 'Nothing in the closet makes this complete.'}
+                      </Alert>
+                    ) : null}
                     <View style={styles.looks}>
                       {day.looks.map((look, li) => (
                         <View key={look.id} style={styles.look}>

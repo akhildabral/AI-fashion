@@ -7,6 +7,8 @@ import { getWeather } from '../services/weather.service';
 import { EVENT_TYPES } from '../lib/attributes';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
+import { recordComposed, recordRating } from '../services/taste-events';
+import { recomputeTasteProfileSoon } from '../services/taste.service';
 
 // The wear log is the product's core dataset: what was actually worn, when,
 // in what context. Logging must stay a one-tap action, so every field beyond
@@ -37,6 +39,8 @@ export async function createOutfit(req: Request, res: Response) {
   const outfit = await prisma.outfit.create({
     data: { userId: req.user.id, ...data },
   });
+  // A look put together by hand is a vote for its pairs.
+  if (data.provenance === 'user') void recordComposed(req.user.id, { itemIds: outfit.itemIds, eventType: outfit.eventType, outfitId: outfit.id });
   res.status(201).json({ outfit });
 }
 
@@ -117,6 +121,9 @@ export async function logWear(req: Request, res: Response) {
     },
   });
   await applyWear(req.user.id, log.itemIds);
+  // The taste layer: a rating is an event, and any wear may redraw the profile.
+  if (data.rating) void recordRating(req.user.id, { outfitId: data.outfitId ?? null, itemIds: log.itemIds, rating: data.rating, eventType: log.eventType, date: log.wornOn });
+  void recomputeTasteProfileSoon(req.user.id);
   if (data.pickId) {
     const pick = await prisma.friendPick.findFirst({
       where: { id: data.pickId, forUserId: req.user.id },
@@ -186,6 +193,10 @@ export async function rateWear(req: Request, res: Response) {
   const { rating } = rateWearSchema.parse(req.body);
   const r = await prisma.wearLog.updateMany({ where: { id, userId: req.user.id }, data: { rating } });
   if (r.count === 0) throw new HttpError(404, 'Wear log entry not found');
+  if (rating !== null) {
+    const log = await prisma.wearLog.findFirst({ where: { id, userId: req.user.id }, select: { itemIds: true, outfitId: true, eventType: true, wornOn: true } });
+    if (log) void recordRating(req.user.id, { outfitId: log.outfitId, itemIds: log.itemIds, rating, eventType: log.eventType, date: log.wornOn });
+  }
   res.json({ rating });
 }
 

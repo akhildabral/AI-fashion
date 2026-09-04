@@ -7,7 +7,7 @@ import { LookAct, AddLook } from './LookAct'
 import { ShareButton } from './ShareButton'
 import { resolveImageUrl } from '../lib/api'
 import { EVENT_LABEL } from '@zauq/shared/outfits'
-import { Eyebrow, Chip, SkeletonBlock, LoadError, Arch, Plaque } from './ui'
+import { Eyebrow, Chip, SkeletonBlock, LoadError, Arch, Plaque, VerdictNotes } from './ui'
 
 // A day that isn't today. Past: what you wore, the recap, share it. Future:
 // name the day and the look is composed now; or rest it.
@@ -225,6 +225,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
             <span className="font-display italic text-ink/70">{look.rationale}</span>
           </p>
           {look.occasion && <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">{look.occasion}</p>}
+          <VerdictNotes verdict={look.verdict ?? b?.looks?.[0]?.verdict} className="mt-4 max-w-3xl" />
           <div className="mt-6 max-w-3xl">
             <LookBoard items={look.items} />
           </div>

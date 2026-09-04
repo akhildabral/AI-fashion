@@ -10,6 +10,7 @@ import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
 import { PhotoManager } from '../components/PhotoManager'
 import { RitualSettings } from '../components/RitualSettings'
+import { TasteCard } from '../components/TasteCard'
 import { Alert, Chip, EmptyState, Modal, PageHead, PageShell, RowLabel, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
 
 // You: the fitting's answers, editable with the fitting's own controls and
@@ -310,97 +311,101 @@ export function ProfilePage() {
               )}
 
               {section === 'taste' && (
-                <section className="card p-5">
-                  <RowLabel first>Your tone</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {TONES.map(([k, c]) => (
-                      <button
-                        key={k}
-                        type="button"
-                        aria-label={k}
-                        aria-pressed={profile.skinTone === k}
-                        onClick={() => save({ skinTone: k })}
-                        className={`press h-11 w-11 rounded-[3px] border border-black/15 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-iris focus-visible:ring-offset-2 focus-visible:ring-offset-bone ${profile.skinTone === k ? 'ring-2 ring-iris ring-offset-2 ring-offset-bone' : ''}`}
-                        style={{ background: c }}
-                      />
-                    ))}
-                  </div>
-
-                  <RowLabel>Never on me</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {COLOURS.map(([k, c]) => {
-                      const on = avoid.has(k)
-                      return (
+                <div className="grid gap-8">
+                  {/* What the record taught, then what the fitting said: a block (32) apart. */}
+                  <TasteCard onNotice={flash} />
+                  <section className="card p-5">
+                    <RowLabel first>Your tone</RowLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {TONES.map(([k, c]) => (
                         <button
                           key={k}
                           type="button"
-                          aria-label={`Avoid ${k}`}
-                          aria-pressed={on}
-                          onClick={() => toggleAvoid(k)}
-                          className={`press relative h-11 w-11 rounded-[3px] border border-black/15 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-iris focus-visible:ring-offset-2 focus-visible:ring-offset-bone ${on ? 'opacity-45' : ''}`}
+                          aria-label={k}
+                          aria-pressed={profile.skinTone === k}
+                          onClick={() => save({ skinTone: k })}
+                          className={`press h-11 w-11 rounded-[3px] border border-black/15 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-iris focus-visible:ring-offset-2 focus-visible:ring-offset-bone ${profile.skinTone === k ? 'ring-2 ring-iris ring-offset-2 ring-offset-bone' : ''}`}
                           style={{ background: c }}
-                        >
-                          {on && <span aria-hidden className="absolute -left-1.5 -right-1.5 top-1/2 h-0.5 -rotate-45 bg-ink ring-2 ring-bone" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {custom.length > 0 && (
+                        />
+                      ))}
+                    </div>
+
+                    <RowLabel>Never on me</RowLabel>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {custom.map((c) => (
-                        <Chip key={c} on onClick={() => toggleAvoid(c.toLowerCase())}>
-                          {c} ×
+                      {COLOURS.map(([k, c]) => {
+                        const on = avoid.has(k)
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            aria-label={`Avoid ${k}`}
+                            aria-pressed={on}
+                            onClick={() => toggleAvoid(k)}
+                            className={`press relative h-11 w-11 rounded-[3px] border border-black/15 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-iris focus-visible:ring-offset-2 focus-visible:ring-offset-bone ${on ? 'opacity-45' : ''}`}
+                            style={{ background: c }}
+                          >
+                            {on && <span aria-hidden className="absolute -left-1.5 -right-1.5 top-1/2 h-0.5 -rotate-45 bg-ink ring-2 ring-bone" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {custom.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {custom.map((c) => (
+                          <Chip key={c} on onClick={() => toggleAvoid(c.toLowerCase())}>
+                            {c} ×
+                          </Chip>
+                        ))}
+                      </div>
+                    )}
+
+                    <RowLabel>What matters most</RowLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {INTENTS.map(([k, l]) => (
+                        <Chip key={k} on={(profile.intents ?? [])[0] === k} onClick={() => save({ intents: [k] })}>
+                          {l}
                         </Chip>
                       ))}
                     </div>
-                  )}
 
-                  <RowLabel>What matters most</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {INTENTS.map(([k, l]) => (
-                      <Chip key={k} on={(profile.intents ?? [])[0] === k} onClick={() => save({ intents: [k] })}>
-                        {l}
-                      </Chip>
-                    ))}
-                  </div>
+                    <RowLabel>The days you dress for</RowLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {OCCASIONS.map(([k, l]) => (
+                        <Chip key={k} on={(profile.occasions ?? []).includes(k)} onClick={() => toggleOccasion(k)}>
+                          {l}
+                        </Chip>
+                      ))}
+                    </div>
 
-                  <RowLabel>The days you dress for</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {OCCASIONS.map(([k, l]) => (
-                      <Chip key={k} on={(profile.occasions ?? []).includes(k)} onClick={() => toggleOccasion(k)}>
-                        {l}
-                      </Chip>
-                    ))}
-                  </div>
+                    <RowLabel>Your vibe</RowLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {VIBES.map((v) => (
+                        <Chip key={v} on={profile.styleVibe === v} onClick={() => save({ styleVibe: v })}>
+                          {title(v)}
+                        </Chip>
+                      ))}
+                    </div>
 
-                  <RowLabel>Your vibe</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {VIBES.map((v) => (
-                      <Chip key={v} on={profile.styleVibe === v} onClick={() => save({ styleVibe: v })}>
-                        {title(v)}
-                      </Chip>
-                    ))}
-                  </div>
+                    <RowLabel>How you shop</RowLabel>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {BUDGETS.map(([k, l]) => (
+                        <Chip key={k} on={profile.budgetBand === k} onClick={() => save({ budgetBand: k })}>
+                          {l}
+                        </Chip>
+                      ))}
+                    </div>
 
-                  <RowLabel>How you shop</RowLabel>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {BUDGETS.map(([k, l]) => (
-                      <Chip key={k} on={profile.budgetBand === k} onClick={() => save({ budgetBand: k })}>
-                        {l}
-                      </Chip>
-                    ))}
-                  </div>
-
-                  <RowLabel>Currency</RowLabel>
-                  <select value={profile.currency ?? ''} onChange={(e) => save({ currency: e.target.value || null })} className="field mt-2 max-w-xs" aria-label="Currency">
-                    <option value="">Guess from my location ({guessCurrency()})</option>
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} · {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </section>
+                    <RowLabel>Currency</RowLabel>
+                    <select value={profile.currency ?? ''} onChange={(e) => save({ currency: e.target.value || null })} className="field mt-2 max-w-xs" aria-label="Currency">
+                      <option value="">Guess from my location ({guessCurrency()})</option>
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} · {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </section>
+                </div>
               )}
 
               {section === 'ritual' && (

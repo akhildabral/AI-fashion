@@ -70,4 +70,5 @@ export const qk = {
   social: ['social'] as const,
   user: (handle: string) => ['user', handle] as const,
   lookbooks: ['lookbooks'] as const,
+  taste: ['taste'] as const,
 }

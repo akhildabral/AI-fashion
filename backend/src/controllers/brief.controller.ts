@@ -5,16 +5,31 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { applyWear } from '../lib/wear-rules';
 import { HttpError } from '../middleware/error';
-import { suggestOutfits } from '../services/wardrobe.service';
+import { suggestOutfits, type SuggestedOutfit } from '../services/wardrobe.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
-import { EVENT_TYPES, type EventType } from '../lib/attributes';
-import { avoidsColour, describeFitting, resolveEventType, EVENT_LABEL } from '../lib/occasion';
+import { EVENT_FORMALITY, EVENT_TYPES, currentSeason, type EventType } from '../lib/attributes';
+import { avoidsColour, describeFitting, readOccasion, resolveEventType, EVENT_LABEL } from '../lib/occasion';
 import {
   loadRecentWear,
   loadStyleableWardrobe,
-  validateAndRank,
+  poolSignals,
+  tasteFor,
 } from './wardrobe.controller';
 import { activeTripFor } from './trip.controller';
+import {
+  changedSlot,
+  composeWithRetry,
+  enumerateFromPool,
+  honestRationale,
+  planOpinion,
+  prefilterPool,
+  verdictOf,
+  type Verdict,
+} from '../services/compose.service';
+import { roleOf, validateOutfit } from '../services/validator.service';
+import { pairScore } from '../services/pairing.service';
+import { favouriteOutfitFor, recomputeTasteProfileSoon, tasteFormalityTarget, tasteItemBonus } from '../services/taste.service';
+import { recordComposed, recordSwap, recordWoreInstead } from '../services/taste-events';
 
 // The day, in three acts. Morning: the brief, composed for the kind of day it
 // is (your override, else the weekday read through the fitting) from what's
@@ -45,6 +60,7 @@ export interface EveningLook {
   rationale: string;
   itemIds: string[];
   wornLogId?: string | null;
+  verdict?: Verdict | null;
 }
 
 // A day is a timeline of looks. Each slot is a look at a time of day — the
@@ -63,6 +79,8 @@ export interface LookSlot {
   itemIds: string[];
   wornLogId?: string | null;
   weather?: Weather | null;
+  /** The rules' word on this look: ok with warnings, or not ok with what failed. */
+  verdict?: Verdict | null;
 }
 
 export interface BriefPayload {
@@ -82,6 +100,8 @@ export interface BriefPayload {
   looks?: LookSlot[];
   /** "Rain from six" — set by the midday check when the forecast moved. */
   weatherNote?: string | null;
+  /** The rules' word on the primary look. Never omitted on a fresh composition. */
+  verdict?: Verdict | null;
 }
 
 const SLOT_ORDER: Record<LookSlotKind, number> = { morning: 0, afternoon: 1, evening: 2, custom: 3 };
@@ -107,6 +127,7 @@ export function looksOf(payload: BriefPayload, columnWornLogId: string | null): 
       itemIds: payload.itemIds,
       wornLogId: columnWornLogId,
       weather: payload.weather ?? null,
+      verdict: payload.verdict ?? null,
     },
   ];
   if (payload.evening) {
@@ -120,6 +141,7 @@ export function looksOf(payload: BriefPayload, columnWornLogId: string | null): 
       itemIds: payload.evening.itemIds,
       wornLogId: payload.evening.wornLogId ?? null,
       weather: null,
+      verdict: payload.evening.verdict ?? null,
     });
   }
   return looks;
@@ -200,26 +222,69 @@ async function briefLedger(userId: string, itemIds: string[]) {
   return { factsById, lastWornDaysById };
 }
 
-/** Weather for the day: live for today, the daily forecast for a future date. */
+/**
+ * Weather for the day. The day's high and low from the forecast, for today as
+ * much as for a future date: an outfit is worn through the afternoon, not at
+ * the moment the brief is read. Live conditions are the fallback for today.
+ */
 async function weatherFor(city: string | null | undefined, date: string, today: string): Promise<Weather | null> {
   if (!city) return null;
   try {
-    if (date <= today) return await getWeather(city);
     const f = await getTripForecast(city, date, date);
     const d = f.days[0];
-    if (!d) return null;
-    return { location: f.location ?? city, temperatureC: Math.round((d.minC + d.maxC) / 2), description: d.rainChance ? `${d.description}, rain likely` : d.description };
+    if (d) {
+      return {
+        location: f.location ?? city,
+        temperatureC: Math.round((d.minC + d.maxC) / 2),
+        description: d.rainChance ? `${d.description}, rain likely` : d.description,
+        highC: Math.round(d.maxC),
+        lowC: Math.round(d.minC),
+      };
+    }
+  } catch {
+    // fall through to live conditions
+  }
+  if (date > today) return null;
+  try {
+    return await getWeather(city);
   } catch {
     return null;
   }
 }
 
-async function composeOutfit(
+/**
+ * What kind of day it is. An explicit event type wins; else the occasion
+ * says (keywords, then one cached model read); else the weekday through the
+ * fitting. This is what stops a Saturday wedding from being styled as a
+ * casual day.
+ */
+export async function eventFor(
+  userId: string,
+  profile: Parameters<typeof resolveEventType>[0],
+  date: string,
+  opts: { eventType?: EventType | null; occasion?: string | null; fallback?: EventType | null } = {},
+): Promise<EventType> {
+  if (opts.eventType) return opts.eventType;
+  if (opts.occasion) {
+    const read = await readOccasion(userId, opts.occasion);
+    if (read) return read.eventType;
+  }
+  return resolveEventType(profile, date, opts.fallback ?? null);
+}
+
+export interface ComposeOpts {
+  base?: string[];
+  act?: 'morning' | 'evening';
+  /** Item sets already shown for the day ("Another"): never handed back. */
+  exclude?: string[][];
+}
+
+export async function composeOutfit(
   userId: string,
   eventType: EventType,
   occasion: string | null,
   date: string,
-  opts: { base?: string[]; act?: 'morning' | 'evening' } = {},
+  opts: ComposeOpts = {},
 ): Promise<BriefPayload | null> {
   let items;
   try {
@@ -228,6 +293,7 @@ async function composeOutfit(
     return null;
   }
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });
+  const taste = await tasteFor(userId);
 
   // The fitting's struck colours never come back.
   const struck = items.filter((i) => avoidsColour(profile, i.primaryColor)).length;
@@ -244,6 +310,18 @@ async function composeOutfit(
 
   const today = dayKey(new Date());
   const weather = await weatherFor(trip ? trip.destination : profile?.city, date, today);
+  const season = currentSeason(new Date(`${date}T12:00:00Z`));
+  const formalityTarget = tasteFormalityTarget(taste, eventType, EVENT_FORMALITY[eventType]);
+
+  // Narrow the pool before the model sees it: the right formality band, the
+  // right warmth, the right season, always at least one candidate per slot.
+  const signals = poolSignals(items);
+  let pool = prefilterPool(items, { eventType, formalityTarget, weather, season });
+  if (opts.act === 'evening' && opts.base?.length) {
+    // The evening keeps what is already on: those pieces stay in the pool.
+    const keep = new Set(opts.base);
+    pool = [...pool, ...items.filter((i) => keep.has(i.id) && !pool.some((p) => p.id === i.id))];
+  }
 
   const parts: string[] = [];
   if (opts.act === 'evening' && opts.base?.length) {
@@ -257,30 +335,71 @@ async function composeOutfit(
   } else {
     parts.push(occasion ? `Dressing for: ${occasion} (${eventType} setting).` : `A go-to ${EVENT_LABEL[eventType]} outfit for ${date === today ? 'today' : 'the day'}.`);
   }
+  parts.push(`Formality target ${formalityTarget}/5; every piece within a step of it.`);
   if (trip) parts.push(`They are traveling in ${trip.destination} — dress for that context.`);
-  if (weather) parts.push(`Weather in ${weather.location}: ${weather.temperatureC}°C, ${weather.description}. Choose weather-appropriate items.`);
+  if (weather) {
+    const range = weather.highC != null && weather.lowC != null ? ` (${weather.lowC}–${weather.highC}°C over the day)` : '';
+    parts.push(`Weather in ${weather.location}: ${weather.temperatureC}°C${range}, ${weather.description}. Choose weather-appropriate items.`);
+  }
   if (profile?.styleVibe) parts.push(`Their style vibe: ${profile.styleVibe}.`);
   parts.push(...describeFitting(profile));
-  parts.push('Compose one complete head-to-toe outfit.');
+  parts.push('Compose complete head-to-toe outfits.');
 
   const recentWear = await loadRecentWear(userId);
-  const suggested = await suggestOutfits(items, parts.join(' '));
-  const wearCounts = new Map(items.map((i) => [i.id, i.wearCount]));
-  const pollWins = new Map(items.map((i) => [i.id, i.pollWins]));
-  const wearSignals = new Map(items.map((i) => [i.id, { passedOver: i.passedOver, chosenInstead: i.chosenInstead }]));
-  const ranked = validateAndRank(suggested, { eventType, ...(weather ? { weather } : {}), recentWear, wearCounts, pollWins, wearSignals });
-  const top = ranked[0];
-  if (!top) return null;
+  const favourite = favouriteOutfitFor(taste, { eventType, temperatureC: weather?.temperatureC });
+  const count = eventType === 'occasion' || eventType === 'evening' ? 5 : 4;
+  const context = parts.join(' ');
+  const suggest = (constraints: string[]): Promise<SuggestedOutfit[]> =>
+    suggestOutfits(pool, context, count, { taste, favourite, exclude: opts.exclude, constraints });
+  const composed = await composeWithRetry(
+    suggest,
+    { eventType, weather, recentWear, ...signals, taste, formalityTarget, season },
+    { exclude: opts.exclude, fallback: () => enumerateFromPool(pool, { eventType, weather, season }) },
+  );
+  if (!composed) return null;
+  const { top, verdict } = composed;
 
   return {
     trip: trip ? { destination: trip.destination, endDate: trip.endDate } : null,
     title: occasion ?? (trip ? `Packed for ${trip.destination}` : `The ${EVENT_LABEL[eventType]} look`),
-    rationale: top.rationale.replace(/\s*\(id:\s*[a-f0-9-]+\)/gi, ''),
+    rationale: honestRationale(top.validation, top.items, eventType, top.why, weather),
     itemIds: top.items.map((i) => i.id),
     eventType,
     occasion,
     weather,
+    verdict,
   };
+}
+
+/** Full closet rows for a set of ids, in the given order, for the validator. */
+async function closetRows(userId: string, itemIds: string[]) {
+  const rows = await prisma.wardrobeItem.findMany({ where: { id: { in: itemIds }, userId } });
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return itemIds.map((id) => byId.get(id)).filter((r): r is (typeof rows)[number] => !!r);
+}
+
+async function hasCleanShoes(userId: string): Promise<boolean> {
+  const n = await prisma.wardrobeItem.count({ where: { userId, owned: true, status: 'ready', suppressed: false, state: 'clean', category: 'footwear' } });
+  return n > 0;
+}
+
+/**
+ * The rules' word on pieces the person chose themselves, and one line of
+ * opinion in the stylist's voice. Never a block.
+ */
+export async function judgeOwnPlan(userId: string, itemIds: string[], eventType: EventType, weather: Weather | null, date: string) {
+  const [rows, cleanShoes, taste] = await Promise.all([closetRows(userId, itemIds), hasCleanShoes(userId), tasteFor(userId)]);
+  const formalityTarget = tasteFormalityTarget(taste, eventType, EVENT_FORMALITY[eventType]);
+  const v = validateOutfit(rows, {
+    eventType,
+    weather: weather ?? undefined,
+    hasCleanFootwear: cleanShoes,
+    season: currentSeason(new Date(`${date}T12:00:00Z`)),
+    formalityTarget,
+    // The person's own pieces may be in the wash today and clean by then.
+    availableStates: ['clean', 'in-wash', 'packed'],
+  });
+  return { verdict: verdictOf(v), opinion: planOpinion(v, rows, eventType, formalityTarget) };
 }
 
 async function readDay(userId: string, date: string) {
@@ -331,7 +450,7 @@ async function dayResponse(userId: string, row: DayRow) {
       return {
         id: l.id, slot: l.slot, label: l.label ?? null, time: l.time ?? null,
         occasion: l.occasion ?? null, rationale: l.rationale, weather: l.weather ?? null,
-        itemIds: l.itemIds, items, worn: Boolean(log), wornLook,
+        itemIds: l.itemIds, items, worn: Boolean(log), wornLook, verdict: l.verdict ?? null,
       };
     }),
   );
@@ -355,9 +474,10 @@ async function dayResponse(userId: string, row: DayRow) {
       occasion: first?.occasion ?? payload.occasion,
       rationale: first?.rationale ?? payload.rationale,
       items: first?.items ?? [],
+      verdict: first?.verdict ?? payload.verdict ?? null,
     },
     evening: eveningOut
-      ? { title: eveningOut.label ?? eveningOut.occasion ?? 'Tonight', rationale: eveningOut.rationale, itemIds: eveningOut.itemIds, items: eveningOut.items, wornLogId: eveningOut.worn ? 'logged' : null }
+      ? { title: eveningOut.label ?? eveningOut.occasion ?? 'Tonight', rationale: eveningOut.rationale, itemIds: eveningOut.itemIds, items: eveningOut.items, wornLogId: eveningOut.worn ? 'logged' : null, verdict: eveningOut.verdict ?? null }
       : null,
     looks: looksOut,
     canUndo: (payload.alternates?.length ?? 0) > 0,
@@ -401,8 +521,11 @@ export async function briefFor(userId: string, query: z.infer<typeof briefQueryS
 
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });
   const prev = existing?.payload as unknown as BriefPayload | undefined;
-  const event = resolveEventType(profile, date, eventType ?? (occasion ? (prev?.eventType ?? null) : null));
-  const payload = await composeOutfit(userId, event, occasion ?? null, date);
+  // The typed occasion says what kind of day it is; "Another" keeps the day's
+  // kind and must not hand back a set already shown.
+  const event = await eventFor(userId, profile, date, { eventType, occasion, fallback: !occasion && refresh ? prev?.eventType ?? null : null });
+  const exclude = prev && refresh && !occasion && !eventType ? [prev.itemIds, ...(prev.alternates ?? []).map((a) => a.itemIds)].filter((ids) => ids.length > 0) : undefined;
+  const payload = await composeOutfit(userId, event, occasion ?? prev?.occasion ?? null, date, { exclude });
   if (!payload) return { mode: 'starter' as const };
   // Composing is slow; if the day changed underneath us (a home day, a wear), keep that.
   const fresh = await readDay(userId, date);
@@ -471,14 +594,18 @@ export async function planDay(req: Request, res: Response) {
     const profile = await prisma.styleProfile.findUnique({ where: { userId } });
     const weather = await weatherFor(profile?.city, date, today);
     const prev = existing && !existing.rest ? (existing.payload as unknown as BriefPayload) : null;
+    const event = await eventFor(userId, profile, date, { eventType, occasion });
+    // The person's choice stands; the rules still get their say, in one line.
+    const { verdict, opinion } = await judgeOwnPlan(userId, itemIds, event, weather, date);
     const payload: BriefPayload = {
       title: title ?? 'Laid out by you',
-      rationale: 'Your own choice, laid out ahead. The stylist will keep it as it is.',
+      rationale: opinion,
       itemIds,
-      eventType: resolveEventType(profile, date, eventType ?? null),
+      eventType: event,
       occasion: occasion ?? null,
       weather,
       trip: null,
+      verdict,
       ...(prev ? { alternates: [{ ...prev, alternates: undefined }, ...(prev.alternates ?? [])].slice(0, 5) } : {}),
     };
     const saved = await saveDay(userId, date, payload, { rest: false, plannedAt: new Date() });
@@ -491,7 +618,7 @@ export async function planDay(req: Request, res: Response) {
     return res.json({ mode: 'rest' as const, worn: false });
   }
   const profile = await prisma.styleProfile.findUnique({ where: { userId } });
-  const event = resolveEventType(profile, date, eventType ?? null);
+  const event = await eventFor(userId, profile, date, { eventType, occasion });
   const payload = await composeOutfit(userId, event, occasion ?? null, date);
   if (!payload) return res.json({ mode: 'starter' as const });
   const fresh = await readDay(userId, date);
@@ -569,9 +696,10 @@ export async function composeEvening(req: Request, res: Response) {
   const row = await readDay(userId, date);
   if (!row || row.rest) throw new HttpError(400, 'No morning look to build the evening on');
   const payload = row.payload as unknown as BriefPayload;
-  const look = await composeOutfit(userId, 'evening', occasion ?? 'the evening', date, { base: payload.itemIds, act: 'evening' });
+  const event = await eventFor(userId, null, date, { occasion, fallback: 'evening' }).then((e) => (occasion ? e : 'evening'));
+  const look = await composeOutfit(userId, event, occasion ?? 'the evening', date, { base: payload.itemIds, act: 'evening' });
   if (!look) throw new HttpError(400, 'The closet is short of an evening look');
-  payload.evening = { title: occasion ?? 'Tonight', rationale: look.rationale, itemIds: look.itemIds };
+  payload.evening = { title: occasion ?? 'Tonight', rationale: look.rationale, itemIds: look.itemIds, verdict: look.verdict ?? null };
   const saved = await saveDay(userId, date, payload);
   return respondDay(res, userId, saved);
 }
@@ -598,8 +726,10 @@ export async function composeLook(req: Request, res: Response) {
   const kind: LookSlotKind = slot ?? 'evening';
   // Compose a distinct look for this slot's occasion (a wedding's rituals are
   // their own outfits, not a tweak of the last one).
-  const eventType = kind === 'evening' ? 'evening' : payload.eventType;
-  const composed = await composeOutfit(userId, eventType, occasion ?? label ?? null, date, {});
+  const phrase = occasion ?? label ?? null;
+  const read = phrase ? await readOccasion(userId, phrase) : null;
+  const eventType: EventType = read?.eventType ?? (kind === 'evening' ? 'evening' : payload.eventType);
+  const composed = await composeOutfit(userId, eventType, phrase, date, {});
   if (!composed) throw new HttpError(400, 'The closet is short of another look');
   const newLook: LookSlot = {
     id: randomUUID(),
@@ -611,12 +741,13 @@ export async function composeLook(req: Request, res: Response) {
     itemIds: composed.itemIds,
     wornLogId: null,
     weather: composed.weather,
+    verdict: composed.verdict ?? null,
   };
   payload.looks = [...current, newLook];
   // Keep the legacy `evening` mirror in sync for any old client still reading it.
   const eveningSlot = orderLooks(payload.looks).find((l) => l.slot === 'evening');
   payload.evening = eveningSlot
-    ? { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null }
+    ? { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null, verdict: eveningSlot.verdict ?? null }
     : payload.evening;
   const saved = await saveDay(userId, date, payload);
   return respondDay(res, userId, saved);
@@ -640,7 +771,7 @@ export async function removeLook(req: Request, res: Response) {
   payload.looks = current.filter((l) => l.id !== lookId);
   const eveningSlot = orderLooks(payload.looks).find((l) => l.slot === 'evening');
   payload.evening = eveningSlot
-    ? { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null }
+    ? { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null, verdict: eveningSlot.verdict ?? null }
     : null;
   const saved = await saveDay(userId, date, payload);
   return respondDay(res, userId, saved);
@@ -707,16 +838,33 @@ export async function wearBrief(req: Request, res: Response) {
 
   const eventType = target.slot === 'evening' ? 'evening' : payload.eventType;
   const weather = target.weather ?? payload.weather;
+  const suggested = target.itemIds;
+  const woreInstead = suggested.length > 0 && [...suggested].sort().join() !== [...ids].sort().join();
   const log = await prisma.wearLog.create({
     data: {
       userId,
       itemIds: ids,
       eventType,
       wornOn: new Date(),
+      suggestedItemIds: suggested,
+      woreInstead,
       ...(weather ? { weather: { temperatureC: weather.temperatureC, description: weather.description, location: weather.location } } : {}),
     },
   });
   await applyWear(userId, log.itemIds);
+
+  // The taste layer: what was left on the chair (slot-aware), or the look
+  // worn as laid out — a vote for its pairs. Then the profile redraws soon.
+  void (async () => {
+    if (woreInstead) {
+      const rows = await prisma.wardrobeItem.findMany({ where: { id: { in: [...new Set([...suggested, ...ids])] }, userId }, select: { id: true, category: true, subtype: true, layerRole: true } });
+      const slot = changedSlot(suggested, ids, new Map(rows.map((r) => [r.id, r])));
+      await recordWoreInstead(userId, { date, eventType, slot, suggested, worn: ids });
+    } else {
+      await recordComposed(userId, { itemIds: ids, eventType, date });
+    }
+    await recomputeTasteProfileSoon(userId);
+  })().catch(() => undefined);
 
   // Persist the log id on this look. The first look also mirrors to the
   // DailyBrief.wornLogId column (and the legacy evening slot) so every existing
@@ -725,7 +873,7 @@ export async function wearBrief(req: Request, res: Response) {
   payload.looks = looks.map((l) => (l.id === target.id ? { ...l, wornLogId: log.id } : l));
   const eveningSlot = orderLooks(payload.looks).find((l) => l.slot === 'evening');
   if (eveningSlot) {
-    payload.evening = { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null };
+    payload.evening = { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null, verdict: eveningSlot.verdict ?? null };
   }
   await prisma.dailyBrief.update({
     where: { id: row.id },
@@ -740,46 +888,126 @@ export async function wearBrief(req: Request, res: Response) {
   res.status(201).json({ log, alreadyLogged: false });
 }
 
-const swapSchema = z.object({ date: z.string().regex(DATE_RE), outId: z.string().uuid(), inId: z.string().uuid() });
+const swapSchema = z.object({ date: z.string().regex(DATE_RE), outId: z.string().uuid(), inId: z.string().uuid(), lookId: z.string().optional() });
 
+/**
+ * Swap one piece of the day's look for another in the same slot. The
+ * incoming piece must be clean and fill the same role; the new set is
+ * re-validated and its verdict stored; the taste layer hears the swap.
+ */
 export async function swapBriefItem(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { date, outId, inId } = swapSchema.parse(req.body);
+  const { date, outId, inId, lookId } = swapSchema.parse(req.body);
   const userId = req.user.id;
   const brief = await readDay(userId, date);
   if (!brief) throw new HttpError(404, 'No brief for this date');
   const payload = brief.payload as unknown as BriefPayload;
-  if (!payload.itemIds.includes(outId)) throw new HttpError(400, 'That item is not in the brief');
-  const incoming = await prisma.wardrobeItem.findFirst({ where: { id: inId, userId } });
+  const looks = looksOf(payload, brief.wornLogId);
+  const target = (lookId ? looks.find((l) => l.id === lookId) : looks.find((l) => l.itemIds.includes(outId))) ?? looks[0];
+  if (!target || !target.itemIds.includes(outId)) throw new HttpError(400, 'That item is not in the brief');
+  if (target.wornLogId) throw new HttpError(400, 'That look was worn — it can\'t be swapped');
+  const [outgoing, incoming] = await Promise.all([
+    prisma.wardrobeItem.findFirst({ where: { id: outId, userId } }),
+    prisma.wardrobeItem.findFirst({ where: { id: inId, userId } }),
+  ]);
   if (!incoming) throw new HttpError(404, 'Replacement item not found');
-  payload.itemIds = payload.itemIds.map((id) => (id === outId ? inId : id));
+  if (incoming.state !== 'clean') throw new HttpError(400, 'That piece is not clean right now');
+  if (outgoing && roleOf(outgoing) !== roleOf(incoming)) {
+    throw new HttpError(400, `That is a ${roleOf(incoming) === 'one-piece' ? 'dress' : roleOf(incoming)}, not a ${roleOf(outgoing) === 'one-piece' ? 'dress' : roleOf(outgoing)} — pick a piece for the same slot`);
+  }
+
+  const itemIds = target.itemIds.map((id) => (id === outId ? inId : id));
+  const eventType = target.slot === 'evening' ? 'evening' : payload.eventType;
+  const { verdict, opinion } = await judgeOwnPlan(userId, itemIds, eventType, target.weather ?? payload.weather ?? null, date);
+  const rationale = verdict.ok && verdict.warnings.length === 0 ? target.rationale : opinion.replace(/^Your own choice, laid out ahead\. /, '');
+
+  const isFirst = looks[0]?.id === target.id;
+  if (payload.looks?.length) {
+    payload.looks = looks.map((l) => (l.id === target.id ? { ...l, itemIds, verdict, rationale } : l));
+  }
+  if (isFirst) {
+    payload.itemIds = itemIds;
+    payload.verdict = verdict;
+    payload.rationale = rationale;
+  }
+  const eveningSlot = payload.looks ? orderLooks(payload.looks).find((l) => l.slot === 'evening') : null;
+  if (eveningSlot) {
+    payload.evening = { title: eveningSlot.label ?? eveningSlot.occasion ?? 'Tonight', rationale: eveningSlot.rationale, itemIds: eveningSlot.itemIds, wornLogId: eveningSlot.wornLogId ?? null, verdict: eveningSlot.verdict ?? null };
+  } else if (!payload.looks?.length && target.slot === 'evening' && payload.evening) {
+    payload.evening = { ...payload.evening, itemIds, verdict, rationale };
+  }
   await prisma.dailyBrief.update({ where: { id: brief.id }, data: { payload: payload as unknown as Prisma.InputJsonValue } });
-  const items = await hydrateItems(userId, payload.itemIds);
-  res.json({ brief: { ...payload, alternates: undefined, evening: undefined, items } });
+  void recordSwap(userId, { date, eventType, slot: roleOf(incoming), outId, inId, itemIds: target.itemIds });
+
+  const items = await hydrateItems(userId, isFirst ? payload.itemIds : itemIds);
+  res.json({ brief: { ...payload, alternates: undefined, evening: undefined, looks: undefined, ...(isFirst ? {} : { itemIds, rationale, verdict }), items }, verdict, opinion });
 }
 
-const altSchema = z.object({ slot: z.string().min(1).max(40), exclude: z.string().optional() });
+const altSchema = z.object({
+  slot: z.string().min(1).max(40),
+  exclude: z.string().optional(),
+  /** The day whose look is being edited; its pieces are the outfit to pair against. */
+  date: z.string().regex(DATE_RE).optional(),
+  /** The piece being replaced, when the client knows it. */
+  current: z.string().uuid().optional(),
+  eventType: z.enum(EVENT_TYPES).optional(),
+});
 
-// Closet alternatives for one slot of the brief — same category, not recently
-// worn where possible, best-loved first. Deterministic and free (no AI call).
+const ALT_LIMIT = 6;
+const RECENT_LOGS = 6;
+
+/**
+ * Closet alternatives for one slot of the brief: same layer role as the piece
+ * being replaced, clean, not the current piece, not worn in the last six
+ * logs where possible, ranked by how well each sits with the rest of the
+ * outfit plus the taste layer's opinion. Deterministic and free (no AI call).
+ */
 export async function briefAlternatives(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
-  const { slot, exclude } = altSchema.parse(req.query);
+  const userId = req.user.id;
+  const { slot, exclude, date, current, eventType } = altSchema.parse(req.query);
   const excludeIds = (exclude ?? '').split(',').filter(Boolean);
-  const items = await loadStyleableWardrobe(req.user.id);
-  const recent = await loadRecentWear(req.user.id);
-  const recentIds = new Set(recent.slice(0, 6).flatMap((r) => r.itemIds));
-  const candidates = items
-    .filter((i) => i.category === slot && !excludeIds.includes(i.id))
-    .sort((a, b) => {
-      const aRecent = recentIds.has(a.id) ? 1 : 0;
-      const bRecent = recentIds.has(b.id) ? 1 : 0;
-      if (aRecent !== bRecent) return aRecent - bRecent;
-      return b.wearCount + b.pollWins * 2 - (a.wearCount + a.pollWins * 2);
+  const [items, recent, taste] = await Promise.all([loadStyleableWardrobe(userId), loadRecentWear(userId), tasteFor(userId)]);
+
+  // The outfit being edited: the day's look, else what the client sent.
+  let outfitIds = excludeIds;
+  let event: EventType | undefined = eventType;
+  if (date) {
+    const row = await readDay(userId, date);
+    const payload = row?.payload as unknown as BriefPayload | undefined;
+    if (payload) {
+      const look = looksOf(payload, row!.wornLogId).find((l) => l.itemIds.includes(current ?? '') || l.itemIds.some((id) => excludeIds.includes(id))) ?? looksOf(payload, row!.wornLogId)[0];
+      if (look) {
+        outfitIds = [...new Set([...outfitIds, ...look.itemIds])];
+        event = event ?? (look.slot === 'evening' ? 'evening' : payload.eventType);
+      }
+    }
+  }
+  const outfitRows = outfitIds.length ? await closetRows(userId, outfitIds) : [];
+  const byId = new Map(outfitRows.map((r) => [r.id, r]));
+
+  // The role to fill: the current piece's, else the first outfit piece in
+  // that category, else the category's own default.
+  const currentRow = current ? byId.get(current) ?? outfitRows.find((r) => r.id === current) : outfitRows.find((r) => r.category === slot);
+  const role = currentRow ? roleOf(currentRow) : roleOf({ category: slot, layerRole: null, subtype: null });
+  const currentId = currentRow?.id ?? null;
+  const rest = outfitRows.filter((r) => r.id !== currentId);
+
+  const avoid = new Set([...excludeIds, ...(currentId ? [currentId] : [])]);
+  const recentIds = new Set(recent.slice(0, RECENT_LOGS).flatMap((r) => r.itemIds));
+  const sameRole = items.filter((i) => roleOf(i) === role && !avoid.has(i.id) && i.state === 'clean');
+  const fresh = sameRole.filter((i) => !recentIds.has(i.id));
+  const candidates = (fresh.length > 0 ? fresh : sameRole)
+    .map((i) => {
+      const scores = rest.map((r) => pairScore(i, r)).filter((x) => x > 0);
+      const mean = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 5;
+      return { item: i, score: mean + tasteItemBonus(taste, i, event) };
     })
-    .slice(0, 3);
-  const hydrated = await hydrateItems(req.user.id, candidates.map((c) => c.id));
-  res.json({ alternatives: hydrated });
+    .sort((a, b) => b.score - a.score || b.item.wearCount + b.item.pollWins * 2 - (a.item.wearCount + a.item.pollWins * 2))
+    .slice(0, ALT_LIMIT);
+  const hydrated = await hydrateItems(userId, candidates.map((c) => c.item.id));
+  const scoreById = new Map(candidates.map((c) => [c.item.id, Math.round(c.score * 10) / 10]));
+  res.json({ alternatives: hydrated.map((h) => ({ ...h, pairScore: scoreById.get(h.id) ?? null })), role });
 }
 
 const shareSchema = z.object({ date: z.string().regex(DATE_RE), lookId: z.string().optional() });

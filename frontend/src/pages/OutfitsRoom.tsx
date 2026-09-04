@@ -223,6 +223,11 @@ export function OutfitsRoom() {
                   <p className="mt-4 font-display text-base italic leading-snug text-ink">
                     {s.rationale}
                   </p>
+                  {(s.opinion ?? s.validation.opinion) && (
+                    <p className="mt-2 font-display text-base italic leading-snug text-ink/70">
+                      {s.opinion ?? s.validation.opinion}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-ink/50">{names(s.items)}</p>
                   {s.validation.warnings.length > 0 && (
                     <p className="mt-1 text-xs text-ink/45">

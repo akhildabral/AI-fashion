@@ -5,13 +5,16 @@ import { HttpError } from '../middleware/error';
 import { EVENT_TYPES, type EventType } from '../lib/attributes';
 import { validateOutfit } from '../services/validator.service';
 import { outfitsAround, pairScore, pairsFor } from '../services/pairing.service';
+import { planOpinion, verdictOf } from '../services/compose.service';
 
 // The Outfits room's endpoints: what goes with a piece, whether a hand-built
 // outfit holds up, and letting go of a saved one.
 
+// The suggestion pool: owned, catalogued, clean, not suppressed, not an
+// unanswered twin, and a wearable category (a swatch tagged "other" is not).
 async function ownedReady(userId: string) {
   return prisma.wardrobeItem.findMany({
-    where: { userId, owned: true, status: 'ready', suppressed: false },
+    where: { userId, owned: true, status: 'ready', suppressed: false, state: 'clean', twinOfId: null, category: { not: 'other' } },
   });
 }
 
@@ -43,11 +46,14 @@ const validateSchema = z.object({
 export async function validateComposed(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const { itemIds, eventType } = validateSchema.parse(req.body);
-  const items = await prisma.wardrobeItem.findMany({ where: { id: { in: itemIds }, userId: req.user.id } });
+  const [items, cleanShoes] = await Promise.all([
+    prisma.wardrobeItem.findMany({ where: { id: { in: itemIds }, userId: req.user.id } }),
+    prisma.wardrobeItem.count({ where: { userId: req.user.id, owned: true, status: 'ready', suppressed: false, state: 'clean', category: 'footwear' } }),
+  ]);
   if (items.length !== new Set(itemIds).size) throw new HttpError(400, 'Some pieces are not in your closet');
   // No repeat rules here: composing is about whether the pieces hold
   // together, not whether you wore them on Tuesday.
-  const v = validateOutfit(items, { eventType: eventType as EventType | undefined });
+  const v = validateOutfit(items, { eventType: eventType as EventType | undefined, hasCleanFootwear: cleanShoes > 0 });
   let q = 0;
   let n = 0;
   for (let i = 0; i < items.length; i++)
@@ -58,7 +64,13 @@ export async function validateComposed(req: Request, res: Response) {
         n++;
       }
     }
-  res.json({ validation: { ...v, pairQuality: n ? Math.round((q / n) * 10) / 10 : 0 } });
+  // The same verdict the brief carries, and one line of opinion in the
+  // stylist's voice — the person's choice stands either way.
+  res.json({
+    validation: { ...v, pairQuality: n ? Math.round((q / n) * 10) / 10 : 0 },
+    verdict: verdictOf(v),
+    opinion: eventType ? planOpinion(v, items, eventType as EventType) : null,
+  });
 }
 
 // DELETE /outfits/:id

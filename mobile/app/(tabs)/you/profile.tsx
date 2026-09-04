@@ -25,6 +25,7 @@ import { alpha, gutter, hairline, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { apiFetch } from '@/src/lib/api'
 import { Card, NavRow, RowLabel, Stepper, Swatch, TextLink, Wrap } from '@/src/features/you/Furniture'
+import { TasteCard } from '@/src/features/you/TasteCard'
 import { routes } from '@/src/features/you/nav'
 import { BOTTOM_SIZES, BUDGETS, BUILDS, COLOURS, DAYS, HEIGHT_MAX, HEIGHT_MIN, heightLabel, INTENTS, planLabel, SHOE_SIZES, title, TONES, TOP_SIZES, VIBES, WHO } from '@/src/features/you/options'
 import { useProfileSave } from '@/src/features/you/useProfileSave'
@@ -202,6 +203,8 @@ function TasteSection({ profile, save }: { profile: Prof; save: SaveFn }) {
   }
   return (
     <>
+      {/* What the record taught, then what the fitting said: a block (32) apart. */}
+      <TasteCard style={styles.mt8} />
       <Card padding="form">
         <RowLabel first>Your tone</RowLabel>
         <Wrap style={[styles.mt3, styles.swatches]}>

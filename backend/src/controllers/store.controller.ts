@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
-import { closestOwned, outfitsAround, pairsFor, unlockAround } from '../services/pairing.service';
+import { closestOwned, outfitsAround, pairsFor, unlockAround, type Unlock } from '../services/pairing.service';
 
 // In the store: a candidate piece (owned: false) goes through the same
 // cataloguing as a real one, then the closet answers — how many outfits it
@@ -14,14 +14,23 @@ export interface Verdict {
   pairs: number;
   closetSize: number;
   closest: { id: string; likeness: number } | null;
-  unlock: { slot: string; gain: number } | null;
+  unlock: Unlock | null;
   computedAt: string;
 }
 
 const SLOT_WORD: Record<string, string> = { top: 'a plain top', bottom: 'a pair of trousers', shoes: 'a pair of shoes', outer: 'a jacket' };
+const SLOT_NOUN: Record<string, string> = { top: 'top', bottom: 'pair of trousers', shoes: 'pair of shoes', outer: 'jacket' };
+
+function unlockWords(u: Unlock): string {
+  if (u.colour && SLOT_NOUN[u.slot]) return `a ${u.colour} ${SLOT_NOUN[u.slot]}`;
+  return SLOT_WORD[u.slot] ?? 'one more piece';
+}
 
 export async function computeVerdict(userId: string, itemId: string): Promise<{ verdict: Verdict; outfits: { items: string[]; score: number }[] }> {
-  const closet = await prisma.wardrobeItem.findMany({ where: { userId, owned: true, status: 'ready', suppressed: false } });
+  // The closet that answers: clean, catalogued, wearable, not suppressed, not an unanswered twin.
+  const closet = await prisma.wardrobeItem.findMany({
+    where: { userId, owned: true, status: 'ready', suppressed: false, state: 'clean', twinOfId: null, category: { not: 'other' } },
+  });
   const piece = await prisma.wardrobeItem.findFirst({ where: { id: itemId, userId } });
   if (!piece) throw new HttpError(404, 'Piece not found');
   const all = outfitsAround(piece, closet, { limit: 80 });
@@ -64,7 +73,7 @@ export async function itemVerdict(req: Request, res: Response) {
     verdict,
     outfits: outfits.map((o) => ({ items: o.items.map((i) => byId.get(i)).filter(Boolean), score: o.score })),
     closest: closest ? { item: closest, wears: closestWears, likeness: verdict.closest?.likeness ?? 0 } : null,
-    unlockLine: verdict.unlock ? `With ${SLOT_WORD[verdict.unlock.slot] ?? 'one more piece'}, ${verdict.unlock.gain} more.` : null,
+    unlockLine: verdict.unlock ? `With ${unlockWords(verdict.unlock)}, ${verdict.unlock.gain} more.` : null,
   });
 }
 

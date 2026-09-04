@@ -2,6 +2,7 @@
 // hairlines, alerts, badges, the empty state and the failed-fetch state.
 import { useState, type ReactNode } from 'react'
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
+import type { OutfitVerdict } from '@zauq/shared/types'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
@@ -157,6 +158,31 @@ export function Alert({ tone = 'error', children, style }: { tone?: AlertTone; c
   )
 }
 
+/** The stylist's verdict on a look, as inline alerts under the facts it concerns: the broken rules as one error line when the look
+ *  is not complete, then each bent rule as a warning (joined by " · " past two). Messages arrive in the ZAUQ voice and render
+ *  verbatim. Nothing for an absent or clean verdict, so older responses look exactly as before. 16 between blocks. */
+export function VerdictNotes({ verdict, style }: { verdict?: OutfitVerdict | null; style?: StyleProp<ViewStyle> }) {
+  if (!verdict) return null
+  const warnings = (verdict.warnings ?? []).map((w) => w?.message).filter((m): m is string => !!m)
+  const violations = (verdict.violations ?? []).map((v) => v?.message).filter((m): m is string => !!m)
+  const broken = verdict.ok === false
+  if (!broken && warnings.length === 0) return null
+  return (
+    <View style={[styles.verdict, style]}>
+      {broken ? <Alert tone="error">{`Nothing in the closet makes this complete${violations.length ? `: ${violations.join(' · ')}` : '.'}`}</Alert> : null}
+      {warnings.length > 2 ? (
+        <Alert tone="warning">{warnings.join(' · ')}</Alert>
+      ) : (
+        warnings.map((w) => (
+          <Alert key={w} tone="warning">
+            {w}
+          </Alert>
+        ))
+      )}
+    </View>
+  )
+}
+
 /** A count or a one-word state on a filled chip: brass, or a quiet ink wash ("In wash", "Packed"). Never a button. */
 export function Badge({ tone = 'brass', children, style }: { tone?: 'brass' | 'quiet'; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { t } = useTheme()
@@ -208,6 +234,7 @@ const styles = StyleSheet.create({
   plaqueLabel: { letterSpacing: track(10, tracking.labelXl) },
   plaqueValue: { marginTop: space.xs },
   alert: { paddingHorizontal: space.lg, paddingVertical: 10 },
+  verdict: { gap: space.lg, alignSelf: 'stretch' },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 2 },
   badgeText: { fontFamily: fonts.sansSemi },
   error: { alignItems: 'center', gap: space.lg, paddingVertical: space.xxl, paddingHorizontal: space.xl },

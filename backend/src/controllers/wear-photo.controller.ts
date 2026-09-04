@@ -14,6 +14,9 @@ import { detectGarments, deriveReasoningAttributes, tagGarment, type DetectedGar
 import { matteGarment } from '../services/cleanup.service';
 import { fingerprintOf, matchPiece, type Band, type MatchCandidate } from '../services/closet-match.service';
 import { catalogItem, cropToRegion } from './wardrobe.controller';
+import { changedSlot } from '../services/compose.service';
+import { recordWoreInstead } from '../services/taste-events';
+import { recomputeTasteProfileSoon } from '../services/taste.service';
 
 // "This is what I wore." A photo of the day is read into garments; each one
 // is matched against the closet — yours for sure, probably yours, or new —
@@ -277,6 +280,19 @@ export async function confirmWearPhoto(req: Request, res: Response) {
   // The crops that became nothing go; the ones that became pieces have their own copy.
   for (const r of rows) await deleteFile(r.cropUrl).catch(() => undefined);
   await prisma.wearPhotoJob.update({ where: { id: job.id }, data: { status: 'confirmed', confirmedLogId: log.id, rows: Prisma.JsonNull } });
+
+  // The taste layer: a day corrected from a photo is the strongest signal
+  // there is — what was laid out and left, what was reached for (slot-aware).
+  if (log.woreInstead && suggested.length > 0) {
+    void (async () => {
+      const rows = await prisma.wardrobeItem.findMany({ where: { id: { in: [...new Set([...suggested, ...log.itemIds])] }, userId }, select: { id: true, category: true, subtype: true, layerRole: true } });
+      const slot = changedSlot(suggested, log.itemIds, new Map(rows.map((r) => [r.id, r])));
+      await recordWoreInstead(userId, { date: job.date, eventType: log.eventType, slot, suggested, worn: log.itemIds });
+      await recomputeTasteProfileSoon(userId);
+    })().catch(() => undefined);
+  } else {
+    void recomputeTasteProfileSoon(userId);
+  }
 
   const items = await prisma.wardrobeItem.findMany({ where: { id: { in: log.itemIds }, userId } });
   res.status(201).json({ log: { ...log, items }, added: added.map((a) => a.id), woreInstead: log.woreInstead });

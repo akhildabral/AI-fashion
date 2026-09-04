@@ -234,6 +234,18 @@ export interface OutfitValidation {
   score: number
   violations: { rule: string; message: string }[]
   warnings: { rule: string; message: string }[]
+  /** A one-line stylist opinion on the outfit, in the ZAUQ voice. */
+  opinion?: string
+}
+
+/** The stylist's verdict on an outfit the backend composed or checked: the
+ *  rules it broke (violations) and the ones it bent (warnings), each with a
+ *  message in the ZAUQ voice to render verbatim. Additive; absent on older
+ *  responses. */
+export interface OutfitVerdict {
+  ok: boolean
+  violations: { rule: string; message: string }[]
+  warnings: { rule: string; message: string }[]
 }
 
 /** Fields the user is allowed to correct via PATCH /api/wardrobe/:id. */
@@ -274,6 +286,8 @@ export interface WardrobeOutfit {
   items: WardrobeItem[]
   rationale: string
   validation?: OutfitValidation
+  /** A one-line stylist opinion on the outfit. */
+  opinion?: string
 }
 
 export interface WardrobeItemResponse {
@@ -370,6 +384,7 @@ export interface PackedDay {
   label: string
   items: WardrobeItem[]
   note: string
+  verdict?: OutfitVerdict
 }
 
 export interface PackingPlan {
@@ -404,4 +419,55 @@ export interface ResaleDraft {
 export interface ResaleDraftResponse {
   draft: ResaleDraft
   imageUrl: string
+}
+
+// ---- The taste layer: what the record says about how you dress ----
+
+export interface TasteFact {
+  id: string
+  /** One plain sentence in the stylist's voice. */
+  text: string
+  kind: 'colour' | 'colour-avoid' | 'formality' | 'pair' | 'pair-avoid' | 'shoes' | 'layering' | 'silhouette' | 'favourite'
+  /** 0–1: how sure the record is. */
+  strength: number
+}
+
+export interface TasteFavouriteOutfit {
+  id: string
+  itemIds: string[]
+  eventType: string
+  wearCount: number
+  rating: number | null
+  lastWornOn: string | null
+  temperatureC: number | null
+  /** "navy blazer, white tee, jeans" — the pieces, named. */
+  label: string
+}
+
+export interface TasteColourFamily {
+  closetShare: number
+  wornShare: number
+  /** −1 never worn … +1 reached for beyond its share of the rail. */
+  affinity: number
+  wears: number
+  items: number
+  opportunities: number
+}
+
+export interface TasteProfileSummary {
+  computedAt: string
+  /** Wears in the last six months the profile is drawn from. */
+  sampleSize: number
+  facts: TasteFact[]
+  favouriteOutfits: TasteFavouriteOutfit[]
+  colourAffinity: { families: Record<string, TasteColourFamily>; favourite: string | null; avoids: string[] }
+  /** Keyed by event type (plus 'all' and 'day:<weekday>'): how far worn sits from laid out, ±2. */
+  formalityOffset: Record<string, { offset: number; days: number }>
+}
+
+export interface TasteResponse {
+  profile: TasteProfileSummary
+  /** Under five wears: the stylist goes by the fitting, and the quiz signals ride along. */
+  coldStart: boolean
+  signals: string[]
 }

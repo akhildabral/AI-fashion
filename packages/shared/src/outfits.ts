@@ -23,6 +23,8 @@ export interface Validation {
   warnings: { rule: string; message: string }[];
   /** 0–10 average pair quality across the pieces. */
   pairQuality: number;
+  /** A one-line stylist opinion, in the ZAUQ voice; absent on older responses. */
+  opinion?: string;
 }
 
 export interface Suggested {
@@ -33,7 +35,10 @@ export interface Suggested {
     score: number;
     violations: { rule: string; message: string }[];
     warnings: { rule: string; message: string }[];
+    opinion?: string;
   };
+  /** A one-line stylist opinion on the outfit; absent on older responses. */
+  opinion?: string;
 }
 
 export interface PairsResponse {

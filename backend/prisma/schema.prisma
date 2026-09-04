@@ -89,6 +89,8 @@ model User {
   mutes        Mute[]        @relation("muter")
   mutedBy      Mute[]        @relation("muted")
   reports      Report[]
+  styleEvents  StyleEvent[]
+  tasteProfile TasteProfile?
 }
 
 // Safety. A block is invisible both ways: neither sees the other anywhere,
@@ -318,6 +320,52 @@ model Outfit {
   wearLogs WearLog[]
 
   @@index([userId])
+}
+
+// The taste layer's raw material: every swap, correction, composition, rating
+// and piece of feedback, as it happened. Read in bulk by the nightly derivation;
+// never joined on a request path.
+//   kind: swap | wore_instead | passed_over | composed | rated | feedback
+model StyleEvent {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       String
+  occurredOn DateTime @default(now())
+  eventType  String?
+  // Which look of the day (morning | afternoon | evening | custom).
+  slot       String?
+  // A swap: what left the look and what came in.
+  outId      String?
+  inId       String?
+  itemIds    String[] @default([])
+  outfitId   String?
+  rating     Int?
+  // Anything else worth keeping: { signal } for feedback, and so on.
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, occurredOn])
+}
+
+// What the wear log says about how a member actually dresses, derived nightly
+// and after a wear. Every column but the sample size is a JSON block the
+// taste service owns; readers go through its hooks, never the shape.
+model TasteProfile {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  computedAt       DateTime @default(now())
+  sampleSize       Int      @default(0)
+  colourAffinity   Json
+  formalityOffset  Json
+  pairAffinity     Json
+  silhouette       Json
+  shoeHabits       Json
+  layering         Json
+  favouriteOutfits Json
+  facts            Json
+  // Fact ids the member said "not quite" to; never shown again.
+  dismissedFacts   String[] @default([])
 }
 
 // One worn-outfit record: the moat. What was worn, when, in what context.

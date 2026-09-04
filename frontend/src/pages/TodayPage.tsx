@@ -32,7 +32,7 @@ import {
 } from '@zauq/shared/brief'
 import type { GenerateResponse, Look } from '@zauq/shared/types'
 import { LookCard } from '../components/LookCard'
-import { GarmentTile, Modal, PageShell, Toast, useFlash, MoreMenu, MenuItem, Eyebrow, Stat, SectionHead, Alert, Plaque, SkeletonBlock, ArchSkeleton, EmptyState, Chip } from '../components/ui'
+import { GarmentTile, Modal, PageShell, Toast, useFlash, MoreMenu, MenuItem, Eyebrow, Stat, SectionHead, Alert, Plaque, SkeletonBlock, ArchSkeleton, EmptyState, Chip, VerdictNotes } from '../components/ui'
 import { WorePhotoPanel } from '../components/WorePhotoPanel'
 import { Spinner } from '../components/Spinner'
 import { shareCard, outcomeLine } from '../lib/share'
@@ -798,6 +798,8 @@ export function TodayPage() {
                 </div>
               ))}
             </div>
+            {/* The stylist's verdict: the rules the look bends or breaks, under the facts. */}
+            <VerdictNotes verdict={brief.verdict} className="mt-4" />
           </div>
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (

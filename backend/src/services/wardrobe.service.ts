@@ -5,11 +5,15 @@ import { aiAbortSignal, aiErrorMessage, textModel, visionModel } from '../lib/ai
 import { HttpError } from '../middleware/error';
 import { EVENT_TYPES } from '../lib/attributes';
 import {
+  deriveLayerRole,
+  deriveNeedsLayer,
+  deriveShoeFormality,
   formalityScoreFor,
-  layerRoleFor,
   normalizeColorName,
+  shoeFormalityOf,
   warmthFor,
 } from '../lib/attributes';
+import { tastePromptBlock, type FavouriteOutfit, type TasteProfileData } from './taste.service';
 
 export const CUT_FOR = ['womens', 'mens', 'unisex'] as const;
 export const MATERIALS = ['cotton', 'linen', 'wool', 'silk', 'denim', 'leather', 'synthetic', 'blend', 'other'] as const;
@@ -256,10 +260,14 @@ export function deriveReasoningAttributes(tags: {
   material: string | null;
   formality: string | null;
 }): { layerRole: string | null; warmthValue: number | null; formalityScore: number | null } {
+  // Footwear formality comes off the shoe ladder (sneaker 2, loafer 3, oxford
+  // 4 …) and falls back to the garment tag for a subtype the ladder doesn't know.
+  const formalityScore =
+    tags.category === 'footwear' ? deriveShoeFormality(tags.subtype) ?? formalityScoreFor(tags.formality) : formalityScoreFor(tags.formality);
   return {
-    layerRole: layerRoleFor(tags.category, tags.subtype),
+    layerRole: deriveLayerRole(tags.category, tags.subtype),
     warmthValue: warmthFor(tags.category, tags.subtype, tags.material),
-    formalityScore: formalityScoreFor(tags.formality),
+    formalityScore,
   };
 }
 
@@ -325,44 +333,143 @@ export async function draftResaleListing(item: WardrobeItem): Promise<ResaleDraf
   }
 }
 
+export interface CandidateWhy {
+  fit?: string | null;
+  colour?: string | null;
+  formality?: string | null;
+  weather?: string | null;
+}
+
 export interface SuggestedOutfit {
   items: WardrobeItem[];
   rationale: string;
+  /** The model's reasons per axis, kept apart so a caller can drop the one a warning contradicts. */
+  why?: CandidateWhy;
 }
 
-const outfitsSchema = z.object({
-  outfits: z.array(
-    z.object({
-      itemIds: z.array(z.string()),
-      rationale: z.string(),
-    }),
-  ),
+// Structured slots: one id per slot (null when the slot is empty), so the
+// shape itself says "one bottom, one pair of shoes" and the model cannot
+// hand back two trousers. Nullable rather than optional: strict providers
+// reject optional properties.
+const candidateSchema = z.object({
+  base: z.string().nullable(),
+  mid: z.string().nullable(),
+  outer: z.string().nullable(),
+  bottom: z.string().nullable(),
+  onePiece: z.string().nullable(),
+  footwear: z.string(),
+  accessories: z.array(z.string()),
+  why: z.object({
+    fit: z.string(),
+    colour: z.string(),
+    formality: z.string(),
+    weather: z.string(),
+  }),
 });
 
-function catalogLine(item: WardrobeItem): string {
+const outfitsSchema = z.object({
+  candidates: z.array(candidateSchema),
+});
+
+/** Facts the proposer can use that the closet row alone does not carry. */
+export type CatalogItem = WardrobeItem &
+  Partial<{ wearCount: number; passedOver: number; chosenInstead: number; lastWornDays: number | null }>;
+
+function detailOf(details: unknown, key: string): string | null {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return null;
+  const v = (details as Record<string, unknown>)[key];
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+export function catalogLine(item: CatalogItem): string {
+  const role = item.subtype ? deriveLayerRole(item.category, item.subtype) ?? item.layerRole : item.layerRole;
+  const needsLayer = deriveNeedsLayer(item.subtype, item.details, item.material, item.formalityScore);
+  const shoeFormality = item.category === 'footwear' ? shoeFormalityOf(item.subtype, item.formalityScore) : null;
+  const details = ['neckline', 'sleeve', 'rise', 'leg', 'heel', 'toe']
+    .map((k) => [k, detailOf(item.details, k)] as const)
+    .filter((d): d is readonly [string, string] => d[1] != null)
+    .map(([k, v]) => `${k}:${v}`);
+  const facts: string[] = [];
+  if (item.wearCount != null) facts.push(`worn ${item.wearCount}×`);
+  if (item.lastWornDays != null) facts.push(`last worn ${item.lastWornDays}d ago`);
+  if (item.passedOver) facts.push(`passed over ${item.passedOver}×`);
+  if (item.chosenInstead) facts.push(`chosen instead ${item.chosenInstead}×`);
   return [
     `id=${item.id}`,
     item.category,
     item.subtype,
-    item.primaryColor && `color:${item.primaryColor}`,
+    item.primaryColor && `colour:${item.primaryColor}`,
+    item.secondaryColor && `second colour:${item.secondaryColor}`,
     item.pattern && `pattern:${item.pattern}`,
-    item.formality && `formality:${item.formality}`,
-    item.layerRole && `layer:${item.layerRole}`,
+    item.material && `material:${item.material}`,
+    item.fit && `fit:${item.fit}`,
+    item.length && `length:${item.length}`,
+    item.weight && `weight:${item.weight}`,
+    item.texture && `texture:${item.texture}`,
+    item.formality && `formality:${item.formality}${item.formalityScore != null ? ` (${item.formalityScore}/5)` : ''}`,
+    shoeFormality != null && `shoe formality:${shoeFormality}/5`,
+    role && `slot:${role}`,
+    needsLayer && 'needs a layer over it',
     item.warmthValue != null && `warmth:${item.warmthValue}/10`,
     item.season.length && `season:${item.season.join('/')}`,
+    item.occasions?.length && `for:${item.occasions.join('/')}`,
+    details.length && details.join(' '),
+    facts.length && facts.join(', '),
   ]
     .filter(Boolean)
     .join(' | ');
 }
 
+export interface SuggestOptions {
+  /** The taste layer's prompt block and favourite look, when the record is warm. */
+  taste?: TasteProfileData | null;
+  favourite?: FavouriteOutfit | null;
+  /** Item sets already shown ("Another"): the model must not hand one back. */
+  exclude?: string[][];
+  /** "Do not: …" lines from a failed first pass. */
+  constraints?: string[];
+}
+
+export const HARD_RULES =
+  'Hard rules, every candidate: (1) exactly one bottom OR one one-piece, never both, never two; ' +
+  '(2) exactly one footwear; (3) a base top (shirt, tee, blouse, knit) under any blazer, jacket or coat — the only exception is a knit mid layer (sweater, cardigan, hoodie) worn as the top; ' +
+  '(4) camisoles, tanks, vest tops and anything marked "needs a layer over it" get a mid or outer layer for work, evening and occasion settings; ' +
+  '(5) shoe formality within one step below or two above the formality of the bottom; trainers never under tailored trousers, pumps never over sweatpants; ' +
+  '(6) never an item whose category is "other"; (7) respect the warmth for the weather and the season tags; ' +
+  '(8) every id must come from the catalogue, each used once; (9) follow the "how they actually dress" notes when given.';
+
 // Assemble outfits using ONLY the user's owned items, referenced by id.
-// Candidates are proposed here and validated deterministically by the caller.
+// Candidates are proposed here, slot by slot, and validated deterministically
+// by the caller; the slots are mapped back to `items` so callers are unchanged.
 export async function suggestOutfits(
-  items: WardrobeItem[],
+  items: CatalogItem[],
   context: string,
-  count = 2,
+  count = 4,
+  opts: SuggestOptions = {},
 ): Promise<SuggestedOutfit[]> {
   const catalog = items.map(catalogLine).join('\n');
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const name = (id: string) => {
+    const i = byId.get(id);
+    return i ? `${i.subtype ?? i.category} (id=${id})` : `id=${id}`;
+  };
+
+  const extras: string[] = [];
+  const tasteBlock = tastePromptBlock(opts.taste);
+  if (tasteBlock) extras.push(tasteBlock);
+  if (opts.favourite) {
+    extras.push(`They often wear ${opts.favourite.itemIds.map(name).join(', ')} for this kind of day; proposing it again is welcome if it suits the weather.`);
+  }
+  if (opts.exclude?.length) {
+    extras.push(
+      `Do not reuse this exact set: ${opts.exclude.map((set) => `[${set.join(', ')}]`).join('; ')}. Prefer a different bottom or different footwear from those.`,
+    );
+  }
+  if (opts.constraints?.length) {
+    extras.push(
+      `A first pass failed the rules; fix the faults below without dropping slots — every candidate is still complete (a top or one-piece, a bottom unless one-piece, footwear). ${opts.constraints.join(' ')}`,
+    );
+  }
 
   let parsed: z.infer<typeof outfitsSchema>;
   try {
@@ -372,14 +479,14 @@ export async function suggestOutfits(
       temperature: 0.7,
       schema: outfitsSchema,
       instructions:
-        `You are a personal stylist. Build ${count} complete, wearable outfits using ONLY ` +
-        'the items in the wardrobe catalog, referenced by their exact ids. Combine a ' +
-        'sensible set (e.g. top + bottom + footwear, or a dress + footwear, plus fitting ' +
-        'outerwear/accessories when appropriate). Use each id at most once per outfit and ' +
-        'ONLY ids that appear in the catalog. For each outfit write ONE "rationale" sentence, ' +
-        'at most 22 words, in a confident stylist\'s voice: the one reason this works for the ' +
-        'context (weather, occasion, or a colour/texture pairing). Never list the items back; never mention ids.',
-      prompt: `Context: ${context}\n\nWardrobe catalog:\n${catalog}`,
+        `You are a personal stylist. Propose ${count} complete, wearable outfit candidates using ONLY ` +
+        'the items in the wardrobe catalogue, referenced by their exact ids, one id per slot. ' +
+        'Slots: base (shirt/tee/blouse), mid (knit, cardigan, blazer, waistcoat), outer (coat/jacket), bottom, onePiece (dress/jumpsuit), ' +
+        'footwear, accessories. Set a slot to null when it is empty. Make the candidates differ from each other in the bottom or the footwear. ' +
+        HARD_RULES +
+        ' For each candidate fill "why" with one short plain sentence per axis — fit (proportion/silhouette), colour, formality (why it sits right for the setting), weather — ' +
+        'each at most 14 words, British spelling, first person as the stylist, no praise words, no ids, no item lists.',
+      prompt: `Context: ${context}${extras.length ? `\n\n${extras.join('\n\n')}` : ''}\n\nWardrobe catalogue:\n${catalog}`,
     });
     parsed = object;
   } catch (err) {
@@ -387,12 +494,14 @@ export async function suggestOutfits(
     throw new HttpError(502, message);
   }
 
-  const byId = new Map(items.map((i) => [i.id, i]));
   const outfits: SuggestedOutfit[] = [];
-  for (const o of parsed.outfits ?? []) {
+  for (const c of parsed.candidates ?? []) {
+    const ids = [c.base, c.mid, c.outer, c.bottom, c.onePiece, c.footwear, ...(c.accessories ?? [])].filter((x): x is string => !!x);
     // Keep only real, de-duplicated items (guards against hallucinated ids).
-    const resolved = [...new Set(o.itemIds)].map((id) => byId.get(id)).filter((i): i is WardrobeItem => !!i);
-    if (resolved.length > 0) outfits.push({ items: resolved, rationale: o.rationale });
+    const resolved = [...new Set(ids)].map((id) => byId.get(id)).filter((i): i is WardrobeItem => !!i);
+    if (resolved.length === 0) continue;
+    const why: CandidateWhy = { fit: c.why?.fit || null, colour: c.why?.colour || null, formality: c.why?.formality || null, weather: c.why?.weather || null };
+    outfits.push({ items: resolved, rationale: why.fit || why.colour || why.formality || why.weather || '', why });
   }
 
   if (outfits.length === 0) {

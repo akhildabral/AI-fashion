@@ -1,6 +1,7 @@
 import { useState as useFlashState, useRef as useFlashRef, useEffect as useFlashEffect,  useEffect, type ReactNode, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { resolveImageUrl } from '../lib/api'
+import type { OutfitVerdict } from '@zauq/shared/types'
 
 /**
  * The layout system. Every screen composes from these primitives — same
@@ -113,6 +114,34 @@ export function Alert({
     <p role={tone === 'error' ? 'alert' : 'status'} className={`alert-${tone} ${className}`}>
       {children}
     </p>
+  )
+}
+
+/** The stylist's verdict on a look, as inline alerts under the facts it
+ *  concerns: the broken rules as one error line when the look is not
+ *  complete, then each bent rule as a warning (joined by " · " past two).
+ *  Messages arrive in the ZAUQ voice and render verbatim. Nothing for an
+ *  absent or clean verdict, so older responses look exactly as before.
+ *  16 between blocks. */
+export function VerdictNotes({ verdict, className = '' }: { verdict?: OutfitVerdict | null; className?: string }) {
+  if (!verdict) return null
+  const warnings = (verdict.warnings ?? []).map((w) => w?.message).filter((m): m is string => !!m)
+  const violations = (verdict.violations ?? []).map((v) => v?.message).filter((m): m is string => !!m)
+  const broken = verdict.ok === false
+  if (!broken && warnings.length === 0) return null
+  return (
+    <div className={`flex flex-col gap-4 ${className}`}>
+      {broken && <Alert tone="error">Nothing in the closet makes this complete{violations.length ? `: ${violations.join(' · ')}` : '.'}</Alert>}
+      {warnings.length > 2 ? (
+        <Alert tone="warning">{warnings.join(' · ')}</Alert>
+      ) : (
+        warnings.map((w) => (
+          <Alert key={w} tone="warning">
+            {w}
+          </Alert>
+        ))
+      )}
+    </div>
   )
 }
 

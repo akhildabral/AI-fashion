@@ -340,6 +340,11 @@ export function PackingPage() {
                           {addingLook === i ? '…' : '+ Add a look'}
                         </button>
                       </div>
+                      {day.verdict?.ok === false && (
+                        <Alert tone="warning" className="mt-4">
+                          {[...(day.verdict.violations ?? []), ...(day.verdict.warnings ?? [])].map((r) => r?.message).filter(Boolean).join(' · ') || 'Nothing in the closet makes this complete.'}
+                        </Alert>
+                      )}
                       <div className="mt-3 flex flex-col gap-3">
                         {looks.map((look, li) => (
                           <div key={look.id} className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">

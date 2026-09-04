@@ -203,6 +203,11 @@ export default function OutfitsRoom() {
                       <LookBoard items={s.items} width={boardW} />
                       <View style={styles.cardText}>
                         <T role="lede">{s.rationale}</T>
+                        {s.opinion ?? s.validation.opinion ? (
+                          <T role="lede" tone="muted">
+                            {s.opinion ?? s.validation.opinion}
+                          </T>
+                        ) : null}
                         <T role="caption" tone="faint">
                           {names(s.items)}
                         </T>

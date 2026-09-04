@@ -6,6 +6,8 @@ import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { closestOwned, outfitsAround } from '../services/pairing.service';
 import { EVENT_TYPES, type EventType } from '../lib/attributes';
+import { validateOutfit } from '../services/validator.service';
+import { verdictOf } from '../services/compose.service';
 
 // Trips: a trip is a page, not a result. The plan is stored with it, the
 // checklist remembers its ticks, the capsule can be edited, and a past trip
@@ -13,9 +15,16 @@ import { EVENT_TYPES, type EventType } from '../lib/attributes';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+const verdictSchema = z.object({
+  ok: z.boolean(),
+  violations: z.array(z.object({ rule: z.string(), message: z.string() })),
+  warnings: z.array(z.object({ rule: z.string(), message: z.string() })),
+});
+
 const planSchema = z.object({
   rationale: z.string().max(2000),
   essentials: z.array(z.string().max(120)).max(40),
+  laundryNote: z.string().max(200).nullish(),
   // Things the traveller adds themselves — one place to track the whole trip.
   custom: z.array(z.string().max(120)).max(60).optional(),
   forecast: z.object({
@@ -27,6 +36,9 @@ const planSchema = z.object({
     label: z.string().max(80),
     note: z.string().max(400),
     itemIds: z.array(z.string()).max(12),
+    eventType: z.enum(EVENT_TYPES).nullish(),
+    // The rules' word on the day, as the packer or a replan left it.
+    verdict: verdictSchema.nullish(),
     // A trip day can hold several looks (a flight outfit, then a dinner; a
     // wedding's rituals). The first mirrors `itemIds` for backward-compat.
     looks: z.array(z.object({
@@ -58,7 +70,7 @@ function bestCapsuleOutfit(
   const seen = new Set<string>();
   let best: { itemIds: string[]; score: number } | null = null;
   for (const piece of capsule) {
-    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8 })) {
+    for (const o of outfitsAround(piece, capsule, { eventType, limit: 8, availableStates: ['clean', 'packed'] })) {
       const key = [...o.itemIds].sort().join('|');
       if (seen.has(key) || same(o.itemIds)) continue;
       seen.add(key);
@@ -138,6 +150,8 @@ export async function getTrip(req: Request, res: Response) {
   const days = (plan?.days ?? []).map((d) => ({
     label: d.label,
     note: d.note,
+    eventType: d.eventType ?? null,
+    verdict: d.verdict ?? null,
     items: d.itemIds.map((id) => byId.get(id)).filter(Boolean),
     looks: dayLooksOf(d).map((l) => ({
       id: l.id,
@@ -237,8 +251,9 @@ export async function replanTripDay(req: Request, res: Response) {
   if (!best) throw new HttpError(404, 'The capsule can only make this one outfit for that day');
   const newLooks = looks.map((l) => (l.id === target.id ? { ...l, itemIds: best } : l));
   const isPrimary = looks[0].id === target.id;
+  const verdict = verdictOf(validateOutfit(capsule.filter((c) => best.includes(c.id)), { eventType: eventType as EventType | undefined, availableStates: ['clean', 'packed'] }));
   const days = plan!.days.map((d, i) => (i === index
-    ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds: best } : {}), note: d.note.replace(/\s*·\s*replanned$/, '') + ' · replanned' }
+    ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds: best, verdict } : {}), note: d.note.replace(/\s*·\s*replanned$/, '') + ' · replanned' }
     : d));
   const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
   res.json({ trip: updated });
@@ -317,9 +332,13 @@ export async function setTripLookItems(req: Request, res: Response) {
   if (!target) throw new HttpError(404, 'Look not found');
   const newLooks = looks.map((l) => (l.id === target.id ? { ...l, itemIds } : l));
   const isPrimary = looks[0].id === target.id;
-  const days = plan!.days.map((d, i) => (i === index ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds } : {}) } : d));
+  // The traveller's own pick stands; the rules still get their say.
+  const capsule = await prisma.wardrobeItem.findMany({ where: { id: { in: itemIds }, userId: req.user.id } });
+  const day = plan!.days[index];
+  const verdict = verdictOf(validateOutfit(capsule, { eventType: (day.eventType ?? undefined) as EventType | undefined, availableStates: ['clean', 'packed'], hasCleanFootwear: true }));
+  const days = plan!.days.map((d, i) => (i === index ? { ...d, looks: newLooks, ...(isPrimary ? { itemIds, verdict } : {}) } : d));
   const updated = await prisma.trip.update({ where: { id: trip.id }, data: { plan: { ...plan!, days } as Prisma.InputJsonValue } });
-  res.json({ trip: updated });
+  res.json({ trip: updated, verdict });
 }
 
 export async function deleteTrip(req: Request, res: Response) {

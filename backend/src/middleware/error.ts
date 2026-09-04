@@ -34,6 +34,20 @@ export function errorHandler(
     return res.status(err.status).json({ error: err.message });
   }
 
+  // body-parser / multer / express errors carry a 4xx status (malformed JSON,
+  // payload too large, unsupported type). Those are the caller's to fix, so
+  // say what to do and don't log them as ours.
+  const status = (err as { status?: unknown; statusCode?: unknown }) ?? {};
+  const code = typeof status.status === 'number' ? status.status : typeof status.statusCode === 'number' ? status.statusCode : 0;
+  if (code >= 400 && code < 500) {
+    const type = (err as { type?: string }).type;
+    const message =
+      type === 'entity.parse.failed' ? 'Send valid JSON in the request body.'
+      : type === 'entity.too.large' ? 'That request is too large.'
+      : err instanceof Error && err.message ? err.message : 'Bad request';
+    return res.status(code).json({ error: message });
+  }
+
   // Internals stay in the log (with the request id, so a client-reported
   // failure can be found); the person gets a sentence they can act on and
   // never a stack trace.

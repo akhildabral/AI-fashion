@@ -9,6 +9,9 @@ export interface Weather {
   location: string;
   temperatureC: number;
   description: string;
+  /** The day's range from the forecast, when the brief was composed from it. */
+  highC?: number;
+  lowC?: number;
 }
 
 // WMO weather interpretation codes → short descriptions.

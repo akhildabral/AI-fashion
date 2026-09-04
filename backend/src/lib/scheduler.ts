@@ -3,6 +3,7 @@ import { sendWishlistNudges } from '../controllers/store.controller';
 import { notify } from './notify';
 import { expoPushEnabled, localNow, sendPush, webPushEnabled } from './push';
 import { ensureDailyBrief } from '../controllers/brief.controller';
+import { runNightlyTaste } from '../services/taste.service';
 import { logger } from './logger';
 
 // Small in-process scheduler for things that happen on a clock rather than
@@ -152,6 +153,10 @@ export async function pruneSessions(now = new Date()): Promise<number> {
   return count;
 }
 
+// The taste layer redraws every member's profile once a night; the tick is
+// frequent, the service decides whether the hour has come.
+const TASTE_EVERY_MS = 15 * 60_000;
+
 // A tick that is still running when its interval fires again is skipped,
 // not doubled: a slow database or a long push fan-out must never stack
 // copies of the same job on top of each other.
@@ -175,6 +180,7 @@ export function startScheduler(): () => void {
   const layout = guardedTick('layOutTomorrow', layOutTomorrow);
   const wish = guardedTick('sendWishlistNudges', sendWishlistNudges);
   const prune = guardedTick('pruneSessions', pruneSessions);
+  const taste = guardedTick('recomputeTasteProfiles', runNightlyTaste);
   settle();
   ritual();
   wish();
@@ -185,11 +191,14 @@ export function startScheduler(): () => void {
   const c = setInterval(wish, 10 * 60 * 1000);
   prune();
   const e = setInterval(prune, PRUNE_EVERY_MS);
+  taste();
+  const f = setInterval(taste, TASTE_EVERY_MS);
   return () => {
     clearInterval(a);
     clearInterval(b);
     clearInterval(c);
     clearInterval(d);
     clearInterval(e);
+    clearInterval(f);
   };
 }
