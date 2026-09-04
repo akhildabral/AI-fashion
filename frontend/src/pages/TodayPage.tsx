@@ -387,7 +387,7 @@ export function TodayPage() {
           wears logged and the current streak. A stat, not a gamified badge. */}
       <div className="flex animate-rise flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-ink/40">{dateLine()}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-ink/40">{dateLine()}</p>
           <p className="mt-2 font-display text-xl italic text-ink/80 sm:text-2xl">
             {greeting()}, <span className="text-brass">{name}</span>
           </p>
@@ -420,7 +420,7 @@ export function TodayPage() {
               so the real look resolves in place with no jump. */}
           <div className="h-11 w-72 max-w-[80%] animate-pulse rounded-[3px] bg-ink/10" />
           <div className="mt-3 h-4 w-56 max-w-[60%] animate-pulse rounded-[3px] bg-ink/[0.07]" />
-          <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
+          <div className="mt-8 grid grid-cols-3 gap-4 md:grid-cols-4 lg:gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60" style={{ animationDelay: `${i * 90}ms` }}>
                 <div className="arch-niche h-full w-full" />
@@ -435,7 +435,7 @@ export function TodayPage() {
       {!loading && profile && !profile.fittingCompletedAt && (profile.fittingStep ?? 0) > 0 && (
         <Link to={`/fitting?s=${profile.fittingStep}`} className="plaque press mt-4 flex animate-rise items-center justify-between gap-4 p-4 pl-5">
           <span>
-            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your fitting</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Your fitting</span>
             <span className="mt-0.5 block font-display text-lg italic text-ink">{Math.round(((profile.fittingStep ?? 0) / 13) * 100)}% taken. Pick it up where you left it.</span>
           </span>
           <span className="btn-primary btn-sm">Continue</span>
@@ -447,7 +447,7 @@ export function TodayPage() {
       {!loading && profile && profile.fittingCompletedAt && !profile.sizes?.top && !profile.sizes?.bottom && !profile.sizes?.shoe && (
         <Link to="/profile" className="plaque press mt-4 flex animate-rise items-center justify-between gap-4 p-4 pl-5">
           <span>
-            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">A finer fit</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">A finer fit</span>
             <span className="mt-0.5 block font-display text-lg italic text-ink">Add your sizes and tone — looks land better when the Mirror knows them.</span>
           </span>
           <span className="btn-ghost btn-sm">Add details</span>
@@ -513,7 +513,7 @@ export function TodayPage() {
 
           {/* The four niches of the first brief: the pieces you own hang in theirs; the empty ones ask for what is missing */}
           <div className="mt-12 animate-rise-3">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-6">
               {starterSlots(closet).map((slot) =>
                 slot.item ? (
                   <div key={slot.key} className="min-w-0">
@@ -528,7 +528,7 @@ export function TodayPage() {
                   <Link key={slot.key} to="/closet" className="press group min-w-0">
                     {/* an empty niche: the arch drawn in a dashed brass line, waiting */}
                     <div className="aspect-[3/4] w-full">
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 border border-dashed border-brass/45 bg-surface transition-colors group-hover:border-brass" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px' }}>
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 border border-dashed border-brass/45 bg-surface transition-colors group-hover:border-brass" style={{ borderRadius: '50% 50% var(--arch-foot) var(--arch-foot) / var(--arch-h-3-4) var(--arch-h-3-4) var(--arch-foot) var(--arch-foot)' }}>
                         <span className="font-display text-4xl leading-none text-brass">+</span>
                         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{slot.label}</span>
                       </div>
@@ -616,7 +616,7 @@ export function TodayPage() {
 
           {/* The outfit — arched apertures, with a one-time light-catch sweep */}
           <div key={(data?.wornLook?.items ?? brief.items).map((i) => i.id).join('-')} className="relative mt-8 overflow-hidden">
-            <div className="grid animate-rise-3 grid-cols-3 gap-3 sm:gap-5 md:grid-cols-4 lg:gap-6">
+            <div className="grid animate-rise-3 grid-cols-3 gap-4 md:grid-cols-4 lg:gap-6">
               {(data?.wornLook?.items ?? brief.items).map((item) => (
                 <GarmentTile
                   key={item.id}
@@ -825,7 +825,7 @@ export function TodayPage() {
           {/* The ROI plaque — the proud payoff */}
           {stats && stats.monthlyPayback > 0 && (
             <div className="plaque animate-rise p-5 pl-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
                 Your closet is working
               </p>
               <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
@@ -837,19 +837,19 @@ export function TodayPage() {
                   <p className="font-display text-lg font-semibold text-ink [font-variant-numeric:tabular-nums]">
                     {stats.rotationPct}%
                   </p>
-                  <p className="text-[10px] uppercase tracking-[0.08em] text-ink/45">in rotation</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-ink/45">in rotation</p>
                 </div>
                 <div>
                   <p className="font-display text-lg font-semibold text-ink [font-variant-numeric:tabular-nums]">
                     {stats.outfitsThisWeek}
                   </p>
-                  <p className="text-[10px] uppercase tracking-[0.08em] text-ink/45">this week</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-ink/45">this week</p>
                 </div>
                 <div>
                   <p className="font-display text-lg font-semibold text-ink [font-variant-numeric:tabular-nums]">
                     {stats.streak}
                   </p>
-                  <p className="text-[10px] uppercase tracking-[0.08em] text-ink/45">day streak</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-ink/45">day streak</p>
                 </div>
               </div>
             </div>

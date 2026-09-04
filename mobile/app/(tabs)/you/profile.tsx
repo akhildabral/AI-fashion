@@ -484,7 +484,7 @@ function AddressCard({ current, onChanged }: { current: string | null; onChanged
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl },
   header: { paddingBottom: 0 },
   // The web's `font-display text-sm italic`: Bodoni italic at 14 on a 20 line.
   whisper: { fontFamily: fonts.serifItalic },

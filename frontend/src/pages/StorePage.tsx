@@ -188,7 +188,7 @@ export function StorePage() {
           </div>
           <div className="w-full max-w-[240px] sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:max-w-none sm:self-center">
             <div className="arch-bezel aspect-[3/4]">
-              <div className="relative h-full w-full overflow-hidden" style={{ borderRadius: '46% 46% 5px 5px / 28% 28% 5px 5px', background: 'radial-gradient(90% 70% at 50% 40%, #2a2620, #0b0a08 90%)' }}>
+              <div className="relative h-full w-full overflow-hidden rounded-[inherit]" style={{ background: 'radial-gradient(90% 70% at 50% 40%, #2a2620, #0b0a08 90%)' }}>
                 <div className="pointer-events-none absolute inset-[16%_14%_24%]">
                   {[0, 1, 2, 3].map((i) => (
                     <i key={i} className={`absolute h-5 w-5 border-brass ${i === 0 ? 'left-0 top-0 border-l-2 border-t-2' : i === 1 ? 'right-0 top-0 border-r-2 border-t-2' : i === 2 ? 'bottom-0 left-0 border-b-2 border-l-2' : 'bottom-0 right-0 border-b-2 border-r-2'}`} />
@@ -303,7 +303,7 @@ export function StorePage() {
 
           {v.closest && (
             <div className="plaque mt-5 animate-rise-3 p-4 pl-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Worth knowing</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Worth knowing</p>
               <p className="mt-1 text-sm text-ink">
                 Closest thing you own: the {[v.closest.item.primaryColor, v.closest.item.subtype ?? v.closest.item.category].filter(Boolean).join(' ')}
                 {v.closest.wears > 0 ? `, worn ${v.closest.wears}×` : ', never worn'}.{' '}
@@ -313,7 +313,7 @@ export function StorePage() {
           )}
           {v.unlockLine && (
             <div className="plaque mt-3 animate-rise-3 p-4 pl-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">It would unlock more</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">It would unlock more</p>
               <p className="mt-1 text-sm text-ink">{v.unlockLine}</p>
             </div>
           )}

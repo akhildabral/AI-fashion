@@ -73,7 +73,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 bg-bone/80 backdrop-blur-md" style={{ boxShadow: 'inset 0 -1px 0 rgb(var(--c-ink) / 0.1)' }}>
-      <div className="mx-auto flex h-16 max-w-[1400px] items-stretch justify-between gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-shell-wide items-stretch justify-between gap-6 px-4 sm:px-6">
         <Link to="/" className="group flex items-baseline gap-2 self-center">
           <Wordmark className="text-[19px] text-ink" />
         </Link>
@@ -108,7 +108,7 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Account menu"
-                className="press flex h-10 w-10 items-center justify-center rounded-[3px] bg-iris text-xs font-bold text-on-brass transition-colors hover:bg-iris-deep"
+                className="press flex h-10 w-10 items-center justify-center rounded-[3px] bg-iris text-xs font-semibold text-on-brass transition-colors hover:bg-iris-deep"
               >
                 {initials}
               </button>

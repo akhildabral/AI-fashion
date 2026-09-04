@@ -109,7 +109,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-label="Try this look on"
@@ -123,7 +123,7 @@ export function TryOnModal({ onClose, ...target }: TryOnModalProps) {
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-[3px] bg-surface/85 text-ink  backdrop-blur transition hover:bg-surface"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-[3px] bg-surface/85 text-ink transition hover:bg-surface"
         >
           <span aria-hidden="true" className="text-lg leading-none">
             ×

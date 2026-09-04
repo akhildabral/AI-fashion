@@ -194,5 +194,5 @@ const styles = StyleSheet.create({
   // `mt-5` above the feed, less the column's own 16
   skeleton: { marginHorizontal: gutter, gap: CARD_GAP, marginTop: 4 },
   row: { paddingHorizontal: gutter },
-  footer: { paddingTop: space.xl, paddingBottom: space.xxxl, alignItems: 'center', minHeight: 48 },
+  footer: { paddingTop: space.xl, paddingBottom: space.xxxxl, alignItems: 'center', minHeight: 48 },
 })

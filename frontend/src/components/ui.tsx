@@ -16,7 +16,7 @@ export function PageShell({
   wide?: boolean
   narrow?: boolean
 }) {
-  const width = wide ? 'max-w-[1400px]' : narrow ? 'max-w-3xl' : 'max-w-6xl'
+  const width = wide ? 'max-w-shell-wide' : narrow ? 'max-w-shell-narrow' : 'max-w-shell'
   return <div className={`mx-auto ${width} px-4 py-8 sm:px-6 sm:py-10`}>{children}</div>
 }
 
@@ -41,6 +41,11 @@ export function SectionHead({
  * The arch — the one curved form in the app. A brass-bezel aperture with a
  * lit niche inside, used wherever a garment or a reflection appears. Wrap any
  * content (image, silhouette, ghost) in it.
+ *
+ * The crown is a semicircle of radius w/2 (the brand mark's own curve), so the
+ * arch is a PORTRAIT form: `aspect-[2/3]`, `[3/4]`, `[4/5]`, `[5/6]` or
+ * `aspect-square` (the limit). A landscape picture is never an arch — use a
+ * `.rect-frame` (3px rectangle, hairline) instead.
  */
 export function Arch({
   children,
@@ -103,7 +108,7 @@ export function GarmentTile({
       className={`press group relative block w-full min-w-0 text-left ${onClick ? 'cursor-pointer' : 'cursor-default'} ${className}`}
     >
       {badge && (
-        <span className="badge-spark absolute right-2 top-2 z-[4] !px-2 !py-0.5 !text-[10px] !tracking-wide">
+        <span className="badge-spark absolute right-2 top-2 z-[4] !px-2 !py-0.5 !text-[10px] !tracking-[0.12em]">
           {badge}
         </span>
       )}
@@ -117,7 +122,7 @@ export function GarmentTile({
           }`}
         />
         {processing && (
-          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--c-on-brass))]">
+          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-in-niche)]">
             developing
           </span>
         )}
@@ -206,7 +211,7 @@ export function Modal({
 export function Stat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-display text-2xl font-medium leading-tight text-ink [font-variant-numeric:tabular-nums]">
+      <p className="font-display text-2xl font-medium leading-[1.2] text-ink [font-variant-numeric:tabular-nums]">
         {value}
       </p>
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{label}</p>
@@ -214,8 +219,10 @@ export function Stat({ value, label }: { value: ReactNode; label: string }) {
   )
 }
 
-/** The arched mirror — the brand's signature object. A true brass bezel
- *  around a lit niche; the sheen is what the light-catch sweeps across. */
+/** The arched mirror — the brand's signature object. A 3px brass bezel around
+ *  a dark reflective surface; the sheen is what the light-catch sweeps across.
+ *  Give the child a 2/3 box (--ratio-mirror): a mirror holds a standing figure.
+ *  One crown formula only — the same semicircle as every arch, at 2/3. */
 export function MirrorFrame({
   children,
   className = '',
@@ -228,7 +235,7 @@ export function MirrorFrame({
       <div
         className="p-[3px]"
         style={{
-          borderRadius: '48% 48% 6px 6px / 26% 26% 6px 6px',
+          borderRadius: 'var(--mirror-radius)',
           background:
             'linear-gradient(160deg, var(--c-brass-hi), var(--c-brass) 45%, var(--c-brass-lo) 82%)',
         }}
@@ -238,7 +245,7 @@ export function MirrorFrame({
           style={{
             /* Match the bezel radius so the niche nests cleanly — a smaller
                radius lets the fill spill past the brass edge at the corners. */
-            borderRadius: '48% 48% 6px 6px / 26% 26% 6px 6px',
+            borderRadius: 'var(--mirror-radius)',
             /* The mirror keeps a dark reflective surface (renders cover it;
                the empty state stays atmospheric) — not the garment vitrine. */
             background: 'radial-gradient(76% 66% at 50% 30%, #211d17, #0c0b09 84%)',
@@ -415,7 +422,7 @@ export function SkeletonBlock({ className = '' }: { className?: string }) {
 /** A grid of pulsing arches, matching the app's garment/render grids. */
 export function ArchSkeleton({
   count = 6,
-  className = 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
+  className = 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6',
   aspect = 'aspect-[5/6]',
 }: {
   count?: number

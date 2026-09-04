@@ -440,7 +440,7 @@ export default function TripScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl },
   bodyWithBar: { paddingBottom: ACTION_BAR_HEIGHT + space.xl },
   stack: { gap: space.lg },
   header: { paddingBottom: 0 },
@@ -460,8 +460,8 @@ const styles = StyleSheet.create({
   looks: { marginTop: space.md, gap: space.md },
   look: { gap: 2 },
   lookActions: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap', marginTop: 2 },
-  track: { height: 6, borderRadius: 2, overflow: 'hidden', marginTop: space.md },
-  fill: { height: '100%', borderRadius: 2 },
+  track: { height: 6, borderRadius: radius, overflow: 'hidden', marginTop: space.md },
+  fill: { height: '100%', borderRadius: radius },
   groups: { marginTop: 20, gap: 20 },
   groupLabel: { marginBottom: space.sm },
   lines: { gap: space.sm },

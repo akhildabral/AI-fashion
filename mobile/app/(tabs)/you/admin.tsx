@@ -314,7 +314,7 @@ function Skeletons() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl },
   mt1: { marginTop: space.xs },
   mt2: { marginTop: space.sm },
   mt3: { marginTop: space.md },

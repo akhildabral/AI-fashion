@@ -33,7 +33,20 @@ export default {
           deep: 'rgb(var(--c-spark-deep) / <alpha-value>)',
           soft: 'rgb(var(--c-spark-soft) / <alpha-value>)',
         },
-        // Legacy aliases → brass, so un-swept corners don't break.
+        // Semantic aliases (the design system's names). New code uses these;
+        // the channel names above stay for compatibility and are retired
+        // surface by surface.
+        accent: {
+          DEFAULT: 'rgb(var(--c-iris) / <alpha-value>)',
+          hover: 'rgb(var(--c-iris-deep) / <alpha-value>)',
+          text: 'rgb(var(--c-iris-deeper) / <alpha-value>)',
+          wash: 'rgb(var(--c-iris-soft) / <alpha-value>)',
+        },
+        'on-brass': 'rgb(var(--c-on-brass) / <alpha-value>)',
+        danger: 'rgb(var(--c-danger) / <alpha-value>)',
+        success: 'rgb(var(--c-success) / <alpha-value>)',
+        warning: 'rgb(var(--c-warning) / <alpha-value>)',
+        // DEPRECATED legacy aliases → brass, so un-swept corners don't break.
         clay: 'rgb(var(--c-iris) / <alpha-value>)',
         sage: 'rgb(var(--c-spark) / <alpha-value>)',
         theater: {
@@ -46,8 +59,34 @@ export default {
         },
       },
       boxShadow: {
-        // Floating layers only (menus, sheets, toasts) — never resting cards.
-        float: '0 24px 60px -30px rgba(0, 0, 0, 0.7)',
+        // Floating layers only (menus, modals, toasts, the undo bar) — never resting cards.
+        float: 'var(--shadow-float)',
+      },
+      // 3px everywhere; 2px is the tape thumb alone. The arch is the one curve.
+      borderRadius: {
+        DEFAULT: 'var(--radius)',
+        sm: 'var(--radius-sm)',
+      },
+      maxWidth: {
+        shell: 'var(--shell)',
+        'shell-narrow': 'var(--shell-narrow)',
+        'shell-wide': 'var(--shell-wide)',
+      },
+      // The tracked-label ladder — the brand's most-repeated gesture.
+      letterSpacing: {
+        'label-xs': '0.12em',
+        'label-sm': '0.14em',
+        label: '0.16em',
+        'label-lg': '0.18em',
+        'label-xl': '0.2em',
+        eyebrow: '0.28em',
+        'eyebrow-wide': '0.32em',
+      },
+      transitionTimingFunction: {
+        out: 'var(--ease-out)',
+        'in-out': 'var(--ease-in-out)',
+        drawer: 'var(--ease-drawer)',
+        rise: 'var(--ease-rise)',
       },
       keyframes: {
         rise: {

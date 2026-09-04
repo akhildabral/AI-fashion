@@ -92,7 +92,7 @@ function BeforeAfter() {
         <img src={`${A}/mirror.webp`} alt="" width={1024} height={1024} className="absolute inset-0 z-[1] h-full w-full object-cover grayscale brightness-[0.55] blur-[1px]" />
         <img src={`${A}/mirror.webp`} alt="Dressed, in the Mirror" width={1024} height={1024} className="absolute inset-0 z-[2] h-full w-full object-cover" style={{ clipPath: `inset(0 0 0 ${cut}%)` }} />
         <div aria-hidden className="absolute inset-y-0 z-[3] w-0.5 bg-brass" style={{ left: `${cut}%`, transform: 'translateX(-1px)' }}>
-          <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[3px] bg-brass text-[11px] font-bold text-on-brass">⇔</span>
+          <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[3px] bg-brass text-[11px] font-semibold text-on-brass">⇔</span>
         </div>
         <span className="absolute bottom-3 left-3 z-[3] text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/85">Before</span>
         <span className="absolute bottom-3 right-3 z-[3] text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/85">After</span>

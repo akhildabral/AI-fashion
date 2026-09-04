@@ -137,7 +137,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
       {day && day.worn && (
         <aside className="mt-8 lg:mt-0 lg:self-start">
           <div className="plaque p-5 pl-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">That day</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">That day</p>
             <ul className="mt-3 divide-y divide-ink/10">
               {day.items.map((it) => (
                 <li key={it.id} className="flex items-center gap-3 py-2">
@@ -253,7 +253,7 @@ export function DayView({ date, laidOut = false, onChanged, onNote }: { date: st
     {look && (
       <aside className="mt-8 lg:mt-0 lg:self-start">
         <div className="plaque p-5 pl-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">{longDay(date)}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{longDay(date)}</p>
           {look.weather ? (
             <p className="mt-1 font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
               {temp(look.weather.temperatureC)} <span className="font-sans text-xs font-semibold normal-case text-ink/55">{look.weather.description}</span>

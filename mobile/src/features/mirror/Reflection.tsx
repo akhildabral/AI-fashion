@@ -14,7 +14,7 @@ import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import { fadeIn, fadeOut } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, dark, radius } from '@/src/design/tokens'
+import { alpha, arch, dark, radius } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 import { DRESSING_LINES, isLive, isReady, renderLabel } from './data'
@@ -45,8 +45,8 @@ export interface ReflectionProps {
 
 export function Reflection({ width, checked, photoUrl, current, developing, chosen, onAdd, onOpen }: ReflectionProps) {
   const { t } = useTheme()
-  // The web glass is `aspect-[3/4]` inside a full-width frame.
-  const height = Math.round((width * 4) / 3)
+  // The Mirror holds a standing figure: 2/3, the design system's --ratio-mirror.
+  const height = Math.round(width / arch.mirror.ratio)
   const [line, setLine] = useState(0)
 
   const dressing = developing || isLive(current)
@@ -149,7 +149,7 @@ export function Reflection({ width, checked, photoUrl, current, developing, chos
 export function CompareGlass({ width, renders }: { width: number; renders: TryOn[] }) {
   const { t } = useTheme()
   const w = Math.floor((width - 12) / 2)
-  const h = Math.round((w * 4) / 3)
+  const h = Math.round(w / arch.mirror.ratio)
   return (
     <View style={[styles.compare, { width }]}>
       {renders.map((r, i) => (

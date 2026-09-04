@@ -283,7 +283,7 @@ export function TripPage() {
           <SkeletonBlock className="h-4 w-28" />
           <SkeletonBlock className="mt-3 h-12 w-2/3" />
           <SkeletonBlock className="mt-3 h-4 w-40" />
-          <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-6">
+          <div className="mt-8 grid grid-cols-3 gap-4 sm:grid-cols-5 lg:grid-cols-6 lg:gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
             ))}
@@ -398,7 +398,7 @@ export function TripPage() {
             </button>
           )}
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6">
           {capsule.map((item) => (
             <div key={item.id} className={`min-w-0 ${swapping === item.id ? 'opacity-50' : ''}`}>
               <GarmentTile imageUrl={item.imageUrl} label={name(item)} />

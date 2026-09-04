@@ -187,7 +187,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
             aria-pressed={favorite}
             aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
             title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-[3px] bg-surface/85 backdrop-blur transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
+            className={`absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-[3px] bg-surface/85 transition hover:bg-surface disabled:opacity-60 ${favorite ? "text-iris" : "text-ink"}`}
           >
             <HeartIcon filled={favorite} />
           </button>
@@ -198,7 +198,7 @@ export function LookCard({ look, onFavoriteChange, onDeleted }: LookCardProps) {
       <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
         <div>
           {(look.occasion || look.gender) && (
-            <p className="mb-1 text-xs uppercase tracking-[0.25em] text-brass">
+            <p className="mb-1 text-xs uppercase tracking-[0.28em] text-brass">
               {[look.occasion, look.gender].filter(Boolean).join(' · ')}
             </p>
           )}

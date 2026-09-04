@@ -1,75 +1,81 @@
-// Typography: Bodoni Moda for headings and figures, Archivo for everything
-// else, Playfair for the wordmark only. The scale mirrors the web's Tailwind
-// usage so the two apps read as one product.
+// Typography: Bodoni Moda at 500 for headings and figures (never bold),
+// Archivo for everything else, Playfair for the wordmark only. The ladder is
+// the design system's native one (`./native.ts`, vendored verbatim), retyped
+// here as React Native TextStyle so the roles can be spread into styles.
 import type { TextStyle } from 'react-native'
+import * as native from './native'
 
-export const fonts = {
-  serif: 'BodoniModa_400Regular',
-  serifMedium: 'BodoniModa_500Medium',
-  serifSemi: 'BodoniModa_600SemiBold',
-  serifBold: 'BodoniModa_700Bold',
-  serifItalic: 'BodoniModa_400Regular_Italic',
-  serifSemiItalic: 'BodoniModa_600SemiBold_Italic',
-  sans: 'Archivo_400Regular',
-  sansMedium: 'Archivo_500Medium',
-  sansSemi: 'Archivo_600SemiBold',
-  sansBold: 'Archivo_700Bold',
-  brand: 'PlayfairDisplay_400Regular',
-  urdu: 'NotoNastaliqUrdu_400Regular',
-  urduSemi: 'NotoNastaliqUrdu_600SemiBold',
-} as const
+export const fonts = native.fonts
 
 /** Tracking as React Native letterSpacing (px), from the web's em values. */
-function track(size: number, em: number): number {
+export function track(size: number, em: number): number {
   return Math.round(size * em * 100) / 100
 }
 
-export type TypeRole =
-  | 'display'
-  | 'h1'
-  | 'h2'
-  | 'h3'
-  | 'lede'
-  | 'body'
-  | 'bodySm'
-  | 'caption'
-  | 'label'
-  | 'micro'
-  | 'stat'
-  | 'statSm'
-  | 'wordmark'
+/** The tracked-label em values the web uses; pair with `track(size, em)`. */
+export const tracking = {
+  labelXs: 0.12,
+  labelSm: 0.14,
+  label: 0.16,
+  labelLg: 0.18,
+  labelXl: 0.2,
+  eyebrow: 0.28,
+  eyebrowWide: 0.32,
+} as const
+
+export type TypeRole = keyof typeof native.type
+
+const n = native.type
 
 // Bodoni's ascenders and figures stand tall: native Text clips anything
 // above the line box, so the serif roles keep at least 1.2x leading.
 export const type: Record<TypeRole, TextStyle> = {
-  display: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 54, letterSpacing: -0.5 },
-  h1: { fontFamily: fonts.serif, fontSize: 32, lineHeight: 40 },
-  h2: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 30 },
-  h3: { fontFamily: fonts.serif, fontSize: 20, lineHeight: 26 },
-  lede: { fontFamily: fonts.serifItalic, fontSize: 18, lineHeight: 26 },
-  body: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 24 },
-  bodySm: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20 },
-  caption: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 16 },
-  label: { fontFamily: fonts.sansSemi, fontSize: 11, lineHeight: 14, letterSpacing: track(11, 0.18), textTransform: 'uppercase' },
-  micro: { fontFamily: fonts.sansSemi, fontSize: 10, lineHeight: 12, letterSpacing: track(10, 0.16), textTransform: 'uppercase' },
-  stat: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 38, fontVariant: ['tabular-nums'] },
-  statSm: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 28, fontVariant: ['tabular-nums'] },
-  wordmark: { fontFamily: fonts.brand, fontSize: 22, lineHeight: 28, textTransform: 'uppercase' },
+  display: { ...n.display },
+  h1: { ...n.h1 },
+  h2: { ...n.h2 },
+  h3: { ...n.h3 },
+  lede: { ...n.lede },
+  body: { ...n.body },
+  bodySm: { ...n.bodySm },
+  caption: { ...n.caption },
+  label: { ...n.label },
+  micro: { ...n.micro },
+  stat: { ...n.stat, fontVariant: [...n.stat.fontVariant] },
+  statSm: { ...n.statSm, fontVariant: [...n.statSm.fontVariant] },
+  wordmark: { ...n.wordmark },
+}
+
+/**
+ * The control text sizes (the web's --text-ui 14 and --text-ui-sm 13): 14 on
+ * a 44 control, 13 on every 36 and 32 control. Not roles; spread over one.
+ */
+export const control = {
+  md: { fontSize: 14, lineHeight: 20 },
+  sm: { fontSize: 13, lineHeight: 18 },
+} as const
+
+/**
+ * Dynamic Type policy: body and UI roles scale to 200%; display roles cap at
+ * 1.3x, because a 44pt Bodoni line at 2x pushes a room's header off screen.
+ */
+export const fontScale = native.fontScale
+
+/** The roles that take the display cap: every Bodoni role and the wordmark. */
+export const DISPLAY_ROLES: ReadonlySet<TypeRole> = new Set<TypeRole>(['display', 'h1', 'h2', 'h3', 'lede', 'stat', 'statSm', 'wordmark'])
+
+export function maxFontScaleFor(role: TypeRole): number {
+  return DISPLAY_ROLES.has(role) ? fontScale.displayMax : fontScale.uiMax
 }
 
 /** Every face the app loads at boot, keyed by the family name used above. */
 export const fontAssets = {
   BodoniModa_400Regular: require('@expo-google-fonts/bodoni-moda/400Regular/BodoniModa_400Regular.ttf'),
   BodoniModa_500Medium: require('@expo-google-fonts/bodoni-moda/500Medium/BodoniModa_500Medium.ttf'),
-  BodoniModa_600SemiBold: require('@expo-google-fonts/bodoni-moda/600SemiBold/BodoniModa_600SemiBold.ttf'),
-  BodoniModa_700Bold: require('@expo-google-fonts/bodoni-moda/700Bold/BodoniModa_700Bold.ttf'),
   BodoniModa_400Regular_Italic: require('@expo-google-fonts/bodoni-moda/400Regular_Italic/BodoniModa_400Regular_Italic.ttf'),
-  BodoniModa_600SemiBold_Italic: require('@expo-google-fonts/bodoni-moda/600SemiBold_Italic/BodoniModa_600SemiBold_Italic.ttf'),
   Archivo_400Regular: require('@expo-google-fonts/archivo/400Regular/Archivo_400Regular.ttf'),
   Archivo_500Medium: require('@expo-google-fonts/archivo/500Medium/Archivo_500Medium.ttf'),
   Archivo_600SemiBold: require('@expo-google-fonts/archivo/600SemiBold/Archivo_600SemiBold.ttf'),
   Archivo_700Bold: require('@expo-google-fonts/archivo/700Bold/Archivo_700Bold.ttf'),
   PlayfairDisplay_400Regular: require('@expo-google-fonts/playfair-display/400Regular/PlayfairDisplay_400Regular.ttf'),
-  NotoNastaliqUrdu_400Regular: require('@expo-google-fonts/noto-nastaliq-urdu/400Regular/NotoNastaliqUrdu_400Regular.ttf'),
   NotoNastaliqUrdu_600SemiBold: require('@expo-google-fonts/noto-nastaliq-urdu/600SemiBold/NotoNastaliqUrdu_600SemiBold.ttf'),
 }

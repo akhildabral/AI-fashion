@@ -1,6 +1,7 @@
 // Renders the ZAUQ raster assets from the brand geometry and faces:
-// favicons, app icons, the social image, transparent wordmarks for email,
-// and the mobile app's icons. Run: npx tsx scripts/brand-assets.ts
+// the social image, the transparent wordmarks for email, and the Android
+// adaptive-icon background/monochrome layers. Favicons and app icons come from
+// brand-icons.ts. Run: npx tsx scripts/brand-assets.ts && npx tsx scripts/brand-icons.ts
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -35,17 +36,16 @@ async function png(svg: string, out: string, opts: { width?: number } = {}) {
   console.log('wrote', path.relative(process.cwd(), out));
 }
 async function main() {
-  // Favicons: the bare arch on the dark ground (the guide's favicon).
-  for (const [size, name] of [[32, 'favicon-32.png'], [16, 'favicon-16.png'], [48, 'favicon-48.png']] as const) {
-    await png(squareIcon(256, INK, 'bare', GOLD, CREAM, 0.62), path.join(PUB, name), { width: size });
-  }
-  // App icons: the script mark on the dark ground; maskable keeps it well inside the safe zone.
-  await png(squareIcon(1024, INK, 'script', GOLD, CREAM, 0.54), path.join(PUB, 'icon-512.png'), { width: 512 });
-  await png(squareIcon(1024, INK, 'script', GOLD, CREAM, 0.54), path.join(PUB, 'icon-192.png'), { width: 192 });
-  await png(squareIcon(1024, INK, 'script', GOLD, CREAM, 0.42), path.join(PUB, 'icon-maskable-512.png'), { width: 512 });
-  await png(squareIcon(1024, INK, 'script', GOLD, CREAM, 0.54), path.join(PUB, 'apple-touch-icon.png'), { width: 180 });
-  // The social image: the ceremonial wordmark with the mark, on the dark ground.
-  const og = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="${INK}"/><g transform="translate(548 150) scale(0.26)">${mark('script', GOLD, CREAM)}</g><g transform="translate(600 355)">${wordmark(84, CREAM)}</g><rect x="548" y="392" width="104" height="3" fill="${GOLD}"/><text x="600" y="470" text-anchor="middle" font-family="Archivo" font-weight="600" font-size="18" letter-spacing="6" fill="#A79E8A">YOUR PERSONAL STYLIST · MYZAUQ.COM</text></svg>`;
+  // Favicons and app icons are owned by brand-icons.ts (solid favicon, English
+  // icon primary — design system readme §4b #23). This script keeps the social
+  // image and the transparent email wordmarks.
+  // The social image: the mark above the wordmark, on the dark ground.
+  // Construction (readme §4b #24, brand-guidelines §4 and §12): the wordmark
+  // stands alone — no rule and no tagline locked to it. The rule belongs to the
+  // ceremonial lockup; the tagline is a separate layout element in tracked
+  // Archivo, set well outside the wordmark's clear space (one cap height) and
+  // never at wordmark scale.
+  const og = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="${INK}"/><g transform="translate(548 150) scale(0.26)">${mark('script', GOLD, CREAM)}</g><g transform="translate(600 355)">${wordmark(84, CREAM)}</g><text x="600" y="548" text-anchor="middle" font-family="Archivo" font-weight="600" font-size="16" letter-spacing="5" fill="#A79E8A">YOUR PERSONAL STYLIST · MYZAUQ.COM</text></svg>`;
   await sharp(Buffer.from(og), { density: 192 }).resize({ width: 1200 }).jpeg({ quality: 90 }).toFile(path.join(PUB, 'landing/og.jpg'));
   console.log('wrote landing/og.jpg');
   // Transparent wordmarks for email (ink on light mail, cream on dark).
@@ -56,14 +56,12 @@ async function main() {
   // The mark alone, transparent, for pages and the mobile foreground.
   await png(squareIcon(1024, null, 'script', GOLD, CREAM, 0.54), path.join(PUB, 'brand', 'zauq-mark-cream.png'), { width: 512 });
   await png(squareIcon(1024, null, 'script', GOLD, INK, 0.54), path.join(PUB, 'brand', 'zauq-mark-ink.png'), { width: 512 });
-  // Mobile: icon, adaptive foreground/background/monochrome, splash, favicon.
+  // Mobile: only the adaptive background and monochrome layers live here. The
+  // icon, foreground, splash and favicon are the English icon / solid arch and
+  // are written by brand-icons.ts, which must run after this script.
   if (fs.existsSync(MOB)) {
-    await png(squareIcon(1024, INK, 'script', GOLD, CREAM, 0.54), path.join(MOB, 'icon.png'));
-    await png(squareIcon(1024, null, 'script', GOLD, CREAM, 0.42), path.join(MOB, 'android-icon-foreground.png'));
     await png(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="${INK}"/></svg>`, path.join(MOB, 'android-icon-background.png'));
     await png(squareIcon(1024, null, 'script', '#FFFFFF', '#FFFFFF', 0.42), path.join(MOB, 'android-icon-monochrome.png'));
-    await png(squareIcon(1024, null, 'script', GOLD, CREAM, 0.6), path.join(MOB, 'splash-icon.png'));
-    await png(squareIcon(256, INK, 'bare', GOLD, CREAM, 0.62), path.join(MOB, 'favicon.png'), { width: 48 });
   }
 }
 void main();

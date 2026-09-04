@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, StyleSheet, View, type PressableProps, ty
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { PRESS_SCALE, timing } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { alpha, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
+import { control, fonts } from '@/src/design/type'
 import { T } from './Text'
 
 type Variant = 'primary' | 'ghost' | 'quiet' | 'danger' | 'icon'
@@ -24,10 +24,19 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   style?: ViewStyle
 }
 
+/** Padding X per variant: primary 24, ghost and danger 20, quiet 4; every small button 20. Never vertical. */
+function paddingFor(variant: Variant, size: Size): number {
+  if (variant === 'icon') return 0
+  if (variant === 'quiet') return space.xs
+  if (size === 'sm') return space.ml
+  return variant === 'primary' ? space.xl : space.ml
+}
+
 /**
  * The action vocabulary: one brass primary per screen, ghost for the
  * alternative, quiet for the link, danger for the irreversible. Press
- * feedback scales the whole thing, label and all, in 120ms.
+ * feedback scales the whole thing, label and all, to 0.97 in 150ms. The
+ * visual is 44 (36 small); hitSlop lifts the touch to the platform floor.
  */
 export function Button({
   label,
@@ -54,9 +63,12 @@ export function Button({
       : variant === 'ghost' || variant === 'danger'
         ? { borderWidth: hairline, borderColor: alpha(variant === 'danger' ? t.danger : t.ink, 0.28) }
         : variant === 'icon'
-          ? { borderWidth: hairline, borderColor: alpha(t.ink, 0.18), width: h, paddingHorizontal: 0 }
+          ? { borderWidth: hairline, borderColor: alpha(t.ink, 0.2), width: h }
           : {}
   const tone = variant === 'primary' ? 'onBrass' : variant === 'danger' ? 'danger' : variant === 'quiet' ? 'muted' : 'ink'
+  // 14 on a 44 control, 13 on a 36 one; primary is semibold, the rest medium.
+  const text = h === height.action ? control.md : control.sm
+  const face = variant === 'primary' ? fonts.sansSemi : fonts.sansMedium
 
   return (
     <Animated.View style={[pressed, block && styles.block]}>
@@ -65,7 +77,7 @@ export function Button({
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ disabled: !!off, busy: loading }}
         disabled={off}
-        hitSlop={h < 44 ? (44 - h) / 2 : undefined}
+        hitSlop={hitSlopFor(h)}
         pressRetentionOffset={12}
         onPressIn={() => {
           scale.set(withTiming(PRESS_SCALE, timing.press))
@@ -74,14 +86,7 @@ export function Button({
           scale.set(withTiming(1, timing.press))
         }}
         {...rest}
-        style={[
-          styles.base,
-          { height: h, borderRadius: radius, opacity: off ? 0.5 : 1 },
-          variant === 'quiet' && styles.quiet,
-          fill,
-          block && styles.block,
-          style,
-        ]}
+        style={[styles.base, { height: h, paddingHorizontal: paddingFor(variant, size), borderRadius: radius, opacity: off ? 0.5 : 1 }, fill, block && styles.block, style]}
       >
         {loading ? (
           <ActivityIndicator color={variant === 'primary' ? t.onBrass : t.ink} />
@@ -89,12 +94,7 @@ export function Button({
           <View style={styles.row}>
             {icon}
             {label ? (
-              <T
-                role={size === 'sm' ? 'caption' : 'bodySm'}
-                tone={tone}
-                style={{ fontFamily: fonts.sansSemi, letterSpacing: 0.2 }}
-                numberOfLines={1}
-              >
+              <T role="bodySm" tone={tone} style={[text, { fontFamily: face }]} numberOfLines={1}>
                 {label}
               </T>
             ) : null}
@@ -109,10 +109,8 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
     alignSelf: 'flex-start',
   },
-  quiet: { paddingHorizontal: 6 },
   block: { alignSelf: 'stretch', width: '100%' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 })

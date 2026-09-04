@@ -9,7 +9,7 @@ import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { fadeOut, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, shadowFloat } from '@/src/design/tokens'
+import { alpha, gutter, hitSlopFor, radius, shadowFloat } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 
 const UNDO_MS = 5000
@@ -29,7 +29,7 @@ export function UndoBar({ message, onUndo, aboveActionBar = true }: { message: s
         <T role="bodySm" style={{ flexShrink: 1 }} numberOfLines={2}>
           {message}
         </T>
-        <Pressable accessibilityRole="button" accessibilityLabel="Undo" hitSlop={12} pressRetentionOffset={12} onPress={onUndo}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Undo" hitSlop={hitSlopFor(20)} pressRetentionOffset={12} onPress={onUndo}>
           <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
             Undo
           </T>

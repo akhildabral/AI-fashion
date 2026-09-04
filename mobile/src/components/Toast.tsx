@@ -4,7 +4,8 @@ import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { fadeOut, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, shadowFloat } from '@/src/design/tokens'
+import { alpha, gutter, hairline, radius, shadowFloat, space } from '@/src/design/tokens'
+import { fonts } from '@/src/design/type'
 import { T } from './Text'
 
 interface FlashValue {
@@ -49,9 +50,9 @@ export function ToastProvider({ children, bottomOffset = 0 }: { children: ReactN
             entering={rise()}
             exiting={fadeOut}
             accessibilityLiveRegion="polite"
-            style={[styles.toast, shadowFloat, { backgroundColor: t.surface, borderColor: alpha(t.ink, 0.12), borderRadius: radius }]}
+            style={[styles.toast, shadowFloat, { backgroundColor: t.surface, borderColor: alpha(t.brass, 0.3), borderRadius: radius }]}
           >
-            <T role="bodySm" align="center">
+            <T role="bodySm" align="center" style={{ fontFamily: fonts.sansMedium }}>
               {message}
             </T>
           </Animated.View>
@@ -69,5 +70,6 @@ export function useFlash(): (message: string) => void {
 
 const styles = StyleSheet.create({
   host: { position: 'absolute', left: gutter, right: gutter, alignItems: 'center' },
-  toast: { paddingHorizontal: 18, paddingVertical: 12, borderWidth: 1, maxWidth: 420 },
+  // The design system's Toast: 12 x 20, a brass hairline at 30%, the float shadow.
+  toast: { paddingHorizontal: space.ml, paddingVertical: space.md, borderWidth: hairline, maxWidth: 420 },
 })

@@ -12,8 +12,8 @@ export function AppBoot() {
         <ArchMark variant="script" size={76} />
       </div>
       <Wordmark className="text-[15px] text-ink/75" />
-      <div className="h-px w-24 overflow-hidden rounded-full bg-ink/10" aria-hidden>
-        <div className="animate-boot-sweep h-full w-1/3 rounded-full bg-brass" />
+      <div className="h-px w-24 overflow-hidden bg-ink/10" aria-hidden>
+        <div className="animate-boot-sweep h-full w-1/3 bg-brass" />
       </div>
       <span className="sr-only" role="status">Loading ZAUQ</span>
     </div>

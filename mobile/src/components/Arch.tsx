@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Redu
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { EASE_OUT, duration } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { rgbaParts } from '@/src/design/tokens'
+import { alpha, archFoot, bezel as bezelWidths, hairline, radius, rgbaParts } from '@/src/design/tokens'
 
 export type ArchVariant = 'niche' | 'photo' | 'mirror' | 'plain'
 
@@ -25,29 +25,51 @@ export interface ArchProps {
 }
 
 /**
- * The arch outline for a (w, h) box: the crown is 46% of the width across and
- * 0.373 x width tall whichever the aspect (the web's `46% 46% 5px 5px /
- * var(--arch-h)`), bottom corners 5px. The Mirror's frame is squarer at the
- * crown (48% / 26% of height).
+ * The arch outline for a (w, h) box. The crown is a TRUE SEMICIRCLE of
+ * radius w/2, the brand mark's own curve, whichever the aspect; the feet are
+ * 3px, the house radius. There is one formula only: the Mirror is the same
+ * semicircle at 2/3 with a heavier bezel. `inset` pulls every edge in so a
+ * stroke of that width sits inside the box.
+ *
+ * An arch is portrait-only (1/1 is the limit); a wider box is clamped so the
+ * path stays sane, but `Arch` never draws it, it draws a rectangle instead.
  */
-export function archPath(w: number, h: number, variant: ArchVariant = 'niche', inset = 0): string {
-  const mirror = variant === 'mirror'
-  const rx = (mirror ? 0.48 : 0.46) * w - inset
-  const ry = (mirror ? 0.26 * h : 0.373 * w) - inset
-  const b = (mirror ? 6 : 5) - inset / 2
+export function archPath(w: number, h: number, _variant: ArchVariant = 'niche', inset = 0): string {
+  const b = archFoot - inset / 2
+  const r = Math.min(w / 2, h - b) - inset
   const x0 = inset
   const y0 = inset
   const x1 = w - inset
   const y1 = h - inset
   return [
-    `M ${x0} ${y0 + ry}`,
-    `A ${rx} ${ry} 0 0 1 ${x0 + rx} ${y0}`,
-    `L ${x1 - rx} ${y0}`,
-    `A ${rx} ${ry} 0 0 1 ${x1} ${y0 + ry}`,
+    `M ${x0} ${y0 + r}`,
+    `A ${r} ${r} 0 0 1 ${x0 + r} ${y0}`,
+    `L ${x1 - r} ${y0}`,
+    `A ${r} ${r} 0 0 1 ${x1} ${y0 + r}`,
     `L ${x1} ${y1 - b}`,
     `A ${b} ${b} 0 0 1 ${x1 - b} ${y1}`,
     `L ${x0 + b} ${y1}`,
     `A ${b} ${b} 0 0 1 ${x0} ${y1 - b}`,
+    'Z',
+  ].join(' ')
+}
+
+/** A 3px rectangle: what a landscape picture gets instead of an arch. */
+function rectPath(w: number, h: number, inset = 0): string {
+  const r = radius - inset / 2
+  const x0 = inset
+  const y0 = inset
+  const x1 = w - inset
+  const y1 = h - inset
+  return [
+    `M ${x0} ${y0 + r}`,
+    `A ${r} ${r} 0 0 1 ${x0 + r} ${y0}`,
+    `L ${x1 - r} ${y0}`,
+    `A ${r} ${r} 0 0 1 ${x1} ${y0 + r}`,
+    `L ${x1} ${y1 - r}`,
+    `A ${r} ${r} 0 0 1 ${x1 - r} ${y1}`,
+    `L ${x0 + r} ${y1}`,
+    `A ${r} ${r} 0 0 1 ${x0} ${y1 - r}`,
     'Z',
   ].join(' ')
 }
@@ -83,16 +105,19 @@ function Sweep({ width, height: h }: { width: number; height: number }) {
 
 /**
  * The signature form: a brass-bezelled aperture over a lit niche. Everything
- * the app shows a garment in is one of these.
+ * the app shows a garment in is one of these. Portrait only: a box wider
+ * than it is tall is not an arch, it is a 3px rectangle with a hairline, no
+ * bezel and no crown, on the same lit fill.
  */
 export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', children, selected, bezel = true, sweep, style }: ArchProps) {
   const { t } = useTheme()
   const h = height ?? Math.round(width / aspect)
-  const d = archPath(width, h, variant)
-  const bezelWidth = variant === 'mirror' ? 3 : 2
-  const inner = archPath(width, h, variant, bezelWidth / 2)
+  const landscape = width > h
+  const d = landscape ? rectPath(width, h) : archPath(width, h, variant)
+  const bezelWidth = landscape ? hairline : variant === 'mirror' ? bezelWidths.mirror : bezelWidths.standard
+  const inner = landscape ? rectPath(width, h, bezelWidth / 2) : archPath(width, h, variant, bezelWidth / 2)
   const small = width < 120
-  const uid = `${variant}-${Math.round(width)}-${Math.round(h)}`
+  const uid = `${variant}-${landscape ? 'r' : 'a'}-${Math.round(width)}-${Math.round(h)}`
   const edge = rgbaParts(t.nicheEdge)
   const sheen = rgbaParts(t.sheen)
   // Under 120px the vitrine flattens (the web's container query): a loosely
@@ -129,6 +154,9 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
         ['0.62', t.brassLo],
         ['1', t.brassLo],
       ]
+  // A rectangle takes a hairline of ink (brass when selected), never a bezel.
+  const stroke = landscape ? (selected ? t.brass : alpha(t.ink, 0.12)) : selected ? t.brass : `url(#bezel-${uid})`
+  const strokeWidth = landscape ? bezelWidth : selected ? bezelWidth + 1 : bezelWidth
 
   return (
     <View style={[{ width, height: h }, style]}>
@@ -191,7 +219,7 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
         )}
         {sweep && <Sweep width={width} height={h} />}
       </MaskedView>
-      {/* the bezel, drawn over the mask so the stroke is never clipped */}
+      {/* the bezel (or the rectangle's hairline), drawn over the mask so the stroke is never clipped */}
       {bezel && (
         <Svg pointerEvents="none" width={width} height={h} style={StyleSheet.absoluteFill}>
           <Defs>
@@ -201,7 +229,7 @@ export function Arch({ width, height, aspect = 5 / 6, variant = 'niche', childre
               ))}
             </LinearGradient>
           </Defs>
-          <Path d={inner} fill="none" stroke={selected ? t.brass : `url(#bezel-${uid})`} strokeWidth={selected ? bezelWidth + 1 : bezelWidth} />
+          <Path d={inner} fill="none" stroke={stroke} strokeWidth={strokeWidth} />
         </Svg>
       )}
     </View>

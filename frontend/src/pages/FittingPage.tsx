@@ -204,7 +204,7 @@ function Chip({
 }
 function RowLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+    <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
       {children}
     </p>
   );
@@ -1328,9 +1328,8 @@ export function FittingPage() {
               <div className="mt-7 max-w-[260px] animate-rise-2">
                 <div className="arch-bezel aspect-[3/4]">
                   <div
-                    className="relative h-full w-full overflow-hidden"
+                    className="relative h-full w-full overflow-hidden rounded-[inherit]"
                     style={{
-                      borderRadius: "46% 46% 5px 5px / 28% 28% 5px 5px",
                       background:
                         "radial-gradient(76% 66% at 50% 30%, #211d17, #0c0b09 84%)",
                     }}
@@ -1434,7 +1433,7 @@ export function FittingPage() {
                       <img
                         src={resolveImageUrl(it.imageUrl)}
                         alt={it.subtype ?? it.category}
-                        className={`relative z-[1] h-full w-full object-contain p-[8%] transition duration-700 ${it.status === "processing" ? "scale-95 opacity-40 blur-[2px]" : ""}`}
+                        className={`relative z-[1] h-full w-full object-contain p-[8%] transition duration-500 ${it.status === "processing" ? "scale-95 opacity-40 blur-[2px]" : ""}`}
                       />
                       {it.status === "processing" && (
                         <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-brass">
@@ -1524,18 +1523,9 @@ export function FittingPage() {
                     : DRESSING_LINES[revealLine]}
               </Lead>
               <div className="mt-7 max-w-2xl animate-rise-2">
-                <div
-                  className="p-[3px]"
-                  style={{
-                    borderRadius: "24% 24% 6px 6px / 9% 9% 6px 6px",
-                    background:
-                      "linear-gradient(160deg, var(--c-brass-hi), var(--c-brass) 45%, var(--c-brass-lo) 84%)",
-                  }}
-                >
-                  <div
-                    className="arch-niche relative aspect-[5/4] w-full"
-                    style={{ borderRadius: "24% 24% 5px 5px / 9% 9% 5px 5px" }}
-                  >
+                {/* A wide board is a 3px rectangle with a hairline, never an arch. */}
+                <div className="rect-frame">
+                  <div className="arch-niche relative aspect-[5/4] w-full">
                     {!revealed && (
                       <span className="animate-filament absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-brass/60 to-transparent" />
                     )}
@@ -1597,7 +1587,7 @@ export function FittingPage() {
                 </div>
                 {revealed && (
                   <div className="plaque mt-5 animate-rise p-5 pl-6">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
                       The morning ritual
                     </p>
                     <p className="mt-1 font-display text-lg italic text-ink">
@@ -1647,7 +1637,7 @@ export function FittingPage() {
           aria-live="polite"
         >
           <div className="card p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brass">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">
               Your stylist’s notes
             </p>
             <p className="mt-1 font-display text-2xl font-medium text-ink">

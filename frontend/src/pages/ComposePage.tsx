@@ -217,7 +217,7 @@ export function ComposePage() {
             {picked.length > 0 ? (
               <LookBoard items={picked} />
             ) : (
-              <div className="arch-bezel aspect-[5/4]">
+              <div className="rect-frame aspect-[5/4]">
                 <div className="arch-niche flex h-full w-full items-center justify-center px-8 text-center">
                   <span className="font-display text-lg italic text-ink/45">
                     The board is empty.
@@ -240,7 +240,7 @@ export function ComposePage() {
           </p>
           {picked.length > 0 && (
             <div className="mt-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">In the outfit</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">In the outfit</p>
               <div className="mt-2 flex flex-wrap gap-2.5">
                 {picked.map((i) => (
                   <button
@@ -269,7 +269,7 @@ export function ComposePage() {
                         <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.7" fill="none" />
                       </svg>
                     </span>
-                    <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/55">
+                    <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/55">
                       {i.subtype ?? i.category}
                     </p>
                   </button>
@@ -278,7 +278,7 @@ export function ComposePage() {
             </div>
           )}
           <div className="mt-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
               For
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -287,7 +287,7 @@ export function ComposePage() {
                   key={e}
                   type="button"
                   onClick={() => setEventType(e)}
-                  className={`chip !px-3 !py-1.5 !text-xs ${eventType === e ? "chip-on" : ""}`}
+                  className={`chip ${eventType === e ? "chip-on" : ""}`}
                 >
                   {EVENT_LABEL[e]}
                 </button>
@@ -360,7 +360,7 @@ export function ComposePage() {
             })}
           </div>
           {closet === null && !closetFailed && (
-            <ArchSkeleton count={10} className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5" />
+            <ArchSkeleton count={10} className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:gap-6" />
           )}
           {closetFailed && (
             <div className="mt-8">
@@ -377,7 +377,7 @@ export function ComposePage() {
             </div>
           )}
           {closet && closet.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+            <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:gap-6">
               {inSlot.map((i) => {
                 const on = chosen.includes(i.id);
                 const dirty = i.state !== "clean";

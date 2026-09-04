@@ -33,7 +33,7 @@ export function PieceStory({ itemId }: { itemId: string }) {
   if (!s) return null
   return (
     <section className="mt-5 border-t border-ink/10 pt-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Its story</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Its story</p>
       <p className="mt-1 font-display text-xl italic text-ink">
         {s.wearCount === 0
           ? 'Never worn yet.'

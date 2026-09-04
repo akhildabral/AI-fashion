@@ -309,7 +309,7 @@ export function PackingPage() {
               </button>
             </div>
             <p className="mt-1 text-xs text-ink/45">Save it to edit the capsule, tick things off, and have the brief dress you from it.</p>
-            <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+            <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6">
               {result.plan.capsule.map((item) => (
                 <div key={item.id} className="min-w-0">
                   <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} />

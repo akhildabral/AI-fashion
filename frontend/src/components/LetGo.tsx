@@ -59,7 +59,7 @@ export function LetGoModal({ item, onClose, onChanged, onNote }: { item: Wardrob
       )}
       {draft && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Listing draft</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Listing draft</p>
           <p className="mt-1 font-display text-xl text-ink">{draft.title}</p>
           {draft.price && <p className="mt-1 text-sm text-brass">Ask {money(Number(draft.price) || 0)}</p>}
           <p className="mt-2 whitespace-pre-wrap text-sm text-ink/70">{draft.body}</p>

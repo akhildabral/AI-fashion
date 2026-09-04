@@ -10,8 +10,8 @@ import { Arch } from '@/src/components/Arch'
 import { T } from '@/src/components/Text'
 import { PRESS_SCALE, timing } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { alpha, hairline, height, hitSlopFor, radius } from '@/src/design/tokens'
+import { fonts, track, tracking } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 
 /** Two letters from a name ("Sam K." → SK), or from the handle when that's all there is. */
@@ -24,20 +24,25 @@ export function initialsOf(name?: string | null, handle?: string | null): string
   return (handle ?? '?').slice(0, 2).toUpperCase()
 }
 
+/** The avatar comes in three sizes only: 40 (a rail, a profile), 32 (a feed row), 24 (a comment). */
+export type AvatarSize = 40 | 32 | 24
+
+/** The letters inside each avatar size: 12 / 11 / 9, semibold, tracked .14em. */
+const INITIALS_SIZE: Record<AvatarSize, number> = { 40: 12, 32: 11, 24: 9 }
+
 /**
- * A person as a brass square with their initials. At the web's 36px the
- * letters are `text-[11px] font-semibold tracking-[0.14em]`; other sizes
- * scale from that (64 gives the profile's `!text-xl`, 24 the note's 9px).
+ * A person as a 3px brass square with their initials: never a circle, never
+ * an image. 40 / 32 / 24 only.
  */
-export function Initials({ handle, name, size = 36, dim }: { handle: string | null; name?: string | null; size?: number; dim?: boolean }) {
+export function Initials({ handle, name, size = 32, dim }: { handle: string | null; name?: string | null; size?: AvatarSize; dim?: boolean }) {
   const { t } = useTheme()
-  const fontSize = Math.max(9, Math.round((size * 11) / 36))
+  const fontSize = INITIALS_SIZE[size]
   return (
     <View
       accessible={false}
       style={{ width: size, height: size, borderRadius: radius, backgroundColor: t.brass, alignItems: 'center', justifyContent: 'center', opacity: dim ? 0.6 : 1 }}
     >
-      <T style={{ fontFamily: fonts.sansSemi, fontSize, lineHeight: Math.round(fontSize * 1.3), color: t.onBrass, letterSpacing: Math.round(fontSize * 0.14 * 100) / 100 }} maxFontSizeMultiplier={1.2}>
+      <T style={{ fontFamily: fonts.sansSemi, fontSize, lineHeight: Math.round(fontSize * 1.3), color: t.onBrass, letterSpacing: track(fontSize, tracking.labelSm) }} maxFontSizeMultiplier={1.2}>
         {initialsOf(name, handle)}
       </T>
     </View>
@@ -80,7 +85,7 @@ export function Count({ n }: { n: number }) {
   )
 }
 
-/** Press feedback for anything that isn't a Button: the whole thing scales in 120ms. */
+/** Press feedback for anything that isn't a Button: the whole thing scales to 0.97 in 150ms. */
 export function Press({ children, style, onPressIn, onPressOut, ...rest }: PressableProps & { children: ReactNode; style?: ViewStyle }) {
   const scale = useSharedValue(1)
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
@@ -114,7 +119,7 @@ export function ActionChip({ icon, iconOn, label, count, on = false, onPress, ac
   const { t } = useTheme()
   const color = on ? t.brass : alpha(t.ink, 0.55)
   return (
-    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: on }} onPress={onPress} hitSlop={4}>
+    <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: on }} onPress={onPress} hitSlop={hitSlopFor(height.secondary)}>
       <View style={styles.chip}>
         <MaterialIcons name={on && iconOn ? iconOn : icon} size={15} color={color} />
         {label ? (
@@ -132,7 +137,7 @@ export function ActionChip({ icon, iconOn, label, count, on = false, onPress, ac
 export function IconButton({ icon, label, onPress, badge }: { icon: IconName; label: string; onPress: () => void; badge?: number }) {
   const { t } = useTheme()
   return (
-    <Press accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} unread` : label} onPress={onPress} hitSlop={4}>
+    <Press accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} unread` : label} onPress={onPress} hitSlop={hitSlopFor(height.secondary)}>
       <View style={[styles.iconButton, { borderColor: alpha(t.ink, 0.2), borderRadius: radius }]}>
         <MaterialIcons name={icon} size={18} color={alpha(t.ink, 0.6)} />
         {badge ? (
@@ -193,8 +198,8 @@ export const CARD_GAP = 12
 const styles = StyleSheet.create({
   garment: { position: 'absolute', left: '10%', right: '10%', top: '10%', bottom: '10%' },
   plate: { letterSpacing: 2 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 8 },
-  iconButton: { width: 36, height: 36, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: height.secondary, paddingHorizontal: 8 },
+  iconButton: { width: height.secondary, height: height.secondary, borderWidth: hairline, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   card: { borderWidth: hairline, overflow: 'hidden' },
   dashed: { borderWidth: hairline, borderStyle: 'dashed', padding: 24, alignItems: 'center', gap: 8 },

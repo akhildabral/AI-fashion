@@ -424,7 +424,7 @@ export function MirrorPage() {
   })
 
   return (
-    <div className="relative mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10">
+    <div className="relative mx-auto max-w-shell-wide px-4 py-8 sm:px-6 sm:py-10">
       <Toast msg={toast} />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,540px)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
@@ -453,8 +453,8 @@ export function MirrorPage() {
               {compared.map((t, i) => (
                 <div key={t.id}>
                   <MirrorFrame>
-                    <img src={resolveImageUrl(t.imageUrl)} alt={i === 0 ? 'A' : 'B'} className="aspect-[3/4] w-full object-cover" />
-                    <span className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-on-brass">{i === 0 ? 'A' : 'B'}</span>
+                    <img src={resolveImageUrl(t.imageUrl)} alt={i === 0 ? 'A' : 'B'} className="aspect-[2/3] w-full object-cover" />
+                    <span className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-[3px] bg-brass text-xs font-semibold text-on-brass">{i === 0 ? 'A' : 'B'}</span>
                   </MirrorFrame>
                   <p className="mt-2 text-center text-xs text-ink/50">{(t.items ?? []).map(label).join(' · ') || new Date(t.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
                 </div>
@@ -465,14 +465,14 @@ export function MirrorPage() {
               <MirrorFrame>
                 {/* still finding out whether there's a photo: the glass keeps its shape */}
                 {!rendering && !photoChecked && (
-                  <div className="flex aspect-[3/4] items-center justify-center text-[#ECE5D8]/40">
+                  <div className="flex aspect-[2/3] items-center justify-center text-[#ECE5D8]/40">
                     <Spinner className="h-5 w-5" />
                   </div>
                 )}
 
                 {/* rendering: the figure is being dressed */}
                 {rendering && (
-                  <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-5 p-8 text-center">
+                  <div className="relative flex aspect-[2/3] flex-col items-center justify-center gap-5 p-8 text-center">
                     {photoUrl && <img src={resolveImageUrl(photoUrl)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25 blur-[2px]" />}
                     <span className="animate-filament absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-brass/60 to-transparent" />
                     <p key={dressLine} className="relative animate-rise font-display text-base italic text-[#ECE5D8]/80">
@@ -484,7 +484,7 @@ export function MirrorPage() {
 
                 {/* no photo: the door */}
                 {!rendering && photoChecked && !photoUrl && (
-                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
+                  <div className="flex aspect-[2/3] flex-col items-center justify-center gap-4 p-8 text-center">
                     <svg width="52" height="72" viewBox="0 0 52 72" className="text-brass/55" aria-hidden="true">
                       <path d="M4 68V26C4 13.85 13.85 4 26 4s22 9.85 22 22v42" fill="none" stroke="currentColor" strokeWidth="1.5" />
                       <path d="M14 68V30a12 12 0 0 1 24 0v38" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
@@ -499,14 +499,14 @@ export function MirrorPage() {
 
                 {/* a render on the glass, with the photo underneath */}
                 {!rendering && photoUrl && current && ready && current.imageUrl && (
-                  <div className="relative aspect-[3/4] w-full">
+                  <div className="relative aspect-[2/3] w-full">
                     <img key={current.imageUrl} src={resolveImageUrl(current.imageUrl)} alt="You, in the render" className={`absolute inset-0 h-full w-full object-cover ${fresh ? 'animate-mirror-reveal' : ''}`} />
                     {split > 0 && (
                       <>
                         <img src={resolveImageUrl(photoUrl)} alt="You, before" className="absolute inset-0 h-full w-full object-cover" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }} />
                         <span aria-hidden className="absolute bottom-0 top-0 w-[2px] bg-brass" style={{ left: `${split}%` }} />
-                        <span className="absolute left-3 top-3 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ECE5D8]/80">Before</span>
-                        <span className="absolute right-3 top-3 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ECE5D8]/80">After</span>
+                        <span className="absolute left-3 top-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">Before</span>
+                        <span className="absolute right-3 top-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#ECE5D8]/80">After</span>
                       </>
                     )}
                   </div>
@@ -514,7 +514,7 @@ export function MirrorPage() {
 
                 {/* failed */}
                 {!rendering && current?.status === 'failed' && (
-                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-8 text-center">
+                  <div className="flex aspect-[2/3] flex-col items-center justify-center gap-3 p-8 text-center">
                     <p className="font-display text-xl font-medium text-[#ECE5D8]">That one didn’t take.</p>
                     <p className="max-w-[28ch] text-sm text-[#ECE5D8]/60">Nothing was charged. Try again, or change a piece on the rail.</p>
                   </div>
@@ -522,7 +522,7 @@ export function MirrorPage() {
 
                 {/* a photo, no render yet */}
                 {!rendering && photoUrl && (!current || (!ready && current.status !== 'failed')) && (
-                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 p-8 text-center">
+                  <div className="flex aspect-[2/3] flex-col items-center justify-center gap-4 p-8 text-center">
                     <img src={resolveImageUrl(photoUrl)} alt="You" className="h-28 w-28 rounded-[3px] object-cover opacity-80" />
                     <p className="font-display text-lg font-medium text-[#ECE5D8]">You’re in the mirror.</p>
                     <p className="max-w-[26ch] text-sm text-[#ECE5D8]/60">{chosen.length ? 'The pieces are on the rail. Tap See it on me.' : 'Bring pieces from Today or the Closet, or pick them here.'}</p>
@@ -537,9 +537,9 @@ export function MirrorPage() {
               {/* before / after */}
               {ready && photoUrl && current?.imageUrl && !rendering && (
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink/40">Before</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/40">Before</span>
                   <input type="range" min={0} max={100} value={split} onChange={(e) => setSplit(Number(e.target.value))} aria-label="Before and after" className="tape flex-1" style={{ ['--p' as string]: `${split}%` }} />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink/40">After</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/40">After</span>
                 </div>
               )}
             </div>
@@ -580,7 +580,7 @@ export function MirrorPage() {
           {lens === 'closet' && (
           <section>
             <div className="flex h-8 items-center justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">On you</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">On you</p>
               {rail.length > 0 && (
                 <button type="button" onClick={() => setRail([])} className="btn-quiet !h-8 !text-xs">
                   Clear the rail
@@ -614,7 +614,7 @@ export function MirrorPage() {
                 )}
               </div>
             ) : (
-              <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+              <div className="mt-3 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:gap-6">
                 {railPieces.map(({ id, on, piece }) => (
                   <div key={id}>
                     <button type="button" aria-pressed={on} onClick={() => toggle(id)} className="press block w-full text-left" title={on ? 'Take it off' : 'Put it back'}>
@@ -677,7 +677,7 @@ export function MirrorPage() {
           {/* your reflections: up to three, one dressed */}
           {photoChecked && (photos.length > 0 || photoUrl) && (
             <section className="mt-8 border-t border-ink/10 pt-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Your reflections</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Your reflections</p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
               {photos.map((p) => (
                 <div key={p.id} className="group relative">
@@ -704,7 +704,7 @@ export function MirrorPage() {
           {/* an inspiration look on you: the doors are on its card */}
           {ready && current && !compareMode && current.lookId && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Then</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Then</p>
               <p className="mt-2 text-sm text-ink/60">
                 An inspiration look, on you. Keep it, or make it from your closet, on its card{lens === 'inspiration' ? '' : ' in the Inspiration lens'}.
               </p>
@@ -721,7 +721,7 @@ export function MirrorPage() {
           {/* the decision */}
           {ready && current && !compareMode && !current.lookId && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Then</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Then</p>
               {current.items && current.items.length > 0 && <p className="mt-2 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
               <div className="action-row mt-4">
                 {decided.wear ? (
@@ -782,7 +782,7 @@ export function MirrorPage() {
           {/* compare controls */}
           {compareMode && (
             <section className="mt-8 animate-rise border-t border-ink/10 pt-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Which one?</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Which one?</p>
               <p className="mt-1 text-sm text-ink/55">{compared.length < 2 ? 'Pick two renders below.' : 'Side by side. Still torn? Put it to the circle.'}</p>
               <div className="action-row mt-3">
                 {compared.length === 2 && (
@@ -833,7 +833,7 @@ export function MirrorPage() {
             <section className="mt-10 border-t border-ink/10 pt-6">
               {/* label row: the section name left, its one action right; the filters get their own row */}
               <div className="flex h-8 items-center justify-between gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Renders</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Renders</p>
                 {(tryOns?.length ?? 0) >= 2 && !compareMode && (
                   <button
                     type="button"
@@ -870,7 +870,7 @@ export function MirrorPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-5 lg:gap-6">
                 {galleryRenders.map((t, i) => {
                   const idx = compare.indexOf(t.id)
                   const isCurrent = current?.id === t.id
@@ -891,14 +891,14 @@ export function MirrorPage() {
                         className={`press block w-full overflow-hidden rounded-[3px] border transition-colors ${idx >= 0 || isCurrent ? 'border-brass ring-2 ring-brass/30' : 'border-ink/12 hover:border-brass/50'}`}
                       >
                         {t.status === 'queued' || t.status === 'rendering' ? (
-                          <div className="flex aspect-[3/4] w-full items-center justify-center bg-ink/5 text-ink/40">
+                          <div className="flex aspect-[2/3] w-full items-center justify-center bg-ink/5 text-ink/40">
                             <Spinner className="h-4 w-4" />
                           </div>
                         ) : (
-                          <img src={resolveImageUrl(t.imageUrl)} alt="Try-on render" loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                          <img src={resolveImageUrl(t.imageUrl)} alt="Try-on render" loading="lazy" className="aspect-[2/3] w-full object-cover" />
                         )}
                       </button>
-                      {idx >= 0 && <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-[3px] bg-brass text-xs font-bold text-on-brass">{idx === 0 ? 'A' : 'B'}</span>}
+                      {idx >= 0 && <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-[3px] bg-brass text-xs font-semibold text-on-brass">{idx === 0 ? 'A' : 'B'}</span>}
                       {!compareMode && (
                         <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-90 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                           <button type="button" onClick={() => setPickerFor(t.id)} aria-label="Save to lookbook" className="flex h-7 w-7 items-center justify-center rounded-[3px] bg-ink/70 text-bone hover:bg-ink">

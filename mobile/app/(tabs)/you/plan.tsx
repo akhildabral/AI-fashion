@@ -99,7 +99,7 @@ export default function Plan() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl },
   card: { marginTop: space.xl },
   mt1: { marginTop: space.xs },
   mt2: { marginTop: space.sm },

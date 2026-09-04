@@ -12,7 +12,7 @@ import {
 } from "@zauq/shared/outfits";
 import { logWear } from "@zauq/shared/wearlog";
 import { ClosetRooms, RoomMantel } from "../components/ClosetRooms";
-import { PageShell, Toast, useFlash, ArchSkeleton, LoadError, UndoBar } from "../components/ui";
+import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar } from "../components/ui";
 import { LookBoard } from "../components/LookBoard";
 import { Spinner } from "../components/Spinner";
 import { ShareButton } from "../components/ShareButton";
@@ -182,7 +182,7 @@ export function OutfitsRoom() {
       <section className="mt-8 animate-rise-1">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
               Suggested
             </p>
             <h2 className="mt-1 font-display text-3xl font-medium text-ink">
@@ -221,7 +221,7 @@ export function OutfitsRoom() {
           </p>
         )}
         {suggested && suggested.length > 0 && (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {suggested.map((s) => {
               const key = s.items.map((i) => i.id).join(",");
               return (
@@ -268,14 +268,18 @@ export function OutfitsRoom() {
 
       {/* Yours */}
       <section className="mt-12 animate-rise-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
           Yours
         </p>
         <h2 className="mt-1 font-display text-3xl font-medium text-ink">
           Kept and worn
         </h2>
         {outfits === null && !failed && (
-          <ArchSkeleton count={3} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aspect="aspect-[4/3]" />
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" aria-busy="true" aria-label="Loading">
+            {[0, 1, 2].map((i) => (
+              <SkeletonBlock key={i} className="aspect-[4/3]" />
+            ))}
+          </div>
         )}
         {failed && !outfits && (
           <LoadError className="min-h-[24vh]" message="Couldn’t load your outfits. Check your connection and try again." onRetry={() => { setFailed(false); void load() }} />
@@ -292,7 +296,7 @@ export function OutfitsRoom() {
           </div>
         )}
         {outfits && outfits.length > 0 && (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {outfits.map((o) => (
               <article key={o.id} className="card p-4">
                 <LookBoard items={o.items} />

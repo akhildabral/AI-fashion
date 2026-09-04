@@ -41,7 +41,7 @@ export function ClosetNotes() {
       {notes.map((n) => (
         <Link key={n.to} to={n.to} className="plaque press flex animate-rise items-center justify-between gap-4 p-3.5 pl-5">
           <span>
-            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">{n.eyebrow}</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">{n.eyebrow}</span>
             <span className="mt-0.5 block font-display text-base italic text-ink">{n.line}</span>
           </span>
           <span className="text-brass">→</span>

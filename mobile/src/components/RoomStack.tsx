@@ -15,7 +15,7 @@ export function RoomStack() {
         headerShown: false,
         headerTintColor: t.brass,
         headerStyle: { backgroundColor: t.bone },
-        headerTitleStyle: { fontFamily: fonts.serif, fontSize: 20, color: t.ink },
+        headerTitleStyle: { fontFamily: fonts.serifMedium, fontSize: 20, color: t.ink },
         headerBackButtonDisplayMode: 'minimal',
         headerShadowVisible: false,
         contentStyle: { backgroundColor: t.bone },

@@ -50,7 +50,7 @@ function PostHeader({ handle, name, label, meta, plate, menu }: { handle: string
   return (
     <div className="flex items-center gap-3 px-4 pt-4">
       <Link to={handle ? `/u/${handle}` : '#'} className="press">
-        <Initials handle={handle} name={name} className="h-9 w-9" />
+        <Initials handle={handle} name={name} className="h-8 w-8" />
       </Link>
       <div className="min-w-0 flex-1">
         <Handle handle={handle} name={label ?? name} className="text-sm" />
@@ -117,10 +117,14 @@ export function LookHero({
     )
   }
 
+  // A wide board is a 3px rectangle with a hairline, never an arch; the lit
+  // niche fill stays so the cut-outs sit in a vitrine.
   const lay = (
-    <Arch aspect="aspect-[5/4]" className="w-full">
-      <FlatLay items={items} />
-    </Arch>
+    <div className="rect-frame aspect-[5/4] w-full">
+      <div className="arch-niche h-full w-full">
+        <FlatLay items={items} />
+      </div>
+    </div>
   )
 
   if (expanded) {
@@ -852,7 +856,7 @@ export function WeekCard({ post, onOpen }: { post: WeekPost; onOpen?: (target: P
   return (
     <article id={`post-week-${post.id}`} className="card overflow-hidden !border-brass/40">
       <div className="flex items-center gap-3 px-4 pt-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-[3px] border border-brass/50 font-display text-base text-brass">7</div>
+        <div className="flex h-8 w-8 items-center justify-center rounded-[3px] border border-brass/50 font-display text-base text-brass">7</div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">Your circle this week</p>
           <p className="text-xs text-ink/45">

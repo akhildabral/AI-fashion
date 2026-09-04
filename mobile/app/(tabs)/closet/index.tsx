@@ -25,7 +25,7 @@ import { useFlash } from '@/src/components/Toast'
 import { useJobs } from '@/src/context/JobsProvider'
 import { rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, hitSlopFor, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
 import { ClosetNotes } from '@/src/features/closet/ClosetNotes'
@@ -292,7 +292,7 @@ export default function ClosetRoom() {
                   </View>
                 ))}
                 {idleCapital > 0 ? (
-                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setCollection('orphans')} style={styles.ledgerIdle}>
+                  <Pressable accessibilityRole="button" hitSlop={hitSlopFor(16)} onPress={() => setCollection('orphans')} style={styles.ledgerIdle}>
                     <T role="caption" tone="brass" style={styles.semi}>
                       {money(idleCapital)} sitting idle →
                     </T>
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   estateValue: { marginTop: space.xs },
   estateLine: { marginTop: 6 },
   estatePrice: { marginTop: space.xs },
-  meter: { height: METER_H, width: METER_W, overflow: 'hidden', marginTop: space.sm, borderRadius: 2 },
+  meter: { height: METER_H, width: METER_W, overflow: 'hidden', marginTop: space.sm, borderRadius: radius },
   // plaque mt-6 flex-wrap items-center gap-x-8 gap-y-2 p-4 pl-5
   ledgerWrap: { paddingTop: space.xl },
   ledger: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.xxl, rowGap: space.sm, padding: space.lg, paddingLeft: 20 },

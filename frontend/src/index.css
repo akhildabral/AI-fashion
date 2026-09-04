@@ -26,8 +26,11 @@
     --c-brass-hi: #cba24e;
     --c-brass: #b98c3b;
     --c-brass-lo: #7a5a22;
-    --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 86%, #e8ddc6 100%);
-    --c-niche-edge: rgba(228, 217, 192, 0.85);
+    --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
+    --c-niche-edge: rgba(239, 231, 215, 0.85);
+    /* Ink for anything drawn INSIDE a niche: the niche is light in both themes. */
+    --text-in-niche: #1a1509;
+    --text-in-niche-muted: rgba(26, 21, 9, 0.5);
     --c-sheen: rgba(255, 255, 255, 0.16);
     /* Semantic status + text-on-brass (one source of truth) */
     --c-danger: 190 66 58; /* #BE423A */
@@ -42,6 +45,86 @@
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-rise: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur-press: 150ms;
+    --dur-menu: 140ms;
+    --dur-rise: 600ms;
+    --dur-sweep: 700ms;
+    --dur-mirror: 850ms;
+    --press-scale: 0.97;
+    --stagger-step: 55ms; /* capped at 8 steps in .rise-stagger */
+
+    /* Shape. 3px is the house radius for every rectangle; 2px is the tape
+       thumb alone. The ONE curved form is the arch. */
+    --radius: 3px;
+    --radius-sm: 2px;
+    --bezel: 2px; /* arch bezel thickness (3px on the Mirror) */
+    /* THE ARCH: the crown is a TRUE SEMICIRCLE of radius w/2 (the brand
+       mark's own curve), so --arch-h = 50% x (w/h) as a % of the frame's
+       height. Portrait only: 1/1 is the widest an arch may ever be; a
+       landscape picture is a 3px rectangle (.rect-frame), never an arch.
+       NOTE: the radius itself is composed ON .arch-bezel / .arch-niche below,
+       never in a :root token — a nested var() in a :root declaration is
+       substituted at :root, where --arch-h is unset. */
+    --arch-foot: 3px; /* the feet: the house radius, inside the guide's 2-3px */
+    --arch-h-2-3: 33.3%; /* the Mirror: a standing figure */
+    --arch-h-3-4: 37.5%; /* the brand mark's own ratio */
+    --arch-h-4-5: 40%;
+    --arch-h-5-6: 41.7%; /* the garment tile */
+    --arch-h-square: 50%; /* the limit */
+    /* The Mirror is the same semicircle at 2/3, with a 3px bezel and 6px feet. */
+    --mirror-radius: 50% 50% 6px 6px / 33.3% 33.3% 6px 6px;
+
+    /* Layout: measures, rhythm and the closed list of ratios. */
+    --shell-narrow: 48rem; /* 768px  prose, auth, legal */
+    --shell: 72rem; /* 1152px the default page */
+    --shell-wide: 87.5rem; /* 1400px header + the wide Closet board */
+    --header-h: 4rem;
+    --section-y-page: 3rem; /* 48px between landing sections */
+    --section-y-page-sm: 4rem; /* 64px ≥ 640 */
+    --stack-tight: 0.5rem; /* label → line */
+    --stack: 1rem; /* element → element */
+    --stack-loose: 2rem; /* block → block */
+    --stack-group: 2.5rem; /* group → group */
+    --ratio-mirror: 2 / 3;
+    --ratio-garment: 5 / 6;
+    --ratio-tile: 3 / 4;
+    --ratio-portrait: 4 / 5;
+    --ratio-arch-max: 1 / 1;
+    --ratio-photo: 4 / 3; /* rectangles only */
+    --ratio-board: 16 / 9; /* rectangles only */
+    --ratio-square: 1 / 1;
+
+    /* Elevation: one shadow, for the four things that float. */
+    --shadow-float: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+    --backdrop-blur: 2px; /* the modal scrim */
+    --header-blur: 12px; /* the sticky header */
+
+    /* Brand constants (identity only — never themed). */
+    --brand-gold: #d8b26a;
+    --brand-ink: #0b0a09;
+    --brand-cream: #f2ede3;
+    --brand-neutral: #d6cfc0;
+
+    /* Semantic aliases — what new product code should reach for. They
+       resolve through the channels above, so they follow the theme. */
+    --surface-page: rgb(var(--c-bone));
+    --surface-raised: rgb(var(--c-surface));
+    --surface-wash: rgb(var(--c-iris-soft));
+    --text-strong: rgb(var(--c-ink));
+    --text-body: rgb(var(--c-ink) / 0.75);
+    --text-muted: rgb(var(--c-ink) / 0.55);
+    --text-faint: rgb(var(--c-ink) / 0.45);
+    --text-accent: rgb(var(--c-iris-deeper));
+    --text-on-brass: rgb(var(--c-on-brass));
+    --border-hairline: rgb(var(--c-ink) / 0.1);
+    --border-field: rgb(var(--c-ink) / 0.15);
+    --border-control: rgb(var(--c-ink) / 0.2);
+    --border-accent: rgb(var(--c-iris) / 0.3);
+    --fill-accent: rgb(var(--c-iris));
+    --fill-accent-hover: rgb(var(--c-iris-deep));
+    --fill-wash: rgb(var(--c-ink) / 0.08);
+    --scrim: rgb(var(--c-ink) / 0.4);
   }
 
   /* Atelier by night */
@@ -61,8 +144,8 @@
     --c-brass-lo: #8f6e32;
     /* A warm-lit vitrine glowing in the dark room — near-white so product-shot
        backgrounds melt into it, and premium: a boutique display case at night. */
-    --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 88%, #e8ddc6 100%);
-    --c-niche-edge: rgba(228, 217, 192, 0.9);
+    --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
+    --c-niche-edge: rgba(243, 237, 224, 0.9);
     --c-sheen: rgba(233, 217, 188, 0.07);
     --c-danger: 216 108 100; /* #D86C64 reads on near-black */
     --c-success: 138 184 148;
@@ -79,6 +162,16 @@
   body {
     @apply bg-bone text-ink font-sans;
     overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgb(var(--c-iris) / 0.28);
+  }
+
+  /* Focus: a 2px brass outline at 70%, offset 2px. Fields add their own ring. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-iris) / 0.7);
+    outline-offset: 2px;
   }
 
   /* Film-grain overlay — depth without shadows, on every screen. */
@@ -120,7 +213,7 @@
   }
   /* The common small tertiary action (was `btn-quiet btn-quiet-sm` at ~30 call sites). */
   .btn-quiet-sm {
-    @apply !h-9 !text-xs;
+    @apply !h-9 !text-[13px];
   }
   /* A destructive action: same shape as primary, danger fill. */
   .btn-danger {
@@ -133,7 +226,7 @@
 
   /* Smaller actions inside cards and rails. */
   .btn-sm {
-    @apply !h-9 !px-4 !text-xs;
+    @apply !h-9 !px-4 !text-[13px];
   }
 
   /* One row of actions: primary first, quiet after, the destructive one pushed right. */
@@ -155,7 +248,7 @@
     display: none;
   }
   .tab {
-    @apply relative flex-none whitespace-nowrap pb-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/50 transition-colors duration-150 hover:text-ink sm:text-[12px];
+    @apply relative flex-none whitespace-nowrap pb-3 pt-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink/50 transition-colors duration-150 hover:text-ink;
   }
   .tab::after {
     content: '';
@@ -179,7 +272,7 @@
 
   /* Filters: quiet tokens; an ink wash when on. */
   .filter {
-    @apply inline-flex h-8 items-center whitespace-nowrap rounded-[2px] px-2.5 text-[13px] font-medium text-ink/55 transition-colors duration-150 hover:text-ink;
+    @apply inline-flex h-8 items-center whitespace-nowrap rounded-[3px] px-2.5 text-[13px] font-medium text-ink/55 transition-colors duration-150 hover:text-ink;
   }
   .filter[aria-pressed='true'] {
     @apply bg-ink/[0.08] text-ink;
@@ -191,8 +284,9 @@
     @apply mx-1 h-4 w-px bg-ink/15;
   }
 
+  /* The inverse primary (landing, billing): same 44 / 24 as primary so mixed rows align. */
   .btn-dark {
-    @apply inline-flex items-center justify-center rounded-[3px] bg-ink px-6 py-3 text-sm font-semibold text-bone transition-[background-color,transform] duration-150 hover:bg-ink/85 active:scale-[0.97];
+    @apply inline-flex h-11 items-center justify-center whitespace-nowrap rounded-[3px] bg-ink px-6 text-sm font-semibold text-bone transition-[background-color,transform] duration-150 hover:bg-ink/85 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .field {
@@ -243,18 +337,20 @@
 
   /* ---- The arch: the one curved form. A brass-bezel aperture with a
      lit niche inside — used wherever a garment or reflection appears. ---- */
-  /* The crown is 46% of the width across and 0.373× the width tall, whatever the
-     frame's aspect — so a landscape board and a portrait mirror share one arch.
-     --arch-h is that height as a % of the frame's height (0.373 × w/h). */
+  /* The crown is a SEMICIRCLE of radius w/2 — the brand mark's own curve — so
+     --arch-h = 50% × (w/h), as a % of the frame's HEIGHT. The radius is composed
+     here, on the element (never in a :root token: a nested var() would be
+     substituted at :root where --arch-h is unset, freezing every arch at the
+     fallback crown). Set --arch-h per aspect below, or inline. */
   .arch-bezel {
-    border-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
-    padding: 2px;
+    border-radius: 50% 50% var(--arch-foot) var(--arch-foot) / var(--arch-h, 37.5%) var(--arch-h, 37.5%) var(--arch-foot) var(--arch-foot);
+    padding: var(--bezel);
     background: linear-gradient(160deg, var(--c-brass-hi), var(--c-brass-lo) 62%, var(--c-brass-lo));
   }
   .arch-niche {
     /* Same radius as the bezel so the niche nests cleanly inside it — a
        smaller radius here makes the fill's corners spill past the brass line. */
-    border-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
+    border-radius: 50% 50% var(--arch-foot) var(--arch-foot) / var(--arch-h, 37.5%) var(--arch-h, 37.5%) var(--arch-foot) var(--arch-foot);
     background: var(--c-niche);
     position: relative;
     overflow: hidden;
@@ -264,12 +360,23 @@
       inset 0 3px 12px rgba(40, 25, 8, 0.14),
       inset 0 -20px 30px -12px rgba(40, 25, 8, 0.08);
   }
-  .arch-bezel.aspect-\[3\/4\] { --arch-h: 28%; }
-  .arch-bezel.aspect-\[4\/5\] { --arch-h: 29.8%; }
-  .arch-bezel.aspect-\[5\/6\] { --arch-h: 31.1%; }
-  .arch-bezel.aspect-square { --arch-h: 37.3%; }
-  .arch-bezel.aspect-\[5\/4\] { --arch-h: 46.6%; }
-  .arch-bezel.aspect-\[4\/3\] { --arch-h: 49.7%; }
+  /* Portrait only. 1/1 is the limit; there is no landscape arch. */
+  .arch-bezel.aspect-\[2\/3\] { --arch-h: var(--arch-h-2-3); }
+  .arch-bezel.aspect-\[3\/4\] { --arch-h: var(--arch-h-3-4); }
+  .arch-bezel.aspect-\[4\/5\] { --arch-h: var(--arch-h-4-5); }
+  .arch-bezel.aspect-\[5\/6\] { --arch-h: var(--arch-h-5-6); }
+  .arch-bezel.aspect-square { --arch-h: var(--arch-h-square); }
+
+  /* A landscape surface is NOT an arch: a 3px rectangle with a hairline, no
+     bezel and no crown. Put an .arch-niche inside it when the content is a
+     flat-lay of cut-outs that needs the lit vitrine fill. */
+  .rect-frame {
+    @apply overflow-hidden rounded-[3px] border border-ink/10 bg-surface;
+    container-type: inline-size;
+  }
+  .rect-frame > .arch-niche {
+    border-radius: var(--radius);
+  }
 
   /* A soft vignette melts product-shot white edges into the warm ground. */
   .arch-niche::before {
@@ -334,7 +441,7 @@
     appearance: none;
     width: 18px;
     height: 26px;
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     border: 0;
     background: var(--c-brass);
     box-shadow: 0 0 0 3px rgb(var(--c-bone));
@@ -343,7 +450,7 @@
   .tape::-moz-range-thumb {
     width: 18px;
     height: 26px;
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     border: 0;
     background: var(--c-brass);
     box-shadow: 0 0 0 3px rgb(var(--c-bone));
@@ -368,7 +475,7 @@
   100% { transform: translateX(130%); opacity: 0; }
 }
 .animate-arch-sweep {
-  animation: arch-sweep 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: arch-sweep var(--dur-sweep) var(--ease-out) both;
 }
 
 /* The Mirror reveal: the reflection resolves into focus as the light catches. */
@@ -377,7 +484,7 @@
   100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 .animate-mirror-reveal {
-  animation: mirror-reveal 0.85s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: mirror-reveal var(--dur-mirror) var(--ease-out) both;
 }
 /* The idle filament while the figure is being dressed. */
 @keyframes filament {
@@ -389,8 +496,8 @@
 /* Index-driven entrance for grids and lists of any length: on each item set
    style={{ '--i': i }}. Delay is capped so a long grid never crawls in. */
 .rise-stagger {
-  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 55ms);
+  animation: rise 0.55s var(--ease-rise) both;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--stagger-step));
 }
 
 /* Origin-aware popover: scales up from the trigger corner (set the corner with
@@ -399,7 +506,7 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
-.menu-pop { animation: menu-pop 0.14s cubic-bezier(0.23, 1, 0.32, 1) both; }
+.menu-pop { animation: menu-pop var(--dur-menu) var(--ease-out) both; }
 
 /* The app-boot splash: the arch breathes while auth and profile resolve. */
 @keyframes boot-breathe {
@@ -451,7 +558,8 @@
   .btn-ghost:active,
   .btn-quiet:active,
   .btn-danger:active,
-  .btn-dark:active {
+  .btn-dark:active,
+  .chip:active {
     transform: none;
   }
 }

@@ -11,7 +11,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, height, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { fonts, fontScale } from '@/src/design/type'
 import { Initials, Press } from './atoms'
 import { patchPost } from './cache'
 import { ck } from './keys'
@@ -173,6 +173,7 @@ export function CommentComposer({ target, id }: { target: CommentTarget; id: str
     <View style={[styles.composer, { backgroundColor: t.bone, borderTopColor: alpha(t.ink, 0.1) }]}>
       <View style={[styles.field, { borderColor: alpha(t.ink, 0.18), backgroundColor: t.surface, borderRadius: radius }]}>
         <TextInput
+          maxFontSizeMultiplier={fontScale.uiMax}
           value={body}
           onChangeText={setBody}
           maxLength={500}

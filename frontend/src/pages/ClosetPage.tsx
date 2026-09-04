@@ -206,11 +206,11 @@ export function ClosetPage() {
         className="relative min-h-[70vh]"
       >
         {dragActive && (
-          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm">
-            <div className="arch-bezel w-64" style={{ aspectRatio: '5 / 4' }}>
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-[2px]">
+            <div className="arch-bezel aspect-[4/5] w-56">
               <div className="arch-niche flex h-full w-full flex-col items-center justify-center px-6 text-center">
-                <p className="font-display text-2xl font-medium text-[rgb(var(--c-on-brass))]">Release</p>
-                <p className="mt-1 text-xs text-[rgb(var(--c-on-brass))]/60">every garment gets its own niche</p>
+                <p className="font-display text-2xl font-medium text-[var(--text-in-niche)]">Release</p>
+                <p className="mt-1 text-xs text-[var(--text-in-niche-muted)]">every garment gets its own niche</p>
               </div>
             </div>
           </div>
@@ -231,7 +231,7 @@ export function ClosetPage() {
           {totalValue > 0 && (
             <div className="flex items-end gap-8">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink/45">Estate value</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
                 <p className="font-display text-3xl font-semibold text-brass [font-variant-numeric:tabular-nums]">
                   {inr(totalValue)}
                 </p>
@@ -261,7 +261,7 @@ export function ClosetPage() {
           )}
           {totalValue === 0 && list.length > 0 && (
             <button type="button" onClick={() => setPricing(true)} className="press text-left">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink/45">Estate value</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Estate value</p>
               <p className="font-display text-2xl font-medium text-ink/50">Add prices to see it</p>
               <p className="mt-1 text-[11px] font-semibold text-brass">Price {list.length} piece{list.length === 1 ? '' : 's'} →</p>
             </button>
@@ -305,7 +305,7 @@ export function ClosetPage() {
 
         {/* ---------------- Loading / error / empty ---------------- */}
         {loading && (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6">
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60">
                 <div className="arch-niche h-full w-full" />
@@ -349,7 +349,7 @@ export function ClosetPage() {
                 ].map((s) => (
                   <div key={s.l}>
                     <span className="font-display text-xl font-semibold text-ink [font-variant-numeric:tabular-nums]">{s.v}</span>
-                    <span className="ml-2 text-[10px] uppercase tracking-[0.08em] text-ink/45">{s.l}</span>
+                    <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-ink/45">{s.l}</span>
                   </div>
                 ))}
                 {idleCapital > 0 && (
@@ -402,7 +402,7 @@ export function ClosetPage() {
                   <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-brass">Review →</span>
                 </button>
               )}
-              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6 xl:grid-cols-6">
                 {sorted.map((item, i) => (
                   <GarmentTile
                     key={item.id}

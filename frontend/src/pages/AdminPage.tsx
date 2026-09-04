@@ -301,7 +301,7 @@ export function AdminPage() {
             <div className="card mt-6 overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
+                  <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
                     <th className="px-4 py-3 font-medium">Person</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Joined</th>
@@ -316,7 +316,7 @@ export function AdminPage() {
                         <div className="text-xs text-ink/50">
                           {u.email}
                           {u.viaGoogle && (
-                            <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                            <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/60">
                               google
                             </span>
                           )}
@@ -361,7 +361,7 @@ export function AdminPage() {
         <div className="card mt-6 overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
+              <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
                 <th className="px-4 py-3 font-medium">Member</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
@@ -378,12 +378,12 @@ export function AdminPage() {
                       {u.email}
                       {u.handle ? ` · @${u.handle}` : ''}
                       {u.role === 'admin' && (
-                        <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/70">
+                        <span className="ml-2 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/70">
                           admin
                         </span>
                       )}
                       {u.viaGoogle && (
-                        <span className="ml-1 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink/60">
+                        <span className="ml-1 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink/60">
                           google
                         </span>
                       )}
@@ -493,7 +493,7 @@ export function AdminPage() {
             <div className="card overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-ink/50">
+                  <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.12em] text-ink/50">
                     <th className="px-4 py-3 font-medium">About</th>
                     <th className="px-4 py-3 font-medium">Reason</th>
                     <th className="px-4 py-3 font-medium">From</th>

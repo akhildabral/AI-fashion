@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { StyleSheet, View, type ViewStyle } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius } from '@/src/design/tokens'
+import { alpha, hairline, radius, space } from '@/src/design/tokens'
 import { Button } from './Button'
 import { T } from './Text'
 
@@ -99,7 +99,8 @@ export function EmptyState({ title, line, action }: { title: string; line?: stri
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
   stat: { gap: 4 },
-  plaque: { padding: 20, paddingLeft: 24, borderWidth: hairline, overflow: 'hidden' },
-  error: { alignItems: 'center', gap: 14, paddingVertical: 32 },
-  empty: { alignItems: 'center', gap: 12, paddingVertical: 40, paddingHorizontal: 24 },
+  // The design system's Plaque: 16 all round, 20 on the engraved side.
+  plaque: { padding: space.lg, paddingLeft: space.ml, borderWidth: hairline, overflow: 'hidden' },
+  error: { alignItems: 'center', gap: space.lg, paddingVertical: space.xxl },
+  empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xxxl, paddingHorizontal: space.xl },
 })

@@ -113,7 +113,7 @@ export function InspirationLens({
 
   return (
     <section>
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Inspiration</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Inspiration</p>
       <h2 className="mt-2 font-display text-3xl font-medium leading-none text-ink">
         A look <em className="text-brass">for the fun of it.</em>
       </h2>
@@ -159,14 +159,14 @@ export function InspirationLens({
 
       {kept.length > 0 && (
         <div className="mt-8 border-t border-ink/10 pt-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Kept</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Kept</p>
           <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
             {kept.map((k) => (
               <button key={k.id} type="button" onClick={() => setLooks((ls) => (ls.some((l) => l.id === k.id) ? ls : [k, ...ls]))} className="press w-24 shrink-0 text-left" title={k.outfit.title ?? k.occasion}>
                 <Arch className="arch-photo" aspect="aspect-[3/4]">
                   {k.imageUrl ? <img src={resolveImageUrl(k.imageUrl)} alt={k.outfit.title ?? ''} className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center p-2 text-center font-display text-xs italic text-ink/50">{k.outfit.title}</span>}
                 </Arch>
-                <p className="mt-1.5 truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/70">{k.outfit.title ?? k.occasion}</p>
+                <p className="mt-1.5 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/70">{k.outfit.title ?? k.occasion}</p>
               </button>
             ))}
           </div>
@@ -194,7 +194,7 @@ export function InspirationLens({
                       <Arch aspect="aspect-[5/6]">
                         <img src={resolveImageUrl(p.item.imageUrl)} alt="" className="relative z-[1] h-full w-full object-contain p-[7%]" />
                       </Arch>
-                      <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/70">{p.item.subtype ?? p.item.category}</p>
+                      <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/70">{p.item.subtype ?? p.item.category}</p>
                       <p className="truncate text-[10px] text-brass">{p.band === 'sure' ? 'yours' : `close · for the ${p.piece.subtype}`}</p>
                     </div>
                   ))}
@@ -204,7 +204,7 @@ export function InspirationLens({
                         {/* The niche is bone in both themes; the ink token is not. */}
                         <span className="grid h-full place-items-center p-2 text-center font-display text-[11px] italic leading-tight" style={{ color: '#6b5f4a' }}>{m.color} {m.subtype}</span>
                       </Arch>
-                      <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-ink/70">{m.subtype}</p>
+                      <p className="mt-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/70">{m.subtype}</p>
                       <p className="truncate text-[10px] text-[rgb(var(--c-danger))]">missing</p>
                     </div>
                   ))}

@@ -7,7 +7,7 @@ import { LoadError } from '@/src/components/Bits'
 import { GarmentTile } from '@/src/components/GarmentTile'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
-import { space } from '@/src/design/tokens'
+import { hitSlopFor, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { formatDay, nameOf, title, useStory } from './data'
 import { OCCASIONS } from './facts'
@@ -61,7 +61,7 @@ export function PieceStory({ itemId }: { itemId: string }) {
         </>
       ) : null}
       {s.wearCount > 0 ? (
-        <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push(`/you/journal?item=${itemId}`)} style={styles.link}>
+        <Pressable accessibilityRole="link" hitSlop={hitSlopFor(16)} onPress={() => router.push(`/you/journal?item=${itemId}`)} style={styles.link}>
           <T role="caption" tone="brass" style={styles.semi}>
             The days it was worn, in the record →
           </T>

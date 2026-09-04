@@ -36,7 +36,7 @@ export default function YouRoom() {
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* The arch, the name and the handle share the header's baseline. */}
         <Animated.View entering={rise(0)} style={styles.identity}>
-          <Avatar name={shown} size={64} />
+          <Avatar name={shown} />
           <View style={styles.who}>
             <T role="micro" tone="brass" style={styles.eyebrow}>
               You
@@ -111,7 +111,7 @@ export default function YouRoom() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: space.xl },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: space.xl },
   identity: { flexDirection: 'row', alignItems: 'flex-end', gap: space.lg, paddingTop: space.sm },
   who: { flex: 1, gap: 4 },
   // The web's `text-[10px] tracking-[0.28em]`, as RoomHeader sets it.

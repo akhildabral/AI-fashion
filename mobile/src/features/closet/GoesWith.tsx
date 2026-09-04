@@ -7,7 +7,7 @@ import { GarmentTile } from '@/src/components/GarmentTile'
 import { SkeletonBlock } from '@/src/components/Skeleton'
 import { T } from '@/src/components/Text'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, space } from '@/src/design/tokens'
+import { alpha, hairline, hitSlopFor, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { nameOf, title, usePairs } from './data'
 
@@ -39,7 +39,7 @@ export function GoesWith({ itemId }: { itemId: string }) {
         <T role="micro" tone="faint" style={styles.eyebrow}>
           Goes with
         </T>
-        <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push(`/closet/compose?pin=${itemId}`)}>
+        <Pressable accessibilityRole="link" hitSlop={hitSlopFor(16)} onPress={() => router.push(`/closet/compose?pin=${itemId}`)}>
           <T role="caption" tone="brass" style={styles.semi}>
             Compose around it →
           </T>

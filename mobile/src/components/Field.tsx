@@ -1,8 +1,8 @@
 import { forwardRef, useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, height, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { alpha, hairline, height, radius, space } from '@/src/design/tokens'
+import { control, fonts, fontScale } from '@/src/design/type'
 import { T } from './Text'
 
 export interface FieldProps extends TextInputProps {
@@ -15,7 +15,7 @@ export interface FieldProps extends TextInputProps {
   compact?: boolean
 }
 
-/** A labelled input on the 44px scale, with its error beneath. */
+/** A labelled input on the 44px scale (36 compact), 16 padding (12 compact), 16px text (13 compact), with its error beneath. */
 export const Field = forwardRef<TextInput, FieldProps>(function Field(
   { label, error, helper, password, compact, style, onFocus, onBlur, ...rest },
   ref,
@@ -32,9 +32,15 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           {label}
         </T>
       ) : null}
-      <View style={[styles.box, { borderColor: border, backgroundColor: t.surface, height: compact ? height.secondary : height.action, borderRadius: radius }]}>
+      <View
+        style={[
+          styles.box,
+          { borderColor: border, backgroundColor: t.surface, height: compact ? height.secondary : height.action, paddingHorizontal: compact ? space.md : space.lg, borderRadius: radius },
+        ]}
+      >
         <TextInput
           ref={ref}
+          maxFontSizeMultiplier={fontScale.uiMax}
           placeholderTextColor={alpha(t.ink, 0.4)}
           selectionColor={t.brass}
           secureTextEntry={password && !shown}
@@ -49,7 +55,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           }}
           accessibilityLabel={label}
           {...rest}
-          style={[styles.input, { color: t.ink, fontFamily: fonts.sans }, style]}
+          style={[styles.input, compact && control.sm, { color: t.ink, fontFamily: fonts.sans }, style]}
         />
         {password ? (
           <Pressable
@@ -81,8 +87,8 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
   label: { marginLeft: 1 },
-  box: { flexDirection: 'row', alignItems: 'center', borderWidth: hairline, paddingHorizontal: 12 },
-  // 16px so iOS never zooms the field.
+  box: { flexDirection: 'row', alignItems: 'center', borderWidth: hairline },
+  // 16px, the reading floor; the height sets the vertical rhythm, never padding.
   input: { flex: 1, fontSize: 16, paddingVertical: 0, height: '100%' },
   toggle: { paddingLeft: 10, height: '100%', justifyContent: 'center' },
   note: { marginLeft: 1 },

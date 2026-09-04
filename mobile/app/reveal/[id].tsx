@@ -30,7 +30,7 @@ import { useJobs } from '@/src/context/JobsProvider'
 import * as haptics from '@/src/design/haptics'
 import { duration, EASE_OUT, fadeIn, fadeOut, rise, spring } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, dark, gutter, hairline, radius } from '@/src/design/tokens'
+import { alpha, arch, dark, gutter, hairline, radius } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { Menu, type MenuItem } from '@/src/features/closet/Menu'
 import { DRESSING_LINES, isLive, isReady, renderLabel, useInvalidateMirror, useReflections, useTryOnQuery } from '@/src/features/mirror/data'
@@ -143,7 +143,8 @@ export default function RevealScreen() {
 
   // ---- geometry: the glass is the web's, content width and 3:4 ----
   const frameW = sw - gutter * 2
-  const frameH = Math.round((frameW * 4) / 3)
+  // The Mirror holds a standing figure: 2/3.
+  const frameH = Math.round(frameW / arch.mirror.ratio)
 
   // ---- decisions ----
   const [busy, setBusy] = useState<string | null>(null)

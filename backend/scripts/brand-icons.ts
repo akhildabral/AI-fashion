@@ -1,6 +1,7 @@
 // Regenerates favicon + app icons from the OFFICIAL updated ZAUQ assets
 // (brand/). Per the V1.0 guide: the English icon (arch + ZAUQ + gold rule)
-// is the primary app icon everywhere; the favicon is the SOLID gold arch.
+// is the primary app icon everywhere. The favicon stays the OUTLINED gold arch
+// by owner decision (overrides design-system readme §4b #23, which says solid).
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';

@@ -66,7 +66,7 @@ const shadow: ViewStyle =
         filter: [{ dropShadow: { offsetX: 0, offsetY: 10, standardDeviation: 7, color: 'rgba(60, 40, 12, 0.22)' } }],
       }
 
-/** A look on its board: the flat-lay inside the arch every outfit is shown in. */
+/** A look on its board: the flat-lay on the lit fill every outfit is shown on. At 5/4 the board is wider than tall, so it is a 3px rectangle with a hairline, never an arch (portrait boards still arch). */
 export function LookBoard({ items, width, aspect = 5 / 4, selected, sweep }: { items: FlatLayItem[]; width: number; aspect?: number; selected?: boolean; sweep?: boolean }) {
   return (
     <Arch width={width} aspect={aspect} selected={selected} sweep={sweep}>

@@ -11,7 +11,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
 import { alpha, hairline, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { fonts, fontScale } from '@/src/design/type'
 import { SheetFrame } from '@/src/features/circle/SheetFrame'
 
 const TARGETS: ReportTarget[] = ['user', 'look', 'verdict', 'pick', 'comment']
@@ -58,6 +58,7 @@ export default function ReportSheet() {
       {/* The web's three-row textarea (`field mt-4 !h-auto`), on the field's own chrome. */}
       <View style={[styles.detail, { borderColor: focused ? t.brass : alpha(t.ink, 0.18), backgroundColor: t.surface, borderRadius: radius }]}>
         <TextInput
+          maxFontSizeMultiplier={fontScale.uiMax}
           value={detail}
           onChangeText={setDetail}
           maxLength={500}

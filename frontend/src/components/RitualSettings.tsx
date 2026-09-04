@@ -88,7 +88,7 @@ export function RitualSettings({ onNotice }: { onNotice: (msg: string) => void }
     <section className="plaque p-5 pl-6" aria-labelledby="ritual-h">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The morning ritual</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">The morning ritual</p>
           <h2 id="ritual-h" className="mt-1 font-display text-2xl font-medium text-ink">
             Your look, waiting when you wake.
           </h2>
@@ -133,7 +133,7 @@ export function RitualSettings({ onNotice }: { onNotice: (msg: string) => void }
             role="radio"
             aria-checked={hour === h}
             onClick={() => void changeHour(h)}
-            className={`chip !px-3 !py-1.5 !text-xs ${hour === h ? 'chip-on' : ''}`}
+            className={`chip ${hour === h ? 'chip-on' : ''}`}
           >
             {hourLabel(h)}
           </button>
@@ -152,7 +152,7 @@ export function RitualSettings({ onNotice }: { onNotice: (msg: string) => void }
       {/* Tomorrow, laid out tonight */}
       <div className="mt-5 flex items-start justify-between gap-4 border-t border-ink/10 pt-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The evening</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">The evening</p>
           <p className="mt-1 text-sm text-ink/70">Tomorrow is laid out at 8pm either way. Want a nudge when it is?</p>
         </div>
         <button

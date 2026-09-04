@@ -89,7 +89,8 @@ Haptics from `@/src/design/haptics`: `select()` for detents and choices,
 `tap()` for reactions and toggles, `success()` / `failure()` for outcomes.
 One per user action, same frame as the visual, never alone.
 
-Touch targets 44pt (use `hitSlop` when the visual is smaller).
+Touch targets 44pt on iOS and 48dp on Android: visuals stay 44 / 36 / 32 and
+`hitSlop={hitSlopFor(visual)}` from `@/src/design/tokens` makes up the difference.
 `pressRetentionOffset={12}` on pressables. Long-press (320ms) opens a
 contextual menu on tiles and cards.
 

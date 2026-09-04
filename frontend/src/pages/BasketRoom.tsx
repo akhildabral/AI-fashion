@@ -96,7 +96,7 @@ export function BasketRoom() {
       />
       <ClosetRooms current="basket" />
 
-      {loading && <ArchSkeleton count={4} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6" />}
+      {loading && <ArchSkeleton count={4} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6" />}
 
       {!loading && failed && (
         <LoadError message="Couldn’t open the basket. Check your connection and try again." onRetry={() => { setLoading(true); void load() }} />
@@ -107,7 +107,7 @@ export function BasketRoom() {
           {/* The plaque: is it worth a load? */}
           <div className="plaque mt-8 flex animate-rise-1 flex-col gap-4 p-5 pl-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
                 Laundry
               </p>
               <p className="mt-1 font-display text-2xl italic text-ink">
@@ -168,7 +168,7 @@ export function BasketRoom() {
                 </h2>
                 <span className="text-xs text-ink/45">{g.items.length}</span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
                 {g.items.map((it) => (
                   <div key={it.id}>
                     <GarmentTile

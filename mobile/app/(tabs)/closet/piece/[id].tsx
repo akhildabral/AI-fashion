@@ -22,7 +22,7 @@ import { useFlash } from '@/src/components/Toast'
 import * as haptics from '@/src/design/haptics'
 import { fadeIn, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, gutter, hairline, hitSlopFor, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { qk } from '@/src/lib/query'
 import { formatDay, nameOf, title, useInvalidateCloset, usePiece, useStory } from '@/src/features/closet/data'
@@ -202,7 +202,7 @@ export default function Piece() {
             accessibilityLabel={name}
           />
           {hasOriginal ? (
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOriginal((v) => !v)} style={styles.original}>
+            <Pressable accessibilityRole="button" hitSlop={hitSlopFor(16)} onPress={() => setOriginal((v) => !v)} style={styles.original}>
               <T role="caption" tone="brass" align="center" style={styles.semi}>
                 {original ? 'The cut-out' : 'The original photo'}
               </T>
@@ -283,7 +283,7 @@ export default function Piece() {
               ) : (
                 <Pressable
                   accessibilityRole="button"
-                  hitSlop={8}
+                  hitSlop={hitSlopFor(16)}
                   onPress={() => {
                     setTab('facts')
                     setOpenFact('price')

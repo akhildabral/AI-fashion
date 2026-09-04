@@ -220,7 +220,7 @@ export function BillingPage() {
           <div className="mt-6 rounded-[3px] border border-ink/10 bg-surface p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-ink/50">Current plan</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink/50">Current plan</p>
                 <p className="font-display text-2xl font-medium text-ink">{summary.label}</p>
                 {summary.planStatus === 'grace' && (
                   <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
@@ -296,7 +296,7 @@ export function BillingPage() {
                       type="button"
                       disabled={!summary.billingConfigured || busy === p.id}
                       onClick={() => void upgrade(p.id)}
-                      className="btn-dark mt-4 !px-4 !py-2 !text-sm"
+                      className="btn-dark btn-sm mt-4"
                     >
                       {busy === p.id ? 'Opening checkout…' : `Get ${p.name}`}
                     </button>

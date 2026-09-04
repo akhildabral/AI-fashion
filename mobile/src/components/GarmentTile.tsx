@@ -4,6 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { PRESS_SCALE, timing } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, radius } from '@/src/design/tokens'
+import { track, tracking } from '@/src/design/type'
 import { resolveImageUrl } from '@/src/lib/api'
 import { Arch } from './Arch'
 import { T } from './Text'
@@ -29,7 +30,10 @@ export interface GarmentTileProps {
   testID?: string
 }
 
-/** A garment spotlit in an arch, with its label beneath. */
+/**
+ * A garment spotlit in an arch, with a tracked label beneath. Cut-outs sit
+ * at 7% padding (11% under 64pt) so nothing touches the bezel.
+ */
 export function GarmentTile({
   imageUrl,
   width,
@@ -51,6 +55,7 @@ export function GarmentTile({
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }))
   const uri = imageUrl ? resolveImageUrl(imageUrl) : undefined
   const interactive = !!(onPress || onLongPress)
+  const inset = width < 64 ? '11%' : '7%'
 
   const tile = (
     <Animated.View style={pressed}>
@@ -58,7 +63,7 @@ export function GarmentTile({
         {uri ? (
           <Image
             source={{ uri }}
-            style={photo ? StyleSheet.absoluteFill : styles.garment}
+            style={photo ? StyleSheet.absoluteFill : [styles.garment, { left: inset, right: inset, top: inset, bottom: inset }]}
             contentFit={photo ? 'cover' : 'contain'}
             transition={220}
             cachePolicy="disk"
@@ -74,19 +79,21 @@ export function GarmentTile({
         ) : null}
         {processing ? (
           <View style={[StyleSheet.absoluteFill, styles.developing, { backgroundColor: alpha(t.niche[2], 0.55) }]}>
-            <T role="micro" style={{ color: t.onBrass }}>
+            <T role="micro" style={{ color: t.inNiche }}>
               developing
             </T>
           </View>
         ) : null}
       </Arch>
-      {label ? (
+      {label || sublabel ? (
         <View style={styles.caption}>
-          <T role="caption" numberOfLines={1} style={{ color: alpha(t.ink, 0.85) }}>
-            {label}
-          </T>
+          {label ? (
+            <T role="label" numberOfLines={1} align="center" style={[styles.label, { color: alpha(t.ink, 0.75) }]}>
+              {label}
+            </T>
+          ) : null}
           {sublabel ? (
-            <T role="micro" tone="faint" numberOfLines={1}>
+            <T role="caption" tone="brass" numberOfLines={1} align="center">
               {sublabel}
             </T>
           ) : null}
@@ -120,9 +127,11 @@ export function GarmentTile({
 }
 
 const styles = StyleSheet.create({
-  garment: { position: 'absolute', left: '8%', right: '8%', top: '9%', bottom: '7%' },
+  garment: { position: 'absolute' },
   // Below the crown, where the arch's sides are straight, so nothing clips.
   badge: { position: 'absolute', bottom: 10, left: 10, paddingHorizontal: 6, paddingVertical: 3 },
   developing: { alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 12 },
-  caption: { marginTop: 8, gap: 2 },
+  // The web's `pt-2 px-1`: label 8 below the arch, the tile label tracked .12em.
+  caption: { marginTop: 8, paddingHorizontal: 4, gap: 2 },
+  label: { letterSpacing: track(11, tracking.labelXs) },
 })

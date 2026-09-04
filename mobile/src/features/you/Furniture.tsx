@@ -1,17 +1,15 @@
 // The You room's small furniture, built on the primitives: a surface card,
-// a settings row, a switch, a colour swatch, the initials arch, a label.
+// a settings row, a switch, a colour swatch, the initials square, a label.
 // Values are the web's, translated literally: `.card` is a hairline on the
 // surface; a list inside it has no outer padding and 16 inside; a form
 // section is `p-5`; a row is 44 tall with a hairline between rows.
 import { type ReactNode } from 'react'
 import { Pressable, StyleSheet, Switch, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg'
-import { archPath } from '@/src/components/Arch'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, BRAND, hairline, height, radius, space } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { alpha, BRAND, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
+import { fonts, track, tracking } from '@/src/design/type'
 
 type CardPadding = 'list' | 'form' | 'none' | number
 
@@ -156,7 +154,7 @@ export function TextLink({ label, onPress, disabled, tone = 'brass', align }: { 
       accessibilityLabel={label}
       onPress={onPress}
       disabled={disabled}
-      hitSlop={8}
+      hitSlop={hitSlopFor(height.filter)}
       pressRetentionOffset={12}
       style={({ pressed }) => [styles.link, align === 'center' && styles.linkCenter, { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }]}
     >
@@ -180,6 +178,7 @@ export function Swatch({ colour, label, on, struck, onPress }: { colour: string;
         haptics.select()
         onPress()
       }}
+      hitSlop={hitSlopFor(height.action)}
       pressRetentionOffset={12}
       style={[styles.swatchRing, { borderRadius: radius, borderColor: chosen ? t.brass : 'transparent' }]}
     >
@@ -190,29 +189,22 @@ export function Swatch({ colour, label, on, struck, onPress }: { colour: string;
   )
 }
 
-/** Initials inside a small arch: the member's mark on the You room. */
-export function Avatar({ name, size = 64 }: { name: string; size?: number }) {
+/** The avatar's three sizes; the letters inside are 12 / 11 / 9. */
+const AVATAR_TEXT = { 40: 12, 32: 11, 24: 9 } as const
+
+/** The member's mark on the You room: initials in a 3px brass square, 40 / 32 / 24 only. Never an arch, a circle or an image. */
+export function Avatar({ name, size = 40 }: { name: string; size?: keyof typeof AVATAR_TEXT }) {
   const { t } = useTheme()
-  const h = Math.round(size * 1.2)
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? '')
     .join('')
+  const fontSize = AVATAR_TEXT[size]
   return (
-    <View style={{ width: size, height: h, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={name} accessible>
-      <Svg width={size} height={h} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <LinearGradient id="avatarBezel" x1="0" y1="0" x2="0.64" y2="1">
-            <Stop offset="0" stopColor={t.brassHi} />
-            <Stop offset="0.62" stopColor={t.brassLo} />
-          </LinearGradient>
-        </Defs>
-        <Path d={archPath(size, h, 'niche', 1)} fill={t.surface} stroke="url(#avatarBezel)" strokeWidth={2} />
-      </Svg>
-      {/* Sits a little below centre, under the crown, where the arch's sides are straight. */}
-      <T role="h3" tone="brass" style={{ marginTop: size * 0.12 }}>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: radius, backgroundColor: t.brass }]} accessibilityLabel={name} accessible>
+      <T style={{ fontFamily: fonts.sansSemi, fontSize, lineHeight: Math.round(fontSize * 1.3), color: t.onBrass, letterSpacing: track(fontSize, tracking.labelSm) }} maxFontSizeMultiplier={1.2}>
         {initials || '·'}
       </T>
     </View>
@@ -257,6 +249,7 @@ export function Stepper({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={name}
+        hitSlop={hitSlopFor(height.action)}
         pressRetentionOffset={12}
         disabled={off}
         onPress={() => {
@@ -299,7 +292,8 @@ export function Stepper({
 const styles = StyleSheet.create({
   card: { borderWidth: hairline },
   cardList: { paddingHorizontal: space.lg },
-  cardForm: { padding: 20 },
+  cardForm: { padding: space.ml },
+  avatar: { alignItems: 'center', justifyContent: 'center' },
   rowLabelGap: { marginTop: space.xl + space.xs },
   fieldLabel: { marginBottom: 6, marginLeft: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: height.action, paddingVertical: space.sm },

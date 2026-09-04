@@ -35,7 +35,7 @@ export function Initials({ handle, name, className = '' }: { handle: string | nu
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-[3px] bg-iris text-[11px] font-bold text-on-brass ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-[3px] bg-iris text-[11px] font-semibold text-on-brass ${className}`}
     >
       {initialsOf(name, handle)}
     </span>
@@ -61,7 +61,7 @@ function PersonRow({
   return (
     <div className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
       <Link to={`/u/${handle}`} onClick={onNavigate} className="press flex min-w-0 flex-1 items-center gap-3">
-        <Initials handle={handle} name={name} className="h-9 w-9" />
+        <Initials handle={handle} name={name} className="h-8 w-8" />
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-ink">{name}</span>
           {sub && <span className="block truncate text-xs text-ink/50">{sub}</span>}
@@ -266,7 +266,7 @@ export function PeopleDrawer({
           <p className="pb-2 text-xs text-ink/50">People you’ve muted or blocked. They don’t know; you can undo it here.</p>
           {hidden.muted.map((m) => (
             <div key={`m-${m.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
-              <Initials handle={m.handle} name={m.name} className="h-9 w-9 opacity-60" />
+              <Initials handle={m.handle} name={m.name} className="h-8 w-8 opacity-60" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-ink">{m.name}</span>
                 <span className="block truncate text-xs text-ink/50">
@@ -280,7 +280,7 @@ export function PeopleDrawer({
           ))}
           {hidden.blocked.map((b) => (
             <div key={`b-${b.handle}`} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
-              <Initials handle={b.handle} name={b.name} className="h-9 w-9 opacity-60" />
+              <Initials handle={b.handle} name={b.name} className="h-8 w-8 opacity-60" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-ink">{b.name}</span>
                 <span className="block truncate text-xs text-ink/50">Blocked. Invisible both ways</span>

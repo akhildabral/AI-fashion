@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated'
 import { T } from '@/src/components/Text'
 import { fadeOut, rise } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
-import { alpha, gutter, radius, shadowFloat } from '@/src/design/tokens'
+import { alpha, gutter, hitSlopFor, radius, shadowFloat } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 
 export function UndoBar({ message, onUndo, bottom = 16 }: { message: string; onUndo: () => void; bottom?: number }) {
@@ -16,7 +16,7 @@ export function UndoBar({ message, onUndo, bottom = 16 }: { message: string; onU
         <T role="bodySm" style={{ flexShrink: 1 }}>
           {message}
         </T>
-        <Pressable accessibilityRole="button" accessibilityLabel="Undo" onPress={onUndo} hitSlop={10} pressRetentionOffset={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Undo" onPress={onUndo} hitSlop={hitSlopFor(20)} pressRetentionOffset={12}>
           <T role="bodySm" tone="brass" style={{ fontFamily: fonts.sansSemi }}>
             Undo
           </T>

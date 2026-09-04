@@ -522,7 +522,7 @@ export function PiecePage() {
                 if (rows.length === 0) return null
                 return (
                   <section key={g} className="mb-6">
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-brass">{g}</p>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">{g}</p>
                     <div className="card px-4 sm:px-5">
                       {rows.map((f) => (
                         <FactRow key={f.key} item={item} fact={f} open={openFact === f.key} onOpen={() => setOpenFact((cur) => (cur === f.key ? null : f.key))} onSave={(v) => saveFact(f, v)} />
@@ -552,7 +552,7 @@ export function PiecePage() {
                   {story.days.length > 0 && <p className="mt-1 text-sm text-ink/55">Mostly {story.days.map((d) => OCCASIONS.find(([k]) => k === d)?.[1].toLowerCase() ?? d).join(', ')}.</p>}
                   {story.wornWith.length > 0 && (
                     <>
-                      <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-brass">Worn with</p>
+                      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Worn with</p>
                       <div className="mt-2 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
                         {story.wornWith.map(({ item: w, times }) => (
                           <Link key={w.id} to={`/closet/piece/${w.id}`} className="w-16 flex-none text-center">

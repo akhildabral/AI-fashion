@@ -75,7 +75,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   )
 }
 function RowLabel({ children, first = false }: { children: ReactNode; first?: boolean }) {
-  return <p className={`${first ? '' : 'mt-7'} text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45`}>{children}</p>
+  return <p className={`${first ? '' : 'mt-7'} text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45`}>{children}</p>
 }
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -450,13 +450,13 @@ export function ProfilePage() {
               {section === 'fit' && <PhotoManager />}
               {section === 'fit' && (
                 <section className="plaque p-5 pl-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">Nothing here is shown to anyone</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Nothing here is shown to anyone</p>
                   <p className="mt-1 text-sm text-ink/60">Your measure and your photo stay between you and the stylist. Friends see your name, your room and the pieces you make public.</p>
                 </section>
               )}
               {section === 'taste' && (
                 <section className="plaque p-5 pl-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">How this is used</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">How this is used</p>
                   <p className="mt-1 text-sm text-ink/60">Struck colours never come back in a brief. Your tone steers the shades. The days you dress for decide what the week is composed around.</p>
                   <Link to="/journal" className="mt-3 inline-block text-xs font-semibold text-brass hover:underline">
                     The record, where the numbers live →
@@ -465,7 +465,7 @@ export function ProfilePage() {
               )}
               {section === 'ritual' && (
                 <section className="plaque p-5 pl-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">The day, in three acts</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">The day, in three acts</p>
                   <p className="mt-1 text-sm text-ink/60">Morning: the brief, composed and waiting. Evening: a second look, or the recap. Tonight: tomorrow laid out at eight.</p>
                 </section>
               )}

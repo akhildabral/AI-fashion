@@ -307,7 +307,7 @@ export function NotificationsBell() {
           <path d="M10 20a2 2 0 0 0 4 0" />
         </svg>
         {unread > 0 && (
-          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[9px] font-bold text-on-brass">
+          <span aria-hidden className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-iris px-1 text-[9px] font-semibold text-on-brass">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

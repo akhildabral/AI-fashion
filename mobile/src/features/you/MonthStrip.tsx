@@ -7,7 +7,7 @@ import { Button } from '@/src/components/Button'
 import { T } from '@/src/components/Text'
 import * as haptics from '@/src/design/haptics'
 import { useTheme } from '@/src/design/theme'
-import { alpha, hairline, radius, space } from '@/src/design/tokens'
+import { alpha, hairline, height, hitSlopFor, radius, space } from '@/src/design/tokens'
 import { fonts } from '@/src/design/type'
 import { dayKey, formatMonth, monthKey, pad, shiftMonth } from './dates'
 
@@ -84,7 +84,8 @@ export function MonthStrip({ month, days, onMonth, onPick }: { month: string; da
                       haptics.select()
                       onPick(key, isLogged)
                     }}
-                    pressRetentionOffset={8}
+                    hitSlop={hitSlopFor(height.secondary)}
+                    pressRetentionOffset={12}
                     style={({ pressed }) => [
                       styles.day,
                       {

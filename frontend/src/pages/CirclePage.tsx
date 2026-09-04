@@ -450,7 +450,7 @@ export function CirclePage() {
                 {[0, 1].map((i) => (
                   <div key={i} className="card animate-pulse p-4 opacity-60">
                     <div className="h-9 w-40 rounded-[3px] bg-ink/10" />
-                    <div className="arch-bezel mt-3 aspect-[4/3] w-full">
+                    <div className="rect-frame mt-3 aspect-[4/3] w-full">
                       <div className="arch-niche h-full w-full" />
                     </div>
                   </div>

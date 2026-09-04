@@ -212,7 +212,7 @@ export function UserProfilePage() {
           <div className="mt-5 flex gap-6">
             {Array.from({ length: 3 }).map((_, i) => <SkeletonBlock key={i} className="h-10 w-16" />)}
           </div>
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="arch-bezel aspect-[5/6] animate-pulse opacity-60"><div className="arch-niche h-full w-full" /></div>
             ))}
@@ -233,7 +233,7 @@ export function UserProfilePage() {
           {/* ---- mantel ---- */}
           <header className="flex flex-wrap items-end justify-between gap-5">
             <div className="flex items-end gap-4">
-              <Initials handle={profile.user.handle} name={profile.user.name} className="h-16 w-16 !text-xl sm:h-20 sm:w-20" />
+              <Initials handle={profile.user.handle} name={profile.user.name} className="h-10 w-10" />
               <div>
                 <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
                   {profile.isMe ? 'Your room' : profile.isFriend ? 'A friend' : profile.followsYou ? 'Follows you' : 'In the circle'}
@@ -366,7 +366,7 @@ export function UserProfilePage() {
                   )}
                 </div>
               ) : (
-                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
                   {profile.publicItems.map((item, i) => {
                     return (
                       <figure

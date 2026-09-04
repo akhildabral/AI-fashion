@@ -23,7 +23,7 @@ import * as haptics from '@/src/design/haptics'
 import { EASE_OUT } from '@/src/design/motion'
 import { useTheme } from '@/src/design/theme'
 import { alpha, gutter, hairline, height, radius } from '@/src/design/tokens'
-import { fonts } from '@/src/design/type'
+import { fonts, fontScale } from '@/src/design/type'
 import { ActionChip, CARD_PAD, Card, Count, GarmentThumb, Initials, PhotoArch, Plate, Press } from './atoms'
 import type { CardActions } from './hooks'
 import { MenuSheet, MoreButton, type MenuItem } from './MenuSheet'
@@ -406,6 +406,7 @@ export function PickCard({ post, actions }: { post: PickPost; actions: CardActio
         <View style={styles.thanks}>
           <View style={[styles.replyBox, { borderColor: alpha(t.ink, 0.18), backgroundColor: t.surface, borderRadius: radius }]}>
             <TextInput
+              maxFontSizeMultiplier={fontScale.uiMax}
               value={reply}
               onChangeText={setReply}
               maxLength={280}

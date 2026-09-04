@@ -115,6 +115,6 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxl, gap: 20 },
+  body: { paddingHorizontal: gutter, paddingTop: space.md, paddingBottom: space.xxxxl, gap: 20 },
   mt3: { marginTop: space.md },
 })

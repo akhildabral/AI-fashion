@@ -113,7 +113,7 @@ export default function UserRoom() {
           title: profile?.user.name ?? '',
           headerTintColor: t.brass,
           headerStyle: { backgroundColor: t.bone },
-          headerTitleStyle: { fontFamily: fonts.serif, fontSize: 20, color: t.ink },
+          headerTitleStyle: { fontFamily: fonts.serifMedium, fontSize: 20, color: t.ink },
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
         }}
@@ -146,7 +146,7 @@ export default function UserRoom() {
           <>
             {/* ---- mantel: a 64 square, the eyebrow, the name, the counts ---- */}
             <View style={styles.mantel}>
-              <Initials handle={profile.user.handle} name={profile.user.name} size={64} />
+              <Initials handle={profile.user.handle} name={profile.user.name} size={40} />
               <View style={styles.mantelText}>
                 <T role="micro" tone="brass" style={styles.eyebrow}>
                   {profile.isMe ? 'Your room' : profile.isFriend ? 'A friend' : profile.followsYou ? 'Follows you' : 'In the circle'}

@@ -258,7 +258,7 @@ function LogDayModal({ date, onClose, onLogged, onNote }: { date: string; onClos
                     <Arch aspect="aspect-[4/5]" bright={idx >= 0}>
                       <img src={resolveImageUrl(p.imageUrl)} alt="" loading="lazy" className="relative z-[1] h-full w-full object-contain p-[10%]" />
                     </Arch>
-                    {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-bold text-on-brass">{idx + 1}</span>}
+                    {idx >= 0 && <span className="absolute right-1 top-1 z-[3] flex h-5 w-5 items-center justify-center rounded-[3px] bg-iris text-[10px] font-semibold text-on-brass">{idx + 1}</span>}
                   </button>
                 )
               })}
@@ -681,7 +681,7 @@ export function JournalPage() {
         <section className="mt-12">
           <h2 className="font-display text-2xl font-medium text-ink">Workhorses</h2>
           <p className="mt-1 text-sm text-ink/55">The pieces doing the most work, and what each wear has cost so far.</p>
-          <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6">
+          <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6 lg:gap-6">
             {mostWorn.map((item) => (
               <Link key={item.itemId} to={`/journal?item=${item.itemId}`} className="press block min-w-0">
                 <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} sublabel={`${item.wearCount}× worn${item.costPerWear != null ? ` · ${money(item.costPerWear)}/wear` : ''}`} />
@@ -695,7 +695,7 @@ export function JournalPage() {
         <section className="mt-12">
           <h2 className="font-display text-2xl font-medium text-ink">Sitting idle</h2>
           <p className="mt-1 text-sm text-ink/55">Not worn in over ninety days. Ask for a look built around one, or let it go and draft the listing.</p>
-          <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6">
+          <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6 lg:gap-6">
             {orphans.map((item) => (
               <div key={item.itemId} className="min-w-0 opacity-80">
                 <GarmentTile imageUrl={item.imageUrl} label={item.subtype ?? item.category} />

@@ -52,7 +52,7 @@ export function GoesWith({ itemId }: { itemId: string }) {
   return (
     <section className="mt-5 border-t border-ink/10 pt-4">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">
           Goes with
         </p>
         <Link
