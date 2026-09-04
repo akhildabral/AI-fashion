@@ -15,4 +15,3 @@ Non-negotiables from the system: one accent (brass), 3px radius everywhere excep
 - Never commit `__pycache__`; `brand/` and the design system are committed.
 - Production deploys from `main` via CI to the VPS; deploys never touch the database.
 - Test data only in the dev database.
-- Commits end with `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
