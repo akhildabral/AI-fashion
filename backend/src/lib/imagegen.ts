@@ -14,6 +14,14 @@ import { aiApiKey, OPENROUTER_BASE_URL } from './ai';
 //
 // IMAGE_API_KEY / IMAGE_BASE_URL override the text provider's credentials so
 // e.g. Claude can do the styling while an OpenRouter key renders the images.
+//
+// Every request has a hard cap: a render that has not answered in two
+// minutes is dead, and the job must fail (and refund) rather than hold a
+// queue slot forever. One retry covers a transient network blip.
+
+const IMAGE_TIMEOUT_MS = 120_000;
+const IMAGE_MAX_RETRIES = 1;
+const FETCH_TIMEOUT_MS = 30_000;
 
 export type ResolvedImageProvider = 'openai' | 'chat' | 'none';
 
@@ -75,6 +83,8 @@ function openaiClient(): OpenAI {
   // api.openai.com even when the text provider is a gateway.
   return new OpenAI({
     apiKey: imageApiKey(),
+    timeout: IMAGE_TIMEOUT_MS,
+    maxRetries: IMAGE_MAX_RETRIES,
     ...(env.IMAGE_BASE_URL ? { baseURL: env.IMAGE_BASE_URL } : {}),
   });
 }
@@ -86,7 +96,7 @@ function qualityOpt(model: string) {
 async function toBuffer(first: { b64_json?: string; url?: string } | undefined): Promise<Buffer | null> {
   if (first?.b64_json) return Buffer.from(first.b64_json, 'base64');
   if (first?.url) {
-    const res = await fetch(first.url);
+    const res = await fetch(first.url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer());
   }
@@ -132,6 +142,8 @@ async function chatImage(prompt: string, rawSources: SourceImage[]): Promise<Buf
   const client = new OpenAI({
     apiKey: imageApiKey(),
     baseURL: env.IMAGE_BASE_URL ?? env.AI_BASE_URL ?? OPENROUTER_BASE_URL,
+    timeout: IMAGE_TIMEOUT_MS,
+    maxRetries: IMAGE_MAX_RETRIES,
   });
   const sources = await Promise.all(rawSources.map(normalizeSource));
 
@@ -159,7 +171,7 @@ async function chatImage(prompt: string, rawSources: SourceImage[]): Promise<Buf
     return Buffer.from(b64, 'base64');
   }
   if (url) {
-    const fetched = await fetch(url);
+    const fetched = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (fetched.ok) return Buffer.from(await fetched.arrayBuffer());
   }
   return null;

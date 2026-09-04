@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
-import { textModel, visionModel } from '../lib/ai';
+import { aiAbortSignal, aiErrorMessage, textModel, visionModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
 import { EVENT_TYPES } from '../lib/attributes';
 import {
@@ -105,6 +105,7 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
   let raw: z.infer<typeof tagSchema>;
   try {
     const { object } = await generateObject({
+      abortSignal: aiAbortSignal(),
       model: await textModel(),
       temperature: 0.2,
       schema: tagSchema,
@@ -137,7 +138,7 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
     });
     raw = object;
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'The tagging model failed';
+    const message = aiErrorMessage(err, 'The tagging model failed');
     throw new HttpError(502, message);
   }
 
@@ -218,6 +219,7 @@ function mergePairs(list: DetectedGarment[]): DetectedGarment[] {
 // a rack, or a person wearing an outfit. Feeds one extraction per garment.
 export async function detectGarments(image: Buffer, mime: string): Promise<DetectedGarment[]> {
   const { object } = await generateObject({
+    abortSignal: aiAbortSignal(),
     model: await visionModel(),
     temperature: 0,
     schema: detectSchema,
@@ -300,6 +302,7 @@ export async function draftResaleListing(item: WardrobeItem): Promise<ResaleDraf
 
   try {
     const { object } = await generateObject({
+      abortSignal: aiAbortSignal(),
       model: await textModel(),
       temperature: 0.6,
       schema: resaleSchema,
@@ -317,7 +320,7 @@ export async function draftResaleListing(item: WardrobeItem): Promise<ResaleDraf
     });
     return object;
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'The listing model failed';
+    const message = aiErrorMessage(err, 'The listing model failed');
     throw new HttpError(502, message);
   }
 }
@@ -364,6 +367,7 @@ export async function suggestOutfits(
   let parsed: z.infer<typeof outfitsSchema>;
   try {
     const { object } = await generateObject({
+      abortSignal: aiAbortSignal(),
       model: await textModel(),
       temperature: 0.7,
       schema: outfitsSchema,
@@ -379,7 +383,7 @@ export async function suggestOutfits(
     });
     parsed = object;
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'The stylist model failed';
+    const message = aiErrorMessage(err, 'The stylist model failed');
     throw new HttpError(502, message);
   }
 

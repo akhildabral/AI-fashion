@@ -24,6 +24,8 @@ export interface RegisterResponse {
 
 export interface AuthResponse {
   token: string
+  /** Present when the caller named itself (`client: 'web' | 'mobile'`). */
+  refreshToken?: string
   user: User
 }
 

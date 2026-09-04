@@ -2,7 +2,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod/v4';
 import type { StyleProfile } from '@prisma/client';
 import { env } from '../config/env';
-import { textModel } from '../lib/ai';
+import { aiAbortSignal, aiErrorMessage, textModel } from '../lib/ai';
 import { generateImage } from '../lib/imagegen';
 import { saveImageBuffer } from '../lib/storage';
 import { HttpError } from '../middleware/error';
@@ -131,6 +131,7 @@ async function planLooks(
   let parsed: z.infer<typeof looksSchema>;
   try {
     const { object } = await generateObject({
+      abortSignal: aiAbortSignal(),
       model: await textModel(),
       temperature: 0.8,
       schema: looksSchema,
@@ -154,7 +155,7 @@ async function planLooks(
     });
     parsed = object;
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'The stylist model failed';
+    const message = aiErrorMessage(err, 'The stylist model failed');
     throw new HttpError(502, message);
   }
 

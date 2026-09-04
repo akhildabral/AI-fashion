@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch } from '../lib/api'
+import { apiFetch, clientFields } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
 import { SkeletonBlock } from '../components/ui'
-import type { User } from '@zauq/shared/types'
+import type { AuthResponse } from '@zauq/shared/types'
 import { DoorShell, PasswordField } from '../components/DoorShell'
 
 // The invite landing: set a password, claim your name, step inside.
@@ -46,12 +46,12 @@ export function InvitePage() {
     setBusy(true)
     setError(null)
     try {
-      const res = await apiFetch<{ token: string; user: User }>('/auth/invite/accept', {
+      const res = await apiFetch<AuthResponse>('/auth/invite/accept', {
         method: 'POST',
-        body: { token, password, firstName: firstName.trim(), lastName: lastName.trim() || null },
+        body: { token, password, firstName: firstName.trim(), lastName: lastName.trim() || null, ...clientFields() },
         auth: false,
       })
-      adoptSession(res.token, res.user)
+      adoptSession(res.token, res.user, res.refreshToken ?? null)
       navigate('/welcome', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not activate your account.')

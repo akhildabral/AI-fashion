@@ -3,6 +3,7 @@ import { sendWishlistNudges } from '../controllers/store.controller';
 import { notify } from './notify';
 import { expoPushEnabled, localNow, sendPush, webPushEnabled } from './push';
 import { ensureDailyBrief } from '../controllers/brief.controller';
+import { logger } from './logger';
 
 // Small in-process scheduler for things that happen on a clock rather than
 // on a request. One job for now: telling people a verdict has settled.
@@ -46,9 +47,27 @@ export async function settleVerdicts(now = new Date()): Promise<number> {
 // it. Runs every few minutes; each device is woken once per local day.
 const RITUAL_EVERY_MS = 5 * 60_000;
 
+// Every device row, a page at a time by id, so the ritual reaches everyone
+// however many devices there are (a flat `take: 500` silently dropped the rest).
+const SUBSCRIPTION_PAGE = 500;
+export async function allPushSubscriptions() {
+  const out: Awaited<ReturnType<typeof prisma.pushSubscription.findMany>> = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await prisma.pushSubscription.findMany({
+      take: SUBSCRIPTION_PAGE,
+      orderBy: { id: 'asc' },
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    out.push(...page);
+    if (page.length < SUBSCRIPTION_PAGE) return out;
+    cursor = page[page.length - 1].id;
+  }
+}
+
 export async function sendMorningBriefs(now = new Date()): Promise<number> {
   if (!webPushEnabled && !expoPushEnabled) return 0;
-  const subs = await prisma.pushSubscription.findMany({ take: 500 });
+  const subs = await allPushSubscriptions();
   const due = subs.filter((s) => {
     const { date, hour } = localNow(s.timezone, now);
     return hour === s.hour && s.lastSentOn !== date;
@@ -88,7 +107,7 @@ export async function sendMorningBriefs(now = new Date()): Promise<number> {
  */
 export async function layOutTomorrow(now = new Date()): Promise<number> {
   if (!webPushEnabled && !expoPushEnabled) return 0;
-  const subs = await prisma.pushSubscription.findMany({ take: 500 });
+  const subs = await allPushSubscriptions();
   const due = subs.filter((s) => {
     const { date, hour } = localNow(s.timezone, now);
     return hour === 20 && s.lastEveningOn !== date;
@@ -118,19 +137,44 @@ export async function layOutTomorrow(now = new Date()): Promise<number> {
   return sent;
 }
 
+/**
+ * Session hygiene, once a day: refresh-token rows that expired, or were
+ * revoked, more than thirty days ago are gone. Live rows and recently
+ * ended ones stay (a revoked row is what makes a reused token a clean 401).
+ */
+const SESSION_RETENTION_MS = 30 * 24 * 3_600_000;
+const PRUNE_EVERY_MS = 24 * 3_600_000;
+export async function pruneSessions(now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - SESSION_RETENTION_MS);
+  const { count } = await prisma.session.deleteMany({
+    where: { OR: [{ expiresAt: { lt: cutoff } }, { revokedAt: { lt: cutoff } }] },
+  });
+  return count;
+}
+
+// A tick that is still running when its interval fires again is skipped,
+// not doubled: a slow database or a long push fan-out must never stack
+// copies of the same job on top of each other.
+const inFlight = new Set<string>();
+export function guardedTick(name: string, run: () => Promise<unknown>): () => void {
+  return () => {
+    if (inFlight.has(name)) {
+      logger.warn({ job: name }, 'Scheduler tick skipped: previous run still in flight');
+      return;
+    }
+    inFlight.add(name);
+    run()
+      .catch((err) => logger.error({ err, job: name }, 'Scheduler job failed'))
+      .finally(() => inFlight.delete(name));
+  };
+}
+
 export function startScheduler(): () => void {
-  const settle = () => {
-    settleVerdicts().catch((err) => console.error('settleVerdicts failed:', err instanceof Error ? err.message : err));
-  };
-  const ritual = () => {
-    sendMorningBriefs().catch((err) => console.error('sendMorningBriefs failed:', err instanceof Error ? err.message : err));
-  };
-  const layout = () => {
-    layOutTomorrow().catch((err) => console.error('layOutTomorrow failed:', err instanceof Error ? err.message : err));
-  };
-  const wish = () => {
-    sendWishlistNudges().catch((err) => console.error('sendWishlistNudges failed:', err instanceof Error ? err.message : err));
-  };
+  const settle = guardedTick('settleVerdicts', settleVerdicts);
+  const ritual = guardedTick('sendMorningBriefs', sendMorningBriefs);
+  const layout = guardedTick('layOutTomorrow', layOutTomorrow);
+  const wish = guardedTick('sendWishlistNudges', sendWishlistNudges);
+  const prune = guardedTick('pruneSessions', pruneSessions);
   settle();
   ritual();
   wish();
@@ -139,10 +183,13 @@ export function startScheduler(): () => void {
   const d = setInterval(layout, RITUAL_EVERY_MS);
   layout();
   const c = setInterval(wish, 10 * 60 * 1000);
+  prune();
+  const e = setInterval(prune, PRUNE_EVERY_MS);
   return () => {
     clearInterval(a);
     clearInterval(b);
     clearInterval(c);
     clearInterval(d);
+    clearInterval(e);
   };
 }

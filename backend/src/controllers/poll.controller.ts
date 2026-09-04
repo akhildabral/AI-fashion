@@ -99,7 +99,7 @@ export async function createPoll(req: Request, res: Response) {
       audienceIds,
     },
   });
-  for (const uid of audienceIds) void notify(uid, 'verdict_asked', me, { pollId: poll.id, target: 'verdict', targetId: poll.id, question: poll.question });
+  for (const uid of audienceIds) void notify(uid, 'verdict_asked', me, { pollId: poll.id, target: 'verdict', targetId: poll.id, question: poll.question }).catch(() => undefined);
 
   res.status(201).json({ poll: { ...poll, votes: [], ...withMeta(req, poll) } });
 }

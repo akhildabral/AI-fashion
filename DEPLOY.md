@@ -32,6 +32,9 @@ apt-get install -y unattended-upgrades
 dpkg-reconfigure -f noninteractive unattended-upgrades
 ```
 
+Then harden SSH (§14) once your key is in `authorized_keys` for both
+`root` and `deploy` — never before, or you lock yourself out.
+
 ## 2. Get the code and configure (as the deploy user)
 
 ```bash
@@ -73,15 +76,70 @@ downloads on the first wardrobe upload and persists in the `models` volume.
 Once DNS resolves, Caddy fetches certificates on its own — then open
 `https://your.domain`.
 
-## 4. Backups (nightly)
+## 4. Backups (nightly), off-box copies, and the restore drill
 
 ```bash
-chmod +x deploy/backup.sh
 crontab -e
-# 0 3 * * * cd ~/ai-fashion && ./deploy/backup.sh >> ~/backup.log 2>&1
+# 0 3 * * * cd /home/deploy/ai-fashion && ./deploy/backup.sh >> ~/backup.log 2>&1
 ```
 
-Dumps the database and user images to `~/backups/ai-fashion`, keeping 14 days.
+`deploy/backup.sh` writes two files a night to `~/backups/ai-fashion` and
+keeps 14 days (`KEEP_DAYS`):
+
+- `db-<stamp>.dump` — `pg_dump -Fc` (custom format: already compressed,
+  restored with `pg_restore`, which can skip owners or pick tables).
+- `uploads-<stamp>.tar.gz` — the user images from the `uploads` volume.
+
+`deploy/deploy.sh` adds a `pre-deploy-<sha>.dump` to the same directory
+before every deploy (last five kept).
+
+**Off-box copy.** A backup on the same disk as the database is not a
+backup. Install rclone once, point it at an object store (Cloudflare R2
+has a free tier; Backblaze B2 and S3 work the same), and set
+`RCLONE_REMOTE` in the cron line:
+
+```bash
+curl -fsSL https://rclone.org/install.sh | sudo bash
+rclone config        # new remote → s3 → provider Cloudflare (or Backblaze/AWS); name it r2
+rclone lsd r2:       # lists buckets — create one named zauq-backups in the provider's console
+# then, in crontab -e:
+# 0 3 * * * cd /home/deploy/ai-fashion && RCLONE_REMOTE=r2:zauq-backups ./deploy/backup.sh >> ~/backup.log 2>&1
+```
+
+With `RCLONE_REMOTE` set the script copies both new files there and
+deletes remote files older than `KEEP_DAYS`; unset, it only writes locally.
+Use a bucket key with write + delete on that bucket only.
+
+**Restore drill (monthly, and after any Postgres upgrade).** A backup is
+only real once it has been restored. `deploy/restore.sh` loads a dump into
+a throwaway Postgres container — the live stack is never touched — and
+prints row counts per table, failing if the restore errors or ends up with
+no tables or no users:
+
+```bash
+bash deploy/restore.sh ~/backups/ai-fashion/db-20260905-030000.dump
+# … per-table counts …
+# ▸ 27 tables, 41 users, 33 applied migrations
+# ✓ restore drill ok
+bash deploy/restore.sh <dump> --keep   # leave the scratch container up to poke at with psql
+```
+
+Run it on the VPS or on a laptop with Docker (`rclone copy r2:zauq-backups/db-… .`
+to fetch one).
+
+**Restoring for real** (data loss, or a deploy whose migration cannot be
+lived with) — stop the backend first so nothing writes mid-restore:
+
+```bash
+C="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+$C stop backend
+$C exec -T db psql -U fashion -d postgres -c 'DROP DATABASE ai_fashion' -c 'CREATE DATABASE ai_fashion OWNER fashion'
+$C exec -T db pg_restore -U fashion -d ai_fashion --no-owner --no-privileges < ~/backups/ai-fashion/<file>.dump
+$C up -d --no-deps backend
+```
+
+Images: `$C exec -T backend tar xzf - -C /app/uploads < uploads-<stamp>.tar.gz`
+(run it with the backend stopped as well if you are rolling both back).
 
 ## 5. Updating to a new version
 
@@ -92,12 +150,61 @@ cd ~/ai-fashion && sudo -u deploy -H git pull
 bash deploy/deploy.sh
 ```
 
-`deploy/deploy.sh` is the whole safe sequence below in one file: it builds
-first and halts if the build fails, swaps only `backend` and `web`, renames a
-hash-prefixed container back, waits for the backend to be healthy, and checks
-the site answers 200 (set `PUBLIC_ORIGIN=https://…` in `.env.prod` for that
-last check). Always pass `-f docker-compose.prod.yml`: the bare
-`docker-compose.yml` is the dev file and only knows about `db`.
+`deploy/deploy.sh` is the whole safe sequence in one file, and it stops
+before the swap the moment anything is wrong:
+
+1. **Build** the backend and web images; they are tagged `:latest` and
+   `:<git sha>` (`ai-fashion-backend:1a2b3c4d5e6f`). Build failure → prod
+   untouched.
+2. **Dump** the live database to `~/backups/ai-fashion/pre-deploy-<sha>.dump`
+   (last five kept). Dump failure → prod untouched.
+3. **Migrate** with `prisma migrate deploy` in a one-off container from the
+   *new* image, while the old backend keeps serving. Failure → old backend
+   still running, nothing swapped, dump on disk. (The new backend runs
+   `migrate deploy` again at boot; it only applies pending migrations, so
+   that pass is a no-op.)
+4. **Swap** only `backend` and `web` (`--no-deps --no-build`), renaming a
+   hash-prefixed container back.
+5. **Wait** for the backend healthcheck — up to 90 s. Never healthy →
+   **exit 1**, last 40 log lines printed, rollback hint shown.
+6. **Prune** dangling images, SHA tags beyond the last three (`KEEP_IMAGES`),
+   and build cache beyond 8 GB.
+7. **Probe** `$PUBLIC_ORIGIN/` (must be 200) and `$PUBLIC_ORIGIN/api/health`
+   (must say `"status":"ok"`) — set `PUBLIC_ORIGIN=https://…` in `.env.prod`.
+
+Always pass `-f docker-compose.prod.yml`: the bare `docker-compose.yml` is
+the dev file and only knows about `db`.
+
+**Rollback.** Every deploy leaves the previous three image pairs on the
+box. `bash deploy/rollback.sh` with no argument lists them;
+`bash deploy/rollback.sh <sha>` retags that pair as `:latest`, swaps
+backend + web without rebuilding, and waits for health the same way. The
+database is not touched: Prisma migrations have no down step. If the bad
+deploy added columns or tables, old code usually runs fine on the wider
+schema; if it dropped or renamed something the old code needs, restore the
+`pre-deploy-<sha>.dump` (§4, "Restoring for real") — that is what it is
+for. The git checkout stays at HEAD, so revert the commit (or fix forward)
+before the next push, or CI redeploys the same build.
+
+**Changes to the `db` service.** `deploy.sh` uses `--no-deps`, so an edit
+to the `db` block in `docker-compose.prod.yml` (image tag, memory cap, log
+rotation) is *not* applied by a deploy — Compose would otherwise recreate
+Postgres mid-deploy. Apply it yourself, in a quiet minute; Postgres is down
+for a few seconds and the backend is restarted so its connection pool
+starts clean:
+
+```bash
+C="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+$C up -d db && sleep 10 && $C restart backend
+```
+
+**Memory caps.** backend 2 GB, db 1 GB, web 256 MB (`mem_limit`), on a
+2 vCPU / 8 GB box with no swap — a runaway container gets OOM-killed and
+restarted instead of the kernel picking a victim. If the backend starts
+restarting under matting load, `docker inspect -f '{{.State.OOMKilled}}'
+ai-fashion-backend-1` says whether the cap was hit; raise `mem_limit` (and
+`NODE_OPTIONS=--max-old-space-size`, which keeps V8's heap under it) or use
+the smaller `MATTING_MODEL=u2netp`. `docker stats` shows live headroom.
 
 When a real domain lands, change `VITE_PUBLIC_ORIGIN` in `frontend/.env.production`
 (share-card URLs) and `PUBLIC_ORIGIN` in `.env.prod`, then deploy.
@@ -116,23 +223,51 @@ When a real domain lands, change `VITE_PUBLIC_ORIGIN` in `frontend/.env.producti
 > # rm returns before the daemon has finished removing; give it a moment or
 > # `up` fails with "removal of container … is already in progress".
 > sleep 5
-> docker compose -f docker-compose.prod.yml --env-file .env.prod up -d backend web
+> # --no-deps: leave db alone even if its compose config changed (§5)
+> docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps backend web
 > ```
 >
 > If it has already happened: `docker ps -a | grep -E "ai-fashion-(backend|web)"`,
-> `docker rm -f` those ids (never `db`), then `up -d backend web`.
+> `docker rm -f` those ids (never `db`), then `up -d --no-deps backend web`.
 
 
 Migrations run on boot; volumes (database, uploads, models, certificates)
 are untouched by rebuilds.
 
+**The backend runs as `node` (uid 1000), not root.** The image starts as
+root only long enough for `backend/docker-entrypoint.sh` to check that
+`/app/uploads` and `/app/models` belong to `node`, then drops privileges
+(`setpriv`) for the API, the one-off `migrate deploy`, and any
+`compose run`. The volumes on the current box were created by the old
+root-run image, so on the first deploy of this image the entrypoint does a
+one-time `chown -R` of both volumes (logged as `entrypoint: taking
+ownership of …`) — a few seconds for the uploads volume; nothing to do by
+hand. If you ever need it manually (the entrypoint was bypassed, or a root
+shell wrote files into the volume):
+
+```bash
+docker run --rm -v ai-fashion_uploads:/u -v ai-fashion_models:/m alpine:3.20 chown -R 1000:1000 /u /m
+```
+
+`docker compose … exec backend sh` still lands you in a root shell (exec
+does not go through the entrypoint); prefix commands with
+`setpriv --reuid=node --regid=node --init-groups` if the files they create
+must be readable by the API.
+
 ## 6. CI/CD — auto-deploy on push to main
 
-`.github/workflows/ci.yml` runs backend typecheck + tests, the frontend
-build and the mobile checks (types, lint, jest; no native build) on every
-push/PR. On a green push to `main` it then SSHes into the VPS
-and runs `git reset --hard origin/main` + a compose rebuild (30-minute
-timeout, single-flight via a concurrency group).
+`.github/workflows/ci.yml` runs backend typecheck + tests + a production
+dependency audit (high/critical fails; one Prisma-CLI-only advisory is
+ignored with a comment), the frontend build (plus an advisory-only audit of
+the web/mobile workspace, which has open highs in build-time tooling), and
+the mobile checks (types, lint, jest; no native build) on every push/PR.
+On a green push to `main` it then SSHes into the VPS and runs
+`git reset --hard origin/main` + `deploy/deploy.sh` (30-minute timeout,
+single-flight via a concurrency group, three tries with 60 s and 120 s
+waits because the SSH handshake to the box drops now and then). The SSH
+action is pinned to a commit SHA, not a tag. `.github/dependabot.yml`
+opens weekly grouped minor/patch PRs for the three apps, the workflow
+actions, and the two Dockerfiles' base images.
 
 One-time wiring — three repository secrets at
 `github.com/akhildabral/AI-fashion/settings/secrets/actions`:
@@ -358,6 +493,60 @@ curl -sI https://myzauq.com/.well-known/apple-app-site-association | grep -i con
 curl -s https://myzauq.com/.well-known/assetlinks.json
 ```
 
+## 14. SSH hardening (do this yourself, as root, one step at a time)
+
+Nothing below is applied by any script. Order matters: each step is
+verified from a **second** terminal before the first one is closed, so a
+mistake never locks you out.
+
+1. **Keys in place for both users.** Your public key must be in
+   `/root/.ssh/authorized_keys` and `/home/deploy/.ssh/authorized_keys`
+   (mode `0600`, directory `0700`, owned by the user). CI's key is already
+   in `deploy`'s file (§6). Test: `ssh -o PasswordAuthentication=no
+   deploy@187.77.129.31 true` and the same for `root` must both succeed.
+2. **Keys only, no root login.** Write a drop-in so `apt` upgrades never
+   overwrite it:
+
+   ```bash
+   cat > /etc/ssh/sshd_config.d/10-hardening.conf <<'EOF'
+   PasswordAuthentication no
+   KbdInteractiveAuthentication no
+   PermitRootLogin no
+   PubkeyAuthentication yes
+   MaxAuthTries 3
+   LoginGraceTime 30
+   X11Forwarding no
+   EOF
+   sshd -t && systemctl reload ssh
+   ```
+
+   `sshd -t` must print nothing. From the second terminal, confirm
+   `ssh deploy@… true` still works and `ssh root@…` is now refused.
+   Root work from here on is `ssh deploy@… ` then `sudo -i` — so first
+   `usermod -aG sudo deploy` and confirm `sudo -v` works as `deploy`
+   (with `PermitRootLogin no` this is the only way back in as root).
+3. **fail2ban** for the password-guessing noise that still hits port 22:
+
+   ```bash
+   apt-get install -y fail2ban
+   cat > /etc/fail2ban/jail.d/sshd.local <<'EOF'
+   [sshd]
+   enabled  = true
+   backend  = systemd
+   maxretry = 5
+   findtime = 10m
+   bantime  = 1h
+   EOF
+   systemctl enable --now fail2ban
+   fail2ban-client status sshd      # shows the jail and current bans
+   ```
+
+   Whitelist your own IP if it is static: `ignoreip = 127.0.0.1/8 <your ip>`
+   in the same file, then `systemctl restart fail2ban`.
+4. **Optional, later.** Move SSH to a non-standard port (`Port 2222` in the
+   drop-in, `ufw allow 2222/tcp` *before* reloading, `VPS_PORT` secret in
+   GitHub); keep `ufw` to 22/2222, 80, 443 only (`ufw status`).
+
 ## Local smoke test of the production stack
 
 Runs the real prod images on your machine, HTTP on port 8080:
@@ -374,7 +563,17 @@ open http://localhost:8080
 ## Troubleshooting
 
 - `docker compose ... logs backend` — migration or env validation errors
-  print at boot and the container restarts until fixed.
+  print at boot and the container restarts until fixed. A migration that
+  fails is caught earlier by `deploy.sh` step 3, before the old backend is
+  stopped; `EACCES` on `/app/uploads` means the volume is not owned by
+  uid 1000 — see the `chown` one-liner in §5.
+- `deploy.sh` ended with `backend never became healthy` → the new build is
+  up but failing its healthcheck; the log tail is in the CI output.
+  `bash deploy/rollback.sh <previous sha>` puts the last good pair back
+  in about a minute, then debug at leisure.
+- Web requests hang or `502` while `/api/health` is fine → check Caddy's
+  access log: `docker compose ... exec web tail -f /data/access.log`
+  (JSON, one line per request, rotated at 5 × 50 MB).
 - Caddy stuck on certificates → DNS not propagated yet, or port 80/443
   blocked; check `docker compose ... logs web`.
 - Memory pressure on 4 GB boxes → set `MATTING_MODEL=u2netp` in

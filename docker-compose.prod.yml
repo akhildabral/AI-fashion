@@ -4,12 +4,28 @@
 #   cp deploy/backend.env.example deploy/backend.env   # app secrets
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 #
-# See DEPLOY.md for the full VPS runbook.
+# See DEPLOY.md for the full VPS runbook. Day-to-day deploys go through
+# deploy/deploy.sh, which only ever recreates backend and web (--no-deps);
+# a change to the db service below is applied by hand, once (DEPLOY.md §5).
+
+# Bounded container logs: 5 × 20 MB per service, so a chatty week cannot
+# fill the disk (json-file keeps everything forever by default).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *logging
+    # Memory caps for a 2 vCPU / 8 GB box with no swap: a runaway container
+    # is OOM-killed and restarted instead of the kernel picking a victim at
+    # random. `docker stats` shows headroom; `docker inspect -f
+    # '{{.State.OOMKilled}}' <container>` tells whether a cap was hit.
+    mem_limit: 1g
     environment:
       POSTGRES_USER: fashion
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
@@ -24,11 +40,25 @@ services:
 
   backend:
     build: ./backend
+    # Explicit so deploy.sh can tag the built image with the git SHA.
+    image: ai-fashion-backend
     restart: unless-stopped
+    logging: *logging
+    mem_limit: 2g
+    # tini as PID 1: forwards SIGTERM to node and reaps anything it spawns.
+    init: true
+    # Time for in-flight requests to drain after SIGTERM before SIGKILL.
+    stop_grace_period: 35s
     env_file: ./deploy/backend.env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://fashion:${POSTGRES_PASSWORD}@db:5432/ai_fashion
+      # connection_limit: Prisma's pool for this single process (Postgres
+      # allows 100). pool_timeout: seconds a query waits for a free
+      # connection before failing, instead of piling up behind a slow one.
+      DATABASE_URL: postgresql://fashion:${POSTGRES_PASSWORD}@db:5432/ai_fashion?connection_limit=20&pool_timeout=20
+      # Keep V8's heap under the container cap so it collects garbage rather
+      # than getting OOM-killed; native memory (onnxruntime, sharp) sits on top.
+      NODE_OPTIONS: --max-old-space-size=1536
     volumes:
       - uploads:/app/uploads
       - models:/app/models
@@ -40,7 +70,10 @@ services:
     build:
       context: .
       dockerfile: deploy/web.Dockerfile
+    image: ai-fashion-web
     restart: unless-stopped
+    logging: *logging
+    mem_limit: 256m
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env.prod}
     ports:

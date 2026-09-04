@@ -2,7 +2,11 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import pinoHttp from 'pino-http';
+import { randomUUID } from 'node:crypto';
 import { env } from './config/env';
+import { logger } from './lib/logger';
+import { dbAlive } from './lib/health';
 import { authRouter } from './routes/auth.routes';
 import { looksRouter } from './routes/generate.routes';
 import { profileRouter } from './routes/profile.routes';
@@ -45,6 +49,22 @@ export function createApp() {
   // Exactly one proxy hop (Caddy / the dev tunnel) — needed for correct
   // client IPs in rate limiting and X-Forwarded-* in share links.
   app.set('trust proxy', 1);
+  // One structured line per request, tagged with a request id: an incoming
+  // x-request-id (from Caddy or a client retry) is honoured, else one is
+  // minted; either way it is echoed back so a support ticket can quote it.
+  app.use(
+    pinoHttp({
+      logger,
+      genReqId: (req, res) => {
+        const incoming = req.headers['x-request-id'];
+        const id = typeof incoming === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(incoming) ? incoming : randomUUID();
+        res.setHeader('x-request-id', id);
+        return id;
+      },
+      // Liveness probes and image loads would drown everything else.
+      autoLogging: { ignore: (req) => req.url === '/api/health' || (req.url ?? '').startsWith('/api/uploads/') },
+    }),
+  );
   // Security headers. CSP is off because the backend serves the standalone
   // /vote page with a small inline script; everything else applies.
   app.use(helmet({ contentSecurityPolicy: false }));
@@ -94,17 +114,25 @@ export function createApp() {
   app.use('/api', readLimiter, writeLimiter);
 
   // Liveness, plus what the app checks on launch: the API version and the
-  // oldest app version still served.
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', version: VERSION, minSupportedClient: env.MIN_SUPPORTED_CLIENT });
+  // oldest app version still served. The database is pinged with a short
+  // cap so a wedged pool shows up as 503 `degraded` instead of a hang.
+  app.get('/api/health', async (_req, res) => {
+    const body = { version: VERSION, minSupportedClient: env.MIN_SUPPORTED_CLIENT };
+    if (!(await dbAlive(1_000))) {
+      res.status(503).json({ status: 'degraded', ...body });
+      return;
+    }
+    res.json({ status: 'ok', ...body });
   });
   // The app's first call: the home screen in one round trip.
   app.get('/api/bootstrap', requireAuth, bootstrap);
 
   // Serve uploaded photos and generated images (local storage driver only;
   // with S3 the browser loads images straight from the bucket/CDN).
+  // Keys are random UUIDs that are never rewritten, so the browser may cache
+  // them forever; no ETag round-trips either.
   if (isLocalStorage) {
-    app.use('/api/uploads', express.static(UPLOADS_DIR));
+    app.use('/api/uploads', express.static(UPLOADS_DIR, { maxAge: '365d', immutable: true, etag: false }));
   }
 
   app.use('/api/auth', authRouter);
@@ -112,7 +140,7 @@ export function createApp() {
   app.use('/api/photo', photoRouter);
   app.use('/api/wardrobe', wardrobeRouter);
   // Static taste-quiz pair images (committed assets, not user uploads).
-  app.use('/api/quiz-assets', express.static(path.resolve(__dirname, '../assets/quiz')));
+  app.use('/api/quiz-assets', express.static(path.resolve(__dirname, '../assets/quiz'), { maxAge: '7d' }));
 
   app.use('/api', quizRouter);
   app.use('/api', pollRouter);

@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthContextValue } from './auth-context'
-import { ApiError, apiFetch, clearToken, getToken, onAuthExpired, setToken } from '../lib/api'
+import { ApiError, adoptTokens, apiFetch, clearToken, clientFields, getRefreshToken, getToken, onAuthExpired, refreshSession, signOut } from '../lib/api'
 import type { AuthResponse, MeResponse, RegisterResponse, User } from '@zauq/shared/types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [initializing, setInitializing] = useState(true)
 
-  // On mount: if a token exists, hydrate the user from /auth/me.
-  // Clear the token on 401 (or any auth failure).
+  // On mount: if a session exists, hydrate the user from /auth/me. An expired
+  // access token is renewed by the API client on the way; a session with only
+  // a refresh token left is renewed first. Clear the session on 401.
   useEffect(() => {
     let cancelled = false
 
     async function hydrate() {
-      if (!getToken()) {
+      if (!getToken() && !getRefreshToken()) {
         setInitializing(false)
+        return
+      }
+      if (!getToken() && !(await refreshSession())) {
+        clearToken()
+        if (!cancelled) setInitializing(false)
         return
       }
       try {
@@ -44,10 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { email, password, ...clientFields() },
       auth: false,
     })
-    setToken(res.token)
+    adoptTokens({ token: res.token, refreshToken: res.refreshToken ?? null })
     setUser(res.user)
   }, [])
 
@@ -60,24 +66,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Waitlist: most signups get a message, not a session. Bootstrap admins
     // (ADMIN_EMAILS) get a token and log straight in.
     if (res.token) {
-      setToken(res.token)
+      adoptTokens({ token: res.token, refreshToken: null })
       setUser(res.user)
       return null
     }
     return res.message
   }, [])
 
-  const adoptSession = useCallback((token: string, newUser: User) => {
-    setToken(token)
+  const adoptSession = useCallback((token: string, newUser: User, refreshToken?: string | null) => {
+    adoptTokens({ token, refreshToken })
     setUser(newUser)
   }, [])
 
   const logout = useCallback(() => {
-    // Rotate the server-side token version so this bearer token can't be
-    // reused after sign-out; then drop it locally regardless of the result.
-    void apiFetch('/auth/logout', { method: 'POST' }).catch(() => undefined)
-    clearToken()
+    // Drop the member now so routing falls back to the door at once; the
+    // server-side revocation (this browser's session only, or the token
+    // version for a session issued before refresh tokens) follows behind.
     setUser(null)
+    void signOut()
   }, [])
 
   const value: AuthContextValue = {

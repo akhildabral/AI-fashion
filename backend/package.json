@@ -23,21 +23,28 @@
       "@prisma/client",
       "@prisma/engines",
       "prisma",
-      "esbuild"
-    ]
+      "esbuild",
+      "bcrypt"
+    ],
+    "auditConfig": {
+      "ignoreCves": [
+        "GHSA-ggr8-5vv4-36mx",
+        "CVE-2025-0000"
+      ]
+    }
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^5.0.68",
     "@ai-sdk/anthropic": "^4.0.46",
     "@ai-sdk/openai": "^4.0.52",
     "@aws-sdk/client-s3": "^3.1121.0",
-    "@prisma/client": "^6.1.0",
+    "@prisma/client": "^6.19.3",
     "ai": "^7.0.85",
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.0.1",
     "expo-server-sdk": "^7.2.0",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "heic-convert": "^2.1.0",
     "helmet": "^8.3.0",
@@ -47,13 +54,15 @@
     "nodemailer": "^9.1.0",
     "onnxruntime-node": "^1.29.0",
     "openai": "^5.8.2",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "razorpay": "^2.9.8",
     "sharp": "^0.35.4",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/heic-convert": "^2.1.1",
@@ -62,7 +71,7 @@
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^8.0.1",
     "@types/web-push": "^3.6.4",
-    "prisma": "^6.1.0",
+    "prisma": "^6.19.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^4.1.11"

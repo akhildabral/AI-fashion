@@ -375,7 +375,7 @@ export async function reactToPost(req: Request, res: Response) {
   const existing = await prisma.reaction.findUnique({ where: key });
   await prisma.reaction.upsert({ where: key, create: { userId: req.user.id, targetType: target, targetId: id, kind }, update: { kind } });
   if (!existing) {
-    void notify(ownerId, 'look_reacted', req.user.id, { target, targetId: id, kind, wearLogId: target === 'look' ? id : undefined }, { dedupeKey: `react:${target}:${id}` });
+    void notify(ownerId, 'look_reacted', req.user.id, { target, targetId: id, kind, wearLogId: target === 'look' ? id : undefined }, { dedupeKey: `react:${target}:${id}` }).catch(() => undefined);
   }
   res.json({ reactions: await summaryOf(target, id, req.user.id) });
 }
@@ -492,13 +492,13 @@ export async function addComment(req: Request, res: Response) {
   });
 
   const payload = { target, targetId: id, commentId: comment.id, preview: body.slice(0, 80) };
-  void notify(ownerId, 'commented', req.user.id, payload);
-  if (alsoId && alsoId !== ownerId) void notify(alsoId, 'commented', req.user.id, payload);
+  void notify(ownerId, 'commented', req.user.id, payload).catch(() => undefined);
+  if (alsoId && alsoId !== ownerId) void notify(alsoId, 'commented', req.user.id, payload).catch(() => undefined);
   const handles = mentionedHandles(body);
   if (handles.length > 0) {
     const mentioned = await prisma.user.findMany({ where: { handle: { in: handles } }, select: { id: true } });
     for (const u of mentioned) {
-      if (u.id !== ownerId) void notify(u.id, 'mentioned', req.user.id, payload);
+      if (u.id !== ownerId) void notify(u.id, 'mentioned', req.user.id, payload).catch(() => undefined);
     }
   }
   res.status(201).json({ comment: serializeComment(comment, req.user.id) });

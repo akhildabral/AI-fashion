@@ -1,5 +1,10 @@
 import { HttpError } from '../middleware/error';
 
+// Open-Meteo is fast; ten seconds without an answer means it is down, and
+// the request should fail (the error middleware says "the stylist is out")
+// rather than hang.
+const FETCH_TIMEOUT_MS = 10_000;
+
 export interface Weather {
   location: string;
   temperatureC: number;
@@ -48,7 +53,7 @@ async function geocode(location: string): Promise<GeoResult> {
     location,
   )}&count=1&language=en&format=json`;
 
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new HttpError(502, 'Weather lookup failed (geocoding)');
   const data = (await res.json()) as { results?: GeoResult[] };
   const hit = data.results?.[0];
@@ -60,7 +65,7 @@ export async function getWeather(location: string): Promise<Weather> {
   const place = await geocode(location);
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,weather_code`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new HttpError(502, 'Weather lookup failed (forecast)');
   const data = (await res.json()) as {
     current?: { temperature_2m?: number; weather_code?: number };
@@ -112,7 +117,7 @@ export async function getTripForecast(
       `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}` +
       `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code` +
       `&start_date=${start}&end_date=${clampedEnd}&timezone=auto`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new HttpError(502, 'Weather lookup failed (forecast)');
     const data = (await res.json()) as {
       daily?: {

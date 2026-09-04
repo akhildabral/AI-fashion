@@ -5,6 +5,17 @@
 {$SITE_ADDRESS} {
 	encode zstd gzip
 
+	# Access log, JSON, on the caddy_data volume (survives redeploys):
+	# 5 × 50 MB rolling. Read with
+	#   docker compose -f docker-compose.prod.yml --env-file .env.prod exec web tail -f /data/access.log
+	log {
+		output file /data/access.log {
+			roll_size 50mb
+			roll_keep 5
+		}
+		format json
+	}
+
 	# Baseline security headers on every response. Clickjacking off, no
 	# referrer leakage of tokened URLs, HSTS, MIME sniffing off, tight
 	# permissions, and the server banner removed. (The strict CSP is scoped
@@ -52,6 +63,17 @@
 		# for any injection: scripts only from us + the payment/SSO SDKs, no
 		# framing, images over https, connections to us + Google SSO.
 		header Content-Security-Policy "default-src 'self'; script-src 'self' https://checkout.razorpay.com https://accounts.google.com; frame-src https://api.razorpay.com https://checkout.razorpay.com https://accounts.google.com; connect-src 'self' https://accounts.google.com https://lumberjack.razorpay.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+		# Caching. Vite writes content-hashed bundles under /assets, so
+		# they can be cached forever; every other path here is index.html
+		# (directly or via the SPA fallback) or an unhashed file from
+		# frontend/public, which must be re-checked within minutes of a
+		# deploy so a new build's index.html picks up its new bundles.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "public, max-age=300"
+
 		root * /srv/www
 		try_files {path} /index.html
 		file_server

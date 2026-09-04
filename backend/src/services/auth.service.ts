@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { sendVerificationEmail } from '../lib/mailer';

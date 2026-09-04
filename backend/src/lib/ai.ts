@@ -9,6 +9,31 @@ import { env } from '../config/env';
 
 export const aiApiKey = env.AI_API_KEY ?? env.OPENAI_API_KEY ?? '';
 
+// Every model call carries a hard cap so a stalled provider can never pin a
+// request (or a background job) open indefinitely. Pass `aiAbortSignal()`
+// as `abortSignal` to generateObject/generateText.
+export const AI_TIMEOUT_MS = 60_000;
+export function aiAbortSignal(ms = AI_TIMEOUT_MS): AbortSignal {
+  return AbortSignal.timeout(ms);
+}
+
+/** The words for a stalled model, matching what the error middleware says. */
+export const AI_TIMEOUT_MESSAGE = 'The stylist is out for a moment. Try again in a few seconds.';
+
+/**
+ * A user-facing message for a failed model call: a timeout or abort maps to
+ * the "stylist is out" line; anything else keeps its own message (or the
+ * caller's fallback when there is none).
+ */
+export function aiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) {
+    const name = (err as { name?: string }).name ?? '';
+    if (name === 'TimeoutError' || name === 'AbortError' || /timeout|aborted/i.test(err.message)) return AI_TIMEOUT_MESSAGE;
+    return err.message;
+  }
+  return fallback;
+}
+
 const DEFAULT_TEXT_MODEL: Record<string, string> = {
   openai: 'gpt-4o-mini',
   openrouter: 'openai/gpt-4o-mini',

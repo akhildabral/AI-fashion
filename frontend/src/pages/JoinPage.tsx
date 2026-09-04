@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../context/useAuth'
+import { clientFields } from '../lib/api'
 import { Spinner } from '../components/Spinner'
 import { SkeletonBlock } from '../components/ui'
 import { GoogleButton } from '../components/GoogleButton'
@@ -46,8 +47,8 @@ export function JoinPage() {
     setBusy(true)
     setError(null)
     try {
-      const res = await joinWithCode(code, { email: email.trim(), password, firstName: firstName.trim(), lastName: lastName.trim() || null })
-      adoptSession(res.token, res.user)
+      const res = await joinWithCode(code, { email: email.trim(), password, firstName: firstName.trim(), lastName: lastName.trim() || null, ...clientFields() })
+      adoptSession(res.token, res.user, res.refreshToken ?? null)
       navigate('/fitting', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not open the door.')

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { randomBytes } from 'node:crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { env } from '../config/env';
@@ -285,7 +285,7 @@ async function redeemInvite(inviter: Inviter, userId: string): Promise<void> {
     ],
     skipDuplicates: true,
   });
-  void notify(inviter.id, 'invite_joined', userId);
+  void notify(inviter.id, 'invite_joined', userId).catch(() => undefined);
 }
 
 const joinSchema = z.object({
@@ -386,9 +386,15 @@ export async function googleAuth(req: Request, res: Response) {
   const { credential, joinCode } = googleSchema.parse(req.body);
   const client = clientSchema.parse(req.body);
 
-  const resp = await fetch(
-    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
-  );
+  // Capped: a stalled Google must fail the sign-in, not hold the request.
+  let resp: globalThis.Response;
+  try {
+    resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    throw new HttpError(502, 'Google sign-in took too long — try again');
+  }
   if (!resp.ok) throw new HttpError(401, 'Google sign-in failed — try again');
   const info = (await resp.json()) as GoogleTokenInfo;
   if (!info.aud || !env.GOOGLE_CLIENT_IDS.includes(info.aud)) throw new HttpError(401, 'Google token mismatch');

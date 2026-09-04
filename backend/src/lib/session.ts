@@ -7,22 +7,35 @@ import { prisma } from './prisma';
 import { HttpError } from '../middleware/error';
 
 // Two kinds of token. The access token is a short JWT every request carries
-// (see middleware/auth). The refresh token is for the mobile app only: an
-// opaque secret tied to one device row, exchanged for a fresh pair at
-// /auth/refresh. The web client keeps using the access token alone.
+// (see middleware/auth). The refresh token is an opaque secret tied to one
+// device row, exchanged for a fresh pair at /auth/refresh. Any caller that
+// names itself (`client: 'mobile' | 'web'`) gets one; a caller that sends
+// no `client` (the legacy web path) keeps using the access token alone.
 
 const REFRESH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
-export function signToken(userId: string, tokenVersion: number): string {
+export type ClientKind = 'mobile' | 'web';
+
+/**
+ * Access-token lifetime by client. Web sessions that opted into refresh
+ * tokens get JWT_EXPIRES_IN_WEB (default 7d, i.e. unchanged until the
+ * frontend adopts refresh); everything else keeps JWT_EXPIRES_IN.
+ */
+function accessTtl(client?: string | null): string {
+  if (client === 'web') return env.JWT_EXPIRES_IN_WEB ?? env.JWT_EXPIRES_IN;
+  return env.JWT_EXPIRES_IN;
+}
+
+export function signToken(userId: string, tokenVersion: number, client?: string | null): string {
   return jwt.sign({ sub: userId, tv: tokenVersion }, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
+    expiresIn: accessTtl(client),
     algorithm: 'HS256',
   } as SignOptions);
 }
 
-/** Optional fields every token-issuing endpoint accepts from the app. */
+/** Optional fields every token-issuing endpoint accepts from a client. */
 export const clientSchema = z.object({
-  client: z.enum(['mobile']).optional(),
+  client: z.enum(['mobile', 'web']).optional(),
   deviceName: z.string().trim().min(1).max(80).optional(),
 });
 export type ClientInfo = z.infer<typeof clientSchema>;
@@ -36,16 +49,16 @@ function newRefreshToken(): string {
 }
 
 /**
- * The access token, plus a refresh token when the caller is the app. The
- * refresh token is only ever returned here and from /auth/refresh; the DB
- * keeps its hash.
+ * The access token, plus a refresh token when the caller named itself
+ * (mobile, or a web client that opted in). The refresh token is only ever
+ * returned here and from /auth/refresh; the DB keeps its hash.
  */
 export async function issueTokens(
   user: { id: string; tokenVersion: number },
   client: ClientInfo = {},
 ): Promise<{ token: string; refreshToken?: string }> {
-  const token = signToken(user.id, user.tokenVersion);
-  if (client.client !== 'mobile') return { token };
+  const token = signToken(user.id, user.tokenVersion, client.client);
+  if (!client.client) return { token };
   const refreshToken = newRefreshToken();
   await prisma.session.create({
     data: {
@@ -94,7 +107,9 @@ export async function refreshSession(refreshToken: string): Promise<{ token: str
       expiresAt: new Date(now.getTime() + REFRESH_TTL_MS),
     },
   });
-  return { token: signToken(session.user.id, session.user.tokenVersion), refreshToken: next };
+  // The new access token keeps the lifetime of the platform that opened
+  // the session (web rows are short-lived once the frontend uses refresh).
+  return { token: signToken(session.user.id, session.user.tokenVersion, session.platform), refreshToken: next };
 }
 
 /** Sign out one device. Silent when the token is not theirs or already gone. */

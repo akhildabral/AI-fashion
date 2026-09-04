@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch } from '../lib/api'
+import { apiFetch, clientFields } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import type { User } from '@zauq/shared/types'
+import type { AuthResponse } from '@zauq/shared/types'
 import { isDark } from '../lib/theme'
 
 declare global {
@@ -73,13 +73,13 @@ export function GoogleButton({
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: (resp: { credential: string }) => {
-            apiFetch<{ token: string; user: User }>('/auth/google', {
+            apiFetch<AuthResponse>('/auth/google', {
               method: 'POST',
-              body: { credential: resp.credential, ...(joinCode ? { joinCode } : {}) },
+              body: { credential: resp.credential, ...(joinCode ? { joinCode } : {}), ...clientFields() },
               auth: false,
             })
               .then((r) => {
-                latest.current.adoptSession(r.token, r.user)
+                latest.current.adoptSession(r.token, r.user, r.refreshToken ?? null)
                 latest.current.navigate(latest.current.redirectTo, { replace: true })
               })
               .catch((err) => {

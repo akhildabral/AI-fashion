@@ -74,7 +74,7 @@ export async function recreateFromCloset(req: Request, res: Response) {
         if (!created) return;
         await prisma.wearLog.update({ where: { id: sharedLog.id }, data: { recreatedCount: { increment: 1 } } }).catch(() => undefined);
       },
-    );
+    ).catch(() => undefined);
   }
   res.json({
     pairs: result.matched.map((m) => {

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
 import { sendNativeEvent, sendPush } from '../lib/push';
+import { enqueue } from '../lib/jobs';
 import { defaultTryOnMode, generateOutfitTryOn, generateTryOn } from '../services/tryon.service';
 import { HttpError } from '../middleware/error';
 
@@ -33,10 +34,25 @@ const itemSelect = { id: true, imageUrl: true, category: true, subtype: true, pr
 const REFUND_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const REFUND_CAP = 6;
 
-async function refund(usageEventId: string | null | undefined, tryOnId: string) {
+/**
+ * Give a render's usage event back. Shared with the boot sweep
+ * (lib/recovery), which fails renders a restart interrupted the same way a
+ * failed render is failed here.
+ */
+export async function refundTryOn(usageEventId: string | null | undefined, tryOnId: string) {
   if (!usageEventId) return;
   await prisma.usageEvent.deleteMany({ where: { id: usageEventId } }).catch(() => undefined);
   await prisma.tryOn.update({ where: { id: tryOnId }, data: { refunded: true, usageEventId: null } }).catch(() => undefined);
+}
+const refund = refundTryOn;
+
+/**
+ * Renders go through the shared job queue (lib/jobs), so however many
+ * people press "try on" at once, only CONCURRENCY renders hit the image
+ * provider at a time; the rest wait as `queued` and the glass keeps polling.
+ */
+function scheduleRender(tryOnId: string) {
+  enqueue(`tryon:${tryOnId}`, () => runJob(tryOnId));
 }
 
 async function hydrate(userId: string, rows: { itemIds: string[] }[]) {
@@ -89,12 +105,12 @@ async function runJob(tryOnId: string) {
     // event push, which they can switch off.
     const subs = await prisma.pushSubscription.findMany({ where: { userId: job.userId, platform: 'web' }, take: 5 });
     for (const d of subs) void sendPush(d, { title: 'Your render is ready', body: 'The Mirror has you dressed. Tap to look.', url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` }).catch(() => undefined);
-    void sendNativeEvent(job.userId, 'renders', { title: 'Your reflection is ready', body: `${capitalize(subject)}, on you. Tap to look.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` });
+    void sendNativeEvent(job.userId, 'renders', { title: 'Your reflection is ready', body: `${capitalize(subject)}, on you. Tap to look.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` }).catch(() => undefined);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Render failed';
     await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'failed', error: message } }).catch(() => undefined);
     await refund(job.usageEventId, tryOnId);
-    void sendNativeEvent(job.userId, 'renders', { title: 'That render did not come out', body: `${capitalize(subject)} could not be rendered. Nothing was spent; try it again.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` });
+    void sendNativeEvent(job.userId, 'renders', { title: 'That render did not come out', body: `${capitalize(subject)} could not be rendered. Nothing was spent; try it again.`, url: `/mirror?render=${tryOnId}`, route, tag: `render-${tryOnId}` }).catch(() => undefined);
   }
 }
 
@@ -124,7 +140,7 @@ export async function createTryOn(req: Request, res: Response) {
     data: { userId: req.user.id, lookId, imageUrl: '', itemIds: [], status: 'queued', mode: 'look', model, key, photoPath: user.photoPath, usageEventId: req.usageEventId ?? null },
     select: tryOnSelect,
   });
-  void runJob(tryOn.id);
+  scheduleRender(tryOn.id);
   res.status(202).json({ tryOn: { ...tryOn, items: [] }, cached: false });
 }
 
@@ -168,7 +184,7 @@ export async function createOutfitTryOn(req: Request, res: Response) {
     data: { userId: req.user.id, lookId: null, imageUrl: '', itemIds: ids, status: 'queued', mode, model, key, photoPath: user.photoPath, usageEventId: req.usageEventId ?? null },
     select: tryOnSelect,
   });
-  void runJob(tryOn.id);
+  scheduleRender(tryOn.id);
   const byId = await hydrate(req.user.id, [tryOn]);
   res.status(202).json({ tryOn: withItems(tryOn, byId), cached: false });
 }
@@ -197,7 +213,7 @@ export async function retryTryOn(req: Request, res: Response) {
     select: tryOnSelect,
   });
   await prisma.tryOn.update({ where: { id: prev.id }, data: { reportedAt: new Date() } });
-  void runJob(again.id);
+  scheduleRender(again.id);
   const byId = await hydrate(req.user.id, [again]);
   res.status(202).json({ tryOn: withItems(again, byId) });
 }

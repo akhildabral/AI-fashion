@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import convert from 'heic-convert';
+import sharp from 'sharp';
 import { HttpError } from './error';
 
 const EXT_BY_MIME: Record<string, string> = {
@@ -80,6 +81,30 @@ function singleImageUpload(field: string) {
       next();
     });
   };
+}
+
+/**
+ * Re-encode an upload without its metadata: EXIF (GPS, device, timestamps),
+ * XMP and IPTC all go; the orientation tag is applied to the pixels first so
+ * the picture still stands the right way up, and an embedded ICC profile is
+ * converted to sRGB so colours hold. The format is kept (JPEG/PNG/WebP —
+ * HEIC has already become JPEG by now). Falls back to the original bytes
+ * on any failure so a stubborn file never blocks an upload.
+ */
+export async function stripMetadata(buffer: Buffer, mime: string): Promise<Buffer> {
+  try {
+    const img = sharp(buffer).rotate();
+    switch (mime) {
+      case 'image/png':
+        return await img.png().toBuffer();
+      case 'image/webp':
+        return await img.webp({ quality: 92 }).toBuffer();
+      default:
+        return await img.jpeg({ quality: 92 }).toBuffer();
+    }
+  } catch {
+    return buffer;
+  }
 }
 
 export const handlePhotoUpload = singleImageUpload('photo');

@@ -81,7 +81,9 @@ async function loadSession(): Promise<import('onnxruntime-node').InferenceSessio
       await downloadModel(spec.url, modelPath);
     }
     const ort = await import('onnxruntime-node');
-    const session = await ort.InferenceSession.create(modelPath);
+    // One thread each: inference shares a small box with the event loop and
+    // sharp, and a single-threaded matte is still well under a second.
+    const session = await ort.InferenceSession.create(modelPath, { intraOpNumThreads: 1, interOpNumThreads: 1 });
     console.log(`Matting model loaded (${spec.file})`);
     return session;
   } catch (err) {

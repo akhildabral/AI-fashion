@@ -294,6 +294,9 @@ model WardrobeItem {
   updatedAt    DateTime @updatedAt @default(now())
 
   @@index([userId])
+  // Already created by 20260905090000_closet_rooms; declared here so the
+  // schema and the migration history agree (the wishlist filters on owned).
+  @@index([userId, owned])
 }
 
 // A persistent outfit: a set of owned items, with provenance and wear history.
@@ -346,6 +349,10 @@ model WearLog {
   // else from a photo. The ranker reads the difference.
   suggestedItemIds String[] @default([])
   woreInstead      Boolean  @default(false)
+
+  // The circle feed filters on sharedAt; Explore orders featured-first.
+  @@index([sharedAt])
+  @@index([featuredAt, sharedAt])
 }
 
 // A photo of the day being read: which of your pieces are in it, and which
@@ -507,6 +514,8 @@ model Poll {
   votes PollVote[]
 
   @@index([userId])
+  // The settle tick: expired polls nobody has been told about yet.
+  @@index([expiresAt, settledNotifiedAt])
 }
 
 model PollVote {

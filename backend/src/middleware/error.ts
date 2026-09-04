@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import { logger } from '../lib/logger';
 
 // A typed application error that controllers/services can throw.
 export class HttpError extends Error {
@@ -18,7 +19,7 @@ export function notFoundHandler(_req: Request, res: Response) {
 // Centralized error handler. Express 5 forwards rejected async handlers here.
 export function errorHandler(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ) {
@@ -33,10 +34,12 @@ export function errorHandler(
     return res.status(err.status).json({ error: err.message });
   }
 
-  // Internals stay in the log; the person gets a sentence they can act on.
-  console.error('Unhandled error:', err);
+  // Internals stay in the log (with the request id, so a client-reported
+  // failure can be found); the person gets a sentence they can act on and
+  // never a stack trace.
+  logger.error({ err, reqId: (req as Request & { id?: unknown }).id, method: req.method, url: req.originalUrl }, 'Unhandled error');
   const raw = err instanceof Error ? err.message : '';
-  const message = /too many (clients|database connections)|ECONNREFUSED|timeout/i.test(raw)
+  const message = /too many (clients|database connections)|ECONNREFUSED|timeout|aborted/i.test(raw)
     ? 'The stylist is out for a moment. Try again in a few seconds.'
     : 'Something went wrong on our side. Try again in a moment.';
   return res.status(500).json({ error: message });

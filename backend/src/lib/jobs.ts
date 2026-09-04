@@ -6,6 +6,8 @@
 // module is the seam where BullMQ + Redis drops in: same enqueue() contract,
 // jobs move out-of-process, nothing else changes.
 
+import { logger } from './logger';
+
 const CONCURRENCY = 2;
 
 interface Job {
@@ -23,7 +25,7 @@ function pump(): void {
     job
       .run()
       .catch((err) => {
-        console.error(`Job "${job.label}" failed:`, err instanceof Error ? err.message : err);
+        logger.error({ err, job: job.label }, 'Job failed');
       })
       .finally(() => {
         active--;
@@ -37,6 +39,7 @@ export function enqueue(label: string, run: () => Promise<void>): void {
   pump();
 }
 
+/** Jobs still waiting or running — zero means the process may exit cleanly. */
 export function pendingJobs(): number {
   return queue.length + active;
 }

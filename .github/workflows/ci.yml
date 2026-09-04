@@ -23,6 +23,11 @@ jobs:
       - run: pnpm prisma generate
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
+      # Production dependencies only; high/critical fails the build.
+      # GHSA-ggr8-5vv4-36mx: deepmerge-ts stack exhaustion, reached only
+      # through the prisma CLI's config loader (@prisma/config) — never
+      # user input. Drop the --ignore once Prisma ships deepmerge-ts >= 8.
+      - run: pnpm audit --prod --audit-level=high --ignore GHSA-ggr8-5vv4-36mx
 
   # The phone app: types, lint and the jest-expo unit tests. No native build
   # and no EAS here (those run from a developer machine or EAS itself), so
@@ -59,6 +64,12 @@ jobs:
       - run: pnpm install --frozen-lockfile --filter ai-fashion-frontend...
       - run: pnpm --filter @zauq/shared typecheck
       - run: pnpm --filter ai-fashion-frontend build
+      # Advisory only: the root lockfile covers the web and phone apps, and
+      # their build-time tooling (postcss, image-size, …) carries open highs
+      # that never ship to a browser. Fix when convenient; do not gate on it.
+      - name: Audit (advisory, does not fail the build)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
 
   # Deploys to the VPS after tests pass on main. Skips cleanly until the
   # repository secrets exist: VPS_HOST, VPS_USER, VPS_SSH_KEY (private key
@@ -77,14 +88,17 @@ jobs:
       - name: Skip when VPS secrets are not configured
         if: env.VPS_HOST == ''
         run: echo "VPS_HOST secret not set — skipping deploy."
-      # The SSH handshake to the VPS drops now and then. A green build must not
-      # fail on that, so the deploy gets a second try a minute later; the
-      # script is idempotent (reset to origin/main, then deploy.sh).
+      # The SSH handshake to the VPS drops now and then. A green build must
+      # not fail on that, so the deploy gets three tries (after 60 s, then
+      # 120 s); the script is idempotent (reset to origin/main, then
+      # deploy.sh, which aborts before the swap if anything is wrong).
+      # appleboy/ssh-action is pinned to the commit behind v1.2.0 — a tag
+      # can be moved, a SHA cannot.
       - name: Deploy over SSH (git pull + rebuild)
         id: deploy
         if: env.VPS_HOST != ''
         continue-on-error: true
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -106,7 +120,27 @@ jobs:
       - name: Deploy over SSH (second try)
         id: deploy2
         if: env.VPS_HOST != '' && steps.deploy.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.2.0
+        continue-on-error: true
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          timeout: 120s
+          command_timeout: 30m
+          script: |
+            set -e
+            cd ~/ai-fashion
+            git fetch origin main
+            git reset --hard origin/main
+            bash deploy/deploy.sh
+      - name: Wait before the third try
+        if: env.VPS_HOST != '' && steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 120
+      - name: Deploy over SSH (third try)
+        if: env.VPS_HOST != '' && steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}

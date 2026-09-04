@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { deleteFile, saveImageBuffer, urlForFilename } from '../lib/storage';
-import { extForMime } from '../middleware/upload';
+import { extForMime, stripMetadata } from '../middleware/upload';
 import { HttpError } from '../middleware/error';
 
 // Your reflections: up to three photos, one active. Consent is recorded on
@@ -32,7 +32,10 @@ export async function uploadPhoto(req: Request, res: Response) {
   const count = await prisma.userPhoto.count({ where: { userId: req.user.id } });
   if (count >= MAX_PHOTOS) throw new HttpError(400, `Three reflections at most — let one go first`);
 
-  const stored = await saveImageBuffer(req.file.buffer, extForMime(req.file.mimetype));
+  // A body photo carries the most sensitive metadata of all (where and when
+  // it was taken): it is stored without any.
+  const clean = await stripMetadata(req.file.buffer, req.file.mimetype);
+  const stored = await saveImageBuffer(clean, extForMime(req.file.mimetype));
   await prisma.userPhoto.create({ data: { userId: req.user.id, path: stored.key, consentAt: new Date(), consentVersion: CONSENT_VERSION } });
   // A new photo becomes the one you dress.
   await prisma.user.update({ where: { id: req.user.id }, data: { photoPath: stored.key } });

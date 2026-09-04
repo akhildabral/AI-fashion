@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
-import { textModel } from '../lib/ai';
+import { aiAbortSignal, aiErrorMessage, textModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
 import type { TripForecast } from './weather.service';
 
@@ -83,6 +83,7 @@ export async function planPacking(
   let parsed: z.infer<typeof packSchema>;
   try {
     const { object } = await generateObject({
+      abortSignal: aiAbortSignal(),
       model: await textModel(),
       temperature: 0.6,
       schema: packSchema,
@@ -105,7 +106,7 @@ export async function planPacking(
     });
     parsed = object;
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'The packing model failed';
+    const message = aiErrorMessage(err, 'The packing model failed');
     throw new HttpError(502, message);
   }
 

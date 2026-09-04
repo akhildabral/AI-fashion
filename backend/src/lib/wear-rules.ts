@@ -47,7 +47,7 @@ export async function applyWear(userId: string, itemIds: string[]): Promise<stri
       });
     }),
   );
-  void laundryCheck(userId);
+  void laundryCheck(userId).catch(() => undefined);
   return flipped;
 }
 

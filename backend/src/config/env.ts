@@ -9,6 +9,15 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  // Access-token lifetime for web sessions that opted into refresh tokens
+  // (`client: 'web'` on sign-in). Defaults to the legacy 7d so nothing
+  // changes until the frontend uses /auth/refresh; switch to `1h` then.
+  // Sessions that send no `client` keep JWT_EXPIRES_IN untouched.
+  JWT_EXPIRES_IN_WEB: z.string().default('7d'),
+  // pino log level (fatal|error|warn|info|debug|trace). lib/logger reads
+  // process.env directly so it can load before this module; listed here
+  // for validation and documentation.
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   // Google sign-in. GOOGLE_CLIENT_IDS is the comma-separated list of every
   // client id that may present an ID token (the web client first, then the
   // iOS and Android apps); GOOGLE_CLIENT_ID is honoured as a single-value

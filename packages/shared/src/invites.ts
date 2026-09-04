@@ -28,7 +28,15 @@ export function getJoinInfo(code: string): Promise<JoinInfo> {
 
 export function joinWithCode(
   code: string,
-  body: { email: string; password: string; firstName: string; lastName: string | null },
-): Promise<{ token: string; user: User; inviter: { handle: string | null } }> {
+  body: {
+    email: string
+    password: string
+    firstName: string
+    lastName: string | null
+    /** Name the client to be issued a refresh token alongside the access token. */
+    client?: 'web' | 'mobile'
+    deviceName?: string
+  },
+): Promise<{ token: string; refreshToken?: string; user: User; inviter: { handle: string | null } }> {
   return apiFetch(`/auth/join/${encodeURIComponent(code)}`, { method: 'POST', body, auth: false })
 }

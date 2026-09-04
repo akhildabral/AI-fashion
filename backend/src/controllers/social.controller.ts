@@ -182,7 +182,7 @@ export async function followUser(req: Request, res: Response) {
 
   try {
     await prisma.follow.create({ data: { followerId: req.user.id, followingId: target.id } });
-    void notify(target.id, 'new_follower', req.user.id);
+    void notify(target.id, 'new_follower', req.user.id).catch(() => undefined);
   } catch (err) {
     if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err;
   }
@@ -307,7 +307,7 @@ export async function createPick(req: Request, res: Response) {
   const pick = await prisma.friendPick.create({
     data: { forUserId: target.id, byUserId: req.user.id, itemIds, note: note?.trim() || null, forDay: forDay?.trim() || null },
   });
-  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id, forDay: pick.forDay });
+  void notify(target.id, 'pick_received', req.user.id, { pickId: pick.id, target: 'pick', targetId: pick.id, forDay: pick.forDay }).catch(() => undefined);
   res.status(201).json({ pick });
 }
 
@@ -321,7 +321,7 @@ export async function thankPick(req: Request, res: Response) {
   const pick = await prisma.friendPick.findFirst({ where: { id, forUserId: req.user.id } });
   if (!pick) throw new HttpError(404, 'Pick not found');
   const updated = await prisma.friendPick.update({ where: { id }, data: { thanksAt: pick.thanksAt ?? new Date(), reply: reply?.trim() || pick.reply } });
-  void notify(pick.byUserId, 'pick_thanked', req.user.id, { pickId: id, target: 'pick', targetId: id, preview: (reply ?? '').slice(0, 80) }, { dedupeKey: `thanks:${id}` });
+  void notify(pick.byUserId, 'pick_thanked', req.user.id, { pickId: id, target: 'pick', targetId: id, preview: (reply ?? '').slice(0, 80) }, { dedupeKey: `thanks:${id}` }).catch(() => undefined);
   res.json({ thanksAt: updated.thanksAt, reply: updated.reply });
 }
 

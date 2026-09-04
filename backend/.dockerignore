@@ -1,0 +1,18 @@
+# Keep the build context to what the Dockerfile copies: source, prisma,
+# assets and the lockfile. Everything below is either regenerated in the
+# image, lives on a volume, or must never ship.
+node_modules
+dist
+uploads
+models
+.env
+.env.*
+.git
+.gitignore
+**/*.test.ts
+**/__tests__
+vitest.config.ts
+marketing
+scripts
+*.log
+.DS_Store

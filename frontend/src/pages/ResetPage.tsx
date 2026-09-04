@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { apiFetch } from '../lib/api'
+import { apiFetch, clientFields } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 import { Spinner } from '../components/Spinner'
 import { DoorShell, PasswordField, SignInLink } from '../components/DoorShell'
@@ -25,9 +25,13 @@ export function ResetPage() {
     setBusy(true)
     setError(null)
     try {
-      const r = await apiFetch<{ token: string | null; user: User | null; message?: string }>('/auth/reset', { method: 'POST', body: { token, password }, auth: false })
+      const r = await apiFetch<{ token: string | null; refreshToken?: string; user: User | null; message?: string }>('/auth/reset', {
+        method: 'POST',
+        body: { token, password, ...clientFields() },
+        auth: false,
+      })
       if (r.token && r.user) {
-        adoptSession(r.token, r.user)
+        adoptSession(r.token, r.user, r.refreshToken ?? null)
         navigate('/', { replace: true })
       } else {
         setClosed(r.message ?? 'Your password is set.')

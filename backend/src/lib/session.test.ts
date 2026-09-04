@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 const SECRET = 'test-secret-that-is-long-enough-1234';
-vi.mock('../config/env', () => ({ env: { JWT_SECRET: 'test-secret-that-is-long-enough-1234', JWT_EXPIRES_IN: '7d' } }));
+vi.mock('../config/env', () => ({ env: { JWT_SECRET: 'test-secret-that-is-long-enough-1234', JWT_EXPIRES_IN: '7d', JWT_EXPIRES_IN_WEB: '1h' } }));
 vi.mock('./prisma', () => ({ prisma: { session: { create: mocks.create, findUnique: mocks.findUnique, updateMany: mocks.updateMany } } }));
 
 import { hashRefreshToken, issueTokens, refreshSession, revokeAllSessions, revokeSession } from './session';
@@ -41,6 +41,19 @@ describe('issueTokens', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it('gives a web client that opts in a refresh token and the web lifetime', async () => {
+    const out = await issueTokens(user, { client: 'web' });
+    expect(out.refreshToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+    expect(mocks.create.mock.calls[0][0].data).toMatchObject({ userId: 'u1', platform: 'web', tokenHash: hashRefreshToken(out.refreshToken!) });
+    const claims = jwt.verify(out.token, SECRET) as { iat: number; exp: number };
+    expect(claims.exp - claims.iat).toBe(3600);
+  });
+
+  it('keeps the legacy lifetime for callers that send no client', async () => {
+    const claims = jwt.verify((await issueTokens(user)).token, SECRET) as { iat: number; exp: number };
+    expect(claims.exp - claims.iat).toBe(7 * 86_400);
+  });
+
   it('gives the app a refresh token and stores only its hash', async () => {
     const out = await issueTokens(user, { client: 'mobile', deviceName: 'iPhone' });
     expect(out.refreshToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
@@ -63,6 +76,14 @@ describe('refreshSession', () => {
     expect(out.refreshToken).not.toBe('old-token-old-token-old');
     expect(mocks.create.mock.calls[0][0].data).toMatchObject({ userId: 'u1', deviceName: 'iPhone', tokenHash: hashRefreshToken(out.refreshToken) });
     expect(jwt.verify(out.token, SECRET)).toMatchObject({ sub: 'u1', tv: 3 });
+  });
+
+  it('signs the refreshed access token with the lifetime of the row\'s platform', async () => {
+    mocks.findUnique.mockResolvedValue(liveSession({ platform: 'web' }));
+    const out = await refreshSession('web-token-web-token-web');
+    const claims = jwt.verify(out.token, SECRET) as { iat: number; exp: number };
+    expect(claims.exp - claims.iat).toBe(3600);
+    expect(mocks.create.mock.calls[0][0].data).toMatchObject({ platform: 'web' });
   });
 
   it('rejects a token that was already used', async () => {

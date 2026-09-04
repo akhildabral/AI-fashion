@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile, keyFromStored, mimeForKey, readStored, saveImageBuffer } from '../lib/storage';
 import { enqueue } from '../lib/jobs';
-import { extForMime } from '../middleware/upload';
+import { extForMime, stripMetadata } from '../middleware/upload';
 import { checkItemCapacity } from '../services/entitlements.service';
 import {
   detectGarments,
@@ -275,7 +275,10 @@ export async function addItem(req: Request, res: Response) {
     }
   }
 
-  const { buffer, mimetype } = req.file;
+  // The stored original never carries EXIF (location, device); orientation
+  // is baked into the pixels so every later .rotate() is a no-op.
+  const { mimetype } = req.file;
+  const buffer = await stripMetadata(req.file.buffer, mimetype);
   const userId = req.user.id;
 
   // One photo can hold several garments (a flat-lay, a rack, or a person
@@ -339,11 +342,9 @@ export async function recatalogItem(req: Request, res: Response) {
   });
   if (!item) throw new HttpError(404, 'Item not found');
 
-  // Always reprocess from the pristine upload when it exists.
-  const source = item.originalUrl ?? item.imageUrl;
   let image: Buffer;
   try {
-    image = await readStored(source);
+    image = await readCatalogSource(item);
   } catch {
     throw new HttpError(400, 'The item image could not be found');
   }
@@ -352,6 +353,25 @@ export async function recatalogItem(req: Request, res: Response) {
     where: { id },
     data: { status: 'processing' },
   });
+  enqueueCatalog(id, item, image);
+
+  res.json({ item: updated });
+}
+
+type CatalogSource = { imageUrl: string; originalUrl: string | null; description: string | null; subtype: string | null; category: string; cropped: boolean };
+
+/** The pristine upload when it exists, else the display image. */
+export function readCatalogSource(item: Pick<CatalogSource, 'imageUrl' | 'originalUrl'>): Promise<Buffer> {
+  return readStored(item.originalUrl ?? item.imageUrl);
+}
+
+/**
+ * Queue the cataloging pipeline for an existing item from its stored source
+ * — a re-read, or the boot sweep re-queuing a piece a restart left in
+ * `processing`. The item must already be marked `processing`.
+ */
+export function enqueueCatalog(id: string, item: CatalogSource, image: Buffer): void {
+  const source = item.originalUrl ?? item.imageUrl;
   // Name the garment so extraction stays targeted when the original is a
   // group photo. A piece's own crop is a single garment: no target, so the
   // read is the predictable single-garment one.
@@ -359,8 +379,6 @@ export async function recatalogItem(req: Request, res: Response) {
   enqueue(`recatalog:${id}`, () =>
     catalogItem(id, image, mimeForKey(keyFromStored(source)), target || undefined),
   );
-
-  res.json({ item: updated });
 }
 
 export async function listItems(req: Request, res: Response) {
