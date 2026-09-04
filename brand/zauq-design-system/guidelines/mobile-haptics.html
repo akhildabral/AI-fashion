@@ -1,0 +1,17 @@
+<!-- @dsCard group="Mobile" viewport="700x253" subtitle="The native addition to the motion vocabulary" name="Haptics" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+</style>
+</head>
+<body>
+<table style="width:100%;border-collapse:collapse"><tr><th class="n" style="text-align:left;padding:0 0 8px;border-bottom:1px solid var(--border-hairline)">Call</th><th class="n" style="text-align:right;padding:0 0 8px;border-bottom:1px solid var(--border-hairline)">iOS feedback</th><th class="n" style="text-align:right;padding:0 0 8px;border-bottom:1px solid var(--border-hairline)">When</th></tr><tr><td class="n" style="text-align:left;padding:5px 0;border-bottom:1px solid var(--border-hairline)">select()</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">selection</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">a detent, a taste choice, a day change</td></tr><tr><td class="n" style="text-align:left;padding:5px 0;border-bottom:1px solid var(--border-hairline)">tap()</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">impact light</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">a reaction, a piece on or off the rail, a toggle</td></tr><tr><td class="n" style="text-align:left;padding:5px 0;border-bottom:1px solid var(--border-hairline)">thud()</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">impact medium</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">a destructive action fired</td></tr><tr><td class="n" style="text-align:left;padding:5px 0;border-bottom:1px solid var(--border-hairline)">success()</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">notification success</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">a wear logged, a reflection ready</td></tr><tr><td class="n" style="text-align:left;padding:5px 0;border-bottom:1px solid var(--border-hairline)">failure()</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">notification error</td><td class="m" style="text-align:right;padding:5px 0;border-bottom:1px solid var(--border-hairline)">a render or an upload failed</td></tr></table>
+<p class="note">One per user action, in the <b>same frame</b> as the visual, and <b>never the only feedback</b>. Fire-and-forget, safe on hardware without a motor. Reduced-motion users still get haptics; the animation is what backs off.</p>
+</body></html>

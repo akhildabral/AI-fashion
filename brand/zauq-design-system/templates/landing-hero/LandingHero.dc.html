@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Landing hero" description="The ZAUQ front door: wordmark, a Bodoni hero line, the two doors, and an arched photograph." -->
+<helmet><script src="./ds-base.js"></script><style>html,body{margin:0}body{background:var(--surface-page);color:var(--text-body);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}</style></helmet>
+<div style="margin:0 auto;max-width:1100px;padding:0 24px">
+<header style="display:flex;align-items:center;justify-content:space-between;height:64px">
+<span style="font-family:var(--font-brand);font-size:19px;text-transform:uppercase;color:var(--text-strong)"><span style="letter-spacing:.24em">Z</span><span style="letter-spacing:.20em">A</span><span style="letter-spacing:.16em">U</span>Q</span>
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.Button" variant="ghost" size="sm" hint-size="86px,36px">Sign in</x-import>
+</header>
+<section style="display:grid;align-items:center;gap:40px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));padding:64px 0 80px">
+<div>
+<p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.32em;color:var(--text-accent)">A personal stylist for the clothes you own</p>
+<h1 style="margin:16px 0 0;font-family:var(--font-display);font-size:60px;font-weight:500;line-height:.98;letter-spacing:-0.01em;text-wrap:balance;color:var(--text-strong)">Every morning, an outfit. <em style="color:var(--text-accent)">Already waiting.</em></h1>
+<p style="margin:20px 0 0;max-width:32rem;font-family:var(--font-display);font-size:20px;font-style:italic;color:var(--text-muted)">It knows your closet. It lays out the look, shows it on you, and keeps score of what you wear.</p>
+<div style="margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.Button" variant="primary" hint-size="160px,44px">Ask for an invitation</x-import>
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.Button" variant="quiet" hint-size="120px,44px">I have a code</x-import>
+</div>
+<p style="margin:20px 0 0;font-size:12px;color:var(--text-faint)">Invite-only. Five invitations each.</p>
+</div>
+<div style="margin:0 auto;width:100%;max-width:24rem">
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.Arch" aspect="3/4" photo="{{ true }}" hint-size="100%,420px"><img src="../../assets/imagery/mirror.webp" alt="A reflection in an arched brass mirror" style="position:relative;z-index:1;height:100%;width:100%;object-fit:cover"></x-import>
+</div>
+</section>
+<section style="border-top:1px solid var(--border-hairline);padding:64px 0">
+<div style="display:grid;gap:40px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:center">
+<div>
+<p style="margin:0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.28em;color:var(--text-accent)">The morning</p>
+<h2 style="margin:8px 0 0;font-family:var(--font-display);font-size:36px;font-weight:500;line-height:1.04;text-wrap:balance;color:var(--text-strong)">Open the app. <em style="color:var(--text-accent)">It&rsquo;s laid out.</em></h2>
+<p style="margin:12px 0 0;max-width:28rem;font-size:15px;line-height:1.6;color:var(--text-muted)">For the day you have and the weather outside, from what&rsquo;s clean.</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.GarmentTile" image-url="../../assets/imagery/blazer.webp" label="Blazer" aspect="3/4" hint-size="100%,200px"></x-import>
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.GarmentTile" image-url="../../assets/imagery/tank.webp" label="Tank" aspect="3/4" hint-size="100%,200px"></x-import>
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.GarmentTile" image-url="../../assets/imagery/trousers.webp" label="Trousers" aspect="3/4" hint-size="100%,200px"></x-import>
+<x-import component-from-global-scope="ZAUQDesignSystem_69f909.GarmentTile" image-url="../../assets/imagery/pumps.webp" label="Pumps" aspect="3/4" hint-size="100%,200px"></x-import>
+</div>
+</div>
+</section>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;night&quot;,&quot;day&quot;],&quot;default&quot;:&quot;night&quot;,&quot;tsType&quot;:&quot;'night' | 'day'&quot;,&quot;section&quot;:&quot;Room&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() { this.sync(); }
+  componentDidUpdate() { this.sync(); }
+  sync() {
+    document.documentElement.classList.toggle('dark', (this.props.theme ?? 'night') === 'night');
+  }
+}
+
+</script>
+</body>
+</html>

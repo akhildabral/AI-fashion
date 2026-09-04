@@ -9,36 +9,36 @@
 */
 :root {
   /* ---- channels: gallery by day ---- */
-  --c-ink: 34 27 18;          /* #221B12  text */
-  --c-bone: 235 229 215;      /* #EBE5D7  ground (warm gallery paper) */
-  --c-surface: 245 240 230;   /* #F5F0E6  raised */
-  --c-iris: 185 140 59;       /* #B98C3B  brass fill (the accent) */
-  --c-iris-deep: 166 124 48;  /* #A67C30  hover */
-  --c-iris-deeper: 138 102 32;/* #8A6620  active / antique-gold text */
-  --c-iris-soft: 239 227 204; /* #EFE3CC  soft brass wash */
-  --c-spark: 138 102 32;
-  --c-spark-deep: 122 90 34;
-  --c-spark-soft: 231 222 201;
-  --c-danger: 190 66 58;      /* #BE423A */
-  --c-success: 78 122 84;     /* #4E7A54 */
-  --c-warning: 154 110 42;    /* antique amber */
-  --c-on-brass: 26 21 9;      /* ink on a brass fill — both themes */
+  --c-ink: 34 27 18; /* @kind color */          /* #221B12  text */
+  --c-bone: 235 229 215; /* @kind color */      /* #EBE5D7  ground (warm gallery paper) */
+  --c-surface: 245 240 230; /* @kind color */   /* #F5F0E6  raised */
+  --c-iris: 185 140 59; /* @kind color */       /* #B98C3B  brass fill (the accent) */
+  --c-iris-deep: 166 124 48; /* @kind color */  /* #A67C30  hover */
+  --c-iris-deeper: 138 102 32; /* @kind color *//* #8A6620  active / antique-gold text */
+  --c-iris-soft: 239 227 204; /* @kind color */ /* #EFE3CC  soft brass wash */
+  --c-spark: 138 102 32; /* @kind color */
+  --c-spark-deep: 122 90 34; /* @kind color */
+  --c-spark-soft: 231 222 201; /* @kind color */
+  --c-danger: 190 66 58; /* @kind color */      /* #BE423A */
+  --c-success: 78 122 84; /* @kind color */     /* #4E7A54 */
+  --c-warning: 154 110 42; /* @kind color */    /* antique amber */
+  --c-on-brass: 26 21 9; /* @kind color */      /* ink on a brass fill — both themes */
 
   /* ---- fixed brass stops for bezels and niches (non-alpha) ---- */
-  --c-brass-hi: #cba24e;
-  --c-brass: #b98c3b;
-  --c-brass-lo: #7a5a22;
-  --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
-  --c-niche-edge: rgba(239, 231, 215, 0.85);
+  --c-brass-hi: #cba24e; /* @kind color */
+  --c-brass: #b98c3b; /* @kind color */
+  --c-brass-lo: #7a5a22; /* @kind color */
+  --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%); /* @kind color */
+  --c-niche-edge: rgba(239, 231, 215, 0.85); /* @kind color */
   /* Ink for anything drawn INSIDE a niche. The niche is light in both themes,
      so --c-ink inverts underneath it and cannot be used there. */
-  --text-in-niche: #1a1509;
-  --text-in-niche-muted: rgba(26, 21, 9, 0.5);
-  --c-sheen: rgba(255, 255, 255, 0.16);
+  --text-in-niche: #1a1509; /* @kind color */
+  --text-in-niche-muted: rgba(26, 21, 9, 0.5); /* @kind color */
+  --c-sheen: rgba(255, 255, 255, 0.16); /* @kind color */
 
   /* ---- film grain ---- */
-  --grain-blend: multiply;
-  --grain-op: 0.045;
+  --grain-blend: multiply; /* @kind other */
+  --grain-op: 0.045; /* @kind other */
 
   /* ---- hex aliases ---- */
   --color-ink: #221b12;
@@ -55,6 +55,16 @@
   --brand-ink: #0b0a09;
   --brand-cream: #f2ede3;
   --brand-neutral: #d6cfc0;
+  --brand-muted: #b9ae97;  /* the ad subline grey — cream at 55% over ink */
+  /* Secondary, EDITORIAL ONLY — never in an interface, never as an accent. */
+  --brand-terracotta: #a9563a;
+  /* The three grounds the identity may sit on (the guide's own list). */
+  --ground-ink: #0b0a09;
+  --ground-cream: #f2ede3;
+  --ground-neutral: #d6cfc0;
+  /* Ambient washes behind a screen (from the native app; web parity). */
+  --wash-ambient-a: rgba(160, 120, 40, 0.08);
+  --wash-ambient-b: rgba(124, 45, 42, 0.05);
 
   /* ---- semantic aliases: use these in product code ---- */
   --surface-page: rgb(var(--c-bone));
@@ -79,31 +89,31 @@
 .dark,
 [data-theme='dark'] {
   /* ---- channels: atelier by night ---- */
-  --c-ink: 236 229 216;       /* #ECE5D8  bone text */
-  --c-bone: 14 13 11;         /* #0E0D0B  near-black ground */
-  --c-surface: 26 23 20;      /* #1A1714  raised */
-  --c-iris: 200 164 94;       /* #C8A45E  brass */
-  --c-iris-deep: 217 184 122; /* #D9B87A  brighter */
-  --c-iris-deeper: 228 203 148;/* #E4CB94 brightest */
-  --c-iris-soft: 42 33 20;
-  --c-spark: 217 184 122;
-  --c-spark-deep: 228 203 148;
-  --c-spark-soft: 42 33 20;
-  --c-danger: 216 108 100;    /* #D86C64 reads on near-black */
-  --c-success: 138 184 148;
-  --c-warning: 200 164 94;
+  --c-ink: 236 229 216; /* @kind color */       /* #ECE5D8  bone text */
+  --c-bone: 14 13 11; /* @kind color */         /* #0E0D0B  near-black ground */
+  --c-surface: 26 23 20; /* @kind color */      /* #1A1714  raised */
+  --c-iris: 200 164 94; /* @kind color */       /* #C8A45E  brass */
+  --c-iris-deep: 217 184 122; /* @kind color */ /* #D9B87A  brighter */
+  --c-iris-deeper: 228 203 148; /* @kind color *//* #E4CB94 brightest */
+  --c-iris-soft: 42 33 20; /* @kind color */
+  --c-spark: 217 184 122; /* @kind color */
+  --c-spark-deep: 228 203 148; /* @kind color */
+  --c-spark-soft: 42 33 20; /* @kind color */
+  --c-danger: 216 108 100; /* @kind color */    /* #D86C64 reads on near-black */
+  --c-success: 138 184 148; /* @kind color */
+  --c-warning: 200 164 94; /* @kind color */
 
-  --c-brass-hi: #e4cb94;
-  --c-brass: #c8a45e;
-  --c-brass-lo: #8f6e32;
+  --c-brass-hi: #e4cb94; /* @kind color */
+  --c-brass: #c8a45e; /* @kind color */
+  --c-brass-lo: #8f6e32; /* @kind color */
   /* A warm-lit vitrine glowing in a dark room: near-white, so product-shot
      backgrounds melt into it. */
-  --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
-  --c-niche-edge: rgba(243, 237, 224, 0.9);
-  --c-sheen: rgba(233, 217, 188, 0.07);
+  --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%); /* @kind color */
+  --c-niche-edge: rgba(243, 237, 224, 0.9); /* @kind color */
+  --c-sheen: rgba(233, 217, 188, 0.07); /* @kind color */
 
-  --grain-blend: screen;
-  --grain-op: 0.05;
+  --grain-blend: screen; /* @kind other */
+  --grain-op: 0.05; /* @kind other */
 
   /* Deliberately NOT re-mapped: the niche stays light at night, so ink drawn
      inside it stays dark. This is the one place the theme does not flip. */

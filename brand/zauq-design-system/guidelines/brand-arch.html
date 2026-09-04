@@ -1,26 +1,23 @@
-<!-- @dsCard group="Brand" viewport="700x210" subtitle="One curved form, one crown geometry, every aspect" name="The arch" -->
+<!-- @dsCard group="Brand" viewport="700x255" subtitle="The mark&rsquo;s geometry, and the one rule that scales it" name="The arch" -->
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="../styles.css">
 <style>
-  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
-  .row { display: flex; gap: 14px; flex-wrap: wrap; }
-  .sw { display: flex; flex-direction: column; gap: 7px; }
-  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
-  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
-  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.row{display:flex;gap:14px;align-items:flex-end}
+.sw{display:flex;flex-direction:column;gap:5px;align-items:center}
 </style>
 </head>
 <body>
-<div class="row" style="align-items:flex-end;gap:16px;">
-  <div class="sw"><div class="zq-arch-bezel" style="width:84px;aspect-ratio:3 / 4;--arch-h:28%;"><div class="zq-arch-niche"></div></div><span class="n">3/4</span><span class="hex">28%</span></div>
-  <div class="sw"><div class="zq-arch-bezel" style="width:84px;aspect-ratio:4 / 5;--arch-h:29.8%;"><div class="zq-arch-niche"></div></div><span class="n">4/5</span><span class="hex">29.8%</span></div>
-  <div class="sw"><div class="zq-arch-bezel" style="width:84px;aspect-ratio:5 / 6;--arch-h:31.1%;"><div class="zq-arch-niche"></div></div><span class="n">5/6</span><span class="hex">31.1%</span></div>
-  <div class="sw"><div class="zq-arch-bezel" style="width:84px;aspect-ratio:1 / 1;--arch-h:37.3%;"><div class="zq-arch-niche"></div></div><span class="n">1/1</span><span class="hex">37.3%</span></div>
-  <div class="sw"><div class="zq-arch-bezel" style="width:120px;aspect-ratio:4 / 3;--arch-h:49.7%;"><div class="zq-arch-niche"></div></div><span class="n">4/3</span><span class="hex">49.7%</span></div>
+
+<div class="row" style="gap:22px">
+<div class="sw"><div class="zq-arch-bezel" style="width:96px;aspect-ratio:3 / 4;--arch-h:37.5%"><div class="zq-arch-niche"></div></div><span class="n">the mark &middot; 3/4</span></div>
+<div style="flex:1"><table style="width:100%;border-collapse:collapse"><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Frame</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">300 &times; 400 (3/4)</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Crown</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">semicircle, r = 146 = w/2</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Body</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">250 tall, straight sides</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Feet</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">4px radius (--arch-foot)</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Stroke</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">6 bare &middot; 4 with the script</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Script</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">&#1584;&#1608;&#1602;, Noto Nastaliq 600, under the crown</td></tr><tr><td class="n" style="padding:3px 0;border-bottom:1px solid var(--border-hairline)">Rule</td><td class="m" style="padding:3px 0;text-align:right;border-bottom:1px solid var(--border-hairline)">62 &times; 3 gold, centred under the script</td></tr></table></div>
 </div>
-<p class="hex" style="margin:14px 0 0;max-width:580px;line-height:1.6;">The crown is always 46% of the width across and 0.373&times; the width tall, so a landscape board and a portrait mirror share one arch. Feet carry a 5px radius.</p>
-</body>
-</html>
+<p class="note">One rule scales it everywhere: horizontal radius 50%, crown height w/2. The mark, the niche, the mirror and the loading skeleton all draw the same curve &mdash; nothing in ZAUQ has a second arch.</p>
+</body></html>

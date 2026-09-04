@@ -1,0 +1,22 @@
+<!-- @dsCard group="Layout" viewport="700x203" subtitle="The Closet board: 2 → 3 → 5 → 6, gap 16 → 24" name="Column ladder" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0}
+.mini{border:1px solid var(--border-hairline);border-radius:var(--radius);background:var(--surface-raised)}
+.cell{background:rgb(var(--c-iris) / .30);border-radius:2px;height:34px}
+</style>
+</head>
+<body>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+<div><p class="n" style="margin:0 0 6px">base · 2-up</p><div class="mini" style="padding:6px;display:grid;grid-template-columns:repeat(2,1fr);gap:4px"><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div></div></div><div><p class="n" style="margin:0 0 6px">sm · 3-up</p><div class="mini" style="padding:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px"><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div></div></div><div><p class="n" style="margin:0 0 6px">lg · 5-up</p><div class="mini" style="padding:6px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px"><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div></div></div><div><p class="n" style="margin:0 0 6px">xl · 6-up</p><div class="mini" style="padding:6px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px"><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div><div class="cell" style="height:26px"></div></div></div>
+</div>
+<p class="note" style="margin-top:14px">--cols-board 2/3/5/6 · gap --grid-gap-lg 24 &nbsp;|&nbsp; the Today brief: --cols-brief 3 → 4 (md), gap 12 → 20 (sm) → 24 (lg) &nbsp;|&nbsp; a landing room: 1 → 2 (md), gap 40.<br>Tiles are fluid: minmax(0, 1fr) always, so a long label can never widen a column.</p>
+</body></html>

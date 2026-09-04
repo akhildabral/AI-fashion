@@ -16,7 +16,7 @@ const IMG_MIRROR = '../../assets/imagery'
 // the pieces on you, each a switch — and the meter; after a render, the
 // decision. Nothing renders until you tap.
 
-const DRESSING_LINES = ['Taking your measure\u2026', 'Cutting the pieces\u2026', 'Fitting the shoulders\u2026', 'Setting the light\u2026', 'Checking the proportions\u2026']
+const DRESSING_LINES = ['Taking your measure…', 'Cutting the pieces…', 'Fitting the shoulders…', 'Setting the light…', 'Checking the proportions…']
 
 const CLOSET = [
   { id: 'blazer', label: 'Blazer' },
@@ -103,7 +103,8 @@ export function MirrorScreen({ onFlash }) {
 
           <div className="zq-rise-2" style={{ marginTop: 'var(--space-6)' }}>
             <MirrorFrame>
-              <div style={{ position: 'relative', aspectRatio: '3 / 4', width: '100%' }}>
+              {/* A mirror holds a standing figure: 2/3, not 3/4. */}
+              <div style={{ position: 'relative', aspectRatio: 'var(--ratio-mirror)', width: '100%' }}>
                 {status === 'rendering' && (
                   <>
                     <img src={`${IMG_MIRROR}/mirror.webp`} alt="" style={{ position: 'absolute', inset: 0, height: '100%', width: '100%', objectFit: 'cover', opacity: 0.25, filter: 'blur(2px)' }} />
@@ -231,7 +232,7 @@ export function MirrorScreen({ onFlash }) {
               {/* the button, then the meter as a hint line beneath it */}
               <div style={{ marginTop: 'var(--space-6)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-4)' }}>
                 <Button variant="primary" disabled={chosen.length === 0 || status === 'rendering'} onClick={fire}>
-                  {status === 'rendering' ? 'Rendering\u2026' : 'See it on me \u00B7 1 render'}
+                  {status === 'rendering' ? 'Rendering…' : 'See it on me · 1 render'}
                 </Button>
               </div>
               <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--text-meta)', color: 'var(--text-muted)' }}>
@@ -245,7 +246,7 @@ export function MirrorScreen({ onFlash }) {
             <section className="zq-rise" style={{ marginTop: 'var(--space-8)', borderTop: 'var(--border-hair) solid var(--border-hairline)', paddingTop: 'var(--space-6)' }}>
               <p style={EYEBROW}>Then</p>
               <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--text-meta)', color: 'var(--text-muted)' }}>
-                This render: {pieces.filter((p) => p.on).map((p) => p.piece.label.toLowerCase()).join(' \u00B7 ')}
+                This render: {pieces.filter((p) => p.on).map((p) => p.piece.label.toLowerCase()).join(' · ')}
               </p>
               <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-4)' }}>
                 {decided.wear ? (
@@ -253,9 +254,9 @@ export function MirrorScreen({ onFlash }) {
                     Logged for today
                   </span>
                 ) : (
-                  <Button variant="primary" onClick={() => { setDecided((d) => ({ ...d, wear: true })); onFlash('Logged. That\u2019s nine days running.') }}>Wearing it</Button>
+                  <Button variant="primary" onClick={() => { setDecided((d) => ({ ...d, wear: true })); onFlash('Logged. That’s nine days running.') }}>Wearing it</Button>
                 )}
-                <Button variant="ghost" disabled={Boolean(decided.keep)} onClick={() => { setDecided((d) => ({ ...d, keep: 'Kept' })); onFlash('Kept. It\u2019s in your outfits.') }}>
+                <Button variant="ghost" disabled={Boolean(decided.keep)} onClick={() => { setDecided((d) => ({ ...d, keep: 'Kept' })); onFlash('Kept. It’s in your outfits.') }}>
                   {decided.keep ?? 'Keep the outfit'}
                 </Button>
                 <Button variant="quiet" disabled={Boolean(decided.tomorrow)} onClick={() => { setDecided((d) => ({ ...d, tomorrow: 'Hung for tomorrow' })); onFlash('Hung for tomorrow.') }}>
@@ -263,8 +264,8 @@ export function MirrorScreen({ onFlash }) {
                 </Button>
                 <Button variant="quiet" onClick={() => onFlash('Link copied.')}>Share</Button>
                 <MoreMenu up align="right" label="More for this render">
-                  <MenuItem onClick={() => onFlash('Rendering again \u2014 free once.')}>Not right? Try again &mdash; free once</MenuItem>
-                  <MenuItem danger onClick={() => onFlash('Flagged. We\u2019ll look at it.')}>Not my clothes</MenuItem>
+                  <MenuItem onClick={() => onFlash('Rendering again — free once.')}>Not right? Try again &mdash; free once</MenuItem>
+                  <MenuItem danger onClick={() => onFlash('Flagged. We’ll look at it.')}>Not my clothes</MenuItem>
                 </MoreMenu>
               </div>
             </section>

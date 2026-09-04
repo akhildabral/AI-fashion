@@ -115,7 +115,7 @@ export function ClosetScreen({ onFlash }) {
         <SectionHead title="What the closet is missing" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
           {[
-            ['A mid layer in cream', 'Unlocks 6 outfits you can\u2019t build today.'],
+            ['A mid layer in cream', 'Unlocks 6 outfits you can’t build today.'],
             ['Flat shoes for work', 'Four briefs stalled on footwear this month.'],
             ['One more bottom in navy', 'Your tops outnumber your bottoms two to one.'],
           ].map(([t, l]) => (

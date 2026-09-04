@@ -1,0 +1,23 @@
+<!-- @dsCard group="Ratio" viewport="700x310" subtitle="A semicircular crown; portrait only, 1/1 is the limit" name="Arch ratios" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.row{display:flex;gap:14px;align-items:flex-end}
+.sw{display:flex;flex-direction:column;gap:5px;align-items:center}
+</style>
+</head>
+<body>
+
+<div class="row">
+<div class="sw"><div class="zq-arch-bezel" style="width:68px;aspect-ratio:2 / 3;--arch-h:33.3%"><div class="zq-arch-niche"></div></div><span class="m">2 / 3</span><span class="n">mirror</span><span class="m" style="color:var(--text-faint)">33.3%</span></div><div class="sw"><div class="zq-arch-bezel" style="width:76px;aspect-ratio:3 / 4;--arch-h:37.5%"><div class="zq-arch-niche"></div></div><span class="m">3 / 4</span><span class="n">the brand ratio</span><span class="m" style="color:var(--text-faint)">37.5%</span></div><div class="sw"><div class="zq-arch-bezel" style="width:80px;aspect-ratio:4 / 5;--arch-h:40%"><div class="zq-arch-niche"></div></div><span class="m">4 / 5</span><span class="n">portrait</span><span class="m" style="color:var(--text-faint)">40%</span></div><div class="sw"><div class="zq-arch-bezel" style="width:84px;aspect-ratio:5 / 6;--arch-h:41.7%"><div class="zq-arch-niche"></div></div><span class="m">5 / 6</span><span class="n">garment</span><span class="m" style="color:var(--text-faint)">41.7%</span></div><div class="sw"><div class="zq-arch-bezel" style="width:92px;aspect-ratio:1 / 1;--arch-h:50%"><div class="zq-arch-niche"></div></div><span class="m">1 / 1</span><span class="n">the limit</span><span class="m" style="color:var(--text-faint)">50%</span></div>
+<div class="sw"><div style="width:110px;aspect-ratio:4 / 3;border-radius:var(--radius);border:1px solid var(--border-hairline);background:var(--surface-raised)"></div><span class="m">4 / 3</span><span class="n" style="color:var(--text-accent)">rectangle</span><span class="m" style="color:var(--text-faint)">no crown</span></div>
+</div>
+<p class="note">CORRECTED: the crown is a <b>semicircle of radius w/2</b> &mdash; the brand mark&rsquo;s own geometry &mdash; so --arch-h = 50% &times; (w/h). The app shipped a flattened 46% / 0.373&times; ellipse, which did not match the logo and stretched on wide frames.<br>An arch is therefore a PORTRAIT form. Anything wider than 1/1 is a 3px rectangle: --ratio-photo 4/3, --ratio-board 16/9.</p>
+</body></html>

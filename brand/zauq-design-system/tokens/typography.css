@@ -14,10 +14,10 @@
   --font-script: 'Noto Nastaliq Urdu', serif;
 
   /* weights actually used */
-  --weight-regular: 400;
-  --weight-medium: 500;   /* display headings sit here, never bold */
-  --weight-semibold: 600; /* labels, buttons, tabs */
-  --weight-bold: 700;
+  --weight-regular: 400; /* @kind font */
+  --weight-medium: 500; /* @kind font */   /* display headings sit here, never bold */
+  --weight-semibold: 600; /* @kind font */ /* labels, buttons, tabs */
+  --weight-bold: 700; /* @kind font */
 
   /* display scale — Bodoni, leading tightens as size grows */
   --text-display-1: 4.5rem;   /* 72px  landing hero (lg) */
@@ -28,10 +28,10 @@
   --text-display-6: 1.5rem;   /* 24px  card / page head */
   --text-display-7: 1.25rem;  /* 20px  modal title */
 
-  --leading-display-tight: 0.98;
-  --leading-display: 1.04;
-  --leading-display-loose: 1.14;
-  --tracking-display: -0.01em;
+  --leading-display-tight: 0.98; /* @kind font */
+  --leading-display: 1.04; /* @kind font */
+  --leading-display-loose: 1.14; /* @kind font */
+  --tracking-display: -0.01em; /* @kind font */
 
   /* body / UI scale — Archivo */
   --text-body-lg: 1.0625rem;  /* 17px */
@@ -42,20 +42,20 @@
   --text-micro: 0.6875rem;    /* 11px  tile labels */
   --text-nano: 0.625rem;      /* 10px  eyebrow labels */
 
-  --leading-body: 1.6;
-  --leading-ui: 1.4;
+  --leading-body: 1.6; /* @kind font */
+  --leading-ui: 1.4; /* @kind font */
 
   /* the tracked-label ladder — the brand's most-repeated gesture */
-  --tracking-label-xs: 0.12em;
-  --tracking-label-sm: 0.14em;
-  --tracking-label: 0.16em;
-  --tracking-label-lg: 0.18em;
-  --tracking-label-xl: 0.2em;
-  --tracking-eyebrow: 0.28em;
-  --tracking-eyebrow-wide: 0.32em;
+  --tracking-label-xs: 0.12em; /* @kind font */
+  --tracking-label-sm: 0.14em; /* @kind font */
+  --tracking-label: 0.16em; /* @kind font */
+  --tracking-label-lg: 0.18em; /* @kind font */
+  --tracking-label-xl: 0.2em; /* @kind font */
+  --tracking-eyebrow: 0.28em; /* @kind font */
+  --tracking-eyebrow-wide: 0.32em; /* @kind font */
 
   /* the wordmark's kerning, per the brand guide */
-  --wordmark-track-za: 0.24em;
-  --wordmark-track-au: 0.2em;
-  --wordmark-track-uq: 0.16em;
+  --wordmark-track-za: 0.24em; /* @kind font */
+  --wordmark-track-au: 0.2em; /* @kind font */
+  --wordmark-track-uq: 0.16em; /* @kind font */
 }

@@ -18,12 +18,12 @@ export function SkeletonBlock({ className = '', style }) {
 
 /** A grid of pulsing arches, matching the app's garment grids. */
 export function ArchSkeleton({ count = 6, aspect = '5/6', columns = 'repeat(auto-fill, minmax(140px, 1fr))', className = '', style }) {
-  const ARCH_H = { '3/4': '28%', '4/5': '29.8%', '5/6': '31.1%', '1/1': '37.3%' }
+  const ARCH_H = { '2/3': '33.3%', '3/4': '37.5%', '4/5': '40%', '5/6': '41.7%', '1/1': '50%' }
   return (
     <div aria-busy="true" aria-label="Loading" className={className} style={{ display: 'grid', gridTemplateColumns: columns, gap: 'var(--space-4)', ...style }}>
       <style>{'@keyframes zq-pulse{50%{opacity:.5}}'}</style>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="zq-arch-bezel" style={{ aspectRatio: aspect.replace('/', ' / '), '--arch-h': ARCH_H[aspect] ?? '31.1%', opacity: 0.6, animation: 'zq-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite', animationDelay: `${i * 80}ms` }}>
+        <div key={i} className="zq-arch-bezel" style={{ aspectRatio: aspect.replace('/', ' / '), '--arch-h': ARCH_H[aspect] ?? '41.7%', opacity: 0.6, animation: 'zq-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite', animationDelay: `${i * 80}ms` }}>
           <div className="zq-arch-niche" />
         </div>
       ))}

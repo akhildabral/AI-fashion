@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" viewport="700x260" subtitle="Buttons, icon button and choice chips, every state" name="Actions" -->
+<!-- @dsCard group="Components" viewport="700x307" subtitle="Buttons, icon button and choice chips, every size and state" name="Actions" -->
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -25,25 +25,30 @@ function Demo() {
   const [pick, setPick] = React.useState('Work')
   return (
     <div className="col">
-      <div className="row">
+      <div className="row rule">
+        <span className="cap" style={{ width: 44 }}>44</span>
         <Button variant="primary">Wear it</Button>
         <Button variant="ghost">Show me another</Button>
         <Button variant="quiet">Not today</Button>
         <Button variant="danger">Let it go</Button>
         <Button variant="dark">Join</Button>
+        <Button variant="primary" disabled>Disabled</Button>
       </div>
       <div className="row rule">
+        <span className="cap" style={{ width: 44 }}>36</span>
         <Button variant="primary" size="sm">Small</Button>
         <Button variant="ghost" size="sm">Small ghost</Button>
-        <Button variant="primary" disabled>Disabled</Button>
+        <Button variant="quiet" size="sm">Small quiet</Button>
+        <Button variant="primary" size="sm" disabled>Disabled</Button>
         <IconButton label="More options" />
         <IconButton label="Close"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg></IconButton>
-        <span className="cap">44 &middot; 36 &middot; 36</span>
       </div>
       <div className="row rule" style={{ gap: 8 }}>
+        <span className="cap" style={{ width: 44 }}>36</span>
         {['Work', 'Weekend', 'Evening', 'Occasion'].map((k) => (
           <Chip key={k} on={pick === k} onClick={() => setPick(k)}>{k}</Chip>
         ))}
+        <Chip disabled>Unavailable</Chip>
       </div>
     </div>
   )

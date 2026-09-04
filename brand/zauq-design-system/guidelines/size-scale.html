@@ -1,0 +1,21 @@
+<!-- @dsCard group="Sizes" viewport="700x210" subtitle="Three heights, and the job each one has" name="Control heights" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.ctl{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);font-family:var(--font-sans);font-weight:600}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:20px;align-items:flex-end">
+<div style="flex:1"><div class="ctl" style="height:44px;padding:0 24px;background:var(--fill-accent);color:var(--text-on-brass);font-size:14px">44px</div><p class="n" style="margin:8px 0 0">--control-h</p><p class="m" style="margin:3px 0 0;line-height:1.5">the default: any primary action, any field</p></div><div style="flex:1"><div class="ctl" style="height:36px;padding:0 20px;background:var(--fill-accent);color:var(--text-on-brass);font-size:13px">36px</div><p class="n" style="margin:8px 0 0">--control-h-sm</p><p class="m" style="margin:3px 0 0;line-height:1.5">a row of many, a secondary action, a chip</p></div><div style="flex:1"><div class="ctl" style="height:32px;padding:0 10px;background:var(--fill-accent);color:var(--text-on-brass);font-size:13px">32px</div><p class="n" style="margin:8px 0 0">--control-h-xs</p><p class="m" style="margin:3px 0 0;line-height:1.5">a filter token &mdash; the quietest control there is</p></div>
+</div>
+<p class="note">Vertical padding is <b>never</b> set on a control &mdash; the height sets it, which is what lets a row of buttons, chips and filters align with no adjustment. On Android the visual stays 44/36/32 but the <b>effective touch area is never below 48dp</b> (hitSlop).</p>
+</body></html>

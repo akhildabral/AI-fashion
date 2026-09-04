@@ -1,0 +1,26 @@
+<!-- @dsCard group="Motion" viewport="700x209" subtitle="Hover, press, focus, selected, disabled &mdash; hover this card" name="Interaction states" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.ctl{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);font-family:var(--font-sans);font-weight:600}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+<button class="zq-press" style="height:44px;padding:0 24px;border:none;border-radius:var(--radius);background:var(--fill-accent);color:var(--text-on-brass);font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer">Press me</button>
+<button style="height:44px;padding:0 20px;border-radius:var(--radius);border:1px solid var(--border-control);background:transparent;color:var(--text-body);font-family:var(--font-sans);font-size:14px;cursor:pointer" onmouseover="this.style.borderColor='var(--fill-accent)';this.style.color='var(--text-strong)'" onmouseout="this.style.borderColor='var(--border-control)';this.style.color='var(--text-body)'">Hover me</button>
+<span style="height:44px;display:inline-flex;align-items:center;padding:0 20px;border-radius:var(--radius);outline:2px solid rgb(var(--c-iris) / .7);outline-offset:2px;font-family:var(--font-sans);font-size:14px;color:var(--text-body)">Focused</span>
+<div class="zq-arch-bezel" style="width:52px;aspect-ratio:5 / 6;--arch-h:41.7%;filter:brightness(1.18) saturate(1.05)"><div class="zq-arch-niche"></div></div>
+<span class="n">selected arch</span>
+<button disabled style="height:44px;padding:0 24px;border:none;border-radius:var(--radius);background:var(--fill-accent);color:var(--text-on-brass);font-family:var(--font-sans);font-size:14px;font-weight:600;opacity:.5;cursor:not-allowed">Disabled</button>
+</div>
+<p class="note"><b>Hover</b> brass-tints a border or lifts text from 55% to 100% ink &mdash; never a colour change on a fill except primary &rarr; brass-deep. <b>Press</b> is scale(0.97) in 150ms, on every tappable, no exceptions (plus one haptic on native). <b>Focus</b> is a 2px brass outline at 70%, offset 2; fields also take a 2px brass ring at 20%. <b>Selected</b>: an arch brightens 1.18, a chip fills brass, a tab takes the brass rule. <b>Disabled</b> is opacity .5 and not-allowed &mdash; never a greyed colour.</p>
+</body></html>

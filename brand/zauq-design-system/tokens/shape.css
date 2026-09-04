@@ -7,22 +7,44 @@
 */
 :root {
   --radius: 3px;      /* everything rectangular */
-  --radius-sm: 2px;   /* filter tokens, tape thumb */
-  --radius-lg: 5px;   /* the arch's feet */
+  --radius-sm: 2px;   /* the tape thumb ONLY — filters corrected to 3px */
+  --radius-lg: 5px;   /* DEPRECATED: was the arch's feet — now --arch-foot 3px.
+                         Nothing new should use it. */
 
   --border-hair: 1px;
   --rule-active: 2px; /* the brass rule under an active tab / today */
   --bezel: 2px;       /* arch bezel thickness (3px on the Mirror) */
 
-  /* the arch: crown is 46% of the width across, 0.373x the width tall.
-     --arch-h is that height as a % of the frame height (0.373 x w/h). */
-  --arch-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
-  --arch-h-3-4: 28%;
-  --arch-h-4-5: 29.8%;
-  --arch-h-5-6: 31.1%;
-  --arch-h-square: 37.3%;
-  --arch-h-5-4: 46.6%;
-  --arch-h-4-3: 49.7%;
-  /* the Mirror's own, slightly taller crown */
-  --mirror-radius: 48% 48% 6px 6px / 26% 26% 6px 6px;
+  /* THE ARCH — corrected geometry (v2).
+     The brand mark is the ground truth: its crown is a TRUE SEMICIRCLE of
+     radius w/2 (the mark's path arcs 146px across a 292px-wide box). The app
+     shipped a flattened, elliptical crown (46% across, 0.373x the width tall)
+     which (a) did not match the logo and (b) stretched grotesquely on frames
+     wider than square. Corrected rule:
+
+         horizontal radius = 50% of the width   (a half-circle, always)
+         crown height      = w / 2
+         --arch-h          = 50% x (w / h)      (as a % of the frame HEIGHT)
+
+     Because the crown is half the width, an arch is a PORTRAIT form: at 1/1
+     the crown already eats half the frame. Landscape surfaces are NOT arches
+     — they are 3px rectangles. See --ratio-* in layout.css. */
+  --arch-foot: 3px;   /* the brand guide: feet 2-3px. 3px = the house radius. */
+  /* The mark's stroke is a fixed 1:104 of the arch width (the official SVG
+     set), so every arch carries the same optical hairline at any size. Never
+     thicken it; below 32px the outlined mark becomes the SOLID fill. */
+  --arch-stroke-ratio: 0.00962;
+  /* NOTE: the radius itself is composed in patterns.css ON .zq-arch-bezel /
+     .zq-arch-niche, never here. A nested var() in a :root declaration is
+     substituted at :root, where --arch-h is unset, so a token like
+     --arch-radius would freeze every arch at the fallback crown. Set
+     --arch-h on the frame; the rules do the rest. */
+  --arch-h-2-3: 33.3%;    /* the Mirror: a full-length figure */
+  --arch-h-3-4: 37.5%;    /* the brand mark's own ratio — the default */
+  --arch-h-4-5: 40%;
+  --arch-h-5-6: 41.7%;    /* the garment tile */
+  --arch-h-square: 50%;   /* the widest an arch may ever be */
+  /* The Mirror is the same semicircle at 2/3, with a heavier 3px bezel and
+     slightly larger feet. There is no second crown formula. */
+  --mirror-radius: 50% 50% 6px 6px / 33.3% 33.3% 6px 6px;
 }

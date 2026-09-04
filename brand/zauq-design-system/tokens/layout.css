@@ -1,0 +1,76 @@
+/* ZAUQ layout, grid, ratio and responsiveness.
+   Lifted from the product's real Tailwind usage (default Tailwind breakpoints;
+   `PageShell` in ui.tsx; the Closet board, the Today brief, the landing rooms).
+   The system is a FLUID COLUMN LADDER, not a fixed 12-column grid: a centred
+   measure, symmetric gutters, and a column count that steps at breakpoints.
+*/
+:root {
+  /* ---- breakpoints (Tailwind defaults — the product's own) ---- */
+  --bp-sm: 640px;  /* @kind other */  /* phone → large phone: gutter 16→24, type steps up */
+  --bp-md: 768px;  /* @kind other */  /* the one-column → two-column switch */
+  --bp-lg: 1024px; /* @kind other */  /* boards go 5-up; the room sidebar appears */
+  --bp-xl: 1280px; /* @kind other */  /* boards go 6-up; hero reaches 72px */
+
+  /* ---- measures: every page is one of these, centred ---- */
+  --measure-prose: 42rem;   /* 672px  one column of reading (max-w-2xl) */
+  --measure-narrow: 48rem;  /* 768px  auth, legal, settings (max-w-3xl) */
+  --measure: 72rem;         /* 1152px the default page (max-w-6xl) */
+  --measure-wide: 1400px;   /* the header and the wide Closet board */
+  --measure-modal: 32rem;   /* 512px  every modal (max-w-lg) */
+  --measure-note: 28rem;    /* 448px  a note, a plaque body (max-w-md) */
+  --measure-line: 30rem;    /* 480px  a supporting line under a headline */
+
+  /* ---- page padding: the shell's own, and it steps once ---- */
+  --pad-x: var(--space-4);        /* 16px  < 640 */
+  --pad-x-sm: var(--space-6);     /* 24px  ≥ 640 */
+  --pad-y: var(--space-8);        /* 32px  < 640 */
+  --pad-y-sm: var(--space-10);    /* 40px  ≥ 640 */
+
+  /* ---- column ladders: how many columns a grid is, per breakpoint ---- */
+  --cols-board: 2; /* @kind other */      /* the Closet board: 2 → 3 (sm) → 5 (lg) → 6 (xl) */
+  --cols-board-sm: 3; /* @kind other */
+  --cols-board-lg: 5; /* @kind other */
+  --cols-board-xl: 6; /* @kind other */
+  --cols-brief: 3; /* @kind other */      /* the Today brief: 3 → 4 (md) */
+  --cols-brief-md: 4; /* @kind other */
+  --cols-rooms: 1; /* @kind other */      /* a landing room: 1 → 2 (md) */
+  --cols-rooms-md: 2; /* @kind other */
+
+  /* ---- grid gaps: tighter than the page padding, always ---- */
+  --grid-gap: var(--space-3);      /* 12px  brief / landing tiles */
+  --grid-gap-sm: var(--space-5);   /* 20px  ≥ 640 */
+  --grid-gap-lg: var(--space-6);   /* 24px  ≥ 1024 — also the Closet board's gap */
+  --gap-rooms: var(--space-10);    /* 40px  between a room's copy and its picture */
+
+  /* ---- the two-column room: content + a fixed sidebar ---- */
+  --room-aside: 340px;
+  --room-split: minmax(0, 1fr) var(--room-aside); /* @kind other */
+  --room-gap: var(--space-12);      /* 48px  ≥ 1024 */
+  --room-gap-xl: var(--space-16);   /* 64px  ≥ 1280 */
+  --hero-split: 1.05fr 0.95fr; /* @kind other */      /* the landing hero, ≥ 768 */
+
+  /* ---- section rhythm ---- */
+  --section-y-page: var(--space-12);      /* 48px  between landing sections */
+  --section-y-page-sm: var(--space-16);   /* 64px  ≥ 640 */
+  --stack-tight: var(--space-2);          /* label → line */
+  --stack: var(--space-4);                /* element → element */
+  --stack-loose: var(--space-8);           /* block → block */
+  --stack-group: var(--space-10);          /* group → group */
+
+  /* ---- proportion: the aspect ratios the system uses, and nothing else ----
+     ARCHED surfaces are PORTRAIT ONLY — the crown is a semicircle of half the
+     width, so 1/1 is the limit. Anything wider is a 3px rectangle. */
+  --ratio-mirror: 2 / 3; /* @kind other */    /* the Mirror: a standing figure */
+  --ratio-garment: 5 / 6; /* @kind other */   /* a garment in its niche (Closet, brief) */
+  --ratio-tile: 3 / 4; /* @kind other */      /* the brand ratio: landing tiles, feed photos */
+  --ratio-portrait: 4 / 5; /* @kind other */  /* a tall garment, a person */
+  --ratio-arch-max: 1 / 1; /* @kind other */  /* never arch anything wider */
+  /* RECTANGULAR surfaces — 3px radius, hairline border, no bezel, no crown. */
+  --ratio-photo: 4 / 3; /* @kind other */     /* a landscape photograph */
+  --ratio-board: 16 / 9; /* @kind other */    /* a wide scene, a video still */
+  --ratio-square: 1 / 1; /* @kind other */    /* the avatar block, a swatch */
+
+  /* type scale ratio: the display ladder is a major third (1.25) rounded to
+     the product's real sizes; the UI ladder steps 1px at a time instead. */
+  --type-ratio: 1.25; /* @kind other */
+}

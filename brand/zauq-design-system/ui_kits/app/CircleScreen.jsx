@@ -82,9 +82,11 @@ function LookCard({ post, onNote }) {
         {post.line}
       </p>
       <div style={{ marginTop: 'var(--space-3)', padding: '0 var(--space-4)' }}>
-        <Arch aspect="4/3" photo>
+        {/* A landscape picture is a 3px rectangle — never an arch (the crown
+            is a semicircle of half the width, so it stretches when w > h). */}
+        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius)', border: 'var(--border-hair) solid var(--border-hairline)', background: 'var(--surface-raised)', aspectRatio: '4 / 3' }}>
           <img src={`${IMG_CIRCLE}/${post.img}.webp`} alt="" style={{ height: '100%', width: '100%', objectFit: 'cover' }} />
-        </Arch>
+        </div>
       </div>
       <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)', padding: '0 var(--space-4)' }}>
         {post.items.map((it) => (
@@ -96,7 +98,7 @@ function LookCard({ post, onNote }) {
       <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)', padding: '0 var(--space-4) var(--space-4)' }}>
         <Button variant="ghost" size="sm" onClick={() => onNote('Four of your pieces match this look.')}>Make it from my closet</Button>
         <Button variant="quiet" size="sm" onClick={() => { setReacted((v) => !v); onNote(reacted ? 'Reaction removed.' : 'Noted.') }}>
-          {reacted ? `\u2713 Noted \u00B7 ${post.reactions + 1}` : `Nice one \u00B7 ${post.reactions}`}
+          {reacted ? `✓ Noted · ${post.reactions + 1}` : `Nice one · ${post.reactions}`}
         </Button>
         <Button variant="quiet" size="sm" onClick={() => { setSaved((v) => !v); onNote(saved ? 'Removed from your board.' : 'Saved to your board.') }}>
           {saved ? 'Saved' : 'Save'}
@@ -183,9 +185,9 @@ function PickCard({ post, onNote }) {
 }
 
 const FEED = [
-  { type: 'verdict', id: 'v1', ini: 'DM', name: 'Dana', meta: 'asked you \u00B7 4h left', question: 'Which one for the dinner on Friday?', options: [{ id: 'a', img: 'mirror' }, { id: 'b', img: 'friends' }], counts: [4, 2] },
+  { type: 'verdict', id: 'v1', ini: 'DM', name: 'Dana', meta: 'asked you · 4h left', question: 'Which one for the dinner on Friday?', options: [{ id: 'a', img: 'mirror' }, { id: 'b', img: 'friends' }], counts: [4, 2] },
   { type: 'look', id: 'l1', ini: 'SR', name: 'Sara', meta: 'wore it today', plate: 'Wore today', line: 'The camel coat, third time this month. Worth every dirham.', img: 'friends', items: ['blazer', 'trousers', 'pumps'], reactions: 7 },
-  { type: 'pick', id: 'p1', ini: 'IK', name: 'Iman', meta: 'dressed you \u00B7 yesterday', line: 'For the client lunch. Trust me on the flats.', items: ['tank', 'trousers', 'pumps', 'bag'] },
+  { type: 'pick', id: 'p1', ini: 'IK', name: 'Iman', meta: 'dressed you · yesterday', line: 'For the client lunch. Trust me on the flats.', items: ['tank', 'trousers', 'pumps', 'bag'] },
   { type: 'look', id: 'l2', ini: 'NA', name: 'Noor', meta: 'wore it yesterday', plate: 'Wore', line: 'Rest day, but the linen earned an outing.', img: 'closet', items: ['tank', 'trousers'], reactions: 3 },
 ]
 
@@ -212,7 +214,7 @@ export function CircleScreen({ onFlash }) {
           <section aria-label="Today in your circle" className="zq-rise-1">
             <div style={{ display: 'flex', gap: 'var(--space-4)', overflowX: 'auto', paddingBottom: 'var(--space-2)', scrollbarWidth: 'none' }}>
               {TODAY.map((t, i) => (
-                <button key={t.id} type="button" onClick={() => onFlash(i === 0 ? 'Share what you wore today.' : `${t.name}\u2019s profile.`)} className="zq-press" style={{ width: 64, flexShrink: 0, border: 'none', background: 'none', padding: 0, textAlign: 'center', cursor: 'pointer' }}>
+                <button key={t.id} type="button" onClick={() => onFlash(i === 0 ? 'Share what you wore today.' : `${t.name}’s profile.`)} className="zq-press" style={{ width: 64, flexShrink: 0, border: 'none', background: 'none', padding: 0, textAlign: 'center', cursor: 'pointer' }}>
                   <Arch aspect="4/5" photo>
                     <img src={`${IMG_CIRCLE}/${t.img}.webp`} alt="" style={{ height: '100%', width: '100%', objectFit: 'cover' }} />
                   </Arch>
@@ -274,7 +276,7 @@ export function CircleScreen({ onFlash }) {
               ))
             )}
             {feed.length > 0 && (
-              <Button variant="ghost" style={{ margin: '0 auto' }} onClick={() => onFlash('That\u2019s everything for now.')}>Show more</Button>
+              <Button variant="ghost" style={{ margin: '0 auto' }} onClick={() => onFlash('That’s everything for now.')}>Show more</Button>
             )}
           </div>
         </div>

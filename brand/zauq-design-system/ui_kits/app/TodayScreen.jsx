@@ -86,7 +86,7 @@ export function TodayScreen({ onFlash, onGoMirror }) {
           </div>
 
           <div style={{ marginTop: 'var(--space-6)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-4)' }}>
-            <Button variant="primary" onClick={() => { setWorn(true); onFlash('Logged. That\u2019s nine days running.') }} disabled={worn}>
+            <Button variant="primary" onClick={() => { setWorn(true); onFlash('Logged. That’s nine days running.') }} disabled={worn}>
               {worn ? 'Worn today' : 'Wear it'}
             </Button>
             <Button variant="ghost" onClick={() => onFlash('Composing another. One moment.')}>Show me another</Button>
@@ -113,7 +113,7 @@ export function TodayScreen({ onFlash, onGoMirror }) {
           <div>
             <SectionHead title="Why this" />
             <Card style={{ padding: 'var(--space-4)' }}>
-              {[['The weather', '24\u00B0, wind picking up'], ['The day', 'Client lunch, 1pm'], ['The closet', 'All four, clean'], ['Last worn', 'The blazer, 9 days ago']].map(([k, v], i, arr) => (
+              {[['The weather', '24°, wind picking up'], ['The day', 'Client lunch, 1pm'], ['The closet', 'All four, clean'], ['Last worn', 'The blazer, 9 days ago']].map(([k, v], i, arr) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-4)', padding: 'var(--space-2-5) 0', borderBottom: i === arr.length - 1 ? 'none' : 'var(--border-hair) solid var(--border-hairline)' }}>
                   <span style={{ flex: 'none', whiteSpace: 'nowrap', fontSize: 'var(--text-nano)', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', color: 'var(--text-faint)', alignSelf: 'center' }}>{k}</span>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-body-lg)', lineHeight: 1.3, color: 'var(--text-strong)', textAlign: 'right' }}>{v}</span>
@@ -142,7 +142,7 @@ export function TodayScreen({ onFlash, onGoMirror }) {
       <Modal open={!!reconsider} onClose={() => setReconsider(null)} title={reconsider?.label ?? ''}>
         <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 'var(--space-5)', alignItems: 'start' }}>
           {reconsider && (
-            <div className="zq-arch-bezel" style={{ aspectRatio: '5 / 6', '--arch-h': '31.1%' }}>
+            <div className="zq-arch-bezel" style={{ aspectRatio: '5 / 6', '--arch-h': '41.7%' }}>
               <div className="zq-arch-niche">
                 <img src={`${IMG_TODAY}/${reconsider.img}.webp`} alt="" style={{ position: 'relative', zIndex: 1, height: '100%', width: '100%', objectFit: 'contain', padding: '7%', boxSizing: 'border-box' }} />
               </div>
@@ -154,7 +154,7 @@ export function TodayScreen({ onFlash, onGoMirror }) {
             </p>
             <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
               {FEEDBACK.map((f) => (
-                <Chip key={f} onClick={() => { setReconsider(null); onFlash('Got it. I\u2019ll read this one differently.') }}>{f}</Chip>
+                <Chip key={f} onClick={() => { setReconsider(null); onFlash('Got it. I’ll read this one differently.') }}>{f}</Chip>
               ))}
             </div>
             <div style={{ marginTop: 'var(--space-5)', display: 'flex', gap: 'var(--space-4)', alignItems: 'center' }}>

@@ -1,0 +1,22 @@
+<!-- @dsCard group="Spacing" viewport="700x227" subtitle="What each vertical gap means, so rhythm is a decision" name="Vertical rhythm" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0}
+.mini{border:1px solid var(--border-hairline);border-radius:var(--radius);background:var(--surface-raised)}
+.cell{background:rgb(var(--c-iris) / .30);border-radius:2px;height:34px}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:18px;align-items:flex-end">
+<div style="flex:1"><div style="height:8px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">8</p><p class="n" style="margin:2px 0 0;line-height:1.5">label → line</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--stack-tight</p></div><div style="flex:1"><div style="height:16px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">16</p><p class="n" style="margin:2px 0 0;line-height:1.5">element → element</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--stack</p></div><div style="flex:1"><div style="height:32px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">32</p><p class="n" style="margin:2px 0 0;line-height:1.5">block → block</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--stack-loose</p></div><div style="flex:1"><div style="height:40px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">40</p><p class="n" style="margin:2px 0 0;line-height:1.5">group → group</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--stack-group</p></div><div style="flex:1"><div style="height:48px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">48</p><p class="n" style="margin:2px 0 0;line-height:1.5">section → section</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--section-y-page</p></div><div style="flex:1"><div style="height:64px;background:rgb(var(--c-iris) / .30);border-radius:2px"></div><p class="m" style="margin:6px 0 0">64</p><p class="n" style="margin:2px 0 0;line-height:1.5">section, ≥640</p><p class="m" style="margin:2px 0 0;font-size:9px;color:var(--text-faint)">--section-y-page-sm</p></div>
+</div>
+<p class="note">Grid gaps sit BELOW page padding, always: 12–24 inside a grid, 16–24 at the page edge, 48–64 between sections. If two gaps in a layout are within 4px of each other, one of them is wrong.</p>
+</body></html>

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Layout" viewport="700x232" subtitle="Content + a 340px sidebar, at 1024 and up" name="Two-column room" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0}
+.mini{border:1px solid var(--border-hairline);border-radius:var(--radius);background:var(--surface-raised)}
+.cell{background:rgb(var(--c-iris) / .30);border-radius:2px;height:34px}
+</style>
+</head>
+<body>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:48px">
+<div class="mini" style="height:120px;display:flex;align-items:center;justify-content:center"><span class="m">minmax(0, 1fr) — the brief</span></div>
+<div class="mini" style="height:120px;display:flex;align-items:center;justify-content:center;background:rgb(var(--c-iris) / .12);border-color:var(--border-accent)"><span class="m">340px — why this</span></div>
+</div>
+<p class="note">--room-split &nbsp;·&nbsp; gap --room-gap 48 → --room-gap-xl 64 &nbsp;·&nbsp; below 1024 the aside stacks under the content, full width.<br>The landing hero uses --hero-split 1.05fr 0.95fr at 768+ — the copy is deliberately the wider half.</p>
+</body></html>

@@ -1,0 +1,22 @@
+<!-- @dsCard group="Layout" viewport="700x233" subtitle="The shell: 16/32, stepping to 24/40 at 640" name="Page padding" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0}
+.mini{border:1px solid var(--border-hairline);border-radius:var(--radius);background:var(--surface-raised)}
+.cell{background:rgb(var(--c-iris) / .30);border-radius:2px;height:34px}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:18px;align-items:stretch">
+<div style="flex:1"><p class="n" style="margin:0 0 6px">&lt; 640</p><div class="mini" style="position:relative;height:118px;padding:32px 16px;box-sizing:border-box"><div style="height:100%;border:1px dashed var(--border-accent);border-radius:2px;background:rgb(var(--c-iris) / .10)"></div><span class="m" style="position:absolute;left:4px;top:10px">32</span><span class="m" style="position:absolute;left:4px;top:50%">16</span></div></div><div style="flex:1"><p class="n" style="margin:0 0 6px">&ge; 640</p><div class="mini" style="position:relative;height:118px;padding:40px 24px;box-sizing:border-box"><div style="height:100%;border:1px dashed var(--border-accent);border-radius:2px;background:rgb(var(--c-iris) / .10)"></div><span class="m" style="position:absolute;left:4px;top:14px">40</span><span class="m" style="position:absolute;left:8px;top:50%">24</span></div></div>
+</div>
+<p class="note">--pad-x 16 → --pad-x-sm 24 &nbsp;·&nbsp; --pad-y 32 → --pad-y-sm 40 &nbsp;·&nbsp; PageShell owns this; a screen never sets its own page padding.</p>
+</body></html>

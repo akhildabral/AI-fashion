@@ -45,7 +45,7 @@ window.ZauqKit = {
     const sources = await Promise.all(
       files.map(async (f) => {
         const res = await fetch(f)
-        if (!res.ok) throw new Error(f + ' \u2192 ' + res.status)
+        if (!res.ok) throw new Error(f + ' → ' + res.status)
         return res.text()
       }),
     )

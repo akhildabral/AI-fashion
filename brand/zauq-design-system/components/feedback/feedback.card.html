@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" viewport="700x380" subtitle="Alerts, badges, toast, undo bar, skeletons and the load error" name="Feedback" -->
+<!-- @dsCard group="Components" viewport="700x425" subtitle="Alerts, badges, toast, undo bar, skeletons and the load error" name="Feedback" -->
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -22,7 +22,10 @@
 <script>
 ZauqCard.boot(`
 function Demo() {
-  const { toast, flash } = useFlash()
+  /* useFlash is lowercase, so the bundle does not expose it — hold the toast
+     text locally instead. */
+  const [toast, setToast] = React.useState('')
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600) }
   const [undo, setUndo] = React.useState(false)
   return (
     <div className="col" style={{ gap: 14 }}>
@@ -36,8 +39,8 @@ function Demo() {
         <Badge tone="quiet">In wash</Badge>
         <Badge tone="quiet">Packed</Badge>
         <Spinner size={16} style={{ color: 'var(--text-accent)' }} />
-        <Button variant="ghost" size="sm" onClick={() => flash('Logged. That&rsquo;s nine days running.')}>Flash a toast</Button>
-        <Button variant="ghost" size="sm" onClick={() => setUndo(true)}>Show undo</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setUndo(false); flash('Logged. That’s nine days running.') }}>Flash a toast</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setToast(''); setUndo(true) }}>Show undo</Button>
       </div>
       <div className="row rule" style={{ gap: 20, alignItems: 'flex-start' }}>
         <div style={{ width: 230 }}>

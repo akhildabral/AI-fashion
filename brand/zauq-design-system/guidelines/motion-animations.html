@@ -1,0 +1,25 @@
+<!-- @dsCard group="Motion" viewport="700x294" subtitle="The four signature animations, running" name="Signature animations" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.ctl{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);font-family:var(--font-sans);font-weight:600}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:18px;align-items:flex-end">
+<div style="flex:1"><div class="zq-arch-bezel zq-rise" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%"><div class="zq-arch-niche"></div></div><p class="n" style="margin:8px 0 0">Rise</p><p class="m" style="margin:2px 0 0">12px + fade, 600ms &middot; every entrance</p></div>
+<div style="flex:1"><div class="zq-arch-bezel" style="position:relative;width:100%;aspect-ratio:5 / 6;--arch-h:41.7%;overflow:hidden"><div class="zq-arch-niche"></div><div class="zq-arch-sweep" style="position:absolute;inset:0;z-index:5;background:linear-gradient(122deg,transparent 42%,rgba(255,255,255,.5) 50%,transparent 58%)"></div></div><p class="n" style="margin:8px 0 0">Arch sweep</p><p class="m" style="margin:2px 0 0">700ms &middot; a garment revealed</p></div>
+<div style="flex:1"><div class="zq-arch-bezel zq-mirror-reveal" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%"><div class="zq-arch-niche"></div></div><p class="n" style="margin:8px 0 0">Mirror reveal</p><p class="m" style="margin:2px 0 0">850ms &middot; a render resolving</p></div>
+<div style="flex:1"><div class="zq-arch-bezel zq-filament" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%"><div class="zq-arch-niche"></div></div><p class="n" style="margin:8px 0 0">Filament</p><p class="m" style="margin:2px 0 0">5.5s loop &middot; being dressed</p></div>
+<div style="flex:1"><div class="zq-menu-pop" style="border-radius:var(--radius);border:1px solid var(--border-accent);background:var(--surface-raised);box-shadow:var(--shadow-float);padding:10px 12px"><span class="m">Menu</span></div><p class="n" style="margin:8px 0 0">Menu pop</p><p class="m" style="margin:2px 0 0">140ms &middot; origin-aware</p></div>
+</div>
+<p class="note">Nothing bounces. Nothing spins except a spinner inside a button. Grids stagger 55ms per item, capped at 8, via <code>.zq-rise-stagger</code> + <code>style="--i: n"</code>. All of it is disabled under <code>prefers-reduced-motion</code>.</p>
+</body></html>

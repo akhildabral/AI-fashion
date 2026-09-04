@@ -1,6 +1,11 @@
 import React from 'react'
 
-/** The arched mirror — a true brass bezel around a dark reflective surface. The Mirror room's hero. */
+/**
+ * The arched mirror — a 3px brass bezel around a dark reflective surface.
+ * The Mirror room's hero. Give the child a 2/3 box (--ratio-mirror): a mirror
+ * holds a standing figure, and the crown is a semicircle of half the width, so
+ * anything squarer reads as a stretched arch rather than a mirror.
+ */
 export function MirrorFrame({ children, className = '', style }) {
   const radius = 'var(--mirror-radius)'
   return (

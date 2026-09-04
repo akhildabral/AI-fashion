@@ -5,13 +5,16 @@
 
 /* ---- the arch: a brass-bezel aperture with a lit niche inside ---- */
 .zq-arch-bezel {
-  border-radius: var(--arch-radius);
+  /* The crown MUST be composed here, not in a :root token: a nested var() is
+     substituted in the scope where the property is DECLARED, so --arch-h (set
+     per element by Arch/the caller) never reaches a :root --arch-radius. */
+  border-radius: 50% 50% var(--arch-foot) var(--arch-foot) / var(--arch-h, 37.5%) var(--arch-h, 37.5%) var(--arch-foot) var(--arch-foot);
   padding: var(--bezel);
   background: linear-gradient(160deg, var(--c-brass-hi), var(--c-brass-lo) 62%, var(--c-brass-lo));
   container-type: inline-size;
 }
 .zq-arch-niche {
-  border-radius: var(--arch-radius);
+  border-radius: 50% 50% var(--arch-foot) var(--arch-foot) / var(--arch-h, 37.5%) var(--arch-h, 37.5%) var(--arch-foot) var(--arch-foot);
   background: var(--c-niche);
   position: relative;
   overflow: hidden;

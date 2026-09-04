@@ -26,15 +26,16 @@ function Demo() {
   return (
     <div className="col" style={{ gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '104px 118px 1fr', gap: 20, alignItems: 'start' }}>
-        <div className="col" style={{ gap: 6 }}>
-          <Arch aspect="5/6">
+        <div className="col" style={{ gap: 6, minHeight: 0 }}>
+          <Arch aspect="5/6" style={{ flex: 'none', minHeight: 0 }}>
             <img src="../../assets/imagery/blazer.webp" alt="Blazer" style={{ position: 'relative', zIndex: 1, height: '100%', width: '100%', objectFit: 'contain', padding: '7%', boxSizing: 'border-box' }} />
           </Arch>
           <span className="cap">Arch</span>
         </div>
-        <div className="col" style={{ gap: 6 }}>
-          <MirrorFrame>
-            <img src="../../assets/imagery/mirror.webp" alt="" style={{ display: 'block', width: '100%', aspectRatio: '3 / 4', objectFit: 'cover' }} />
+        <div className="col" style={{ gap: 6, minHeight: 0 }}>
+          <MirrorFrame style={{ flex: 'none' }}>
+            {/* A mirror holds a standing figure: 2/3, per --ratio-mirror. */}
+            <img src="../../assets/imagery/mirror.webp" alt="" style={{ display: 'block', width: '100%', aspectRatio: 'var(--ratio-mirror)', objectFit: 'cover' }} />
           </MirrorFrame>
           <span className="cap">Mirror</span>
         </div>

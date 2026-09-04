@@ -1,6 +1,5 @@
 /**
  * The one text input: 44px, hairline border, brass focus ring.
- * @startingPoint section="Forms" subtitle="Field, label and the tailor's tape" viewport="700x300"
  */
 export interface FieldProps {
   id?: string

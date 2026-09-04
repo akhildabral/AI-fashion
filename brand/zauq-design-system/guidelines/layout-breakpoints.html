@@ -1,0 +1,22 @@
+<!-- @dsCard group="Layout" viewport="700x194" subtitle="Tailwind defaults; four steps, and each one has a job" name="Breakpoints" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0}
+.mini{border:1px solid var(--border-hairline);border-radius:var(--radius);background:var(--surface-raised)}
+.cell{background:rgb(var(--c-iris) / .30);border-radius:2px;height:34px}
+</style>
+</head>
+<body>
+
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+<div style="border-top:2px solid var(--fill-accent);padding-top:8px"><p class="n" style="margin:0">base</p><p style="margin:4px 0 0;font-family:var(--font-display);font-size:22px;color:var(--text-strong)">0–639</p><p class="m" style="margin:6px 0 0;line-height:1.5">1 col · gutter 16 · hero 48</p></div><div style="border-top:2px solid var(--fill-accent);padding-top:8px"><p class="n" style="margin:0">sm</p><p style="margin:4px 0 0;font-family:var(--font-display);font-size:22px;color:var(--text-strong)">640</p><p class="m" style="margin:6px 0 0;line-height:1.5">gutter 24 · board 3-up · hero 60</p></div><div style="border-top:2px solid var(--fill-accent);padding-top:8px"><p class="n" style="margin:0">md</p><p style="margin:4px 0 0;font-family:var(--font-display);font-size:22px;color:var(--text-strong)">768</p><p class="m" style="margin:6px 0 0;line-height:1.5">two columns appear · brief 4-up</p></div><div style="border-top:2px solid var(--fill-accent);padding-top:8px"><p class="n" style="margin:0">lg</p><p style="margin:4px 0 0;font-family:var(--font-display);font-size:22px;color:var(--text-strong)">1024</p><p class="m" style="margin:6px 0 0;line-height:1.5">board 5-up · room sidebar 340</p></div><div style="border-top:2px solid var(--fill-accent);padding-top:8px"><p class="n" style="margin:0">xl</p><p style="margin:4px 0 0;font-family:var(--font-display);font-size:22px;color:var(--text-strong)">1280</p><p class="m" style="margin:6px 0 0;line-height:1.5">board 6-up · hero 72 · gap 64</p></div>
+</div>
+<p class="note">--bp-sm 640 · --bp-md 768 · --bp-lg 1024 · --bp-xl 1280 &nbsp;·&nbsp; mobile-first: write the base, then step up. Never a max-width query.</p>
+</body></html>

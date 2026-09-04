@@ -77,7 +77,7 @@ window.ZauqCard = {
     const sources = await Promise.all(
       files.map(async (f) => {
         const res = await fetch(f)
-        if (!res.ok) throw new Error(f + ' \u2192 ' + res.status)
+        if (!res.ok) throw new Error(f + ' → ' + res.status)
         return res.text()
       }),
     )
@@ -97,7 +97,10 @@ window.ZauqCard = {
 
   async boot(demoSource) {
     const root = document.getElementById('root')
-    const NAMES = 'Wordmark, ArchMark, Button, IconButton, Chip, Field, Label, Tape, Tabs, Filter, MoreMenu, MenuItem, Arch, MirrorFrame, Card, Plaque, PageShell, SectionHead, Modal, GarmentTile, Stat, Alert, Badge, Toast, useFlash, UndoBar, Spinner, SkeletonBlock, ArchSkeleton, LoadError'
+    /* Only capitalised exports reach the bundle namespace, so lowercase helpers
+     (e.g. the useFlash hook) must NOT be listed here — destructuring one binds
+     undefined and the throw blanks the card. Hold that state in useState. */
+    const NAMES = 'Wordmark, ArchMark, Button, IconButton, Chip, Field, Label, Tape, Tabs, Filter, MoreMenu, MenuItem, Arch, MirrorFrame, Card, Plaque, PageShell, SectionHead, Modal, GarmentTile, Stat, Alert, Badge, Toast, UndoBar, Spinner, SkeletonBlock, ArchSkeleton, LoadError'
     try {
       const ns = this.bundleNamespace()
       let prelude = ''

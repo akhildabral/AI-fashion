@@ -1,0 +1,39 @@
+<!-- @dsCard group="Motion" viewport="700x305" subtitle="Show the shape of what is coming, never a bare spinner" name="Loading &amp; skeletons" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:18px 24px;background:var(--surface-page)}
+.n{font-family:var(--font-sans);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.m{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-muted)}
+.note{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-faint);margin:12px 0 0;line-height:1.6}
+.ctl{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);font-family:var(--font-sans);font-weight:600}
+</style>
+</head>
+<body>
+
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div style="flex:1.4">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+<div class="zq-arch-bezel" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%;opacity:.6;animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite 0ms"><div class="zq-arch-niche"></div></div><div class="zq-arch-bezel" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%;opacity:.6;animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite 80ms"><div class="zq-arch-niche"></div></div><div class="zq-arch-bezel" style="width:100%;aspect-ratio:5 / 6;--arch-h:41.7%;opacity:.6;animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite 160ms"><div class="zq-arch-niche"></div></div>
+</div>
+<p class="n" style="margin:8px 0 0">ArchSkeleton &middot; a garment grid</p>
+</div>
+<div style="flex:1">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="height:44px;width:72%;border-radius:var(--radius);background:rgb(var(--c-ink) / .1);animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite"></div>
+<div style="height:16px;width:56%;border-radius:var(--radius);background:rgb(var(--c-ink) / .07);animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite"></div>
+<div style="height:16px;width:40%;border-radius:var(--radius);background:rgb(var(--c-ink) / .07);animation:zq-pulse 2s cubic-bezier(.4,0,.6,1) infinite"></div>
+</div>
+<p class="n" style="margin:8px 0 0">SkeletonBlock &middot; a heading and its lines</p>
+<div style="margin-top:14px;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 24px;border-radius:var(--radius);background:var(--fill-accent);color:var(--text-on-brass);font-family:var(--font-sans);font-size:14px;font-weight:600">
+<svg width="16" height="16" viewBox="0 0 24 24" style="animation:zq-spin .8s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.5"></circle><path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path></svg>Wearing it
+</div>
+<p class="n" style="margin:8px 0 0">Spinner &middot; inside a button, only</p>
+</div>
+</div>
+<style>@keyframes zq-pulse{50%{opacity:.5}}@keyframes zq-spin{to{transform:rotate(360deg)}}</style>
+<p class="note">The rule: <b>a skeleton is the shape of what is coming</b> &mdash; arches for a garment grid, blocks for text, at 10% ink (7% for secondary lines), pulsing 2s with an 80ms per-item delay. A bare centred spinner is never used. When cached data exists, render it at once and revalidate behind it rather than showing any loading state at all.</p>
+</body></html>

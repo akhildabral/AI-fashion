@@ -1,0 +1,87 @@
+<!-- @dsCard group="Mobile" viewport="440x900" subtitle="iOS 390x844: the rooms on a tab bar, native type ladder" name="ZAUQ mobile" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZAUQ — mobile</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0">
+<style>
+  body { display: flex; justify-content: center; padding: 24px 0 40px; }
+  /* The device frame is the viewport: the grain belongs inside it, not on the page. */
+  body::before { display: none; }
+  #root { min-height: 844px; }
+  /* A phone has no visible scrollbars. */
+  #root *::-webkit-scrollbar { width: 0; height: 0; }
+  #root * { scrollbar-width: none; }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../_loader.js"></script>
+</head>
+<body>
+<div id="root"><div style="display:flex;min-height:60vh;align-items:center;justify-content:center;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+    <div class="zq-arch-bezel zq-filament" style="width:64px;aspect-ratio:3 / 4;--arch-h:37.5%;"><div class="zq-arch-niche"></div></div>
+    <span style="font-family:var(--font-brand);font-size:15px;text-transform:uppercase;color:var(--text-muted);"><span style="letter-spacing:.24em;">Z</span><span style="letter-spacing:.20em;">A</span><span style="letter-spacing:.16em;">U</span>Q</span>
+  </div>
+</div></div>
+<script>
+ZauqKit.mount(
+  [
+    "../../components/surfaces/Arch.jsx",
+    "../../components/surfaces/MirrorFrame.jsx",
+    "../../components/surfaces/Card.jsx",
+    "../../components/surfaces/Plaque.jsx",
+    "../../components/actions/Button.jsx",
+    "../../components/actions/Chip.jsx",
+    "../../components/navigation/Tabs.jsx",
+    "../../components/navigation/Filter.jsx",
+    "../../components/data/GarmentTile.jsx",
+    "../../components/data/Stat.jsx",
+    "../../components/feedback/Alert.jsx",
+    "../../components/feedback/Badge.jsx",
+    "../../components/feedback/Toast.jsx",
+    "PhoneFrame.jsx",
+    "MobileFurniture.jsx",
+    "TodayMobile.jsx",
+    "ClosetMobile.jsx",
+    "MirrorMobile.jsx",
+    "CircleMobile.jsx"
+  ],
+  'root',
+  `
+function App() {
+  const [room, setRoom] = React.useState('Today')
+  const { toast, flash } = useFlash()
+  const rooms = {
+    Today: <TodayMobile onFlash={flash} />,
+    Closet: <ClosetMobile onFlash={flash} />,
+    Mirror: <MirrorMobile onFlash={flash} />,
+    Circle: <CircleMobile onFlash={flash} />,
+    You: (
+      <RoomBody withActionBar={false}>
+        <RoomHeader eyebrow="Akhil · akhil@zauq.co" title="You" lead="The ritual, the light, and what leaves." />
+        <p style={{ margin: 0, ...nativeType.lede, color: 'var(--text-muted)' }}>
+          Not recreated here: the ritual settings, the wear journal, trips and billing. They compose from the same primitives.
+        </p>
+      </RoomBody>
+    ),
+  }
+  return (
+    <PhoneFrame label={room + " · 390 x 844"}>
+      {rooms[room]}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 40, pointerEvents: 'none', opacity: 'var(--grain-op)', mixBlendMode: 'var(--grain-blend)', backgroundImage: "url(\\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\\")" }} />
+      <Toast msg={toast} />
+      <TabBar room={room} onRoom={setRoom} />
+    </PhoneFrame>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+  `
+)
+</script>
+</body>
+</html>

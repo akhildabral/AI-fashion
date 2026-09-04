@@ -1,6 +1,5 @@
 /**
  * The one garment tile: a garment spotlit in an arched niche.
- * @startingPoint section="Data" subtitle="Garment tiles and stat figures" viewport="700x340"
  */
 export interface GarmentTileProps {
   imageUrl: string

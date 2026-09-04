@@ -23,16 +23,19 @@
   --control-h-sm: 2.25rem; /* 36px  small buttons, icon buttons, chips */
   --control-h-xs: 2rem;    /* 32px  filters */
 
-  /* page shells */
+  /* page shells — kept as the product's own names; the canonical values now
+     live in layout.css as --measure-*. Corrected to rem (the app had one px
+     value in a rem scale). */
   --shell-narrow: 48rem;   /* 768px  prose, auth, legal */
   --shell: 72rem;          /* 1152px the default page */
-  --shell-wide: 1400px;    /* header + wide boards */
+  --shell-wide: 87.5rem;   /* 1400px header + wide boards */
   --header-h: 4rem;        /* 64px */
   --header-h-mobile-nav: 2.75rem;
 
   /* gutters */
   --gutter: var(--space-4);
   --gutter-sm: var(--space-6);
+  /* DEPRECATED — use --section-y-page / --section-y-page-sm (layout.css). */
   --section-y: var(--space-12);
   --section-y-sm: var(--space-16);
 }

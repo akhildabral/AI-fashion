@@ -1,6 +1,5 @@
 /**
  * The ZAUQ wordmark as live type — Playfair Display caps, optically kerned.
- * @startingPoint section="Brand" subtitle="Wordmark and arch mark, every variant" viewport="700x200"
  */
 export interface WordmarkProps {
   /** Font size in px (number) or any CSS length. Default 19. */
