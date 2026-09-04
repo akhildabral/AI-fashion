@@ -1,0 +1,55 @@
+/* ZAUQ base: the ground, the type defaults, and the film grain. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--text-strong);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  overflow-x: hidden;
+}
+
+/* Film grain on every screen: depth without shadows. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: var(--grain-op);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+a:hover {
+  color: var(--text-strong);
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--text-strong);
+  margin: 0;
+}
+
+::selection {
+  background: rgb(var(--c-iris) / 0.28);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--c-iris) / 0.7);
+  outline-offset: 2px;
+}

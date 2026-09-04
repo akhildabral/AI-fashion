@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" subtitle="The light theme: warm paper, not white" name="Ground — gallery by day" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 7px; }
+  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
+  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="sw"><div class="chip" style="width:96px;background:rgb(var(--c-bone));"></div><span class="n">Bone / ground</span><span class="hex">#EBE5D7</span></div>
+  <div class="sw"><div class="chip" style="width:96px;background:rgb(var(--c-surface));"></div><span class="n">Surface / raised</span><span class="hex">#F5F0E6</span></div>
+  <div class="sw"><div class="chip" style="width:96px;background:rgb(var(--c-ink));"></div><span class="n">Ink / text</span><span class="hex">#221B12</span></div>
+  <div class="sw"><div class="chip" style="width:96px;background:rgb(var(--c-ink) / 0.1);"></div><span class="n">Hairline</span><span class="hex">ink @ 10%</span></div>
+  <div class="sw"><div class="chip" style="width:96px;background:rgb(var(--c-ink) / 0.08);"></div><span class="n">Wash</span><span class="hex">ink @ 8%</span></div>
+</div>
+</body>
+</html>

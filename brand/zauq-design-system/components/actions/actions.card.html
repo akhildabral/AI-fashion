@@ -1,0 +1,55 @@
+<!-- @dsCard group="Components" viewport="700x260" subtitle="Buttons, icon button and choice chips, every state" name="Actions" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const [pick, setPick] = React.useState('Work')
+  return (
+    <div className="col">
+      <div className="row">
+        <Button variant="primary">Wear it</Button>
+        <Button variant="ghost">Show me another</Button>
+        <Button variant="quiet">Not today</Button>
+        <Button variant="danger">Let it go</Button>
+        <Button variant="dark">Join</Button>
+      </div>
+      <div className="row rule">
+        <Button variant="primary" size="sm">Small</Button>
+        <Button variant="ghost" size="sm">Small ghost</Button>
+        <Button variant="primary" disabled>Disabled</Button>
+        <IconButton label="More options" />
+        <IconButton label="Close"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg></IconButton>
+        <span className="cap">44 &middot; 36 &middot; 36</span>
+      </div>
+      <div className="row rule" style={{ gap: 8 }}>
+        {['Work', 'Weekend', 'Evening', 'Occasion'].map((k) => (
+          <Chip key={k} on={pick === k} onClick={() => setPick(k)}>{k}</Chip>
+        ))}
+      </div>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

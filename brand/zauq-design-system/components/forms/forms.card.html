@@ -1,0 +1,54 @@
+<!-- @dsCard group="Components" viewport="700x300" subtitle="Field, label, invalid and disabled states, and the tape" name="Forms" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const [v, setV] = React.useState('you@example.com')
+  const [warmth, setWarmth] = React.useState(6)
+  return (
+    <div className="col">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div><Label htmlFor="a">Email</Label><Field id="a" value={v} onChange={(e) => setV(e.target.value)} /></div>
+        <div><Label htmlFor="b">Invite code &middot; small</Label><Field id="b" size="sm" placeholder="your friend&rsquo;s code" /></div>
+        <div><Label htmlFor="c">Invalid</Label><Field id="c" invalid value="not-an-email" /></div>
+        <div><Label htmlFor="d">Disabled</Label><Field id="d" disabled value="Locked" /></div>
+      </div>
+      <div className="rule">
+        <Label>Warmth &mdash; the tailor&rsquo;s tape</Label>
+        <div className="row" style={{ gap: 20 }}>
+          <Tape min={0} max={10} value={warmth} onChange={(e) => setWarmth(+e.target.value)} label="Warmth" style={{ maxWidth: 300 }} />
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-accent)' }}>{warmth}</span>
+        </div>
+      </div>
+      <div className="row rule">
+        <Field placeholder="you@example.com" style={{ maxWidth: 240 }} />
+        <Button variant="primary">Join</Button>
+        <span className="cap">Field and button share 44px</span>
+      </div>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

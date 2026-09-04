@@ -1,0 +1,17 @@
+/* ZAUQ elevation.
+   Resting things do NOT have shadows. A card is a hairline border on a raised
+   fill; depth comes from the brass bezel, the lit niche and the film grain.
+   The single shadow token is for things that genuinely float above the page:
+   menus, modals, toasts, the undo bar.
+*/
+:root {
+  --shadow-float: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+
+  /* the recessed vitrine, inside an arch */
+  --shadow-niche-inset:
+    inset 0 3px 12px rgba(40, 25, 8, 0.14),
+    inset 0 -20px 30px -12px rgba(40, 25, 8, 0.08);
+
+  --backdrop-blur: 2px;   /* modal scrim */
+  --header-blur: 12px;    /* sticky header */
+}

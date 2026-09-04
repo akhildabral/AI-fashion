@@ -1,0 +1,57 @@
+<!-- @dsCard group="Marketing" viewport="1200x760" subtitle="The front door: hero, five rooms, and the two doors" name="Landing page" -->
+<!-- @startingPoint section="Marketing" subtitle="The ZAUQ landing page, full length" viewport="1200x900" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZAUQ — every morning, an outfit</title>
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../_loader.js"></script>
+</head>
+<body>
+<div id="root"><div style="display:flex;min-height:60vh;align-items:center;justify-content:center;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+    <div class="zq-arch-bezel zq-filament" style="width:64px;aspect-ratio:3 / 4;--arch-h:28%;"><div class="zq-arch-niche"></div></div>
+    <span style="font-family:var(--font-brand);font-size:15px;text-transform:uppercase;color:var(--text-muted);"><span style="letter-spacing:.24em;">Z</span><span style="letter-spacing:.20em;">A</span><span style="letter-spacing:.16em;">U</span>Q</span>
+  </div>
+</div></div>
+<script>
+ZauqKit.mount(
+  [
+    "../../components/brand/Wordmark.jsx",
+    "../../components/brand/ArchMark.jsx",
+    "../../components/actions/Button.jsx",
+    "../../components/actions/IconButton.jsx",
+    "../../components/actions/Chip.jsx",
+    "../../components/forms/Field.jsx",
+    "../../components/forms/Label.jsx",
+    "../../components/forms/Tape.jsx",
+    "../../components/navigation/Tabs.jsx",
+    "../../components/navigation/Filter.jsx",
+    "../../components/navigation/MoreMenu.jsx",
+    "../../components/surfaces/Arch.jsx",
+    "../../components/surfaces/MirrorFrame.jsx",
+    "../../components/surfaces/Card.jsx",
+    "../../components/surfaces/Plaque.jsx",
+    "../../components/surfaces/PageShell.jsx",
+    "../../components/surfaces/Modal.jsx",
+    "../../components/data/GarmentTile.jsx",
+    "../../components/data/Stat.jsx",
+    "../../components/feedback/Alert.jsx",
+    "../../components/feedback/Badge.jsx",
+    "../../components/feedback/Toast.jsx",
+    "../../components/feedback/Spinner.jsx",
+    "Doors.jsx",
+    "BeforeAfter.jsx",
+    "LandingScreen.jsx"
+  ],
+  'root',
+  `ReactDOM.createRoot(document.getElementById('root')).render(<LandingScreen />)`
+)
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+/* ZAUQ webfonts.
+   The product loads these from Google Fonts (see frontend/index.html); no font
+   binaries ship in the repo, so we import the same hosted stylesheet, which
+   carries the @font-face rules for all four families.
+
+   Bodoni Moda        display / editorial voice (variable optical size)
+   Archivo            interface, body, labels
+   Playfair Display   the wordmark ONLY, weight 400
+   Noto Nastaliq Urdu the script mark ذوق, weight 600
+*/
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Archivo:wght@400;500;600;700&family=Playfair+Display:wght@400&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap');

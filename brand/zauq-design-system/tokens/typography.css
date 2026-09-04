@@ -1,0 +1,61 @@
+/* ZAUQ typography.
+   Two voices. Bodoni Moda speaks (headings, figures, any line with a feeling
+   in it). Archivo labels (UI, body, meta). Playfair Display is reserved for
+   the wordmark; Noto Nastaliq Urdu for the script mark. Nothing else.
+
+   The signature move: uppercase Archivo at 10-13px with wide tracking as a
+   label above a Bodoni line. Every section head in the product is that pair.
+*/
+:root {
+  --font-display: 'Bodoni Moda', Georgia, serif;
+  --font-serif: 'Bodoni Moda', Georgia, serif;
+  --font-sans: Archivo, ui-sans-serif, system-ui, sans-serif;
+  --font-brand: 'Playfair Display', Georgia, serif;
+  --font-script: 'Noto Nastaliq Urdu', serif;
+
+  /* weights actually used */
+  --weight-regular: 400;
+  --weight-medium: 500;   /* display headings sit here, never bold */
+  --weight-semibold: 600; /* labels, buttons, tabs */
+  --weight-bold: 700;
+
+  /* display scale — Bodoni, leading tightens as size grows */
+  --text-display-1: 4.5rem;   /* 72px  landing hero (lg) */
+  --text-display-2: 3.75rem;  /* 60px  hero (sm) */
+  --text-display-3: 3rem;     /* 48px  hero (base) */
+  --text-display-4: 2.25rem;  /* 36px  section head (sm) */
+  --text-display-5: 1.875rem; /* 30px  section head */
+  --text-display-6: 1.5rem;   /* 24px  card / page head */
+  --text-display-7: 1.25rem;  /* 20px  modal title */
+
+  --leading-display-tight: 0.98;
+  --leading-display: 1.04;
+  --leading-display-loose: 1.14;
+  --tracking-display: -0.01em;
+
+  /* body / UI scale — Archivo */
+  --text-body-lg: 1.0625rem;  /* 17px */
+  --text-body: 0.9375rem;     /* 15px  landing body */
+  --text-ui: 0.875rem;        /* 14px  the button + field size */
+  --text-ui-sm: 0.8125rem;    /* 13px  chips, filters, nav */
+  --text-meta: 0.75rem;       /* 12px  tabs, meta */
+  --text-micro: 0.6875rem;    /* 11px  tile labels */
+  --text-nano: 0.625rem;      /* 10px  eyebrow labels */
+
+  --leading-body: 1.6;
+  --leading-ui: 1.4;
+
+  /* the tracked-label ladder — the brand's most-repeated gesture */
+  --tracking-label-xs: 0.12em;
+  --tracking-label-sm: 0.14em;
+  --tracking-label: 0.16em;
+  --tracking-label-lg: 0.18em;
+  --tracking-label-xl: 0.2em;
+  --tracking-eyebrow: 0.28em;
+  --tracking-eyebrow-wide: 0.32em;
+
+  /* the wordmark's kerning, per the brand guide */
+  --wordmark-track-za: 0.24em;
+  --wordmark-track-au: 0.2em;
+  --wordmark-track-uq: 0.16em;
+}

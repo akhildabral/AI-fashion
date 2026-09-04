@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" viewport="700x210" subtitle="The wordmark and the four arch-mark variants" name="Brand" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  return (
+    <div className="col">
+      <div className="row" style={{ gap: 44 }}>
+        <div className="col" style={{ gap: 6 }}>
+          <Wordmark size={30} color="var(--text-strong)" />
+          <span className="cap">Primary</span>
+        </div>
+        <div className="col" style={{ gap: 6, alignItems: 'center' }}>
+          <Wordmark size={30} color="var(--text-strong)" ceremonial />
+          <span className="cap">Ceremonial &middot; 200px up</span>
+        </div>
+      </div>
+      <div className="row rule" style={{ gap: 34 }}>
+        {['script', 'mirror', 'bare', 'solid'].map((v) => (
+          <div key={v} className="col" style={{ gap: 6, alignItems: 'center' }}>
+            <ArchMark variant={v} size={44} ink="var(--brand-cream)" />
+            <span className="cap">{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

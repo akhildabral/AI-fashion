@@ -64,3 +64,6 @@ frontend/public/_*.json
 # marketing output copied into the repo (big binaries; not versioned)
 /branding-and-ads/
 /ZAUQ - *.pdf
+
+# Python caches (skill scripts)
+__pycache__/

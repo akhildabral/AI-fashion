@@ -1,0 +1,119 @@
+/* ZAUQ colour — "Atelier".
+   Two themes, one token set. Light (:root) is "gallery by day"; dark (.dark or
+   [data-theme="dark"]) is "atelier by night". Both are brass-and-ground; the
+   dark theme is the brand's native register.
+
+   Channel triplets (--c-*) are space-separated RGB so alpha can be composed:
+   rgb(var(--c-ink) / 0.55). Hex aliases (--color-*) are for tools that need a
+   flat value. Semantic aliases at the bottom are what product code should use.
+*/
+:root {
+  /* ---- channels: gallery by day ---- */
+  --c-ink: 34 27 18;          /* #221B12  text */
+  --c-bone: 235 229 215;      /* #EBE5D7  ground (warm gallery paper) */
+  --c-surface: 245 240 230;   /* #F5F0E6  raised */
+  --c-iris: 185 140 59;       /* #B98C3B  brass fill (the accent) */
+  --c-iris-deep: 166 124 48;  /* #A67C30  hover */
+  --c-iris-deeper: 138 102 32;/* #8A6620  active / antique-gold text */
+  --c-iris-soft: 239 227 204; /* #EFE3CC  soft brass wash */
+  --c-spark: 138 102 32;
+  --c-spark-deep: 122 90 34;
+  --c-spark-soft: 231 222 201;
+  --c-danger: 190 66 58;      /* #BE423A */
+  --c-success: 78 122 84;     /* #4E7A54 */
+  --c-warning: 154 110 42;    /* antique amber */
+  --c-on-brass: 26 21 9;      /* ink on a brass fill — both themes */
+
+  /* ---- fixed brass stops for bezels and niches (non-alpha) ---- */
+  --c-brass-hi: #cba24e;
+  --c-brass: #b98c3b;
+  --c-brass-lo: #7a5a22;
+  --c-niche: radial-gradient(78% 74% at 50% 30%, #fdfaf4, #efe7d7 92%);
+  --c-niche-edge: rgba(239, 231, 215, 0.85);
+  /* Ink for anything drawn INSIDE a niche. The niche is light in both themes,
+     so --c-ink inverts underneath it and cannot be used there. */
+  --text-in-niche: #1a1509;
+  --text-in-niche-muted: rgba(26, 21, 9, 0.5);
+  --c-sheen: rgba(255, 255, 255, 0.16);
+
+  /* ---- film grain ---- */
+  --grain-blend: multiply;
+  --grain-op: 0.045;
+
+  /* ---- hex aliases ---- */
+  --color-ink: #221b12;
+  --color-bone: #ebe5d7;
+  --color-surface: #f5f0e6;
+  --color-brass: #b98c3b;
+  --color-brass-ink: #8a6620;
+  --color-danger: #be423a;
+  --color-success: #4e7a54;
+  --color-warning: #9a6e2a;
+
+  /* ---- brand constants (identity only — never themed) ---- */
+  --brand-gold: #d8b26a;
+  --brand-ink: #0b0a09;
+  --brand-cream: #f2ede3;
+  --brand-neutral: #d6cfc0;
+
+  /* ---- semantic aliases: use these in product code ---- */
+  --surface-page: rgb(var(--c-bone));
+  --surface-raised: rgb(var(--c-surface));
+  --surface-wash: rgb(var(--c-iris-soft));
+  --text-strong: rgb(var(--c-ink));
+  --text-body: rgb(var(--c-ink) / 0.75);
+  --text-muted: rgb(var(--c-ink) / 0.55);
+  --text-faint: rgb(var(--c-ink) / 0.45);
+  --text-accent: rgb(var(--c-iris-deeper));
+  --text-on-brass: rgb(var(--c-on-brass));
+  --border-hairline: rgb(var(--c-ink) / 0.1);
+  --border-field: rgb(var(--c-ink) / 0.15);
+  --border-control: rgb(var(--c-ink) / 0.2);
+  --border-accent: rgb(var(--c-iris) / 0.3);
+  --fill-accent: rgb(var(--c-iris));
+  --fill-accent-hover: rgb(var(--c-iris-deep));
+  --fill-wash: rgb(var(--c-ink) / 0.08);
+  --scrim: rgb(var(--c-ink) / 0.4);
+}
+
+.dark,
+[data-theme='dark'] {
+  /* ---- channels: atelier by night ---- */
+  --c-ink: 236 229 216;       /* #ECE5D8  bone text */
+  --c-bone: 14 13 11;         /* #0E0D0B  near-black ground */
+  --c-surface: 26 23 20;      /* #1A1714  raised */
+  --c-iris: 200 164 94;       /* #C8A45E  brass */
+  --c-iris-deep: 217 184 122; /* #D9B87A  brighter */
+  --c-iris-deeper: 228 203 148;/* #E4CB94 brightest */
+  --c-iris-soft: 42 33 20;
+  --c-spark: 217 184 122;
+  --c-spark-deep: 228 203 148;
+  --c-spark-soft: 42 33 20;
+  --c-danger: 216 108 100;    /* #D86C64 reads on near-black */
+  --c-success: 138 184 148;
+  --c-warning: 200 164 94;
+
+  --c-brass-hi: #e4cb94;
+  --c-brass: #c8a45e;
+  --c-brass-lo: #8f6e32;
+  /* A warm-lit vitrine glowing in a dark room: near-white, so product-shot
+     backgrounds melt into it. */
+  --c-niche: radial-gradient(82% 78% at 50% 26%, #fdfbf6, #efe7d7 96%);
+  --c-niche-edge: rgba(243, 237, 224, 0.9);
+  --c-sheen: rgba(233, 217, 188, 0.07);
+
+  --grain-blend: screen;
+  --grain-op: 0.05;
+
+  /* Deliberately NOT re-mapped: the niche stays light at night, so ink drawn
+     inside it stays dark. This is the one place the theme does not flip. */
+
+  --color-ink: #ece5d8;
+  --color-bone: #0e0d0b;
+  --color-surface: #1a1714;
+  --color-brass: #c8a45e;
+  --color-brass-ink: #e4cb94;
+  --color-danger: #d86c64;
+  --color-success: #8ab894;
+  --color-warning: #c8a45e;
+}

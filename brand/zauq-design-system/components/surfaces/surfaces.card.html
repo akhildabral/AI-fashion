@@ -1,0 +1,60 @@
+<!-- @dsCard group="Components" viewport="700x330" subtitle="The arch, the mirror, a flat card, the brass plaque, the modal" name="Surfaces" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <div className="col" style={{ gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '104px 118px 1fr', gap: 20, alignItems: 'start' }}>
+        <div className="col" style={{ gap: 6 }}>
+          <Arch aspect="5/6">
+            <img src="../../assets/imagery/blazer.webp" alt="Blazer" style={{ position: 'relative', zIndex: 1, height: '100%', width: '100%', objectFit: 'contain', padding: '7%', boxSizing: 'border-box' }} />
+          </Arch>
+          <span className="cap">Arch</span>
+        </div>
+        <div className="col" style={{ gap: 6 }}>
+          <MirrorFrame>
+            <img src="../../assets/imagery/mirror.webp" alt="" style={{ display: 'block', width: '100%', aspectRatio: '3 / 4', objectFit: 'cover' }} />
+          </MirrorFrame>
+          <span className="cap">Mirror</span>
+        </div>
+        <div className="col" style={{ gap: 12 }}>
+          <Card hover style={{ padding: 14 }}>
+            <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 600, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--text-accent)' }}>In the store</p>
+            <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-display)', fontSize: 19, color: 'var(--text-strong)' }}>Goes with <em style={{ color: 'var(--text-accent)' }}>7 of your pieces</em>.</p>
+          </Card>
+          <Plaque label="Your closet is working" value="AED 41,460" note="earned back" />
+          <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>Open the modal</Button>
+        </div>
+      </div>
+      <Modal open={open} onClose={() => setOpen(false)} title="Camel blazer">
+        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--text-ui)' }}>Worn 6 times. AED 62 a wear, and falling.</p>
+      </Modal>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

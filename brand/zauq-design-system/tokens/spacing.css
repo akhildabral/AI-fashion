@@ -1,0 +1,38 @@
+/* ZAUQ spacing + layout.
+   A 4px base. The product's real rhythm: 3/4 inside controls, 4-6 between
+   elements, 8-10 for page padding, 12-16 between landing sections.
+*/
+:root {
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem;    /* 4 */
+  --space-1-5: 0.375rem; /* 6 */
+  --space-2: 0.5rem;     /* 8 */
+  --space-2-5: 0.625rem; /* 10 */
+  --space-3: 0.75rem;    /* 12 */
+  --space-4: 1rem;       /* 16 */
+  --space-5: 1.25rem;    /* 20 */
+  --space-6: 1.5rem;     /* 24 */
+  --space-8: 2rem;       /* 32 */
+  --space-10: 2.5rem;    /* 40 */
+  --space-12: 3rem;      /* 48 */
+  --space-16: 4rem;      /* 64 */
+  --space-20: 5rem;      /* 80 */
+
+  /* control heights — one scale, so any row aligns without effort */
+  --control-h: 2.75rem;    /* 44px  the default: buttons, fields */
+  --control-h-sm: 2.25rem; /* 36px  small buttons, icon buttons, chips */
+  --control-h-xs: 2rem;    /* 32px  filters */
+
+  /* page shells */
+  --shell-narrow: 48rem;   /* 768px  prose, auth, legal */
+  --shell: 72rem;          /* 1152px the default page */
+  --shell-wide: 1400px;    /* header + wide boards */
+  --header-h: 4rem;        /* 64px */
+  --header-h-mobile-nav: 2.75rem;
+
+  /* gutters */
+  --gutter: var(--space-4);
+  --gutter-sm: var(--space-6);
+  --section-y: var(--space-12);
+  --section-y-sm: var(--space-16);
+}

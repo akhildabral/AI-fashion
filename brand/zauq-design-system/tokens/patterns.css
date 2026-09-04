@@ -1,0 +1,159 @@
+/* ZAUQ patterns: the brand devices that are CSS, not components.
+   The arch, the plaque, the tape, the grain, the press, and the animation set.
+   Ported verbatim from the product's index.css so a mock matches the app.
+*/
+
+/* ---- the arch: a brass-bezel aperture with a lit niche inside ---- */
+.zq-arch-bezel {
+  border-radius: var(--arch-radius);
+  padding: var(--bezel);
+  background: linear-gradient(160deg, var(--c-brass-hi), var(--c-brass-lo) 62%, var(--c-brass-lo));
+  container-type: inline-size;
+}
+.zq-arch-niche {
+  border-radius: var(--arch-radius);
+  background: var(--c-niche);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-niche-inset);
+  height: 100%;
+  width: 100%;
+}
+/* a soft vignette melts product-shot white edges into the warm ground */
+.zq-arch-niche::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 var(--vig-blur, 22px) var(--vig-spread, 10px) var(--c-niche-edge);
+}
+/* the specular sheen the light-catch sweeps across */
+.zq-arch-niche::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(122deg, transparent 45%, var(--c-sheen) 50%, transparent 55%);
+}
+/* a photograph is lit by itself: no vitrine glow over it */
+.zq-arch-photo .zq-arch-niche::before { box-shadow: none; }
+.zq-arch-photo .zq-arch-niche { background: var(--surface-raised); }
+/* small arches would drown in the full vignette */
+@container (max-width: 120px) {
+  .zq-arch-niche { --vig-blur: 6px; --vig-spread: 2px; }
+}
+
+/* ---- the plaque: a brass-engraved figure, the proud payoff ---- */
+.zq-plaque {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: var(--border-hair) solid var(--border-hairline);
+  background: linear-gradient(180deg, rgb(var(--c-surface)), rgb(var(--c-bone)));
+}
+.zq-plaque::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(var(--c-brass-hi), var(--c-brass-lo));
+}
+
+/* ---- the tailor's tape: a range input drawn as a brass thread ---- */
+.zq-tape {
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--c-brass) var(--p, 50%), rgb(var(--c-ink) / 0.12) var(--p, 50%));
+  outline: none;
+}
+.zq-tape::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--c-brass);
+  box-shadow: 0 0 0 3px rgb(var(--c-bone));
+  cursor: pointer;
+}
+.zq-tape::-moz-range-thumb {
+  width: 18px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--c-brass);
+  box-shadow: 0 0 0 3px rgb(var(--c-bone));
+  cursor: pointer;
+}
+
+/* ---- universal press feedback ---- */
+.zq-press {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.zq-press:active { transform: scale(var(--press-scale)); }
+
+/* ---- animations ---- */
+@keyframes zq-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.zq-rise { animation: zq-rise var(--dur-rise) var(--ease-rise) both; }
+.zq-rise-1 { animation: zq-rise var(--dur-rise) var(--ease-rise) 0.06s both; }
+.zq-rise-2 { animation: zq-rise var(--dur-rise) var(--ease-rise) 0.12s both; }
+.zq-rise-3 { animation: zq-rise var(--dur-rise) var(--ease-rise) 0.18s both; }
+.zq-rise-4 { animation: zq-rise var(--dur-rise) var(--ease-rise) 0.24s both; }
+/* index-driven entrance for grids: set style="--i: n" per item */
+.zq-rise-stagger {
+  animation: zq-rise 0.55s var(--ease-rise) both;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--stagger-step));
+}
+
+/* the signature: a brass sheen sweeping across an arch on reveal */
+@keyframes zq-arch-sweep {
+  0% { transform: translateX(-130%); opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(130%); opacity: 0; }
+}
+.zq-arch-sweep { animation: zq-arch-sweep var(--dur-sweep) var(--ease-out) both; }
+
+/* the Mirror reveal: the reflection resolves into focus */
+@keyframes zq-mirror-reveal {
+  0% { opacity: 0; transform: scale(1.04); filter: blur(12px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.zq-mirror-reveal { animation: zq-mirror-reveal var(--dur-mirror) var(--ease-out) both; }
+
+/* the idle filament while the figure is being dressed */
+@keyframes zq-filament {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+}
+.zq-filament { animation: zq-filament 5.5s ease-in-out infinite; }
+
+/* origin-aware popover */
+@keyframes zq-menu-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.zq-menu-pop { animation: zq-menu-pop var(--dur-menu) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zq-rise, .zq-rise-1, .zq-rise-2, .zq-rise-3, .zq-rise-4,
+  .zq-rise-stagger, .zq-arch-sweep, .zq-filament, .zq-menu-pop {
+    animation: none !important;
+  }
+  .zq-mirror-reveal {
+    animation: none !important;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+  .zq-press { transition: none; }
+  .zq-press:active { transform: none; }
+}

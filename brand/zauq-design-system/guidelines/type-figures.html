@@ -1,0 +1,25 @@
+<!-- @dsCard group="Type" viewport="700x160" subtitle="Bodoni, tabular numerals, brass when it is the payoff" name="Figures" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 7px; }
+  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
+  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="row" style="align-items:flex-end;gap:34px;">
+  <div><p style="margin:0;font-family:var(--font-display);font-size:44px;font-weight:500;color:var(--text-accent);font-variant-numeric:tabular-nums;">AED 41,460</p><span class="n">Earned back</span></div>
+  <div><p style="margin:0;font-family:var(--font-display);font-size:28px;font-weight:500;color:var(--text-strong);font-variant-numeric:tabular-nums;">128</p><span class="n">Wears logged</span></div>
+  <div><p style="margin:0;font-family:var(--font-display);font-size:28px;font-weight:500;color:var(--text-strong);font-variant-numeric:tabular-nums;">43</p><span class="n">Pieces</span></div>
+  <div><p style="margin:0;font-family:var(--font-display);font-size:28px;font-weight:500;color:var(--text-strong);font-variant-numeric:tabular-nums;">9</p><span class="n">Day streak</span></div>
+</div>
+<p class="hex" style="margin:14px 0 0;">Always tabular so a row of figures doesn’t jitter as it updates.</p>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!-- @dsCard group="App" viewport="1280x820" subtitle="The four rooms: Today, Closet, Mirror, Circle" name="ZAUQ app" -->
+<!-- @startingPoint section="App" subtitle="The signed-in app shell with all four rooms" viewport="1280x900" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZAUQ — the app</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  #root { min-height: 100vh; }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../_loader.js"></script>
+</head>
+<body>
+<div id="root"><div style="display:flex;min-height:60vh;align-items:center;justify-content:center;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+    <div class="zq-arch-bezel zq-filament" style="width:64px;aspect-ratio:3 / 4;--arch-h:28%;"><div class="zq-arch-niche"></div></div>
+    <span style="font-family:var(--font-brand);font-size:15px;text-transform:uppercase;color:var(--text-muted);"><span style="letter-spacing:.24em;">Z</span><span style="letter-spacing:.20em;">A</span><span style="letter-spacing:.16em;">U</span>Q</span>
+  </div>
+</div></div>
+<script>
+ZauqKit.mount(
+  [
+    "../../components/brand/Wordmark.jsx",
+    "../../components/brand/ArchMark.jsx",
+    "../../components/actions/Button.jsx",
+    "../../components/actions/IconButton.jsx",
+    "../../components/actions/Chip.jsx",
+    "../../components/forms/Field.jsx",
+    "../../components/forms/Label.jsx",
+    "../../components/forms/Tape.jsx",
+    "../../components/navigation/Tabs.jsx",
+    "../../components/navigation/Filter.jsx",
+    "../../components/navigation/MoreMenu.jsx",
+    "../../components/surfaces/Arch.jsx",
+    "../../components/surfaces/MirrorFrame.jsx",
+    "../../components/surfaces/Card.jsx",
+    "../../components/surfaces/Plaque.jsx",
+    "../../components/surfaces/PageShell.jsx",
+    "../../components/surfaces/Modal.jsx",
+    "../../components/data/GarmentTile.jsx",
+    "../../components/data/Stat.jsx",
+    "../../components/feedback/Alert.jsx",
+    "../../components/feedback/Badge.jsx",
+    "../../components/feedback/Toast.jsx",
+    "../../components/feedback/Spinner.jsx",
+    "AppHeader.jsx",
+    "WeekStrip.jsx",
+    "TodayScreen.jsx",
+    "ClosetScreen.jsx",
+    "MirrorScreen.jsx",
+    "CircleScreen.jsx"
+  ],
+  'root',
+  `
+function App() {
+  const [room, setRoom] = React.useState('Today')
+  const [dark, setDark] = React.useState(true)
+  const { toast, flash } = useFlash()
+  React.useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+  }, [dark])
+  const screens = {
+    Today: <TodayScreen onFlash={flash} onGoMirror={() => setRoom('Mirror')} />,
+    Closet: <ClosetScreen onFlash={flash} />,
+    Mirror: <MirrorScreen onFlash={flash} />,
+    Circle: <CircleScreen onFlash={flash} />,
+  }
+  return (
+    <React.Fragment>
+      <AppHeader room={room} onRoom={setRoom} dark={dark} onToggleTheme={() => setDark((v) => !v)} />
+      {screens[room]}
+      <Toast msg={toast} />
+    </React.Fragment>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+  `
+)
+</script>
+</body>
+</html>

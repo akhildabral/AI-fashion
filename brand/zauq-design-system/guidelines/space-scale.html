@@ -1,0 +1,31 @@
+<!-- @dsCard group="Spacing" viewport="700x150" subtitle="4px base; the product lives at 4, 6, 8, 10, 12, 16" name="Scale" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 7px; }
+  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
+  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="row" style="align-items:flex-end;gap:10px;">
+  <div class="sw"><div style="width:4px;height:4px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">4</span></div>
+  <div class="sw"><div style="width:8px;height:8px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">8</span></div>
+  <div class="sw"><div style="width:12px;height:12px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">12</span></div>
+  <div class="sw"><div style="width:16px;height:16px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">16</span></div>
+  <div class="sw"><div style="width:20px;height:20px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">20</span></div>
+  <div class="sw"><div style="width:24px;height:24px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">24</span></div>
+  <div class="sw"><div style="width:32px;height:32px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">32</span></div>
+  <div class="sw"><div style="width:40px;height:40px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">40</span></div>
+  <div class="sw"><div style="width:48px;height:48px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">48</span></div>
+  <div class="sw"><div style="width:64px;height:64px;background:var(--fill-accent);border-radius:1px;"></div><span class="hex">64</span></div>
+</div>
+<p class="hex" style="margin:14px 0 0;">--space-1 &hellip; --space-16 &nbsp;&middot;&nbsp; 3/4 inside controls, 4-6 between elements, 8-10 page padding, 12-16 between sections.</p>
+</body>
+</html>

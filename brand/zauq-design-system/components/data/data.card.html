@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x330" subtitle="Garment tiles — default, selected, developing — and stat figures" name="Data" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const [sel, setSel] = React.useState('trousers')
+  const items = [['blazer', 'Blazer', 'AED 62 / wear'], ['tank', 'Tank', '11 wears'], ['trousers', 'Trousers', 'AED 40 / wear'], ['pumps', 'Pumps', 'New']]
+  return (
+    <div className="col" style={{ gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
+        {items.map(([n, l, s], i) => (
+          <GarmentTile key={n} imageUrl={'../../assets/imagery/' + n + '.webp'} label={l} sublabel={s}
+            selected={sel === n} onClick={() => setSel(n)} className="zq-rise-stagger" style={{ '--i': i }} />
+        ))}
+        <GarmentTile imageUrl="../../assets/imagery/bag.webp" label="Developing" processing />
+      </div>
+      <div className="row rule" style={{ gap: 36 }}>
+        <Stat value="43" label="Pieces" />
+        <Stat value="128" label="Wears logged" />
+        <Stat value="AED 62" label="Cost per wear" />
+        <Stat value="9" label="Day streak" accent />
+      </div>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

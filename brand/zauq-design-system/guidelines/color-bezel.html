@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" subtitle="The three brass stops the arch is milled from" name="Bezel gradient" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 7px; }
+  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
+  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="row" style="align-items:flex-end;">
+  <div class="sw"><div class="chip" style="width:80px;background:var(--c-brass-hi);"></div><span class="n">brass-hi</span><span class="hex">#E4CB94</span></div>
+  <div class="sw"><div class="chip" style="width:80px;background:var(--c-brass);"></div><span class="n">brass</span><span class="hex">#C8A45E</span></div>
+  <div class="sw"><div class="chip" style="width:80px;background:var(--c-brass-lo);"></div><span class="n">brass-lo</span><span class="hex">#8F6E32</span></div>
+  <div class="sw"><div class="chip" style="width:200px;background:linear-gradient(160deg,var(--c-brass-hi),var(--c-brass-lo) 62%,var(--c-brass-lo));"></div><span class="n">The bezel, 160&deg;</span><span class="hex">hi &rarr; lo @ 62%</span></div>
+  <div class="sw"><div class="chip" style="width:120px;background:var(--c-niche);"></div><span class="n">The niche</span><span class="hex">radial, lit</span></div>
+</div>
+</body>
+</html>

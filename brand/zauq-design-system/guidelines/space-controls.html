@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" viewport="700x160" subtitle="Three heights, so any row aligns without effort" name="Control heights" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-page); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 7px; }
+  .chip { height: 60px; border-radius: var(--radius); border: 1px solid var(--border-hairline); }
+  .n { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-faint); }
+  .hex { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="row" style="align-items:center;">
+  <div class="sw"><div style="height:44px;width:120px;border-radius:var(--radius);background:var(--fill-accent);"></div><span class="n">44 &middot; default</span></div>
+  <div class="sw"><div style="height:36px;width:100px;border-radius:var(--radius);border:1px solid var(--border-control);"></div><span class="n">36 &middot; small / icon</span></div>
+  <div class="sw"><div style="height:32px;width:80px;border-radius:var(--radius-sm);background:var(--fill-wash);"></div><span class="n">32 &middot; filter</span></div>
+</div>
+<p class="hex" style="margin:14px 0 0;">Buttons and fields share 44px, which is why the waitlist form lines up with no adjustment.</p>
+</body>
+</html>

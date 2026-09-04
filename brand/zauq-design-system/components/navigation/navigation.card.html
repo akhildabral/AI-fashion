@@ -1,0 +1,58 @@
+<!-- @dsCard group="Components" viewport="700x290" subtitle="Tabs on a hairline, quiet filters, the overflow menu" name="Navigation" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const [tab, setTab] = React.useState('all')
+  const [cats, setCats] = React.useState(['top'])
+  const toggle = (k) => setCats((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
+  return (
+    <div className="col" style={{ gap: 20 }}>
+      <Tabs label="Collections" value={tab} onChange={setTab} items={[
+        { key: 'all', label: 'Everything', count: 43 },
+        { key: 'worn', label: 'Most worn' },
+        { key: 'never', label: 'Never worn', count: 12 },
+        { key: 'idle', label: 'Sitting idle' },
+      ]} />
+      <div className="row" style={{ gap: 4 }}>
+        {[['top', 'Tops', 12], ['bottom', 'Bottoms', 9], ['footwear', 'Shoes', 6], ['outer', 'Outerwear', 4]].map(([k, l, n]) => (
+          <Filter key={k} on={cats.includes(k)} onClick={() => toggle(k)} count={n}>{l}</Filter>
+        ))}
+        <span style={{ margin: '0 4px', height: 16, width: 1, background: 'var(--border-field)' }} />
+        <Filter>Clean only</Filter>
+      </div>
+      <div className="row rule">
+        <MoreMenu>
+          <MenuItem>Share this look</MenuItem>
+          <MenuItem>Add to a trip</MenuItem>
+          <MenuItem danger>Let it go</MenuItem>
+        </MoreMenu>
+        <span className="cap">Click the dots</span>
+      </div>
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+/* ZAUQ shape.
+   The system is SHARP. 3px is the house radius for every rectangle — buttons,
+   cards, fields, menus, badges. 2px for the smallest tokens. The ONE curved
+   form is the arch, and it is a brand device, not a radius choice.
+   Nothing in ZAUQ is a pill or a circle except an avatar's initials block
+   (which is also 3px) and a wear dot.
+*/
+:root {
+  --radius: 3px;      /* everything rectangular */
+  --radius-sm: 2px;   /* filter tokens, tape thumb */
+  --radius-lg: 5px;   /* the arch's feet */
+
+  --border-hair: 1px;
+  --rule-active: 2px; /* the brass rule under an active tab / today */
+  --bezel: 2px;       /* arch bezel thickness (3px on the Mirror) */
+
+  /* the arch: crown is 46% of the width across, 0.373x the width tall.
+     --arch-h is that height as a % of the frame height (0.373 x w/h). */
+  --arch-radius: 46% 46% 5px 5px / var(--arch-h, 28%) var(--arch-h, 28%) 5px 5px;
+  --arch-h-3-4: 28%;
+  --arch-h-4-5: 29.8%;
+  --arch-h-5-6: 31.1%;
+  --arch-h-square: 37.3%;
+  --arch-h-5-4: 46.6%;
+  --arch-h-4-3: 49.7%;
+  /* the Mirror's own, slightly taller crown */
+  --mirror-radius: 48% 48% 6px 6px / 26% 26% 6px 6px;
+}

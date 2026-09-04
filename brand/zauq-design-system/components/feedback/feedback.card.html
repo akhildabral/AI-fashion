@@ -1,0 +1,66 @@
+<!-- @dsCard group="Components" viewport="700x380" subtitle="Alerts, badges, toast, undo bar, skeletons and the load error" name="Feedback" -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 22px 24px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rule { border-top: 1px solid var(--border-hairline); padding-top: 14px; }
+  .cap { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text-faint); }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="void 0"></script>
+<script src="../_card-boot.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ZauqCard.boot(`
+function Demo() {
+  const { toast, flash } = useFlash()
+  const [undo, setUndo] = React.useState(false)
+  return (
+    <div className="col" style={{ gap: 14 }}>
+      <div className="col" style={{ gap: 8 }}>
+        <Alert tone="error">Use JPG, PNG, WebP or HEIC photos up to 12MB.</Alert>
+        <Alert tone="warning">The forecast moved. It&rsquo;s cooler than when this was composed.</Alert>
+        <Alert tone="success">Logged. That&rsquo;s nine days running.</Alert>
+      </div>
+      <div className="row rule">
+        <Badge>New</Badge>
+        <Badge tone="quiet">In wash</Badge>
+        <Badge tone="quiet">Packed</Badge>
+        <Spinner size={16} style={{ color: 'var(--text-accent)' }} />
+        <Button variant="ghost" size="sm" onClick={() => flash('Logged. That&rsquo;s nine days running.')}>Flash a toast</Button>
+        <Button variant="ghost" size="sm" onClick={() => setUndo(true)}>Show undo</Button>
+      </div>
+      <div className="row rule" style={{ gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ width: 230 }}>
+          <ArchSkeleton count={3} columns="repeat(3, 1fr)" />
+          <span className="cap">Arch skeleton</span>
+        </div>
+        <div className="col" style={{ gap: 8, flex: 1, minWidth: 140 }}>
+          <SkeletonBlock style={{ height: 14, width: '70%' }} />
+          <SkeletonBlock style={{ height: 14, width: '45%' }} />
+          <SkeletonBlock style={{ height: 14, width: '58%' }} />
+          <span className="cap">Skeleton blocks</span>
+        </div>
+        <div style={{ width: 220 }}>
+          <LoadError onRetry={() => {}} style={{ minHeight: 0 }} />
+        </div>
+      </div>
+      <Toast msg={toast} />
+      {undo && <UndoBar message="Camel blazer, let go." onUndo={() => setUndo(false)} />}
+    </div>
+  )
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+`)
+</script>
+</body>
+</html>
