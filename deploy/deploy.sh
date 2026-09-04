@@ -39,6 +39,11 @@ done
 docker ps --format '{{.Names}} {{.Status}}' | grep -i ai-fashion
 docker logs --tail 20 ai-fashion-backend-1 2>&1 | grep -iE 'migrat|listen|error' | tail -5
 docker image prune -f >/dev/null
+# Every build leaves ~2.5GB of BuildKit cache behind and Docker never expires
+# it on its own: 180 deploys had filled 72GB (78% of the disk) before this
+# line existed. Keep only the most recent builds' worth so rebuilds stay
+# fast, and let the rest go.
+docker builder prune -f --keep-storage 8GB >/dev/null
 
 origin="$(grep -E '^PUBLIC_ORIGIN=' .env.prod 2>/dev/null | cut -d= -f2-)"
 if [ -n "$origin" ]; then
