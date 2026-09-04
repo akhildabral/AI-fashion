@@ -1,0 +1,287 @@
+<title>Taking ZAUQ Public</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Archivo:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bone: #EBE5D7; --surface: #F5F0E6; --ink: #221B12; --ink-60: rgba(34,27,18,.62); --ink-40: rgba(34,27,18,.42); --ink-12: rgba(34,27,18,.12);
+    --brass: #B98C3B; --brass-deep: #8A6620; --brass-soft: #EFE3CC; --danger: #BE423A; --success: #4E7A54;
+    --serif: "Bodoni Moda", "Didot", Georgia, serif; --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bone: #0E0D0B; --surface: #1A1714; --ink: #ECE5D8; --ink-60: rgba(236,229,216,.66); --ink-40: rgba(236,229,216,.45); --ink-12: rgba(236,229,216,.14);
+      --brass: #C8A45E; --brass-deep: #E4CB94; --brass-soft: #2A2114; --danger: #D86C64; --success: #8AB894;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bone: #0E0D0B; --surface: #1A1714; --ink: #ECE5D8; --ink-60: rgba(236,229,216,.66); --ink-40: rgba(236,229,216,.45); --ink-12: rgba(236,229,216,.14);
+    --brass: #C8A45E; --brass-deep: #E4CB94; --brass-soft: #2A2114; --danger: #D86C64; --success: #8AB894;
+  }
+  html { background: var(--bone); }
+  body { background: var(--bone); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+  .page { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--brass); }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: 52px; line-height: 1.05; margin: 10px 0 14px; text-wrap: balance; }
+  h1 em { font-style: italic; color: var(--brass); }
+  .lede { font-family: var(--serif); font-style: italic; font-size: 20px; line-height: 1.45; color: var(--ink-60); max-width: 60ch; margin: 0 0 8px; }
+  .meta { font-size: 13px; color: var(--ink-40); }
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.15; margin: 64px 0 14px; text-wrap: balance; }
+  h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; line-height: 1.25; margin: 32px 0 8px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 68ch; }
+  li { margin: 0 0 8px; }
+  li::marker { color: var(--brass); }
+  strong { font-weight: 600; }
+  a { color: var(--brass-deep); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .plaque { position: relative; background: var(--surface); border: 1px solid var(--ink-12); border-radius: 3px; padding: 20px 22px 18px 26px; margin: 22px 0; }
+  .plaque::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--brass-deep), var(--brass)); }
+  .plaque .eyebrow { display: block; margin-bottom: 8px; }
+  .plaque p:last-child, .plaque ul:last-child { margin-bottom: 0; }
+  .verdict { font-family: var(--serif); font-size: 22px; line-height: 1.3; margin: 0 0 8px; }
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0 8px; max-width: none; }
+  .steps > li { position: relative; padding: 14px 0 14px 56px; border-top: 1px solid var(--ink-12); margin: 0; }
+  .steps > li:last-child { border-bottom: 1px solid var(--ink-12); }
+  .steps > li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 12px; font-family: var(--serif); font-size: 28px; line-height: 1; color: var(--brass); font-variant-numeric: tabular-nums; }
+  .steps b { display: block; font-weight: 600; margin-bottom: 2px; }
+  .who { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
+  .who.you { color: var(--danger); border: 1px solid var(--danger); }
+  .who.me { color: var(--success); border: 1px solid var(--success); }
+  .who.both { color: var(--brass-deep); border: 1px solid var(--brass); }
+  .tablewrap { overflow-x: auto; margin: 16px 0 22px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--ink-12); }
+  th { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-40); }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+  .card { background: var(--surface); border: 1px solid var(--ink-12); border-radius: 3px; padding: 18px 20px; }
+  .card h4 { font-family: var(--serif); font-weight: 400; font-size: 20px; margin: 0 0 8px; }
+  .card ul { margin-bottom: 0; }
+  .card .tag { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--brass); display: block; margin-bottom: 6px; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; background: var(--surface); border: 1px solid var(--ink-12); border-radius: 3px; padding: 1px 6px; }
+  .timeline { display: grid; grid-template-columns: 120px 1fr; gap: 6px 16px; margin: 12px 0 22px; max-width: 68ch; }
+  .timeline .w { font-family: var(--serif); color: var(--brass); font-size: 18px; }
+  .sources { font-size: 13px; color: var(--ink-60); }
+  .sources li { margin-bottom: 4px; }
+  .rule { height: 1px; background: var(--ink-12); margin: 40px 0; }
+  .note { font-size: 13px; color: var(--ink-60); font-style: italic; }
+  @media (max-width: 520px) { h1 { font-size: 40px; } h2 { font-size: 27px; } .page { padding: 40px 18px 80px; } .timeline { grid-template-columns: 90px 1fr; } }
+</style>
+
+<div class="page">
+  <span class="eyebrow">A founder's guide · September 2026</span>
+  <h1>Taking ZAUQ <em>public.</em></h1>
+  <p class="lede">Everything between an invite-only app on your simulator and a listing in both stores under the company's name, in the order you have to do it, with what each step costs and how long it waits.</p>
+  <p class="meta">Prepared for Akhil. Facts checked against store documentation and current UAE and India guidance; sources at the end. This is practical guidance, not legal or tax advice: the money and licensing sections should be confirmed with an accountant in the UAE and, if you take the India route, in India.</p>
+
+  <div class="plaque">
+    <span class="eyebrow">The short version</span>
+    <p class="verdict">Publish under a company from day one. Open the D-U-N-S request this week, form a UAE free-zone company, then enrol both stores as an organization. Keep payments inside the stores so India works without an Indian entity.</p>
+    <p>Neither store lets you hide a personal name on an individual account, and Google cannot convert an individual account into an organization later. Doing it as a company costs roughly AED 15,000 to 25,000 in year one and adds four to eight weeks before the first submission, most of it waiting on a D-U-N-S number and a bank. Everything else in this document is the detail behind that verdict.</p>
+  </div>
+
+  <h2>1. How store accounts actually work</h2>
+  <p>Both stores have two kinds of account, and the kind decides three things: whose name the public sees, what you can do later, and how hard it is to change.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th></th><th>Apple Developer Program</th><th>Google Play Console</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Cost</strong></td><td class="num">USD 99 per year</td><td class="num">USD 25 once</td></tr>
+      <tr><td><strong>Individual account</strong></td><td>Your personal legal name is shown as the seller on every listing. No trade name allowed.</td><td>Your legal name, country and developer email are shown. A display "developer name" can differ, but the legal name still appears. New personal accounts must run a closed test with 12 opted-in testers for 14 continuous days before production access.</td></tr>
+      <tr><td><strong>Organization account</strong></td><td>Needs a legal entity (no DBAs, trade names or branches), a D-U-N-S number, a public website on a domain that matches your work email, and a person with legal authority to sign. The company's legal name is the seller.</td><td>Needs a D-U-N-S number and organization documents. Google shows the legal name, legal address, developer email and phone. No 14-day testing requirement.</td></tr>
+      <tr><td><strong>Changing later</strong></td><td>Apple does not convert an individual account into an organization. You enrol the company separately and transfer each app (bundle ID, reviews, ratings and update path survive; takes days per app).</td><td>Google cannot convert a personal account into an organization. You open a new organization account and transfer the app through the formal transfer process.</td></tr>
+      <tr><td><strong>Selling (paid, subscriptions)</strong></td><td>Requires the Paid Apps agreement, a bank account and a US tax form (W-8BEN-E for a UAE company; there is no US tax treaty with the UAE, which only affects the treaty section). Payouts to UAE banks are supported.</td><td>Requires a Google Payments merchant profile; the UAE has been a supported merchant country since 2014. Merchant accounts must show a full address publicly.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The consequence for you: since you don't want your name shown, the organization route is the only one that satisfies that on both stores, and it must be the first account you open, not a later migration.</p>
+
+  <h2>2. Your options, compared</h2>
+  <div class="grid2">
+    <div class="card"><span class="tag">Recommended</span><h4>UAE free-zone company</h4>
+      <ul>
+        <li>Legal entity in the UAE, revenue lands in a UAE bank, matches where you live and work.</li>
+        <li>Year one roughly AED 12,500 to 25,000 for a licence with one visa; renewals 70 to 85% of that.</li>
+        <li>0% corporate tax on the first AED 375,000 of profit, 9% above; Small Business Relief (revenue under AED 3M) available until 31 Dec 2026.</li>
+        <li>Banking is the slow part: 2 to 4 weeks after the licence.</li>
+      </ul>
+    </div>
+    <div class="card"><span class="tag">Alternative</span><h4>India private limited company</h4>
+      <ul>
+        <li>Cheapest to form: about INR 7,000 to 25,000 all in, 5 to 20 working days through SPICe+.</li>
+        <li>18% GST applies on Indian customers; store payouts from Apple/Google count as export of services (zero-rated with an LUT).</li>
+        <li>Revenue arrives in India in INR; foreign remittance paperwork (FIRC) applies.</li>
+        <li>Makes sense only if you plan to live, hire and bank in India.</li>
+      </ul>
+    </div>
+    <div class="card"><span class="tag">Not suitable</span><h4>UAE freelance permit</h4>
+      <ul>
+        <li>Cheap (AED 5,500 to 25,000 a year) and covers "software development", but it is a permit for a person, not a legal entity.</li>
+        <li>Apple rejects sole proprietorships and permits for organization enrolment; your own name would still be the seller.</li>
+      </ul>
+    </div>
+    <div class="card"><span class="tag">Not what you asked for</span><h4>Individual accounts now, company later</h4>
+      <ul>
+        <li>Fastest, but your name is public from the first listing and both stores force a new-account-plus-transfer later.</li>
+        <li>Google's 14-day testing rule applies twice.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>3. Forming the UAE company, step by step</h2>
+  <p>A free zone is a licensing authority that lets a foreign national own 100% of a company, gives you a licence tied to named activities, and (optionally) a residence visa. For a software product sold worldwide through the stores, a free zone is the normal choice; a mainland licence adds cost and is only needed for physical trade inside the UAE.</p>
+
+  <ol class="steps">
+    <li><b>Pick the free zone <span class="who you">you</span></b> IFZA and Meydan (Dubai) are the usual picks for software: packages from about AED 12,500 to 14,000 for a licence with no visa, more with visas; RAKEZ (Ras Al Khaimah) from about AED 5,500 to 14,000 for the smallest package; DMCC is the premium option at AED 35,000 to 50,000. Choose a zone whose activity list includes "software development" or "IT / application development"; the licence must say it, because the bank and Apple will read it.</li>
+    <li><b>Reserve the name <span class="who you">you</span></b> Ask for "ZAUQ" plus a suffix the zone requires (for example "ZAUQ Technologies FZCO" or "FZ-LLC"). The legal name goes on the App Store as the seller, so pick one you'd be happy to see there. Avoid words the UAE restricts (religious terms, country names, "bank", "insurance").</li>
+    <li><b>Documents <span class="who you">you</span></b> Passport, passport photo, UAE visa or entry stamp if resident, proof of address, a short business plan for some zones, and the application form. Signing is by Emirates ID or in person.</li>
+    <li><b>Licence issued <span class="who you">you</span></b> Typically 3 to 10 working days. You receive the trade licence, the Memorandum and Articles, and a share certificate. Keep PDFs of all three; every later step asks for them.</li>
+    <li><b>Establishment card and visa <span class="who you">you</span></b> Optional if you already hold a UAE residence visa through employment; required if this company will sponsor you. Add 1 to 3 weeks and about AED 3,800 to 4,800 per visa.</li>
+    <li><b>D-U-N-S number <span class="who both">both</span></b> Free from Dun &amp; Bradstreet; up to 30 working days standard, or free in about 5 business days through Apple's own request form. The company name and address must match the trade licence exactly. Start this the day the licence arrives; it is the longest wait.</li>
+    <li><b>Corporate bank account <span class="who you">you</span></b> 2 to 4 weeks. Banks want the licence, MOA, shareholder passport and Emirates ID, a lease or flexi-desk agreement (virtual offices are increasingly refused), and often the corporate tax registration number. Startups usually get the fastest answers from Wio Business or Mashreq NeoBiz; Emirates NBD, RAKBANK and Liv Business are alternatives. Minimum balances range from AED 10,000 upwards.</li>
+    <li><b>Corporate tax registration <span class="who both">both</span></b> Mandatory for every company with the Federal Tax Authority, regardless of size; register within three months of incorporation to avoid a fine. Elect Small Business Relief if revenue stays under AED 3M (available until 31 Dec 2026), otherwise 0% up to AED 375,000 profit and 9% above. Free-zone "qualifying income" at 0% does not normally cover consumer app sales, so plan on the 9% band once you are profitable.</li>
+    <li><b>VAT <span class="who both">both</span></b> Registration becomes mandatory when taxable supplies exceed AED 375,000 in 12 months (voluntary from AED 187,500). Your store income is a service supplied to Apple and Google (companies abroad), which is generally treated as an export of services; your accountant will confirm the treatment and file quarterly once registered.</li>
+    <li><b>Bookkeeping <span class="who you">you</span></b> Corporate tax requires annual financial statements. A small firm charges roughly AED 3,000 to 8,000 a year for bookkeeping, corporate tax filing and VAT returns. Line one up when the bank account opens.</li>
+  </ol>
+
+  <div class="timeline">
+    <span class="w">Week 1</span><span>Choose zone, reserve name, submit documents.</span>
+    <span class="w">Week 2</span><span>Licence issued. Request D-U-N-S the same day. Apply to the bank.</span>
+    <span class="w">Week 3–4</span><span>D-U-N-S arrives (Apple's fast path). Enrol Apple and Google as an organization.</span>
+    <span class="w">Week 4–6</span><span>Bank account opens. Corporate tax registration. Paid-apps agreements and banking on both stores.</span>
+    <span class="w">Week 6+</span><span>Release builds, TestFlight and Play testing, review, launch.</span>
+  </div>
+
+  <h2>4. The India route, if you ever want it</h2>
+  <p>You only need an Indian company if you want to bank in India, hire in India, or sell directly to Indian users from your own website. Selling through the stores does not require it (next section).</p>
+  <ul>
+    <li><strong>Forming a Pvt Ltd</strong>: one online filing (SPICe+ on the MCA portal) bundles name reservation, incorporation, director IDs, PAN and TAN; 5 to 20 working days; INR 7,000 to 25,000 all-in including a professional. Two directors and two shareholders are needed (one can be the same person; the second can be a family member with a small holding). One director must be resident in India for 182 days a year.</li>
+    <li><strong>GST</strong>: 18% on software services sold to Indian customers; sales to customers abroad (and payouts from Apple and Google, which are foreign companies) are exports, zero-rated once you file a Letter of Undertaking each year. Register for GST from the start if you export.</li>
+    <li><strong>Money coming in</strong>: store payouts arrive as foreign remittances; the bank issues a FIRC for each, which you keep for GST and RBI records.</li>
+    <li><strong>Data law</strong>: India's Digital Personal Data Protection Act is in force with rules notified in November 2025; it applies to any app serving Indian users, Indian company or not.</li>
+    <li><strong>Trademark</strong>: INR 4,500 per class for individuals and startups (INR 9,000 for companies), 9 to 12 months to registration.</li>
+  </ul>
+
+  <h2>5. Can a UAE company sell to Indian users? Yes, through the stores</h2>
+  <p>On both stores the customer's contract is with Apple or Google, not with you. They are the "merchant of record": they charge the Indian user in rupees, collect and remit India's 18% GST themselves, take their commission, and pay you the net in your payout currency. Google states it collects and pays GST on sales by developers located outside India; Apple does the same across its territories. India's equalisation levy that used to hit foreign digital services is gone: the 2% levy ended 1 August 2024 and the 6% advertising levy ended 1 April 2025.</p>
+  <p>The one thing to avoid: taking Indian consumers' money <strong>outside</strong> the stores (for example a Razorpay checkout on myzauq.com used by someone in India). That makes your UAE company a foreign supplier of "online information and database access" services, which requires a simplified GST registration in India from the first sale, an Indian representative, and monthly returns. Keep India inside the stores until it is worth an Indian entity.</p>
+
+  <div class="plaque">
+    <span class="eyebrow">Store commissions today</span>
+    <p>Apple: 30% standard, <strong>15%</strong> under the Small Business Program for developers under USD 1M in the previous calendar year (new developers qualify; you apply once enrolled). Google: 15% on the first USD 1M and on subscriptions in most markets; since mid-2026 the EEA, UK and US split this into a 10% service fee plus a 5% billing fee. Both take their cut before your payout.</p>
+  </div>
+
+  <h2>6. UAE versus India, the honest comparison</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th></th><th>UAE free-zone company</th><th>India Pvt Ltd</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Setup cost</strong></td><td class="num">AED 12,500–25,000 yr 1</td><td class="num">INR 7,000–25,000</td></tr>
+      <tr><td><strong>Time to trade</strong></td><td>Licence in days; bank 2–4 weeks</td><td>10–20 working days; bank 1–2 weeks</td></tr>
+      <tr><td><strong>Tax on profit</strong></td><td>0% to AED 375k, 9% above; relief to end 2026</td><td>~25% effective for small companies (22% + surcharge/cess)</td></tr>
+      <tr><td><strong>Consumption tax</strong></td><td>5% VAT above AED 375k turnover; store income generally export</td><td>18% GST on Indian sales; exports zero-rated with LUT</td></tr>
+      <tr><td><strong>Personal tax on dividends</strong></td><td>None in the UAE</td><td>Taxed as income in your hands</td></tr>
+      <tr><td><strong>Banking</strong></td><td>Strict KYC, minimum balances, slow but multi-currency</td><td>Easy to open; INR only, FIRC paperwork on remittances</td></tr>
+      <tr><td><strong>Ownership</strong></td><td>100% yours, no local partner</td><td>100% yours; needs a second director/shareholder</td></tr>
+      <tr><td><strong>Investors</strong></td><td>Familiar to Gulf and international investors; many later add a holding structure</td><td>Familiar to Indian investors; SEBI/FEMA rules for foreign money</td></tr>
+      <tr><td><strong>Fits you if</strong></td><td>You live in the UAE and want revenue in AED</td><td>You move operations, team or life to India</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>7. Emails, accounts and who owns what</h2>
+  <p>Do not create <code>zauq@gmail.com</code> for this. Apple requires the enrolling person's work email to be on the organization's own domain, Google shows the developer email publicly, and a free mailbox nobody else can recover is the single most common way founders lose an app. Use the domain you already own.</p>
+  <ol class="steps">
+    <li><b>Company mail on myzauq.com <span class="who you">you</span></b> Google Workspace Business Starter (about USD 7 per user per month) or the equivalent from your registrar. Create <code>founder@myzauq.com</code> for you, plus role addresses you will need publicly: <code>hello@myzauq.com</code> (store contact email), <code>support@myzauq.com</code> (in-app and listing support), <code>legal@myzauq.com</code> (privacy requests). Route the role addresses to your inbox.</li>
+    <li><b>Apple Account for the company <span class="who you">you</span></b> Create a new Apple Account with <code>founder@myzauq.com</code>, two-factor authentication on, recovery phone set. Enrol the Developer Program with this account as the Account Holder (the one role that can accept agreements and cannot be delegated). Never enrol with your personal iCloud account.</li>
+    <li><b>Google account for the company <span class="who you">you</span></b> The Workspace user <code>founder@myzauq.com</code> is already a Google account. Turn on 2-step verification (Google requires it for Play). Create the Play Console developer account from it as an organization and add a second owner later for safety.</li>
+    <li><b>Expo (EAS), Sentry, Firebase <span class="who both">both</span></b> Same company email. The EAS project holds your signing keys and push credentials; it must belong to the company account, not a personal one.</li>
+    <li><b>Domain, DNS, hosting, GitHub <span class="who you">you</span></b> Move the myzauq.com registration and the GitHub repository to accounts owned by the company email (or an organization on GitHub). Add the company as the registrant contact.</li>
+    <li><b>A password manager and a written recovery sheet <span class="who you">you</span></b> One shared vault (1Password or Bitwarden) holding every credential above, the D-U-N-S number, licence numbers and the tax registration numbers. Store recovery codes offline.</li>
+  </ol>
+
+  <h2>8. Enrolling the stores as an organization</h2>
+  <h3>Apple</h3>
+  <ol class="steps">
+    <li><b>Prerequisites</b> Legal entity, D-U-N-S number matching the licence, a public website on myzauq.com (exists), a work email on the domain, and you as a person with authority to sign (you are the owner). <span class="who you">you</span></li>
+    <li><b>Enrol</b> From the Apple Developer app on your iPhone or developer.apple.com with the company Apple Account: choose Organization, enter the legal name and D-U-N-S, pay USD 99. Apple may phone or email to verify authority; 1 to 5 business days typically, longer if the D-U-N-S data disagrees with the licence. <span class="who you">you</span></li>
+    <li><b>App Store Connect setup</b> Create the app record for bundle ID <code>com.myzauq.app</code>, sign the Paid Apps agreement, enter the company bank account and the W-8BEN-E, apply to the Small Business Program. <span class="who both">both</span></li>
+    <li><b>Certificates and push</b> I generate the distribution certificate, provisioning profile and APNs key through EAS with your one-time sign-in. <span class="who me">me</span></li>
+  </ol>
+  <h3>Google</h3>
+  <ol class="steps">
+    <li><b>Create the developer account</b> play.google.com/console with the company Google account: Organization, legal name and address exactly as licensed, D-U-N-S number, the public contact email and phone (they are shown on listings), pay USD 25. Verification asks for organization documents and can take a few days. <span class="who you">you</span></li>
+    <li><b>Payments profile</b> Needed to sell; ties the public address to the listing. <span class="who you">you</span></li>
+    <li><b>Firebase project for push</b> Create a Firebase project under the company Google account; I connect it to EAS for FCM. <span class="who both">both</span></li>
+    <li><b>App record, tracks, forms</b> I create the app, internal and closed testing tracks, and draft the Data safety and content-rating answers for your review. <span class="who me">me</span></li>
+  </ol>
+
+  <h2>9. Legal and compliance before the first review</h2>
+  <ul>
+    <li><strong>Privacy policy and terms</strong> at myzauq.com/privacy and /terms, written for what ZAUQ actually does: photos of garments, full-length photos of the member, wear history, email; sent to the AI image providers, Sentry and the push services; how long kept; how to delete (in-app). Apple's privacy labels and Google's Data safety form must say the same thing, and reviewers compare them.</li>
+    <li><strong>Consent</strong>: both the UAE PDPL and India's DPDP Act want clear consent before collecting personal data and limits to the stated purpose. The Mirror's consent gate before a body photo is the right pattern; keep it.</li>
+    <li><strong>Trademark "ZAUQ"</strong>: UAE about AED 6,500 to 12,000 per class, 6 to 12 months; file in class 9 (software) and class 42 (software services) at least. Do a clearance search first; stores suspend apps on trademark complaints and that is far worse after launch.</li>
+    <li><strong>Reviewer access</strong>: the app is invite-only, so supply a demo account with a filled closet in the review notes; Apple rejects apps it cannot get into.</li>
+    <li><strong>Already handled in the app</strong>: Sign in with Apple next to Google, no external purchase links (the plan is read-only), in-app account deletion, report and block on member content, camera and photo purpose strings, encryption exemption declared.</li>
+    <li><strong>Age rating</strong>: expect 12+ (moderated member content).</li>
+  </ul>
+
+  <h2>10. What it costs in year one</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Item</th><th>Approx. cost</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td>Free-zone licence (no visa) </td><td class="num">AED 12,500–14,000</td><td>Week 1</td></tr>
+      <tr><td>Residence visa, if the company sponsors you</td><td class="num">AED 3,800–4,800</td><td>Weeks 2–4</td></tr>
+      <tr><td>D-U-N-S number</td><td class="num">Free</td><td>Week 2</td></tr>
+      <tr><td>Corporate bank account</td><td class="num">Free to open; AED 10,000+ minimum balance</td><td>Weeks 2–6</td></tr>
+      <tr><td>Apple Developer Program</td><td class="num">USD 99 / year</td><td>Week 3–4</td></tr>
+      <tr><td>Google Play Console</td><td class="num">USD 25 once</td><td>Week 3–4</td></tr>
+      <tr><td>Google Workspace (2 users)</td><td class="num">~USD 14 / month</td><td>Week 1</td></tr>
+      <tr><td>Bookkeeping, corporate tax and VAT filings</td><td class="num">AED 3,000–8,000 / year</td><td>Ongoing</td></tr>
+      <tr><td>Trademark, 2 classes, UAE</td><td class="num">AED 13,000–24,000</td><td>Any time; sooner is safer</td></tr>
+      <tr><td>Expo EAS (production builds)</td><td class="num">Free tier to start; USD 19+/month for more builds</td><td>Week 4</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Free-zone prices move every quarter and packages bundle different things (desk, visas, establishment card). Get two written quotes; refuse "all-inclusive" offers that don't itemise renewal.</p>
+
+  <h2>11. Your checklist, in order</h2>
+  <ol class="steps">
+    <li><b>Today</b> Set up Google Workspace on myzauq.com; create the company Apple Account and Google account with 2-factor; open a password vault. <span class="who you">you</span></li>
+    <li><b>This week</b> Choose the free zone, reserve "ZAUQ …", submit the application. Confirm the activity says software/app development. <span class="who you">you</span></li>
+    <li><b>Licence day</b> Request the D-U-N-S number through Apple's form (fast path); apply to Wio Business or Mashreq NeoBiz; book an accountant. <span class="who you">you</span></li>
+    <li><b>D-U-N-S day</b> Enrol Apple (Organization) and Google Play (Organization). Send me the Apple Team ID and the Play developer account access. <span class="who you">you</span></li>
+    <li><b>Then me</b> Fill the Team ID and bundle IDs into the app and universal-link files, create the Firebase project link, generate signing and push credentials, produce the first preview builds for your phone, then the TestFlight and Play internal builds, screenshots, listings, Data safety and privacy label drafts, and the reviewer notes. <span class="who me">me</span></li>
+    <li><b>Bank day</b> Sign the Paid Apps agreement, enter banking and the W-8BEN-E on Apple; create the Google Payments profile; register for corporate tax. <span class="who you">you</span></li>
+    <li><b>Launch</b> Submit for review on both. Apple 1 to 3 days typical; Google similar for a verified organization. Phased release on iOS, staged rollout on Android. <span class="who both">both</span></li>
+  </ol>
+
+  <div class="rule"></div>
+
+  <h2>Sources</h2>
+  <ul class="sources">
+    <li><a href="https://developer.apple.com/programs/enroll/">Apple Developer Program: become a member (organization requirements)</a></li>
+    <li><a href="https://developer.apple.com/help/account/membership/D-U-N-S/">Apple: D-U-N-S Number</a> · <a href="https://developer.apple.com/help/account/membership/program-enrollment/">Apple: enrollment help</a></li>
+    <li><a href="https://median.co/blog/how-to-change-your-apple-developer-account-from-individual-to-organization">Individual to organization on Apple (no conversion; transfer apps)</a> · <a href="https://ptkd.com/journal/transfer-app-personal-to-company-apple">App transfer keeps bundle ID, reviews, ratings</a></li>
+    <li><a href="https://developer.apple.com/help/app-store-connect/manage-tax-information/provide-tax-information/">App Store Connect: provide tax information (W-8BEN-E)</a> · <a href="https://developer.apple.com/help/app-store-connect/making-payments-to-apple/understanding-taxes/">App Store Connect: understanding taxes (Apple collects local taxes)</a></li>
+    <li><a href="https://developer.apple.com/app-store/small-business-program/">App Store Small Business Program</a></li>
+    <li><a href="https://support.google.com/googleplay/android-developer/answer/13628312?hl=en">Play Console: required information to create a developer account</a> · <a href="https://play.google.com/console/about/static/pdf/Verifying_your_Play_Console_developer_account_for_organizations.pdf">Play Console: verifying organization accounts (D-U-N-S)</a></li>
+    <li><a href="https://support.google.com/googleplay/android-developer/answer/14151465?hl=en">Play Console: app testing requirements for new personal accounts (12 testers, 14 days)</a></li>
+    <li><a href="https://support.google.com/googleplay/android-developer/answer/13634888?hl=en">Play Console: what account information is shown publicly</a> · <a href="https://support.google.com/googleplay/android-developer/answer/9306917?hl=en">Play Console: supported locations for developer and merchant registration</a></li>
+    <li><a href="https://support.google.com/paymentscenter/answer/15152449?hl=en-GB">Google payments: tax information for India (Google collects GST for developers outside India)</a> · <a href="https://support.google.com/googleplay/android-developer/answer/112622?hl=en">Play Console: service fees</a></li>
+    <li><a href="https://support.google.com/googleplay/android-developer/answer/2543765">Play Console: protect your developer account</a></li>
+    <li><a href="https://www.dnb.com/en-us/smb/duns/get-a-duns.html">Dun &amp; Bradstreet: get a D-U-N-S number</a> · <a href="https://dnbuae.com/duns-number-registration-form/">D&amp;B UAE</a> · <a href="https://www.dnb.co.in/duns/get-a-duns">D&amp;B India</a></li>
+    <li><a href="https://www.radiantbiz.com/blog/ifza-free-zone-in-uae">IFZA licence costs 2026</a> · <a href="https://freezonemarket.ae/meydan-free-zone-company-setup/">Meydan Free Zone costs 2026</a> · <a href="https://www.shuraa.in/dubai-free-zone-company-setup-cost/">Dubai free-zone setup cost guide 2026</a> · <a href="https://noblecoreventures.com/it-company-setup-dubai/">IT company setup Dubai 2026</a></li>
+    <li><a href="https://tax.gov.ae/en/taxes/corporate.tax/corporate.tax.topics/small.business.relief.23.aspx">UAE FTA: Small Business Relief</a> · <a href="https://www.cleartax.com/ae/corporate-tax-in-uae">UAE corporate tax 2026 overview</a> · <a href="https://csgadvisory.com/insights/uae-corporate-tax-at-9-free-zone-exemptions-qualifying-income-and-what-actually-gets-taxed/">Free-zone qualifying income explained</a></li>
+    <li><a href="https://tax.gov.ae/en/taxes/Vat/vat.topics/registration.for.vat.aspx">UAE FTA: VAT registration</a> · <a href="https://protax.biz/how-vat-applies-to-digital-products-online-services-in-the-uae/">VAT on digital products in the UAE</a></li>
+    <li><a href="https://www.shuraa.com/free-zone-company-bank-account/">Free-zone company bank account 2026</a> · <a href="https://scorp.ae/finance-banking/how-to-open-a-uae-corporate-bank-account-2026-update/">UAE corporate bank account 2026 update</a></li>
+    <li><a href="https://filings.ae/freelancer/freelancer-license">UAE freelancer licence 2026</a> · <a href="https://ripplellc.ae/freelance-vs-trade-license-uae-2026/">Freelance vs trade licence</a></li>
+    <li><a href="https://techstory.in/how-to-register-a-private-limited-company-in-india-2026-costs-timeline-documents/">Register a Pvt Ltd in India 2026</a> · <a href="https://www.thenewsminute.com/partner/costs-timelines-for-private-limited-company-registration-in-india-updated-for-2026">Costs and timelines (2026)</a></li>
+    <li><a href="https://www.xflowpay.com/blog/gst-on-software-services">GST on software services and exports</a> · <a href="https://www.karboncard.com/blog/lut-for-zero-rated-services">LUT for zero-rated services</a> · <a href="https://www.india-briefing.com/news/oidar-compliance-india-gst-registration-ntor-gstr5a-digital-tax-43951.html/">OIDAR compliance for foreign suppliers</a></li>
+    <li><a href="https://www.internationaltaxreview.com/article/2domhin1o2rn1303tperk/sponsored/indias-2-equalisation-levy-abolished-from-bad-to-worse-for-some">India's 2% equalisation levy abolished (Aug 2024)</a> · <a href="https://www.akmglobal.com/blog/income-tax-update-no-equalization-levy-from-april_1/">6% levy abolished (Apr 2025)</a></li>
+    <li><a href="https://static.pib.gov.in/WriteReadData/specificdocs/documents/2025/nov/doc20251117695301.pdf">India DPDP Rules 2025 notified</a> · <a href="https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws">UAE data protection laws (PDPL)</a></li>
+    <li><a href="https://www.moet.gov.ae/en/w/register-trademark%C2%A0">UAE Ministry of Economy: register a trademark</a> · <a href="https://uppersetup.com/en/blog/trademark-registration-in-the-uae-2026-a-complete-guide-to">UAE trademark costs and timeline 2026</a> · <a href="https://www.intepat.com/blog/trademark-registration-fees-india">India trademark fees 2026</a></li>
+  </ul>
+</div>
