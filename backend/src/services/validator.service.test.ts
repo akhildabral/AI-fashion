@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateOutfit, type ValidatorItem } from './validator.service';
+import { srgbToLab } from '../lib/color';
 
 let seq = 0;
 function item(overrides: Partial<ValidatorItem>): ValidatorItem {
@@ -199,6 +200,105 @@ describe('season', () => {
 
   it('treats an empty season list as all-year', () => {
     expect(validateOutfit([tee(), jeans(), sneakers()], { now: july }).warnings.some((w) => w.rule === 'season')).toBe(false);
+  });
+});
+
+describe('colour', () => {
+  const lab = (r: number, g: number, b: number) => [{ hex: '#000000', lab: srgbToLab(r, g, b), share: 0.9 }];
+  const red = lab(255, 0, 0);
+  const green = lab(0, 128, 0);
+  const cobalt = lab(0, 71, 171);
+  const black = lab(10, 10, 10);
+  const sage = lab(158, 178, 141);
+
+  it('warns on three loud colours', () => {
+    const r = validateOutfit([item({ colorPalette: red }), item({ ...jeans(), colorPalette: cobalt }), item({ ...sneakers(), colorPalette: green })]);
+    expect(r.warnings.some((w) => w.rule === 'colour' && /three loud/.test(w.message))).toBe(true);
+    expect(r.colours.vivid).toBe(3);
+    expect(r.colours.families).toEqual(['red', 'blue', 'green']);
+  });
+
+  it('warns on two loud colours that clash, not on two that sit apart', () => {
+    const clash = validateOutfit([item({ colorPalette: red }), item({ ...jeans(), colorPalette: green }), item({ ...sneakers(), colorPalette: black })]);
+    expect(clash.warnings.some((w) => w.rule === 'colour' && /clash/.test(w.message))).toBe(true);
+    const fine = validateOutfit([item({ colorPalette: red }), item({ ...jeans(), colorPalette: black }), item({ ...sneakers(), colorPalette: sage })]);
+    expect(fine.warnings.some((w) => w.rule === 'colour')).toBe(false);
+    expect(fine.colours).toEqual({ families: ['red', 'neutral', 'green'], vivid: 1 });
+  });
+
+  it('reads the stored family and vividness, the palette, or a neutral name, and abstains otherwise', () => {
+    const r = validateOutfit([
+      item({ colourFamily: 'red', colourVividness: 'vivid' }),
+      item({ ...jeans(), colourFamily: 'green', colourVividness: 'vivid' }),
+      item({ ...sneakers(), primaryColor: 'white' }),
+    ]);
+    expect(r.warnings.some((w) => w.rule === 'colour' && /clash/.test(w.message))).toBe(true);
+    expect(r.colours).toEqual({ families: ['red', 'green', 'neutral'], vivid: 2 });
+    const unknown = validateOutfit([tee(), jeans(), sneakers()]);
+    expect(unknown.colours).toEqual({ families: [], vivid: 0 });
+  });
+
+  it('leaves accessories out of the colour count', () => {
+    const scarf = item({ category: 'accessory', layerRole: 'accessory', colorPalette: green });
+    const r = validateOutfit([item({ colorPalette: red }), item({ ...jeans(), colorPalette: cobalt }), sneakers(), scarf]);
+    expect(r.colours.vivid).toBe(2);
+    expect(r.warnings.some((w) => /three loud/.test(w.message))).toBe(false);
+  });
+});
+
+describe('wearability second edition', () => {
+  it('a sheer top is a layer violation for work and occasion, but not for a casual evening', () => {
+    const blouse = () => item({ subtype: 'blouse', sheer: true, formalityScore: 3 });
+    expect(validateOutfit([blouse(), jeans(), sneakers()], { eventType: 'work' }).violations.some((v) => v.rule === 'layer')).toBe(true);
+    expect(validateOutfit([blouse(), jeans(), sneakers()], { eventType: 'occasion' }).violations.some((v) => v.rule === 'layer')).toBe(true);
+    const evening = validateOutfit([blouse(), jeans(), sneakers()], { eventType: 'evening', weather: { temperatureC: 24 } });
+    expect(evening.violations.some((v) => v.rule === 'layer')).toBe(false);
+    expect(evening.warnings.some((w) => w.rule === 'layer')).toBe(false);
+    // A layer over it settles the matter.
+    expect(validateOutfit([blouse(), item({ layerRole: 'mid', subtype: 'blazer' }), jeans(), sneakers()], { eventType: 'work' }).violations.some((v) => v.rule === 'layer')).toBe(false);
+  });
+
+  it('the model saying needs a layer is honoured, and its saying not is only an opinion', () => {
+    const top = () => item({ subtype: 'top', needsLayer: true, formalityScore: 3 });
+    expect(validateOutfit([top(), jeans(), sneakers()], { eventType: 'work' }).violations.some((v) => v.rule === 'layer')).toBe(true);
+    const cami = item({ subtype: 'camisole', needsLayer: false, formalityScore: 3 });
+    expect(validateOutfit([cami, jeans(), sneakers()], { eventType: 'work' }).violations.some((v) => v.rule === 'layer')).toBe(true);
+  });
+
+  it('cocktail and formal occasions want the bottom and the shoes at business-casual or above', () => {
+    const silkTop = item({ subtype: 'silk blouse', formalityScore: 5, dressCode: 'cocktail' });
+    const casualTrousers = item({ category: 'bottom', layerRole: 'bottom', subtype: 'chinos', formalityScore: 4, dressCode: 'casual' });
+    const heels = item({ category: 'footwear', layerRole: 'footwear', subtype: 'heels', formalityScore: 4, dressCode: 'cocktail' });
+    const r = validateOutfit([silkTop, casualTrousers, heels], { eventType: 'occasion' });
+    expect(r.violations.some((v) => v.rule === 'dress-code' && /chinos \(casual\)/.test(v.message))).toBe(true);
+    const dressed = item({ category: 'bottom', layerRole: 'bottom', subtype: 'trousers', formalityScore: 4, dressCode: 'business-casual' });
+    expect(validateOutfit([silkTop, dressed, heels], { eventType: 'occasion' }).violations.some((v) => v.rule === 'dress-code')).toBe(false);
+    // The same pieces for work are not held to the occasion floor.
+    expect(validateOutfit([silkTop, casualTrousers, heels], { eventType: 'work' }).violations.some((v) => v.rule === 'dress-code')).toBe(false);
+    // A dress code on the shoes counts too.
+    const sandals = item({ category: 'footwear', layerRole: 'footwear', subtype: 'heeled sandals', formalityScore: 4, dressCode: 'casual' });
+    expect(validateOutfit([silkTop, dressed, sandals], { eventType: 'occasion' }).violations.some((v) => v.rule === 'dress-code')).toBe(true);
+  });
+
+  it('the dress code sharpens the formality read', () => {
+    // Tagged casual (2) but read as cocktail (4.5): fits an occasion after all.
+    const r = validateOutfit(
+      [item({ formalityScore: 2, dressCode: 'cocktail' }), item({ ...jeans(), formalityScore: 2, dressCode: 'cocktail' }), item({ ...sneakers(), formalityScore: 2, dressCode: 'cocktail' })],
+      { eventType: 'occasion' },
+    );
+    expect(r.violations.some((v) => v.rule === 'formality')).toBe(false);
+  });
+
+  it('a bold pattern on a bold pattern is named as such', () => {
+    const r = validateOutfit([item({ pattern: 'floral', patternScale: 'bold' }), item({ ...jeans(), pattern: 'checked', patternScale: 'bold' }), sneakers()]);
+    expect(r.warnings.some((w) => w.rule === 'pattern' && /bold/.test(w.message))).toBe(true);
+  });
+
+  it('reads shoe formality off the shoe type when the subtype says nothing', () => {
+    const shoe = item({ category: 'footwear', layerRole: 'footwear', subtype: 'white pair', shoeType: 'sneaker', formalityScore: 4 });
+    const trousers = item({ category: 'bottom', layerRole: 'bottom', subtype: 'tailored trousers', formalityScore: 4 });
+    const r = validateOutfit([item({ formalityScore: 4 }), trousers, shoe], { eventType: 'work' });
+    expect(r.violations.some((v) => v.rule === 'shoe-formality')).toBe(true);
   });
 });
 

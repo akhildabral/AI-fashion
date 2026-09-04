@@ -3,6 +3,8 @@ import {
   currentSeason,
   deriveLayerRole,
   deriveNeedsLayer,
+  dressCodeScore,
+  effectiveFormality,
   isHeavyBoot,
   isOpenToe,
   isWearableCategory,
@@ -14,6 +16,7 @@ import {
   type Hemisphere,
   type Season,
 } from '../lib/attributes';
+import { dominantLab, familyHue, hueDelta, readColour, type HueFamily, type SaturationBand } from '../lib/color';
 
 // Deterministic outfit validation: the LLM proposes, these rules validate.
 // The point is "never obviously wrong" — completeness, availability, weather
@@ -40,8 +43,43 @@ export interface ValidatorItem {
   material?: string | null;
   texture?: string | null;
   details?: unknown;
-  /** Overrides the derived value when set. */
+  /** The model's opinion; the derived floor still applies (union). */
   needsLayer?: boolean | null;
+  // Wearability, second edition — read when present.
+  sheer?: boolean | null;
+  /** athleisure … formal: the finer formality ladder. */
+  dressCode?: string | null;
+  patternScale?: string | null;
+  shoeType?: string | null;
+  // Colour: the stored family and vividness, else derived from the palette,
+  // else a neutral read off the name.
+  primaryColor?: string | null;
+  colorPalette?: unknown;
+  colourFamily?: string | null;
+  colourVividness?: string | null;
+}
+
+/** black / white / grey / beige … by name, for pieces catalogued without a palette. */
+export const NEUTRAL_NAMES = /black|white|grey|gray|navy|beige|cream|ivory|tan|camel|charcoal|khaki|denim|off-white|stone|sand|ecru|neutral/i;
+
+export interface ItemColour {
+  family: HueFamily;
+  band: SaturationBand;
+  hue: number | null;
+}
+
+/** What colour a piece reads as: stored family first, then its palette, then a neutral name. Null when nothing says. */
+export function colourOf(item: Pick<ValidatorItem, 'primaryColor' | 'colorPalette' | 'colourFamily' | 'colourVividness'>): ItemColour | null {
+  const lab = dominantLab(item.colorPalette);
+  if (item.colourFamily && item.colourVividness) {
+    const family = item.colourFamily as HueFamily;
+    const band = item.colourVividness as SaturationBand;
+    const hue = lab ? readColour(lab).hue : familyHue(family);
+    return { family, band, hue: family === 'neutral' ? null : hue };
+  }
+  if (lab) return readColour(lab);
+  if (NEUTRAL_NAMES.test(item.primaryColor ?? '')) return { family: 'neutral', band: 'muted', hue: null };
+  return null;
 }
 
 /** The line the stylist never crosses: her pieces and his never share an outfit. */
@@ -83,12 +121,20 @@ export interface SlotSummary {
   accessories: string[];
 }
 
+export interface OutfitColours {
+  /** Distinct hue families across the clothing, neutral included, in outfit order. */
+  families: string[];
+  /** How many distinct vivid hue families are in it. */
+  vivid: number;
+}
+
 export interface ValidationResult {
   ok: boolean;
   violations: Violation[];
   warnings: Violation[];
   score: number;
   slots: SlotSummary;
+  colours: OutfitColours;
 }
 
 export interface ValidatorOptions {
@@ -151,9 +197,41 @@ export function warmthBand(temperatureC: number): [number, number] {
   return [10, 99];
 }
 
-function needsLayer(item: ValidatorItem): boolean {
-  if (item.needsLayer != null) return item.needsLayer;
+// A sheer top wants a layer where people are looking: the office, the ceremony.
+const SHEER_MATTERS: readonly EventType[] = ['work', 'occasion'];
+// Cocktail and formal: the bottom and the shoes must be at least business-casual.
+const OCCASION_FLOOR = dressCodeScore('business-casual')!;
+
+/** The derived floor, the model's opinion, and a sheer flag in a setting that minds: the union. */
+function needsLayer(item: ValidatorItem, eventType?: EventType): boolean {
+  if (item.needsLayer === true) return true;
+  if (item.sheer === true && eventType != null && SHEER_MATTERS.includes(eventType)) return true;
   return deriveNeedsLayer(item.subtype, item.details, item.material, item.formalityScore);
+}
+
+// Two vivid hues this far apart on the wheel fight; closer is analogous, further is complementary.
+const CLASH_HUE: [number, number] = [60, 150];
+
+function readOutfitColours(items: ValidatorItem[], role: (i: ValidatorItem) => string): { colours: OutfitColours; warnings: Violation[] } {
+  const warnings: Violation[] = [];
+  const families: string[] = [];
+  const vivid: { family: HueFamily; hue: number | null }[] = [];
+  for (const i of items) {
+    if (role(i) === 'accessory') continue;
+    const c = colourOf(i);
+    if (!c) continue;
+    if (!families.includes(c.family)) families.push(c.family);
+    if (c.family !== 'neutral' && c.band === 'vivid' && !vivid.some((v) => v.family === c.family)) vivid.push({ family: c.family, hue: c.hue });
+  }
+  if (vivid.length > 2) {
+    warnings.push({ rule: 'colour', message: `${vivid.map((v) => v.family).join(', ')}: three loud colours in one outfit` });
+  } else if (vivid.length === 2 && vivid[0].hue != null && vivid[1].hue != null) {
+    const d = hueDelta(vivid[0].hue, vivid[1].hue);
+    if (d >= CLASH_HUE[0] && d <= CLASH_HUE[1]) {
+      warnings.push({ rule: 'colour', message: `${vivid[0].family} and ${vivid[1].family}, both loud, clash` });
+    }
+  }
+  return { colours: { families, vivid: vivid.length }, warnings };
 }
 
 function label(item: ValidatorItem): string {
@@ -253,7 +331,7 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
   }
 
   // --- Needs a layer ------------------------------------------------------
-  const exposed = inRole('base').filter(needsLayer);
+  const exposed = inRole('base').filter((i) => needsLayer(i, opts.eventType));
   if (exposed.length > 0 && slots.mid.length === 0 && slots.outer.length === 0) {
     const cold = opts.weather != null && opts.weather.temperatureC < 18;
     const dressed = opts.eventType != null && DRESSED_EVENTS.includes(opts.eventType);
@@ -264,9 +342,10 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
   }
 
   // --- Formality coherence ------------------------------------------------
-  const scored = items.filter((i) => role(i) !== 'accessory' && i.formalityScore != null);
+  // The dress code, when the second pass read one, is the finer number.
+  const scored = items.filter((i) => role(i) !== 'accessory' && effectiveFormality(i) != null);
   if (scored.length > 0) {
-    const scores = scored.map((i) => i.formalityScore!);
+    const scores = scored.map((i) => effectiveFormality(i)!);
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     if (Math.max(...scores) - Math.min(...scores) > 2) {
@@ -294,11 +373,24 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
     }
   }
 
+  // --- Dress code for the occasion ------------------------------------------
+  // Cocktail and formal settings: a bottom or shoes catalogued under
+  // business-casual are the wrong pieces, however the average comes out.
+  if (opts.eventType === 'occasion') {
+    const under = [...inRole('bottom'), ...inRole('one-piece'), ...inRole('footwear')].filter((i) => {
+      const dc = dressCodeScore(i.dressCode);
+      return dc != null && dc < OCCASION_FLOOR;
+    });
+    if (under.length > 0) {
+      violations.push({ rule: 'dress-code', message: `${under.map((i) => `${label(i)} (${i.dressCode})`).join(', ')}: under the dress code for an occasion` });
+    }
+  }
+
   // --- Shoe formality against the bottom ----------------------------------
   const shoe = inRole('footwear')[0];
   const lower = inRole('bottom')[0] ?? inRole('one-piece')[0];
   if (shoe) {
-    const sf = shoeFormalityOf(shoe.subtype, shoe.formalityScore);
+    const sf = shoeFormalityOf(shoe.subtype, shoe.formalityScore, shoe.shoeType);
     const bf = lower?.formalityScore ?? null;
     if (opts.eventType === 'athletic' && sf != null && sf >= 4) {
       violations.push({ rule: 'shoe-formality', message: `${label(shoe)} are not for an athletic setting` });
@@ -368,10 +460,15 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
   }
 
   // --- Pattern clash ------------------------------------------------------
-  const patterned = items.filter((i) => role(i) !== 'accessory' && PATTERNED.test(i.pattern ?? ''));
+  const patterned = items.filter((i) => role(i) !== 'accessory' && (PATTERNED.test(i.pattern ?? '') || i.patternScale === 'bold' || i.patternScale === 'medium'));
   if (patterned.length >= 2) {
-    warnings.push({ rule: 'pattern', message: `${patterned.map(label).join(' and ')}: two patterns compete` });
+    const bold = patterned.filter((i) => i.patternScale === 'bold');
+    warnings.push({ rule: 'pattern', message: bold.length >= 2 ? `${bold.map(label).join(' and ')}: two bold patterns fight` : `${patterned.map(label).join(' and ')}: two patterns compete` });
   }
+
+  // --- Colour ---------------------------------------------------------------
+  const colourRead = readOutfitColours(items, role);
+  warnings.push(...colourRead.warnings);
 
   // --- Repeat avoidance ---------------------------------------------------
   if (opts.recentWear?.length) {
@@ -404,5 +501,5 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
   }
 
   const score = Math.max(0, 100 - violations.length * 25 - warnings.length * 10);
-  return { ok: violations.length === 0, violations, warnings, score, slots };
+  return { ok: violations.length === 0, violations, warnings, score, slots, colours: colourRead.colours };
 }

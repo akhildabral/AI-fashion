@@ -227,7 +227,7 @@ async function briefLedger(userId: string, itemIds: string[]) {
  * much as for a future date: an outfit is worn through the afternoon, not at
  * the moment the brief is read. Live conditions are the fallback for today.
  */
-async function weatherFor(city: string | null | undefined, date: string, today: string): Promise<Weather | null> {
+export async function weatherFor(city: string | null | undefined, date: string, today: string): Promise<Weather | null> {
   if (!city) return null;
   try {
     const f = await getTripForecast(city, date, date);

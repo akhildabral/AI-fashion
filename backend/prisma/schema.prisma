@@ -292,6 +292,21 @@ model WardrobeItem {
   twinDismissed  String[]  @default([])
   // A 64-bit difference hash of the cut-out, hex: the same photo again.
   fingerprint    String?
+  // Colour harmony, derived from the palette at catalog time (derived on read
+  // for older rows). colourFamily: red | orange | yellow | green | teal | blue |
+  // violet | pink | brown | neutral. colourVividness: muted | mid | vivid.
+  colourFamily    String?
+  colourVividness String?
+  // Wearability, second edition. patternScale: none | fine | medium | bold.
+  // dressCode: athleisure | casual | smart-casual | business-casual | business |
+  // cocktail | formal. needsLayer is the union of the model's opinion and the
+  // derived floor. shoeType, footwear only: sneaker | trainer | sandal |
+  // flip-flop | loafer | boot | oxford | derby | heel | pump | mule | other.
+  patternScale    String?
+  sheer           Boolean?
+  dressCode       String?
+  needsLayer      Boolean?
+  shoeType        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt @default(now())
 

@@ -5,6 +5,7 @@ import {
   closetGapsFor,
   dominantFormality,
   ghostPiece,
+  harmonyTerm,
   likeness,
   outfitsAround,
   pairScore,
@@ -14,6 +15,8 @@ import {
   unlockAround,
   type PairingPiece,
 } from './pairing.service';
+import { srgbToLab } from '../lib/color';
+import { colourOf } from './validator.service';
 
 let seq = 0;
 function piece(p: Partial<PairingPiece> & { category: string }): PairingPiece {
@@ -85,6 +88,84 @@ describe('pairScore', () => {
 
   it('never pairs a swatch', () => {
     expect(pairScore(piece({ category: 'other', subtype: 'swatch' }), jeans())).toBe(0);
+  });
+
+  it('scores pattern scale when both were read: bold on bold fights, fine under bold is a small ask, fine on fine is fine', () => {
+    const plain = pairScore(tee(), jeans());
+    expect(pairScore(tee({ pattern: 'floral', patternScale: 'bold' }), jeans({ pattern: 'checked', patternScale: 'bold' }))).toBeCloseTo(plain - 2.5, 5);
+    expect(pairScore(tee({ pattern: 'floral', patternScale: 'bold' }), jeans({ pattern: 'striped', patternScale: 'fine' }))).toBeCloseTo(plain - 0.5, 5);
+    expect(pairScore(tee({ pattern: 'striped', patternScale: 'fine' }), jeans({ pattern: 'checked', patternScale: 'fine' }))).toBeCloseTo(plain, 5);
+    expect(pairScore(tee({ pattern: 'striped', patternScale: 'medium' }), jeans({ pattern: 'checked', patternScale: 'bold' }))).toBeCloseTo(plain - 1.5, 5);
+    // A solid against a bold pattern is no pattern clash at all.
+    expect(pairScore(tee({ pattern: 'solid', patternScale: 'none' }), jeans({ pattern: 'floral', patternScale: 'bold' }))).toBeCloseTo(plain, 5);
+  });
+});
+
+// LAB fixtures: a piece whose colour is known from its palette, with a name
+// the neutral fallback would never catch, so the palette is what speaks.
+function lab(r: number, g: number, b: number) {
+  return [{ hex: '#000000', lab: srgbToLab(r, g, b), share: 0.9 }];
+}
+const navyLab = lab(20, 30, 80);
+const camelLab = lab(193, 154, 107);
+const blackLab = lab(10, 10, 10);
+const redLab = lab(255, 0, 0);
+const greenLab = lab(0, 128, 0);
+const tealLab = lab(0, 128, 128);
+const skyLab = lab(135, 206, 235);
+const dustyBlueLab = lab(110, 140, 170);
+const dustyBlue2Lab = lab(130, 160, 190);
+const rustLab = lab(183, 65, 14);
+const cadetLab = lab(95, 158, 160);
+const kellyLab = lab(76, 187, 23);
+const violetLab = lab(143, 0, 255);
+
+describe('colour harmony', () => {
+  // The same two pieces with nothing known about their colours: the baseline.
+  const base = () => pairScore(tee({ primaryColor: 'mystery' }), jeans({ primaryColor: 'mystery' }));
+  const withColours = (a: unknown, b: unknown) => pairScore(tee({ primaryColor: 'mystery', colorPalette: a as never }), jeans({ primaryColor: 'mystery', colorPalette: b as never }));
+
+  it('navy + camel: a neutral goes with anything', () => {
+    expect(withColours(navyLab, camelLab)).toBeCloseTo(base() + 2, 5);
+  });
+
+  it('black + anything, however loud', () => {
+    expect(withColours(blackLab, redLab)).toBeCloseTo(base() + 2, 5);
+    expect(withColours(redLab, blackLab)).toBeCloseTo(base() + 2, 5);
+  });
+
+  it('vivid red + vivid green clash, and warm against cool is one more strike', () => {
+    expect(withColours(redLab, greenLab)).toBeCloseTo(base() - 3, 5);
+    expect(harmonyTerm(colourOf({ colorPalette: redLab }), colourOf({ colorPalette: greenLab }))).toBe(-3);
+  });
+
+  it('teal + sky blue sit next to each other on the wheel', () => {
+    expect(withColours(tealLab, skyLab)).toBeCloseTo(base() + 1, 5);
+  });
+
+  it('two muted blues are tonal, and tonal is best when both are soft', () => {
+    expect(withColours(dustyBlueLab, dustyBlue2Lab)).toBeCloseTo(base() + 1.5, 5);
+    expect(harmonyTerm(colourOf({ colorPalette: kellyLab }), colourOf({ colorPalette: greenLab }))).toBe(0.5); // two vivid greens
+  });
+
+  it('opposites work when one is quiet and fight when both shout', () => {
+    expect(withColours(rustLab, cadetLab)).toBeCloseTo(base() + 0.5, 5);
+    expect(harmonyTerm(colourOf({ colorPalette: kellyLab }), colourOf({ colorPalette: violetLab }))).toBe(-1);
+  });
+
+  it('uses the stored family and vividness when the row carries them, and the name only as a neutral fallback', () => {
+    // A stored neutral goes with anything, a piece of unknown colour included.
+    expect(pairScore(tee({ primaryColor: 'mystery', colourFamily: 'neutral', colourVividness: 'muted' }), jeans({ primaryColor: 'mystery' }))).toBeCloseTo(base() + 2, 5);
+    expect(pairScore(tee({ primaryColor: 'mystery', colourFamily: 'neutral', colourVividness: 'muted' }), jeans({ primaryColor: 'mystery', colourFamily: 'red', colourVividness: 'vivid' }))).toBeCloseTo(base() + 2, 5);
+    expect(pairScore(tee({ primaryColor: 'mystery', colourFamily: 'red', colourVividness: 'vivid' }), jeans({ primaryColor: 'mystery', colourFamily: 'green', colourVividness: 'vivid' }))).toBeCloseTo(base() - 3, 5);
+    expect(pairScore(tee({ primaryColor: 'black' }), jeans({ primaryColor: 'mystery' }))).toBeCloseTo(base() + 2, 5);
+    expect(pairScore(tee({ primaryColor: 'red' }), jeans({ primaryColor: 'green' }))).toBeCloseTo(base(), 5);
+  });
+
+  it('harmonyTerm is zero when a side is unknown, unless the other is a neutral', () => {
+    expect(harmonyTerm(null, colourOf({ colorPalette: redLab }))).toBe(0);
+    expect(harmonyTerm(null, colourOf({ colorPalette: blackLab }))).toBe(2);
+    expect(colourOf({ primaryColor: 'mystery' })).toBeNull();
   });
 });
 

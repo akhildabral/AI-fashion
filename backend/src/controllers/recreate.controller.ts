@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
 import { notify } from '../lib/notify';
-import { recreateOutfit } from '../services/recreate.service';
+import { recreateFromPieces } from '../services/recreate.service';
+import { currentSeason, EVENT_TYPES, type EventType } from '../lib/attributes';
+import type { Weather } from '../services/weather.service';
 import { loadStyleableWardrobe } from './wardrobe.controller';
+import { weatherFor } from './brief.controller';
 
 const schema = z.object({
   itemIds: z.array(z.string().uuid()).min(1).max(12),
@@ -20,7 +23,18 @@ const ITEM_SELECT = {
   warmthValue: true,
   pattern: true,
   imageUrl: true,
+  layerRole: true,
+  colorPalette: true,
+  material: true,
 } as const;
+
+/** Today's weather in the member's home city, or null when unknown — never a failure. */
+export async function todayWeatherFor(userId: string): Promise<Weather | null> {
+  const profile = await prisma.styleProfile.findUnique({ where: { userId }, select: { city: true } }).catch(() => null);
+  if (!profile?.city) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  return weatherFor(profile.city, today, today);
+}
 
 /**
  * Rebuild someone else's outfit from the viewer's own closet.
@@ -50,24 +64,14 @@ export async function recreateFromCloset(req: Request, res: Response) {
   });
   if (!sharedLog) throw new HttpError(403, 'This outfit has not been shared');
 
-  const closet = await loadStyleableWardrobe(req.user.id).catch(() => []);
-  const result = recreateOutfit(
-    sources.map((s) => ({ ...s })),
-    closet.map((c) => ({
-      id: c.id,
-      category: c.category,
-      subtype: c.subtype,
-      primaryColor: c.primaryColor,
-      formalityScore: c.formalityScore,
-      warmthValue: c.warmthValue,
-      pattern: c.pattern,
-      wearCount: c.wearCount,
-      imageUrl: c.imageUrl,
-    })),
-  );
+  // The look's own kind of day, and the viewer's weather today: the
+  // recreated set is judged for the day it would be worn.
+  const eventType: EventType = (EVENT_TYPES as readonly string[]).includes(sharedLog.eventType ?? '') ? (sharedLog.eventType as EventType) : 'casual';
+  const [closet, weather] = await Promise.all([loadStyleableWardrobe(req.user.id).catch(() => []), todayWeatherFor(req.user.id)]);
+  const result = recreateFromPieces(sources, closet, { eventType, weather, season: currentSeason() });
 
   const sourceById = new Map(sources.map((s) => [s.id, s]));
-  if (result.matched.length > 0) {
+  if (result.pairs.length > 0) {
     // One recreate per person per day counts toward the look's standing.
     void notify(ownerId, 'look_recreated', req.user.id, { wearLogId: sharedLog.id, target: 'look', targetId: sharedLog.id }, { dedupeKey: `recreate:${sharedLog.id}` }).then(
       async (created) => {
@@ -76,33 +80,27 @@ export async function recreateFromCloset(req: Request, res: Response) {
       },
     ).catch(() => undefined);
   }
+  const sourceView = (id: string) => {
+    const src = sourceById.get(id);
+    return { id: src?.id, imageUrl: src?.imageUrl, label: src?.subtype ?? src?.category };
+  };
   res.json({
-    pairs: result.matched.map((m) => {
-      const src = sourceById.get(m.sourceId);
-      return {
-        source: {
-          id: src?.id,
-          imageUrl: src?.imageUrl,
-          label: src?.subtype ?? src?.category,
-        },
-        match: {
-          id: m.match.id,
-          imageUrl: (m.match as { imageUrl?: string }).imageUrl,
-          label: m.match.subtype ?? m.match.category,
-        },
-      };
-    }),
-    missing: result.missing.map((mi) => {
-      const src = sourceById.get(mi.sourceId);
-      return {
-        source: {
-          id: src?.id,
-          imageUrl: src?.imageUrl,
-          label: src?.subtype ?? src?.category,
-        },
-        wanted: mi.wanted,
-      };
-    }),
+    pairs: result.pairs.map((m) => ({
+      source: sourceView(m.sourceId),
+      match: { id: m.match.id, imageUrl: m.match.imageUrl, label: m.match.subtype ?? m.match.category },
+      slot: m.slot,
+      score: m.score,
+      reasons: m.reasons,
+    })),
+    missing: result.missing.map((mi) => ({
+      source: sourceView(mi.sourceId),
+      wanted: mi.wanted,
+      slot: mi.slot,
+      reason: mi.reason,
+    })),
+    outfit: result.outfit.map((i) => ({ id: i.id, imageUrl: i.imageUrl, label: i.subtype ?? i.category, category: i.category })),
+    verdict: result.verdict,
+    eventType,
     closetSize: closet.length,
   });
 }

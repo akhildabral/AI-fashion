@@ -18,12 +18,43 @@ export interface Verdict {
   computedAt: string;
 }
 
-const SLOT_WORD: Record<string, string> = { top: 'a plain top', bottom: 'a pair of trousers', shoes: 'a pair of shoes', outer: 'a jacket' };
-const SLOT_NOUN: Record<string, string> = { top: 'top', bottom: 'pair of trousers', shoes: 'pair of shoes', outer: 'jacket' };
+const FORMALITY_WORD: Record<number, string> = { 1: 'athletic', 2: 'casual', 3: 'smart-casual', 4: 'business', 5: 'formal' };
+// The ghost's noun by slot and band: the same ladder the gap finder names.
+const SLOT_NOUN: Record<string, (f: number | undefined) => string> = {
+  top: (f) => (f != null && f <= 2 ? 'tee' : 'shirt'),
+  bottom: (f) => (f != null && f <= 2 ? 'pair of jeans' : 'trouser'),
+  shoes: (f) => (f == null ? 'pair of shoes' : f <= 2 ? 'sneaker' : f === 3 ? 'loafer' : 'shoe'),
+  outer: (f) => (f == null ? 'jacket' : f <= 2 ? 'jacket' : f === 3 ? 'blazer' : 'coat'),
+  dress: () => 'dress',
+};
 
-function unlockWords(u: Unlock): string {
-  if (u.colour && SLOT_NOUN[u.slot]) return `a ${u.colour} ${SLOT_NOUN[u.slot]}`;
-  return SLOT_WORD[u.slot] ?? 'one more piece';
+/** "a navy smart-casual trouser" — the best ghost, in words. */
+export function unlockWords(u: Unlock): string {
+  const noun = SLOT_NOUN[u.slot]?.(u.formality) ?? 'piece';
+  const words = [u.colour, u.formality != null ? FORMALITY_WORD[u.formality] : null, noun].filter(Boolean).join(' ');
+  return `${/^[aeiou]/.test(words) ? 'an' : 'a'} ${words}`;
+}
+
+const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
+
+/**
+ * The verdict in one or two sentences: what the piece goes with and makes
+ * today, then what one more piece — by colour and formality band — would
+ * take the count to. "Goes with 7 of your pieces and unlocks 4 outfits. A
+ * navy smart-casual trouser would unlock 9."
+ */
+export function verdictLine(v: Pick<Verdict, 'pairs' | 'outfits' | 'unlock'>): string {
+  const goes = `Goes with ${v.pairs} of your pieces`;
+  const first =
+    v.outfits > 0
+      ? `${goes} and unlocks ${plural(v.outfits, 'outfit')}.`
+      : v.pairs > 0
+        ? `${goes} but makes no complete outfit yet.`
+        : 'Goes with nothing you own yet.';
+  if (!v.unlock || v.unlock.gain <= 0) return first;
+  const total = v.outfits + v.unlock.gain;
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  return `${first} ${cap(unlockWords(v.unlock))} would unlock ${total}.`;
 }
 
 export async function computeVerdict(userId: string, itemId: string): Promise<{ verdict: Verdict; outfits: { items: string[]; score: number }[] }> {
@@ -73,7 +104,7 @@ export async function itemVerdict(req: Request, res: Response) {
     verdict,
     outfits: outfits.map((o) => ({ items: o.items.map((i) => byId.get(i)).filter(Boolean), score: o.score })),
     closest: closest ? { item: closest, wears: closestWears, likeness: verdict.closest?.likeness ?? 0 } : null,
-    unlockLine: verdict.unlock ? `With ${unlockWords(verdict.unlock)}, ${verdict.unlock.gain} more.` : null,
+    unlockLine: verdictLine(verdict),
   });
 }
 

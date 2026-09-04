@@ -8,13 +8,15 @@ import { enqueue } from '../lib/jobs';
 import { extForMime, stripMetadata } from '../middleware/upload';
 import { checkItemCapacity } from '../services/entitlements.service';
 import {
+  catalogTags,
   detectGarments,
   deriveReasoningAttributes,
   draftResaleListing,
   suggestOutfits,
-  tagGarment,
+  withColourAttributes,
   type DetectedGarment,
   type GarmentTags } from '../services/wardrobe.service';
+import { deriveNeedsLayer, DRESS_CODES, PATTERN_SCALES, SHOE_TYPES } from '../lib/attributes';
 import { generativeCleanupAvailable, matteGarment, studioRender, type CleanedGarment } from '../services/cleanup.service';
 import { fingerprintOf, matchPiece, SURE_AT } from '../services/closet-match.service';
 import { getTripForecast, getWeather, type Weather } from '../services/weather.service';
@@ -140,9 +142,9 @@ export async function catalogItem(
       if (env.MATTING_ENABLED) {
         display = (await studioRender(image, mime, { target, category: previous.category, local: null })) ?? (await matteGarment(image));
       }
-      tags = display ? await tagGarment(display.png, 'image/png') : await tagGarment(imageForTagging, mimeForTagging);
+      tags = display ? await catalogTags(display.png, 'image/png') : await catalogTags(imageForTagging, mimeForTagging);
     } else {
-      tags = await tagGarment(imageForTagging, mimeForTagging);
+      tags = await catalogTags(imageForTagging, mimeForTagging);
       // 2. The studio re-render, now that the piece's kind is known (shoes and
       //    bags are shot from the side), checked against the photo's shape.
       if (env.MATTING_ENABLED) {
@@ -163,6 +165,9 @@ export async function catalogItem(
     // A fact you set stays yours: a re-read never overwrites full-confidence fields.
     const prior = (previous.attrConfidence as Record<string, number> | null) ?? {};
     const fields: Record<string, unknown> = { ...tagFields };
+    // Needs a layer: the model's opinion on top of the derived floor, never under it.
+    const derivedFormality = deriveReasoningAttributes(tags).formalityScore;
+    fields.needsLayer = tags.needsLayer === true || deriveNeedsLayer(tags.subtype, tags.details, tags.material, derivedFormality);
     for (const k of Object.keys(fields)) if ((prior[k] ?? 0) >= 1) delete fields[k];
     const conf: Record<string, number> = { ...attrConfidence };
     for (const k of Object.keys(prior)) if (prior[k] >= 1) conf[k] = 1;
@@ -182,7 +187,8 @@ export async function catalogItem(
       ...update,
       ...(fields as Prisma.WardrobeItemUncheckedUpdateInput),
       ...((prior.details ?? 0) >= 1 ? {} : { details: (details ?? Prisma.JsonNull) as Prisma.InputJsonValue | typeof Prisma.JsonNull }),
-      ...deriveReasoningAttributes(tags),
+      // Colour family and vividness ride along with the palette this read produced.
+      ...deriveReasoningAttributes({ ...tags, colorPalette: update.colorPalette ?? undefined }),
       attrConfidence: conf,
       status: 'ready',
     };
@@ -430,6 +436,12 @@ const updateSchema = z.object({
   note: z.string().max(400).nullish(),
   care: z.string().max(60).nullish(),
   renderNotes: z.string().max(900).nullish(),
+  // Wearability, second edition.
+  patternScale: z.enum(PATTERN_SCALES).nullish(),
+  sheer: z.boolean().nullish(),
+  dressCode: z.enum(DRESS_CODES).nullish(),
+  needsLayer: z.boolean().nullish(),
+  shoeType: z.enum(SHOE_TYPES).nullish(),
   // Wishlist: where you saw it, for how much, and when to be nudged. "Bought
   // it" is owned: true.
   owned: z.boolean().optional(),
@@ -453,7 +465,7 @@ export async function updateItem(req: Request, res: Response) {
 
   const existing = await prisma.wardrobeItem.findFirst({
     where: { id, userId: req.user.id },
-    select: { attrConfidence: true, category: true, subtype: true, material: true, formality: true },
+    select: { attrConfidence: true, category: true, subtype: true, material: true, formality: true, shoeType: true },
   });
   if (!existing) throw new HttpError(404, 'Item not found');
 
@@ -473,6 +485,7 @@ export async function updateItem(req: Request, res: Response) {
     subtype: merged.subtype ?? null,
     material: merged.material ?? null,
     formality: merged.formality ?? null,
+    shoeType: merged.shoeType ?? null,
   });
   const rederive: Prisma.WardrobeItemUncheckedUpdateInput = {};
   if (data.layerRole === undefined && (data.category || data.subtype !== undefined)) {
@@ -481,7 +494,7 @@ export async function updateItem(req: Request, res: Response) {
   if (data.warmthValue === undefined && (data.category || data.subtype !== undefined || data.material !== undefined)) {
     rederive.warmthValue = derived.warmthValue;
   }
-  if (data.formalityScore === undefined && data.formality !== undefined) {
+  if (data.formalityScore === undefined && (data.formality !== undefined || data.shoeType !== undefined)) {
     rederive.formalityScore = derived.formalityScore;
   }
 
@@ -630,8 +643,10 @@ export async function loadStyleableWardrobe(userId: string) {
   // from "no clean shoes to choose" without a second query.
   const closetHasFootwear = items.some((i) => i.category === 'footwear');
   const now = Date.now();
+  // Rows catalogued before colour family and vividness existed get them
+  // derived from the palette here, in memory — never written back.
   return items.map((item) => ({
-    ...item,
+    ...withColourAttributes(item),
     wearCount: wearCounts.get(item.id) ?? 0,
     pollWins: pollWins.get(item.id) ?? 0,
     passedOver: passedOver.get(item.id) ?? 0,
@@ -850,6 +865,8 @@ export async function itemFeedback(req: Request, res: Response) {
       if (!userSet('primaryColor')) {
         data.primaryColor = null;
         data.colorPalette = Prisma.DbNull;
+        data.colourFamily = null;
+        data.colourVividness = null;
       }
       break;
     case 'dont-suggest':

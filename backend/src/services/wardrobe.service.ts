@@ -3,7 +3,7 @@ import { z } from 'zod/v4';
 import type { WardrobeItem } from '@prisma/client';
 import { aiAbortSignal, aiErrorMessage, textModel, visionModel } from '../lib/ai';
 import { HttpError } from '../middleware/error';
-import { EVENT_TYPES } from '../lib/attributes';
+import { DRESS_CODES, EVENT_TYPES, PATTERN_SCALES, SHOE_TYPES } from '../lib/attributes';
 import {
   deriveLayerRole,
   deriveNeedsLayer,
@@ -13,6 +13,7 @@ import {
   shoeFormalityOf,
   warmthFor,
 } from '../lib/attributes';
+import { deriveColourAttributes, type HueFamily, type SaturationBand } from '../lib/color';
 import { tastePromptBlock, type FavouriteOutfit, type TasteProfileData } from './taste.service';
 
 export const CUT_FOR = ['womens', 'mens', 'unisex'] as const;
@@ -41,6 +42,15 @@ export interface GarmentTags {
   description: string | null;
   /** For the Mirror: every visible detail an image model must reproduce. */
   renderNotes: string | null;
+  // Wearability, second edition. Null where the model abstained; the second
+  // pass fills what it can.
+  patternScale: string | null;
+  sheer: boolean | null;
+  dressCode: string | null;
+  /** The model's opinion alone; `deriveNeedsLayer` stays the floor (union at write). */
+  needsLayer: boolean | null;
+  /** Footwear only. */
+  shoeType: string | null;
   attrConfidence: Record<string, number>;
 }
 
@@ -86,6 +96,15 @@ const tagSchema = z.object({
   // cuffs and hems, closures and hardware, and EVERY logo, badge, print or
   // embroidery with its place, size, shape and colours. Nothing that isn't visible.
   renderNotes: z.string(),
+  // Wearability: how big the pattern reads from across a room; whether the
+  // fabric shows what is under it; the finest dress code it passes; whether
+  // it wants a layer over it in a dressed setting; the kind of shoe.
+  patternScale: z.enum(PATTERN_SCALES),
+  sheer: z.boolean(),
+  dressCode: z.enum(DRESS_CODES),
+  needsLayer: z.boolean(),
+  // Footwear only; "other" for anything that is not a shoe.
+  shoeType: z.enum(SHOE_TYPES),
   // Per-attribute confidence, 0–1. Honesty is rewarded: low-confidence
   // values are discarded rather than stored.
   confidence: z.object({
@@ -101,8 +120,26 @@ const tagSchema = z.object({
     length: confidenceSchema,
     texture: confidenceSchema,
     weight: confidenceSchema,
+    patternScale: confidenceSchema,
+    sheer: confidenceSchema,
+    dressCode: confidenceSchema,
+    needsLayer: confidenceSchema,
+    shoeType: confidenceSchema,
   }),
 });
+
+const WEARABILITY_FIELDS = ['patternScale', 'sheer', 'dressCode', 'needsLayer', 'shoeType'] as const;
+export type WearabilityField = (typeof WEARABILITY_FIELDS)[number];
+
+const WEARABILITY_GUIDE =
+  'patternScale is how large the pattern reads from across a room: none for a solid, ' +
+  'fine for pinstripes, micro-checks and small dots, medium for a classic stripe or plaid, ' +
+  'bold for large florals, big checks, graphics and animal prints. sheer is true when the ' +
+  'fabric shows skin or a layer under it (mesh, lace, chiffon, organza, a thin white cotton). ' +
+  'dressCode is the most dressed setting the piece passes in as it is: athleisure, casual, ' +
+  'smart-casual, business-casual, business, cocktail, formal. needsLayer is true when the ' +
+  'piece does not finish an outfit on its own in a dressed setting (a camisole, a tank, a ' +
+  'sheer or strapless top). shoeType is the kind of shoe for footwear and "other" for anything else.';
 
 // Analyze a garment photo and extract structured attributes with a vision model.
 export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTags> {
@@ -129,7 +166,8 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
         'exact piece: write 60–120 concrete visual words — the precise shade, the fabric ' +
         'and its weave or knit, the fit, collar or neckline, sleeve length, cuffs and hems, ' +
         'closures and hardware, and every logo, badge, print or embroidery with where it ' +
-        'sits, how big it is, its shape and its colours. Only what is visible.',
+        'sits, how big it is, its shape and its colours. Only what is visible. ' +
+        WEARABILITY_GUIDE,
       messages: [
         {
           role: 'user',
@@ -146,9 +184,11 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
     throw new HttpError(502, message);
   }
 
-  const conf = raw.confidence ?? {};
+  const conf: Record<string, number> = { ...(raw.confidence ?? {}) };
   const keep = (field: keyof typeof conf, value: string): string | null =>
     (conf[field] ?? 1) >= ABSTAIN_BELOW && value.trim() ? value.trim() : null;
+  const keepBool = (field: keyof typeof conf, value: boolean | undefined): boolean | null =>
+    value != null && (conf[field] ?? 1) >= ABSTAIN_BELOW ? value : null;
 
   const details: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw.details ?? {})) if (v && v.trim()) details[k] = v.trim();
@@ -171,8 +211,132 @@ export async function tagGarment(image: Buffer, mime: string): Promise<GarmentTa
     details: Object.keys(details).length ? details : null,
     description: raw.description?.trim() || null,
     renderNotes: raw.renderNotes?.trim() || null,
+    patternScale: keep('patternScale', raw.patternScale ?? ''),
+    sheer: keepBool('sheer', raw.sheer),
+    dressCode: keep('dressCode', raw.dressCode ?? ''),
+    needsLayer: keepBool('needsLayer', raw.needsLayer),
+    shoeType: raw.category === 'footwear' ? keep('shoeType', raw.shoeType ?? '') : null,
     attrConfidence: conf,
   };
+}
+
+// --- The wearability second pass -------------------------------------------
+// The first pass reads everything at once and is allowed to abstain. What it
+// left uncertain among the wearability questions goes to the vision model
+// once more, with the cut-out and the first-pass tags, and only those
+// questions to answer. Gated so a confident first pass costs nothing extra;
+// time-boxed so a slow provider cannot hold the catalogue open; and never
+// fatal — on any failure the first-pass values stand.
+
+/** Below this the first pass is not trusted on a wearability question. */
+export const SECOND_PASS_BELOW = 0.6;
+export const SECOND_PASS_TIMEOUT_MS = 20_000;
+
+/** The wearability fields the first pass left missing or unsure — empty when a second pass would be a waste. */
+export function uncertainWearability(tags: Pick<GarmentTags, 'category' | 'attrConfidence' | WearabilityField>): WearabilityField[] {
+  const out: WearabilityField[] = [];
+  for (const f of WEARABILITY_FIELDS) {
+    if (f === 'shoeType' && tags.category !== 'footwear') continue;
+    if (tags[f] == null || (tags.attrConfidence[f] ?? 0) < SECOND_PASS_BELOW) out.push(f);
+  }
+  return out;
+}
+
+const secondPassSchema = z.object({
+  patternScale: z.enum(PATTERN_SCALES),
+  sheer: z.boolean(),
+  dressCode: z.enum(DRESS_CODES),
+  needsLayer: z.boolean(),
+  shoeType: z.enum(SHOE_TYPES),
+  confidence: z.object({
+    patternScale: confidenceSchema,
+    sheer: confidenceSchema,
+    dressCode: confidenceSchema,
+    needsLayer: confidenceSchema,
+    shoeType: confidenceSchema,
+  }),
+});
+
+function firstPassSummary(tags: GarmentTags): string {
+  return [
+    `category: ${tags.category}`,
+    tags.subtype && `type: ${tags.subtype}`,
+    tags.primaryColor && `colour: ${tags.primaryColor}`,
+    tags.pattern && `pattern: ${tags.pattern}`,
+    tags.material && `material: ${tags.material}`,
+    tags.formality && `formality: ${tags.formality}`,
+    tags.fit && `fit: ${tags.fit}`,
+    tags.length && `length: ${tags.length}`,
+    tags.weight && `weight: ${tags.weight}`,
+    tags.description && `description: ${tags.description}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
+ * Answer the wearability questions the first pass left open, on the vision
+ * model (the text model when there is none). Returns the tags with those
+ * fields filled where the second pass was sure enough; the first-pass values
+ * on any failure. Does not run when nothing is uncertain.
+ */
+export async function refineWearability(image: Buffer, mime: string, tags: GarmentTags): Promise<GarmentTags> {
+  const asked = uncertainWearability(tags);
+  if (asked.length === 0) return tags;
+  let model;
+  try {
+    model = await visionModel();
+  } catch {
+    model = await textModel();
+  }
+  let raw: z.infer<typeof secondPassSchema>;
+  try {
+    const { object } = await generateObject({
+      abortSignal: aiAbortSignal(SECOND_PASS_TIMEOUT_MS),
+      model,
+      temperature: 0,
+      schema: secondPassSchema,
+      instructions:
+        'You are a fashion cataloguer taking a second, closer look at one garment. ' +
+        'Answer only these wearability questions, from the image, with an honest confidence for each: ' +
+        WEARABILITY_GUIDE +
+        ' Every field must be filled; put your uncertainty in the confidence, not in the answer.',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `The first read of this piece said:\n${firstPassSummary(tags)}\n\nAnswer only these wearability questions: ${asked.join(', ')}.`,
+            },
+            { type: 'file', data: image, mediaType: mime },
+          ],
+        },
+      ],
+    });
+    raw = object;
+  } catch (err) {
+    console.error('Wearability second pass failed:', err instanceof Error ? err.message : err);
+    return tags;
+  }
+  const out: GarmentTags = { ...tags, attrConfidence: { ...tags.attrConfidence } };
+  const conf = raw.confidence ?? {};
+  for (const f of asked) {
+    const c = conf[f] ?? 0;
+    // A second opinion no surer than the first is not an answer.
+    if (c < ABSTAIN_BELOW || c < (tags.attrConfidence[f] ?? 0)) continue;
+    const value = f === 'shoeType' && tags.category !== 'footwear' ? null : raw[f];
+    if (value == null) continue;
+    (out as unknown as Record<string, unknown>)[f] = value;
+    out.attrConfidence[f] = c;
+  }
+  return out;
+}
+
+/** The catalogue read: the first pass, then the wearability second pass where the first was unsure. */
+export async function catalogTags(image: Buffer, mime: string): Promise<GarmentTags> {
+  const tags = await tagGarment(image, mime);
+  return refineWearability(image, mime, tags);
 }
 
 export interface DetectedGarment {
@@ -254,21 +418,47 @@ export async function detectGarments(image: Buffer, mime: string): Promise<Detec
 
 // Deterministic reasoning attributes, looked up — never model-generated —
 // so warmth and layer role stay consistent across the whole corpus.
+export interface ReasoningAttributes {
+  layerRole: string | null;
+  warmthValue: number | null;
+  formalityScore: number | null;
+  /** Only when a palette was given: the family and vividness read from its dominant colour. */
+  colourFamily?: HueFamily;
+  colourVividness?: SaturationBand;
+}
+
 export function deriveReasoningAttributes(tags: {
   category: string;
   subtype: string | null;
   material: string | null;
   formality: string | null;
-}): { layerRole: string | null; warmthValue: number | null; formalityScore: number | null } {
+  shoeType?: string | null;
+  colorPalette?: unknown;
+}): ReasoningAttributes {
   // Footwear formality comes off the shoe ladder (sneaker 2, loafer 3, oxford
-  // 4 …) and falls back to the garment tag for a subtype the ladder doesn't know.
+  // 4 …), then the catalogued shoe type, and falls back to the garment tag
+  // for a subtype the ladder doesn't know.
   const formalityScore =
-    tags.category === 'footwear' ? deriveShoeFormality(tags.subtype) ?? formalityScoreFor(tags.formality) : formalityScoreFor(tags.formality);
+    tags.category === 'footwear'
+      ? deriveShoeFormality(tags.subtype) ?? (tags.shoeType && tags.shoeType !== 'other' ? deriveShoeFormality(tags.shoeType) : null) ?? formalityScoreFor(tags.formality)
+      : formalityScoreFor(tags.formality);
+  const colour = tags.colorPalette != null ? deriveColourAttributes(tags.colorPalette) : null;
   return {
     layerRole: deriveLayerRole(tags.category, tags.subtype),
     warmthValue: warmthFor(tags.category, tags.subtype, tags.material),
     formalityScore,
+    ...(colour ?? {}),
   };
+}
+
+/**
+ * Colour family and vividness for a row that predates them: derived from its
+ * palette, in memory, never written. Rows that carry them are returned as is.
+ */
+export function withColourAttributes<T extends { colorPalette?: unknown; colourFamily?: string | null; colourVividness?: string | null }>(item: T): T {
+  if ((item.colourFamily && item.colourVividness) || item.colorPalette == null) return item;
+  const colour = deriveColourAttributes(item.colorPalette);
+  return colour ? { ...item, ...colour } : item;
 }
 
 export interface ResaleDraft {
@@ -383,8 +573,12 @@ function detailOf(details: unknown, key: string): string | null {
 
 export function catalogLine(item: CatalogItem): string {
   const role = item.subtype ? deriveLayerRole(item.category, item.subtype) ?? item.layerRole : item.layerRole;
-  const needsLayer = deriveNeedsLayer(item.subtype, item.details, item.material, item.formalityScore);
-  const shoeFormality = item.category === 'footwear' ? shoeFormalityOf(item.subtype, item.formalityScore) : null;
+  const needsLayer = item.needsLayer === true || deriveNeedsLayer(item.subtype, item.details, item.material, item.formalityScore);
+  const shoeFormality = item.category === 'footwear' ? shoeFormalityOf(item.subtype, item.formalityScore, item.shoeType) : null;
+  const colour = withColourAttributes(item);
+  const colourRead = colour.colourFamily ? (colour.colourFamily === 'neutral' ? 'neutral' : `${colour.colourVividness} ${colour.colourFamily}`) : '';
+  // "colour:red (vivid red)"; just the reading when the name was never tagged.
+  const colourNote = colourRead ? (item.primaryColor ? ` (${colourRead})` : colourRead) : '';
   const details = ['neckline', 'sleeve', 'rise', 'leg', 'heel', 'toe']
     .map((k) => [k, detailOf(item.details, k)] as const)
     .filter((d): d is readonly [string, string] => d[1] != null)
@@ -398,15 +592,18 @@ export function catalogLine(item: CatalogItem): string {
     `id=${item.id}`,
     item.category,
     item.subtype,
-    item.primaryColor && `colour:${item.primaryColor}`,
+    (item.primaryColor || colourNote) && `colour:${item.primaryColor ?? ''}${colourNote}`,
     item.secondaryColor && `second colour:${item.secondaryColor}`,
-    item.pattern && `pattern:${item.pattern}`,
+    item.pattern && `pattern:${item.pattern}${item.patternScale && item.patternScale !== 'none' ? ` (${item.patternScale})` : ''}`,
+    item.sheer && 'sheer',
     item.material && `material:${item.material}`,
     item.fit && `fit:${item.fit}`,
     item.length && `length:${item.length}`,
     item.weight && `weight:${item.weight}`,
     item.texture && `texture:${item.texture}`,
     item.formality && `formality:${item.formality}${item.formalityScore != null ? ` (${item.formalityScore}/5)` : ''}`,
+    item.dressCode && `dress code:${item.dressCode}`,
+    item.shoeType && item.shoeType !== 'other' && `shoe:${item.shoeType}`,
     shoeFormality != null && `shoe formality:${shoeFormality}/5`,
     role && `slot:${role}`,
     needsLayer && 'needs a layer over it',
@@ -436,7 +633,9 @@ export const HARD_RULES =
   '(4) camisoles, tanks, vest tops and anything marked "needs a layer over it" get a mid or outer layer for work, evening and occasion settings; ' +
   '(5) shoe formality within one step below or two above the formality of the bottom; trainers never under tailored trousers, pumps never over sweatpants; ' +
   '(6) never an item whose category is "other"; (7) respect the warmth for the weather and the season tags; ' +
-  '(8) every id must come from the catalogue, each used once; (9) follow the "how they actually dress" notes when given.';
+  '(8) every id must come from the catalogue, each used once; (9) follow the "how they actually dress" notes when given; ' +
+  '(10) colour: at most two vivid hues in one outfit, and two vivid hues that clash (red with green, orange with blue) never together — a neutral goes with anything; ' +
+  '(11) sheer pieces get a layer over them for work and occasion settings; for cocktail and formal occasions the bottom and the footwear carry a dress code of business-casual or above; two bold patterns never together.';
 
 // Assemble outfits using ONLY the user's owned items, referenced by id.
 // Candidates are proposed here, slot by slot, and validated deterministically

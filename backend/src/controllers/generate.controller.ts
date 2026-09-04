@@ -1,13 +1,21 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { generateLooks, surpriseBrief, type LookPiece } from '../services/stylist.service';
+import { generateLooks, surpriseBrief, type ClosetAwareOptions, type LookPiece } from '../services/stylist.service';
 import { getProfile } from '../services/profile.service';
 import { deriveReasoningAttributes } from '../services/wardrobe.service';
-import { matchPiece, type MatchCandidate } from '../services/closet-match.service';
+import { bandOf } from '../services/closet-match.service';
+import { recreateFromPieces, type SlotSource } from '../services/recreate.service';
+import { prefilterPool } from '../services/compose.service';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
-import { normalizeColorName } from '../lib/attributes';
+import { currentSeason, normalizeColorName, type EventType } from '../lib/attributes';
+import { classifyOccasion } from '../lib/occasion';
+import { loadStyleableWardrobe } from './wardrobe.controller';
+import { todayWeatherFor } from './recreate.controller';
+
+/** Below this many styleable pieces the closet is too small to build from; the profile alone speaks. */
+export const CLOSET_AWARE_AT = 6;
 
 const generateSchema = z.object({
   // A mood, an occasion, a place — or nothing, for a surprise.
@@ -54,27 +62,47 @@ export async function generate(req: Request, res: Response) {
     const keptRows = await prisma.look.findMany({ where: { userId: req.user.id, verdict: 'keep' }, orderBy: { createdAt: 'desc' }, take: 5, select: { outfit: true } });
     occasion = surpriseBrief(profile, keptRows.map((k) => phraseOf(k.outfit)));
   }
-  const generated = await generateLooks(occasion, gender, profile);
+  const closet = await closetAwareFor(req.user.id, asked);
+  const generated = await generateLooks(occasion, gender, profile, closet);
 
-  // Persist every generated look so it survives sessions.
+  // Persist every generated look so it survives sessions; the closet-aware
+  // facts ride inside the outfit so a listed look still says what it needs.
   const looks = await Promise.all(
-    generated.map((look) =>
-      prisma.look.create({
+    generated.map(async (look) => {
+      const outfit = closet ? { ...look.outfit, ownedItemIds: look.ownedItemIds, wanted: look.wanted, verdict: look.verdict } : look.outfit;
+      const row = await prisma.look.create({
         data: {
           userId: req.user!.id,
           // The record keeps what was asked, not the brief behind a surprise.
           occasion: asked || 'a surprise',
           gender,
-          outfit: look.outfit as unknown as Prisma.InputJsonValue,
+          outfit: outfit as unknown as Prisma.InputJsonValue,
           rationale: look.rationale,
           imageUrl: look.imageUrl,
         },
         select: lookSelect,
-      }),
-    ),
+      });
+      // `verdict` on the row is the person's keep/no; the rules' word is `closetVerdict`.
+      return { ...row, ownedItemIds: look.ownedItemIds, wanted: look.wanted, closetVerdict: look.verdict };
+    }),
   );
 
-  res.json({ looks });
+  res.json({ looks, closetAware: !!closet });
+}
+
+/**
+ * The closet-aware brief when the closet is big enough: the styleable pool,
+ * narrowed to the occasion's formality band and the season. Null when the
+ * closet is small (or cannot be loaded) — the profile-only path.
+ */
+async function closetAwareFor(userId: string, asked: string | undefined): Promise<ClosetAwareOptions | undefined> {
+  const items = await loadStyleableWardrobe(userId).catch(() => []);
+  if (items.length < CLOSET_AWARE_AT) return undefined;
+  const eventType: EventType = classifyOccasion(asked) ?? 'casual';
+  const season = currentSeason();
+  const pool = prefilterPool(items, { eventType, season });
+  if (pool.length < 3) return undefined;
+  return { closet: pool, eventType, season };
 }
 
 export async function listLooks(req: Request, res: Response) {
@@ -141,8 +169,9 @@ export async function setVerdict(req: Request, res: Response) {
 }
 
 // POST /looks/:id/recreate — how much of this look do I already own?
-// Each piece of the look is matched to the closet with the twin matcher,
-// from words: same category, then type, colour, material, formality, warmth.
+// Each piece of the look is matched to the closet slot by slot, from words:
+// same slot role, then family, colour, formality; the recreated set is judged
+// by the validator for the look's kind of day and today's weather.
 export async function recreateLook(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const id = String(req.params.id);
@@ -158,30 +187,27 @@ export async function recreateLook(req: Request, res: Response) {
   const closet = await prisma.wardrobeItem.findMany({
     where: { userId: req.user.id, owned: true, status: 'ready', state: { not: 'retired' }, ...(notForYou ? { NOT: { cutFor: notForYou } } : {}) },
   });
-  const candidates: MatchCandidate[] = closet.map((c) => ({
-    id: c.id, category: c.category, subtype: c.subtype, primaryColor: c.primaryColor, formalityScore: c.formalityScore,
-    warmthValue: c.warmthValue, pattern: c.pattern, colorPalette: c.colorPalette, fingerprint: c.fingerprint, material: c.material,
-  }));
-  const byId = new Map(closet.map((c) => [c.id, c]));
-  const used = new Set<string>();
-  const pairs: { piece: LookPiece; item: unknown; band: string; score: number; reasons: string[] }[] = [];
-  const missing: LookPiece[] = [];
-  for (const piece of pieces) {
+  const sources: SlotSource[] = pieces.map((piece, i) => {
     const derived = deriveReasoningAttributes({ category: piece.category, subtype: piece.subtype, material: piece.material, formality: null });
-    const [best] = matchPiece(
-      // The plan says "charcoal"; the closet says "grey". One vocabulary before scoring.
-      { id: `look-${piece.subtype}`, category: piece.category, subtype: piece.subtype, primaryColor: normalizeColorName(piece.color), formalityScore: derived.formalityScore, warmthValue: derived.warmthValue, pattern: piece.pattern, material: piece.material },
-      candidates,
-      { exclude: used, limit: 1 },
-    );
-    // From words alone the bar is lower than for a twin: the same kind of
-    // thing in the same colour is a fair stand-in.
-    if (best && best.score >= 3.5) {
-      used.add(best.candidate.id);
-      pairs.push({ piece, item: byId.get(best.candidate.id), band: best.band, score: best.score, reasons: best.reasons });
-    } else {
-      missing.push(piece);
-    }
-  }
-  res.json({ pairs, missing, itemIds: pairs.map((p) => (p.item as { id: string }).id) });
+    // The plan says "charcoal"; the closet says "grey". One vocabulary before scoring.
+    return {
+      id: `look-${i}`,
+      category: piece.category,
+      subtype: piece.subtype,
+      primaryColor: normalizeColorName(piece.color),
+      formalityScore: derived.formalityScore,
+      warmthValue: derived.warmthValue,
+      pattern: piece.pattern,
+      material: piece.material,
+      layerRole: derived.layerRole,
+    };
+  });
+  const eventType: EventType = classifyOccasion(look.occasion) ?? 'casual';
+  const weather = await todayWeatherFor(req.user.id);
+  // A piece in the wash still counts as yours here; only what is retired is out.
+  const result = recreateFromPieces(sources, closet, { eventType, weather, season: currentSeason(), availableStates: ['clean', 'in-wash', 'packed', 'lent-out'] });
+  const pieceOf = (sourceId: string) => pieces[Number(sourceId.slice('look-'.length))];
+  const pairs = result.pairs.map((m) => ({ piece: pieceOf(m.sourceId), item: m.match, band: bandOf(m.score), score: m.score, reasons: m.reasons, slot: m.slot }));
+  const missing = result.missing.map((mi) => ({ ...pieceOf(mi.sourceId), slot: mi.slot, reason: mi.reason }));
+  res.json({ pairs, missing, itemIds: result.outfit.map((i) => i.id), verdict: result.verdict, eventType });
 }

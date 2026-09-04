@@ -32,6 +32,40 @@ export function formalityScoreFor(formality: string | null | undefined): number 
   return FORMALITY_SCORES[formality.toLowerCase()] ?? null;
 }
 
+// Dress code, the finer ladder the wearability pass reads: where the garment
+// formality tag stops at five steps, this says "business-casual" and
+// "cocktail". Scores sit on the same 1–5 line so the two can be compared.
+export const DRESS_CODES = ['athleisure', 'casual', 'smart-casual', 'business-casual', 'business', 'cocktail', 'formal'] as const;
+export type DressCode = (typeof DRESS_CODES)[number];
+
+const DRESS_CODE_SCORES: Record<DressCode, number> = {
+  athleisure: 1,
+  casual: 2,
+  'smart-casual': 3,
+  'business-casual': 3.5,
+  business: 4,
+  cocktail: 4.5,
+  formal: 5,
+};
+
+export function dressCodeScore(dressCode: string | null | undefined): number | null {
+  if (!dressCode) return null;
+  return DRESS_CODE_SCORES[dressCode.toLowerCase() as DressCode] ?? null;
+}
+
+/** The finer of the two when both are known: the dress code, else the formality score. */
+export function effectiveFormality(item: { formalityScore?: number | null; dressCode?: string | null }): number | null {
+  return dressCodeScore(item.dressCode) ?? item.formalityScore ?? null;
+}
+
+// --- Pattern scale ----------------------------------------------------------
+export const PATTERN_SCALES = ['none', 'fine', 'medium', 'bold'] as const;
+export type PatternScale = (typeof PATTERN_SCALES)[number];
+
+// --- Shoe type ----------------------------------------------------------------
+export const SHOE_TYPES = ['sneaker', 'trainer', 'sandal', 'flip-flop', 'loafer', 'boot', 'oxford', 'derby', 'heel', 'pump', 'mule', 'other'] as const;
+export type ShoeType = (typeof SHOE_TYPES)[number];
+
 // Subtype keywords that override the category default for layer role. The
 // keyword wins over the category: a blazer tagged "top" is still a layer, and
 // a jumpsuit tagged "bottom" is still a one-piece.
@@ -143,9 +177,13 @@ export function deriveShoeFormality(subtype?: string | null): number | null {
   return hit ? hit[1] : null;
 }
 
-/** Shoe formality with the garment formality as the fallback for unknown subtypes. */
-export function shoeFormalityOf(subtype: string | null | undefined, formalityScore: number | null | undefined): number | null {
-  return deriveShoeFormality(subtype) ?? formalityScore ?? null;
+/**
+ * Shoe formality: the subtype on the ladder first, then the catalogued shoe
+ * type (sneaker, loafer, oxford …) when the subtype says nothing, then the
+ * garment formality.
+ */
+export function shoeFormalityOf(subtype: string | null | undefined, formalityScore: number | null | undefined, shoeType?: string | null): number | null {
+  return deriveShoeFormality(subtype) ?? (shoeType && shoeType !== 'other' ? deriveShoeFormality(shoeType) : null) ?? formalityScore ?? null;
 }
 
 const OPEN_TOE = /sandal|flip[- ]?flop|slider|\bslide|thong|peep[- ]?toe|open[- ]?toe|espadrille|birkenstock|croc/;

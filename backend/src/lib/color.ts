@@ -131,3 +131,128 @@ export function extractPalette(
     .filter((e) => e.share > 0.05)
     .sort((a, b) => b.share - a.share);
 }
+
+// --- LCh: hue, chroma and the harmony vocabulary ---------------------------
+// Pairing reasons about colour the way a stylist does — neutral or not, which
+// hue family, how loud — not by raw ΔE. Hue angles here are CIELAB hue (h°),
+// which is not HSL hue: pure red sits near 40°, yellow near 103°, green near
+// 136°, teal near 196°, blue near 290–306°, violet beyond.
+
+export interface Lch {
+  L: number;
+  C: number;
+  /** Hue angle in degrees, 0–360. */
+  h: number;
+}
+
+export function labToLch(lab: Lab): Lch {
+  const C = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
+  let h = (Math.atan2(lab.b, lab.a) * 180) / Math.PI;
+  if (h < 0) h += 360;
+  return { L: lab.L, C: Math.round(C * 10) / 10, h: Math.round(h * 10) / 10 };
+}
+
+export const HUE_FAMILIES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'violet', 'pink', 'brown', 'neutral'] as const;
+export type HueFamily = (typeof HUE_FAMILIES)[number];
+
+export const SATURATION_BANDS = ['muted', 'mid', 'vivid'] as const;
+export type SaturationBand = (typeof SATURATION_BANDS)[number];
+
+// Chroma under this is grey, black or white whatever the hue says.
+const NEUTRAL_CHROMA = 14;
+// Lightness under this is black — or a navy so deep it dresses as black.
+const BLACK_L = 18;
+// Beige, cream, camel, sand, khaki: a warm hue at low chroma, light enough.
+const BEIGE_HUE: [number, number] = [55, 115];
+const BEIGE_CHROMA = 34;
+const BEIGE_L = 55;
+
+/** black / white / grey / beige / cream, by lightness and chroma. */
+export function isNeutralLab(lab: Lab): boolean {
+  const { L, C, h } = labToLch(lab);
+  if (C < NEUTRAL_CHROMA) return true;
+  if (L < BLACK_L) return true;
+  return h >= BEIGE_HUE[0] && h < BEIGE_HUE[1] && C < BEIGE_CHROMA && L >= BEIGE_L;
+}
+
+/** The hue family a LAB colour dresses as; neutrals fold black, white, grey, beige and cream together. */
+export function hueFamily(lab: Lab): HueFamily {
+  if (isNeutralLab(lab)) return 'neutral';
+  const { L, C, h } = labToLch(lab);
+  if (h >= 335 || h < 22) return L >= 45 ? 'pink' : 'red';
+  if (h >= 30 && h < 90 && L < 50 && C < 55) return 'brown';
+  if (h < 45) return 'red';
+  if (h < 80) return 'orange';
+  if (h < 115) return L < 60 ? 'green' : 'yellow'; // olive is a green that lives at yellow's hue
+  if (h < 175) return 'green';
+  if (h < 225) return 'teal';
+  if (h < 310) return 'blue';
+  return 'violet';
+}
+
+/** How loud a colour is, by chroma alone: muted under 28, vivid from 60. */
+export function saturationBand(C: number): SaturationBand {
+  if (C < 28) return 'muted';
+  if (C < 60) return 'mid';
+  return 'vivid';
+}
+
+/** Red, orange, yellow and pink are warm; green, teal, blue and violet are cool. */
+export function isWarm(hue: number): boolean {
+  const h = ((hue % 360) + 360) % 360;
+  return h < 115 || h >= 335;
+}
+
+/** The shortest way round the hue circle, 0–180. */
+export function hueDelta(h1: number, h2: number): number {
+  const d = Math.abs((((h1 - h2) % 360) + 360) % 360);
+  return d > 180 ? 360 - d : d;
+}
+
+// Where a family sits when only its name is known (an item catalogued with a
+// family but read without its palette).
+const FAMILY_HUE: Record<Exclude<HueFamily, 'neutral'>, number> = {
+  red: 32,
+  orange: 60,
+  yellow: 95,
+  green: 140,
+  teal: 195,
+  blue: 275,
+  violet: 322,
+  pink: 5,
+  brown: 60,
+};
+
+export function familyHue(family: HueFamily): number | null {
+  return family === 'neutral' ? null : FAMILY_HUE[family];
+}
+
+export interface ColourReading {
+  family: HueFamily;
+  band: SaturationBand;
+  /** Hue angle; null for a neutral. */
+  hue: number | null;
+}
+
+export function readColour(lab: Lab): ColourReading {
+  const family = hueFamily(lab);
+  const { C, h } = labToLch(lab);
+  return { family, band: family === 'neutral' ? 'muted' : saturationBand(C), hue: family === 'neutral' ? null : h };
+}
+
+/** The dominant LAB of a stored palette, or null when there is none. */
+export function dominantLab(palette: unknown): Lab | null {
+  if (!Array.isArray(palette) || palette.length === 0) return null;
+  const first = palette[0] as { lab?: Partial<Lab> } | null;
+  const lab = first?.lab;
+  if (!lab || typeof lab.L !== 'number' || typeof lab.a !== 'number' || typeof lab.b !== 'number') return null;
+  return { L: lab.L, a: lab.a, b: lab.b };
+}
+
+/** What the catalogue stores next to the palette: the family and how loud it is. Null without a palette. */
+export function deriveColourAttributes(palette: unknown): { colourFamily: HueFamily; colourVividness: SaturationBand } | null {
+  const lab = dominantLab(palette);
+  if (!lab) return null;
+  const r = readColour(lab);
+  return { colourFamily: r.family, colourVividness: r.band };
+}

@@ -1,6 +1,6 @@
 import type { WardrobeItem } from '@prisma/client';
-import { deltaE, type Lab, type PaletteEntry } from '../lib/color';
-import { validateOutfit, type ValidatorItem, type ValidatorWeather } from './validator.service';
+import { deltaE, hueDelta, isWarm, type Lab, type PaletteEntry } from '../lib/color';
+import { colourOf, validateOutfit, type ItemColour, type ValidatorItem, type ValidatorWeather } from './validator.service';
 import { deriveLayerRole, isStyleable, shoeFormalityOf, warmthFor, type EventType, type Hemisphere, type Season } from '../lib/attributes';
 
 // Pairing: does this go with that? Complementary scoring (different role,
@@ -12,7 +12,27 @@ type Piece = Pick<
   WardrobeItem,
   'id' | 'category' | 'subtype' | 'primaryColor' | 'pattern' | 'formalityScore' | 'warmthValue' | 'layerRole' | 'colorPalette' | 'state' | 'imageUrl'
 > & { cutFor?: string | null } & Partial<
-    Pick<WardrobeItem, 'fit' | 'length' | 'details' | 'season' | 'material' | 'texture' | 'suppressed' | 'twinOfId' | 'twinResolvedAt' | 'status' | 'owned'>
+    Pick<
+      WardrobeItem,
+      | 'fit'
+      | 'length'
+      | 'details'
+      | 'season'
+      | 'material'
+      | 'texture'
+      | 'suppressed'
+      | 'twinOfId'
+      | 'twinResolvedAt'
+      | 'status'
+      | 'owned'
+      | 'colourFamily'
+      | 'colourVividness'
+      | 'patternScale'
+      | 'sheer'
+      | 'dressCode'
+      | 'needsLayer'
+      | 'shoeType'
+    >
   >;
 
 export type PairingPiece = Piece;
@@ -36,7 +56,6 @@ function acrossTheLine(a: Piece, b: Piece): boolean {
   return (a.cutFor === 'womens' && b.cutFor === 'mens') || (a.cutFor === 'mens' && b.cutFor === 'womens');
 }
 
-const NEUTRALS = /black|white|grey|gray|navy|beige|cream|ivory|tan|camel|charcoal|khaki|denim|off-white|stone|sand|ecru|neutral/i;
 const LOUD = /floral|animal|leopard|zebra|paisley|plaid|tartan|check|graphic|print|logo|stripe/i;
 
 export function slot(p: Piece): string {
@@ -70,9 +89,49 @@ function detail(p: Piece, key: string): string {
   return typeof v === 'string' ? v.toLowerCase() : '';
 }
 
+/**
+ * Colour harmony, the way a stylist reads it: a neutral goes with anything;
+ * one family is tonal (best when both are soft); neighbours on the wheel sit
+ * together; opposites work when one of them is quiet and fight when both
+ * shout; two loud hues a third of the wheel apart clash; loud warm against
+ * loud cool is one more strike. Null when a side's colour is unknown.
+ */
+export function harmonyTerm(a: ItemColour | null, b: ItemColour | null): number {
+  // A neutral goes with anything, the unknown included.
+  if (a?.family === 'neutral' || b?.family === 'neutral') return 2;
+  if (!a || !b) return 0;
+  const bothVivid = a.band === 'vivid' && b.band === 'vivid';
+  const bothMuted = a.band === 'muted' && b.band === 'muted';
+  const oneMuted = a.band === 'muted' || b.band === 'muted';
+  let t = 0;
+  if (a.family === b.family) t += bothMuted ? 1.5 : bothVivid ? 0.5 : 1;
+  else if (a.hue != null && b.hue != null) {
+    const d = hueDelta(a.hue, b.hue);
+    if (d <= 40) t += 1;
+    else if (d >= 150) t += oneMuted ? 0.5 : bothVivid ? -1 : 0;
+    else if (d >= 60 && bothVivid) t -= 2;
+  }
+  if (bothVivid && a.hue != null && b.hue != null && isWarm(a.hue) !== isWarm(b.hue)) t -= 1;
+  return t;
+}
+
+/** Two patterns at scale: bold on bold fights, a fine one under a bold one is a small ask, fine on fine is fine. */
+function patternScaleTerm(a: Piece, b: Piece): number | null {
+  const sa = a.patternScale;
+  const sb = b.patternScale;
+  if (!sa || !sb || sa === 'none' || sb === 'none') return null;
+  const bold = (sa === 'bold' ? 1 : 0) + (sb === 'bold' ? 1 : 0);
+  const medium = (sa === 'medium' ? 1 : 0) + (sb === 'medium' ? 1 : 0);
+  if (bold === 2) return -2.5;
+  if (bold === 1 && medium === 1) return -1.5;
+  if (medium === 2) return -1;
+  if (bold === 1) return -0.5;
+  return 0;
+}
+
 /** Shoe formality against what it's worn with: −1 to +2 sits; outside that, the shoe is the wrong shoe. */
 function shoeTerm(shoe: Piece, lower: Piece): number {
-  const sf = shoeFormalityOf(shoe.subtype, shoe.formalityScore);
+  const sf = shoeFormalityOf(shoe.subtype, shoe.formalityScore, shoe.shoeType);
   const lf = lower.formalityScore;
   if (sf == null || lf == null) return 0;
   const delta = sf - lf;
@@ -108,21 +167,10 @@ export function pairScore(a: Piece, b: Piece): number {
 
   let s = 5;
 
-  // Colour: neutrals go with anything; otherwise reward either a clear
-  // contrast or a close tonal match, and penalise the awkward middle.
-  const na = NEUTRALS.test(a.primaryColor ?? '');
-  const nb = NEUTRALS.test(b.primaryColor ?? '');
-  if (na || nb) s += 2;
-  else {
-    const la = dominant(a);
-    const lb = dominant(b);
-    if (la && lb) {
-      const d = deltaE(la, lb);
-      if (d < 12) s += 1.5; // tonal
-      else if (d > 40) s += 2; // contrast
-      else s -= 1; // clashing middle
-    }
-  }
+  // Colour: harmony from the stored family and vividness (derived from the
+  // palette when the row predates them; a neutral read off the name when
+  // there is no palette at all).
+  s += harmonyTerm(colourOf(a), colourOf(b));
 
   // Formality within a step; two steps apart is a stretch.
   if (a.formalityScore != null && b.formalityScore != null) {
@@ -136,8 +184,10 @@ export function pairScore(a: Piece, b: Piece): number {
     s += dw <= 2 ? 1 : dw <= 4 ? 0 : -1.5;
   }
 
-  // Two loud patterns fight.
-  if (LOUD.test(a.pattern ?? '') && LOUD.test(b.pattern ?? '')) s -= 2.5;
+  // Two patterns: by scale when both were read, else two loud patterns fight.
+  const scale = patternScaleTerm(a, b);
+  if (scale != null) s += scale;
+  else if (LOUD.test(a.pattern ?? '') && LOUD.test(b.pattern ?? '')) s -= 2.5;
 
   // The shoe against the bottom (or the dress): sneakers under tailored
   // trousers and pumps over sweatpants both fall out here.
@@ -185,6 +235,15 @@ function toValidatorItem(p: Piece): ValidatorItem {
     material: p.material,
     texture: p.texture,
     details: p.details,
+    needsLayer: p.needsLayer,
+    sheer: p.sheer,
+    dressCode: p.dressCode,
+    patternScale: p.patternScale,
+    shoeType: p.shoeType,
+    primaryColor: p.primaryColor,
+    colorPalette: p.colorPalette,
+    colourFamily: p.colourFamily,
+    colourVividness: p.colourVividness,
   };
 }
 
