@@ -551,6 +551,9 @@ model TryOn {
   refunded  Boolean  @default(false)
   retryOf   String?
   reportedAt DateTime?
+  // The fidelity verdict (services/fidelity): per-garment present/matches,
+  // personPreserved, score, attempts, shoesOutOfFrame. Null until judged.
+  fidelity  Json?
   createdAt DateTime @default(now())
 
   @@index([userId, key])
@@ -720,6 +723,9 @@ model UserPhoto {
   path           String
   consentAt      DateTime
   consentVersion String   @default("v1")
+  // Judged once by the vision model on first render: true when the feet are
+  // in frame. Null until asked. A cropped reflection can't show shoes.
+  fullLength     Boolean?
   createdAt      DateTime @default(now())
 
   @@index([userId])

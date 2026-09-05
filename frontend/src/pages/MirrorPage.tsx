@@ -25,6 +25,26 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
 
 type Piece = Pick<WardrobeItem, 'id' | 'imageUrl' | 'category' | 'subtype'>
 
+/**
+ * The Mirror's second look, in a line: which pieces didn't take. Honest,
+ * short, and silent when everything took or nothing was checked.
+ */
+function fidelityLine(t: TryOn): string | null {
+  const f = t.fidelity
+  if (!f || !f.checked || !f.garments) return null
+  const missed = f.garments.filter((g) => {
+    if (g.present && g.matches.colour && g.matches.sleeveOrLength && g.matches.silhouette && g.matches.print) return false
+    return !(f.shoesOutOfFrame && g.slot === 'shoes')
+  })
+  if (missed.length === 0) return f.shoesOutOfFrame ? 'Your reflection stops above the feet, so the shoes are not in it.' : null
+  const names = missed.map((g) => {
+    const item = t.items?.find((i) => i.id === g.itemId)
+    return item ? label(item) : `the ${g.slot}`
+  })
+  const what = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return `${what.charAt(0).toUpperCase()}${what.slice(1)} did not quite take${f.attempts > 1 ? ', even on a second pass' : ''}. Try again, or flag it as not your clothes.`
+}
+
 function label(p: { category: string; subtype: string | null }) {
   return p.subtype ?? p.category
 }
@@ -714,6 +734,7 @@ export function MirrorPage() {
             <section className="mt-10 animate-rise border-t border-ink/10 pt-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Then</p>
               {current.items && current.items.length > 0 && <p className="mt-2 text-xs text-ink/50">This render: {current.items.map(label).join(' · ')}</p>}
+              {fidelityLine(current) && <p className="mt-1 text-xs text-ink/50">{fidelityLine(current)}</p>}
               <div className="action-row mt-4">
                 {decided.wear ? (
                   <span className="inline-flex h-11 items-center rounded-[3px] border border-brass/30 bg-iris-soft px-4 text-sm font-semibold text-brass-ink">Logged for today</span>

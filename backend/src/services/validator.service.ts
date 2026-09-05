@@ -451,12 +451,17 @@ export function validateOutfit(items: ValidatorItem[], opts: ValidatorOptions = 
   }
 
   // --- Season -------------------------------------------------------------
-  const season = opts.season ?? currentSeason(opts.now ?? new Date(), opts.hemisphere ?? 'north');
-  const outOfSeason = items.filter((i) => role(i) !== 'accessory' && !seasonAllows(i.season, { season }));
-  if (outOfSeason.length >= 2) {
-    violations.push({ rule: 'season', message: `${outOfSeason.map(label).join(', ')} are not ${season} pieces` });
-  } else if (outOfSeason.length === 1) {
-    warnings.push({ rule: 'season', message: `${label(outOfSeason[0])} is not a ${season} piece` });
+  // The season tag is the catalogue's guess from a photo and the calendar
+  // season is a northern-temperate idea; neither knows that Bengaluru has no
+  // fall. When a real temperature is in hand the warmth rule is the judge and
+  // the tag is ignored. Without weather it is a soft note, never a refusal.
+  if (!opts.weather) {
+    const season = opts.season ?? currentSeason(opts.now ?? new Date(), opts.hemisphere ?? 'north');
+    const outOfSeason = items.filter((i) => role(i) !== 'accessory' && !seasonAllows(i.season, { season }));
+    for (const i of outOfSeason) {
+      const tagged = (i.season ?? []).filter(Boolean).join(' and ');
+      warnings.push({ rule: 'season', message: tagged ? `${label(i)} is tagged for ${tagged}` : `${label(i)} may be out of season` });
+    }
   }
 
   // --- Pattern clash ------------------------------------------------------

@@ -56,21 +56,36 @@ export interface SourceImage {
   // requests (e.g. "PERSON — the person to dress:"). Multi-image edits adhere
   // far better when every image is introduced by name.
   label?: string;
+  // photo (default): the canvas — a camera original, flattened to a bounded
+  // JPEG. cutout: a garment reference — keeps its alpha as a PNG so the model
+  // sees the garment's true outline and nothing of the background.
+  kind?: 'photo' | 'cutout';
 }
 
 // Source photos can be multi-MB camera originals or large stored PNGs, and
 // base64 encoding inflates them ~33% — enough to blow provider request
 // limits. Models don't need more than ~1.5k px as an edit reference, so
 // normalize every source to a bounded JPEG (transparency flattened to white).
-async function normalizeSource(s: SourceImage): Promise<SourceImage> {
+// Garment cut-outs stay PNG with alpha, at most 1024 px on a side.
+export const CUTOUT_MAX_PX = 1024;
+
+export async function normalizeSource(s: SourceImage): Promise<SourceImage> {
   try {
+    if (s.kind === 'cutout') {
+      const data = await sharp(s.data)
+        .rotate()
+        .resize(CUTOUT_MAX_PX, CUTOUT_MAX_PX, { fit: 'inside', withoutEnlargement: true })
+        .png({ compressionLevel: 8 })
+        .toBuffer();
+      return { data, mime: 'image/png', label: s.label, kind: s.kind };
+    }
     const data = await sharp(s.data)
       .rotate()
       .flatten({ background: '#ffffff' })
       .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 90 })
       .toBuffer();
-    return { data, mime: 'image/jpeg' };
+    return { data, mime: 'image/jpeg', label: s.label, kind: s.kind };
   } catch {
     return s;
   }
@@ -138,7 +153,15 @@ interface ChatImageMessage {
   content?: unknown;
 }
 
-async function chatImage(prompt: string, rawSources: SourceImage[]): Promise<Buffer | null> {
+export interface EditOptions {
+  // Put the instruction AFTER the images. For multi-image edits the model
+  // treats text-first as "generate from references" and re-composes the
+  // scene; images-first with the instruction last reads as "edit the
+  // first image".
+  promptAfterImages?: boolean;
+}
+
+async function chatImage(prompt: string, rawSources: SourceImage[], opts: EditOptions = {}): Promise<Buffer | null> {
   const client = new OpenAI({
     apiKey: imageApiKey(),
     baseURL: env.IMAGE_BASE_URL ?? env.AI_BASE_URL ?? OPENROUTER_BASE_URL,
@@ -147,7 +170,7 @@ async function chatImage(prompt: string, rawSources: SourceImage[]): Promise<Buf
   });
   const sources = await Promise.all(rawSources.map(normalizeSource));
 
-  const content: object[] = [{ type: 'text', text: prompt }];
+  const content: object[] = opts.promptAfterImages ? [] : [{ type: 'text', text: prompt }];
   sources.forEach((s, i) => {
     const label = rawSources[i]?.label;
     if (label) content.push({ type: 'text', text: label });
@@ -156,6 +179,7 @@ async function chatImage(prompt: string, rawSources: SourceImage[]): Promise<Buf
       image_url: { url: `data:${s.mime};base64,${s.data.toString('base64')}` },
     });
   });
+  if (opts.promptAfterImages) content.push({ type: 'text', text: prompt });
 
   const res = await client.chat.completions.create({
     model: imageModelId('chat'),
@@ -185,10 +209,10 @@ export async function generateImage(prompt: string): Promise<Buffer | null> {
   return provider === 'openai' ? openaiGenerate(prompt) : chatImage(prompt, []);
 }
 
-export async function editImage(prompt: string, sources: SourceImage[]): Promise<Buffer | null> {
+export async function editImage(prompt: string, sources: SourceImage[], opts: EditOptions = {}): Promise<Buffer | null> {
   const provider = resolveImageProvider();
   if (provider === 'none') return null;
-  return provider === 'openai' ? openaiEdit(prompt, sources) : chatImage(prompt, sources);
+  return provider === 'openai' ? openaiEdit(prompt, sources) : chatImage(prompt, sources, opts);
 }
 
 export function imagesEnabled(): boolean {

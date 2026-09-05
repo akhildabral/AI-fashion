@@ -181,27 +181,29 @@ describe('footwear weather', () => {
 });
 
 describe('season', () => {
-  const july = new Date('2026-07-10T09:00:00Z');
-
-  it('warns on one out-of-season piece and rejects two', () => {
+  const july = new Date('2026-07-15T09:00:00Z');
+  it('notes an out-of-season tag softly and never refuses on it', () => {
     const wool = item({ subtype: 'wool sweater', layerRole: 'mid', season: ['winter'] });
     const one = validateOutfit([tee(), wool, jeans(), sneakers()], { now: july });
-    expect(one.warnings.some((w) => w.rule === 'season')).toBe(true);
+    expect(one.warnings.some((w) => w.rule === 'season' && /tagged for winter/.test(w.message))).toBe(true);
     expect(one.violations.some((v) => v.rule === 'season')).toBe(false);
     const two = validateOutfit([tee(), wool, item({ ...jeans(), season: ['fall', 'winter'] }), sneakers()], { now: july });
-    expect(two.violations.some((v) => v.rule === 'season')).toBe(true);
+    expect(two.violations.some((v) => v.rule === 'season')).toBe(false);
+    expect(two.warnings.filter((w) => w.rule === 'season')).toHaveLength(2);
   });
-
+  it('is silent when a real temperature is known — warmth judges instead', () => {
+    const cami = item({ subtype: 'camisole', layerRole: 'base', season: ['spring', 'summer'], warmthValue: 0 });
+    const r = validateOutfit([cami, jeans(), sneakers()], { now: new Date('2026-09-05T09:00:00Z'), weather: { temperatureC: 26, description: 'partly cloudy' } });
+    expect(r.warnings.some((w) => w.rule === 'season')).toBe(false);
+    expect(r.violations.some((v) => v.rule === 'season')).toBe(false);
+  });
   it('flips with the hemisphere and accepts an explicit season', () => {
     const wool = item({ subtype: 'wool sweater', layerRole: 'mid', season: ['winter'] });
     expect(validateOutfit([tee(), wool, jeans(), sneakers()], { now: july, hemisphere: 'south' }).warnings.some((w) => w.rule === 'season')).toBe(false);
     expect(validateOutfit([tee(), wool, jeans(), sneakers()], { season: 'winter' }).warnings.some((w) => w.rule === 'season')).toBe(false);
   });
-
-  it('treats an empty season list as all-year', () => {
-    expect(validateOutfit([tee(), jeans(), sneakers()], { now: july }).warnings.some((w) => w.rule === 'season')).toBe(false);
-  });
 });
+
 
 describe('colour', () => {
   const lab = (r: number, g: number, b: number) => [{ hex: '#000000', lab: srgbToLab(r, g, b), share: 0.9 }];

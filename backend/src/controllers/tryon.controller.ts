@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
 import { sendNativeEvent, sendPush } from '../lib/push';
 import { enqueue } from '../lib/jobs';
-import { defaultTryOnMode, generateOutfitTryOn, generateTryOn } from '../services/tryon.service';
+import { defaultTryOnMode, generateTryOn, renderOutfit, type TryOnMode } from '../services/tryon.service';
 import { HttpError } from '../middleware/error';
 
 // The Mirror's renders are jobs. POST returns the job at once (queued); the
@@ -24,10 +24,28 @@ const tryOnSelect = {
   refunded: true,
   retryOf: true,
   reportedAt: true,
+  // The fidelity verdict: which pieces took, which didn't, whether it was
+  // re-rendered. Null until checked; { checked: false } when the check failed.
+  fidelity: true,
   createdAt: true,
 } as const;
 
-const itemSelect = { id: true, imageUrl: true, category: true, subtype: true, primaryColor: true, material: true, pattern: true, description: true, renderNotes: true } as const;
+const itemSelect = {
+  id: true,
+  imageUrl: true,
+  category: true,
+  subtype: true,
+  primaryColor: true,
+  secondaryColor: true,
+  material: true,
+  pattern: true,
+  description: true,
+  renderNotes: true,
+  details: true,
+  length: true,
+  fit: true,
+  shoeType: true,
+} as const;
 
 // "Not my clothes" refunds are real recourse but bounded, so report→re-render
 // can't mint unlimited free paid renders.
@@ -98,8 +116,16 @@ async function runJob(tryOnId: string) {
     } else {
       const ordered = job.itemIds.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => !!i);
       subject = describeRender(null, ordered);
-      const r = await generateOutfitTryOn(user.photoPath, ordered, (job.mode as 'references' | 'text') ?? defaultTryOnMode());
-      await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null } });
+      // Whether the reflection is full-length is asked once per photo and
+      // remembered on it; a cropped photo can't show shoes, and the check
+      // must not hold that against the render.
+      const photo = await prisma.userPhoto.findFirst({ where: { userId: job.userId, path: user.photoPath }, select: { id: true, fullLength: true } });
+      const mode: TryOnMode = job.mode === 'text' || job.mode === 'references' ? job.mode : defaultTryOnMode();
+      const r = await renderOutfit(user.photoPath, ordered, mode, { fullLength: photo?.fullLength ?? null });
+      if (photo && photo.fullLength == null && r.photoFullLength != null) {
+        await prisma.userPhoto.update({ where: { id: photo.id }, data: { fullLength: r.photoFullLength } }).catch(() => undefined);
+      }
+      await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null, fidelity: r.fidelity as object } });
     }
     // Tell them, if they left. Browsers get the legacy nudge; phones get the
     // event push, which they can switch off.

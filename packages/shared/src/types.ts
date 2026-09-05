@@ -157,6 +157,39 @@ export interface TryOn {
   refunded?: boolean
   retryOf?: string | null
   reportedAt?: string | null
+  /** The Mirror's second look: which pieces took. Null until judged. */
+  fidelity?: TryOnFidelity | null
+}
+
+/** One garment's verdict from the fidelity check. */
+export interface TryOnGarmentVerdict {
+  itemId?: string
+  /** 1-based, the GARMENT n the render was asked for. */
+  index: number
+  slot: string
+  present: boolean
+  matches: { colour: boolean; sleeveOrLength: boolean; silhouette: boolean; print: boolean }
+  note: string
+}
+
+/**
+ * The fidelity verdict stored with a render: the render judged beside the
+ * garment pictures, piece by piece. `checked` is false when the check
+ * failed or timed out (the render stands). `attempts` is 2 when a miss
+ * earned a second render from the original photo.
+ */
+export interface TryOnFidelity {
+  checked: boolean
+  /** 0–100, null when unchecked. */
+  score: number | null
+  shoesOutOfFrame: boolean
+  attempts: number
+  garments?: TryOnGarmentVerdict[]
+  personPreserved?: boolean
+  shoesVisible?: boolean
+  retriedFor?: string[]
+  firstScore?: number | null
+  error?: string
 }
 
 export interface TryOnResponse {

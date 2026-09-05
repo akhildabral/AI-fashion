@@ -6,6 +6,7 @@ import { EVENT_TYPES, type EventType } from '../lib/attributes';
 import { validateOutfit } from '../services/validator.service';
 import { outfitsAround, pairScore, pairsFor } from '../services/pairing.service';
 import { planOpinion, verdictOf } from '../services/compose.service';
+import { todayWeatherFor } from './recreate.controller';
 
 // The Outfits room's endpoints: what goes with a piece, whether a hand-built
 // outfit holds up, and letting go of a saved one.
@@ -46,14 +47,17 @@ const validateSchema = z.object({
 export async function validateComposed(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
   const { itemIds, eventType } = validateSchema.parse(req.body);
-  const [items, cleanShoes] = await Promise.all([
+  const [items, cleanShoes, weather] = await Promise.all([
     prisma.wardrobeItem.findMany({ where: { id: { in: itemIds }, userId: req.user.id } }),
     prisma.wardrobeItem.count({ where: { userId: req.user.id, owned: true, status: 'ready', suppressed: false, state: 'clean', category: 'footwear' } }),
+    // The day's weather for their city, so warmth is judged on the real
+    // temperature and the season tag stays out of it.
+    todayWeatherFor(req.user.id).catch(() => null),
   ]);
   if (items.length !== new Set(itemIds).size) throw new HttpError(400, 'Some pieces are not in your closet');
   // No repeat rules here: composing is about whether the pieces hold
   // together, not whether you wore them on Tuesday.
-  const v = validateOutfit(items, { eventType: eventType as EventType | undefined, hasCleanFootwear: cleanShoes > 0 });
+  const v = validateOutfit(items, { eventType: eventType as EventType | undefined, hasCleanFootwear: cleanShoes > 0, weather: weather ? { temperatureC: weather.temperatureC, description: weather.description } : null });
   let q = 0;
   let n = 0;
   for (let i = 0; i < items.length; i++)
