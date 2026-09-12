@@ -529,7 +529,45 @@ export interface TasteResponse {
 
 export type IngestSource = 'camera' | 'library' | 'link' | 'share' | 'extension' | 'screenshot'
 
-/** Optional body measurements; unit applies to every number. */
+/**
+ * A fit reference: the size the member wears in a brand they know, and how it
+ * sits. The stylist infers a body range from the brand's chart; three of
+ * these replace a tape measure. `scale` is for shoes only.
+ */
+export interface FitReference {
+  category: 'top' | 'bottom' | 'shoes'
+  /** Brand id from GET /api/profile/fit-brands (e.g. 'zara', 'levis'). */
+  brand: string
+  size: string
+  feel?: 'snug' | 'right' | 'roomy' | null
+  scale?: 'EU' | 'UK' | 'US' | null
+}
+
+/** A range the stylist inferred from brand charts, in cm. */
+export interface InferredRange {
+  lo: number
+  hi: number
+}
+
+/** What the fit references implied, in cm regardless of `unit`. */
+export interface InferredMeasurements {
+  chest?: InferredRange | null
+  waist?: InferredRange | null
+  hips?: InferredRange | null
+  inseam?: InferredRange | null
+  /** Foot length, from a shoe reference. */
+  foot?: InferredRange | null
+  /** Mostly roomy reads as relaxed, mostly snug as slim; the member's own pick wins. */
+  preferredFit?: 'slim' | 'regular' | 'relaxed' | null
+}
+
+export type FitConfidence = 'high' | 'medium' | 'low'
+
+/**
+ * Optional body measurements; unit applies to every manual number. The
+ * numbers the member typed win; `inferred` (from `references`) stands in
+ * for any they left blank.
+ */
 export interface Measurements {
   unit: 'cm' | 'in'
   chest?: number | null
@@ -538,6 +576,27 @@ export interface Measurements {
   shoulder?: number | null
   inseam?: number | null
   preferredFit?: 'slim' | 'regular' | 'relaxed' | null
+  /** Where the effective numbers come from: typed, or read off brand charts. */
+  source?: 'manual' | 'brand-fit' | null
+  confidence?: FitConfidence | null
+  references?: FitReference[] | null
+  inferred?: InferredMeasurements | null
+}
+
+/** GET /api/profile/fit-brands: the chips the "What fits you" card needs. */
+export interface FitBrandOption {
+  id: string
+  name: string
+  /** Sizes per category, in chart order; a category the brand has no chart for is absent. */
+  top?: { sizes: string[]; approx: boolean }
+  bottom?: { sizes: string[]; approx: boolean }
+  shoes?: { scales: { EU: string[]; UK: string[]; US: string[] }; approx: boolean }
+}
+
+export interface FitBrandsResponse {
+  gender: 'women' | 'men' | 'unisex'
+  region: string
+  brands: FitBrandOption[]
 }
 
 /** What the reader extracted from a shop link. */

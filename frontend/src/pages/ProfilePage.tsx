@@ -11,6 +11,7 @@ import type { Measurements, StyleProfile, User } from '@zauq/shared/types'
 import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
 import { PhotoManager } from '../components/PhotoManager'
+import { FitReferencesCard } from '../components/FitReferences'
 import { RitualSettings } from '../components/RitualSettings'
 import { TasteCard } from '../components/TasteCard'
 import { Alert, Chip, EmptyState, Modal, PageHead, PageShell, RowLabel, Tabs, Toast, useFlash, SkeletonBlock } from '../components/ui'
@@ -95,6 +96,8 @@ export function ProfilePage() {
   const { user, logout, adoptSession } = useAuth()
   const { profile, loading: profileLoading, setProfile } = useProfile()
   const [section, setSection] = useState<Section>('fit')
+  // The manual measurements card stays folded until asked for, or until numbers exist.
+  const [manualOpen, setManualOpen] = useState(false)
   const [whisper, setWhisper] = useState<string>('')
   const [height, setHeight] = useState(170)
   const [city, setCity] = useState('')
@@ -167,6 +170,8 @@ export function ProfilePage() {
   const avoid = new Set((profile?.avoidColors ?? []).map((c) => c.toLowerCase()))
   const custom = (profile?.avoidColors ?? []).filter((c) => !COLOURS.some(([k]) => k === c.toLowerCase()))
   const units = profile?.units ?? 'metric'
+  const mm = profile?.measurements
+  const hasManual = !!mm && [mm.chest, mm.waist, mm.hips, mm.shoulder, mm.inseam].some((v) => v != null)
   const sizes = profile?.sizes ?? {}
 
   function setSize(kind: 'top' | 'bottom' | 'shoe', value: string) {
@@ -312,17 +317,35 @@ export function ProfilePage() {
                 </section>
               )}
               {section === 'fit' && (
-                <MeasurementsCard
-                  key={profile.measurements ? 'set' : 'unset'}
-                  current={profile.measurements ?? null}
-                  units={units}
-                  onSaved={(p) => {
-                    setProfile(p)
-                    setWhisper('Saved.')
-                    window.setTimeout(() => setWhisper(''), 1600)
-                  }}
-                  onNote={flash}
-                />
+                <div className="grid gap-8">
+                  {/* Sizes in brands they know first; the tape measure is the override. */}
+                  <FitReferencesCard
+                    current={profile.measurements ?? null}
+                    gender={profile.styleFor === 'female' ? 'women' : profile.styleFor === 'male' ? 'men' : null}
+                    unit={profile.measurements?.unit ?? (units === 'imperial' ? 'in' : 'cm')}
+                    onSaved={(p) => {
+                      setProfile(p)
+                      setWhisper('Saved.')
+                      window.setTimeout(() => setWhisper(''), 1600)
+                    }}
+                    onNote={flash}
+                    onManual={() => setManualOpen(true)}
+                    manualOpen={manualOpen || hasManual}
+                  />
+                  {(manualOpen || hasManual) && (
+                    <MeasurementsCard
+                      key={hasManual ? 'set' : 'unset'}
+                      current={profile.measurements ?? null}
+                      units={units}
+                      onSaved={(p) => {
+                        setProfile(p)
+                        setWhisper('Saved.')
+                        window.setTimeout(() => setWhisper(''), 1600)
+                      }}
+                      onNote={flash}
+                    />
+                  )}
+                </div>
               )}
 
               {section === 'taste' && (

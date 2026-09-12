@@ -282,7 +282,7 @@ describe('measurements (PATCH /profile)', () => {
     const r = res();
     await updateMyProfile({ user, body: { measurements: { unit: 'cm', waist: 80 } } } as never, r as never);
     let call = mocks.prisma.styleProfile.upsert.mock.calls.at(-1)![0] as { update: Record<string, unknown> };
-    expect(call.update.measurements).toEqual({ unit: 'cm', waist: 80 });
+    expect(call.update.measurements).toEqual({ unit: 'cm', waist: 80, source: 'manual' });
 
     await updateMyProfile({ user, body: { measurements: null } } as never, res() as never);
     call = mocks.prisma.styleProfile.upsert.mock.calls.at(-1)![0] as { update: Record<string, unknown> };

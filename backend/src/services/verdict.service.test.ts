@@ -9,6 +9,7 @@ import {
   closetStamp,
   computeVerdictV2,
   projectedWears,
+  sizeLine,
   topEventTypes,
   unlockWords,
   type VerdictClosetPiece,
@@ -289,5 +290,59 @@ describe('closet stamp', () => {
     expect(closetStamp({ ...base, closetUpdatedAt: new Date('2026-09-02T00:00:00Z') })).not.toBe(a);
     expect(closetStamp({ ...base, profileUpdatedAt: new Date('2026-09-02T00:00:00Z') })).not.toBe(a);
     expect(closetStamp({ ...base, tasteComputedAt: null })).not.toBe(a);
+  });
+});
+
+describe('the size in this brand', () => {
+  const zaraTee = (extra: Partial<VerdictPiece> = {}) => tee({ brand: 'Zara', cutFor: 'mens', ...extra });
+  const inferred = { unit: 'cm' as const, references: [{ category: 'top' as const, brand: 'zara', size: 'M' }], inferred: { chest: { lo: 94, hi: 98 }, waist: { lo: 81, hi: 84 } }, source: 'brand-fit' as const };
+
+  it('names the usual size from inferred measurements when the brand is on the table, and adjusts for the cut', () => {
+    const plain = computeVerdictV2(inputs({ piece: zaraTee(), profile: { measurements: inferred } })).v2;
+    expect(plain.build?.lines).toContainEqual({ line: "In Zara you're usually an M.", tone: 'good' });
+    const slim = computeVerdictV2(inputs({ piece: zaraTee({ fit: 'slim' }), profile: { measurements: inferred } })).v2;
+    expect(slim.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an M; this one is cut slim, so try the L.");
+    const roomy = computeVerdictV2(inputs({ piece: zaraTee({ fit: 'oversized' }), profile: { measurements: inferred } })).v2;
+    expect(roomy.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an M; this one is cut oversized, so the S may sit closer.");
+    // Suggestive, never a flag: the headline stays on the closet.
+    expect(slim.build?.flags).toEqual([]);
+    expect(slim.headline).toBe('earns');
+  });
+
+  it('reads the shop when the brand is missing, the typed numbers over the inferred ones, and stays quiet off the table', () => {
+    const byShop = computeVerdictV2(inputs({ piece: tee({ retailer: 'zara.com', cutFor: 'mens' }), profile: { measurements: inferred } })).v2;
+    expect(byShop.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an M.");
+    const typed = computeVerdictV2(inputs({ piece: zaraTee(), profile: { measurements: { ...inferred, chest: 102, waist: 86 } } })).v2;
+    expect(typed.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an L.");
+    const off = computeVerdictV2(inputs({ piece: tee({ brand: 'Myntra' }), profile: { measurements: inferred } })).v2;
+    expect(off.build?.lines.map((l) => l.line).join(' ')).not.toMatch(/usually/);
+    const noNumbers = computeVerdictV2(inputs({ piece: zaraTee(), profile: { heightCm: 180 } })).v2;
+    expect(noNumbers.build?.lines.map((l) => l.line).join(' ')).not.toMatch(/usually/);
+    expect(sizeLine(tee({ brand: 'Zara', category: 'accessory' }), { measurements: inferred })).toBeNull();
+  });
+
+  it('goes by the cut of the piece, else who we dress for; a chosen size that differs gets a note', () => {
+    const her = computeVerdictV2(inputs({ piece: tee({ brand: 'Zara', cutFor: 'womens' }), profile: { measurements: { unit: 'cm', chest: 90, waist: 70 } } })).v2;
+    expect(her.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an M.");
+    const styled = computeVerdictV2(inputs({ piece: tee({ brand: 'Zara', cutFor: null }), profile: { styleFor: 'female', measurements: { unit: 'cm', chest: 90, waist: 70 } } })).v2;
+    expect(styled.build?.lines.map((l) => l.line)).toContain("In Zara you're usually an M.");
+    const picked = computeVerdictV2(inputs({ piece: zaraTee({ chosenSize: 'L' }), profile: { measurements: inferred } })).v2;
+    expect(picked.build?.lines).toContainEqual({ line: "In Zara you're usually an M; you've picked the L.", tone: 'note' });
+  });
+
+  it('the inferred inseam feeds the leg-length note like a typed one', () => {
+    const long = computeVerdictV2(inputs({ piece: piece({ category: 'bottom', subtype: 'chinos', length: 'regular', primaryColor: 'navy' }), closet: [owned({ category: 'top', subtype: 'shirt', primaryColor: 'white' }), sneakers(), loafers()], profile: { measurements: { unit: 'cm', inferred: { inseam: { lo: 84, hi: 86 } } } } })).v2;
+    expect(long.build?.lines.map((l) => l.line)).toContain('A long inseam; check the leg length, most regular cuts stop short.');
+  });
+});
+
+describe('the size line, between sizes and implied fit', () => {
+  it('hedges when the numbers sit between sizes, and an implied regular fit stays quiet', () => {
+    const between = sizeLine(tee({ brand: 'Zara', cutFor: 'mens' }), { measurements: { unit: 'cm', chest: 98.4 } });
+    expect(between?.line).toBe("In Zara you're between sizes, nearer an M.");
+    const implied = computeVerdictV2(inputs({ piece: tee({ fit: 'regular' }), profile: { measurements: { unit: 'cm', inferred: { preferredFit: 'regular' } } } })).v2;
+    expect(implied.build?.lines.map((l) => l.line).join(' ')).not.toMatch(/your usual/);
+    const slimImplied = computeVerdictV2(inputs({ piece: tee({ fit: 'oversized' }), profile: { measurements: { unit: 'cm', inferred: { preferredFit: 'slim' } } } })).v2;
+    expect(slimImplied.build?.flags).toEqual(['fit']);
   });
 });

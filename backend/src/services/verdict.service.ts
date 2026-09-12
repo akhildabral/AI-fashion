@@ -7,6 +7,8 @@ import { colourOf } from './validator.service';
 import { ITEM_BONUS_CAP, PAIR_BONUS_CAP, TASTE_MIN_WEARS, colourFamilyOf, familyLabel, loadTasteProfile, tasteItemBonus, tastePairBonus, type TasteProfileData } from './taste.service';
 import { getTripForecast, getWeather, type Weather } from './weather.service';
 import { loadStyleableWardrobe } from '../controllers/wardrobe.controller';
+import { effectiveBody, genderFor, regionFor, sizeInBrand, type FitReference, type Inferred } from './fit.service';
+import { findBrand, type FitCategory, type Gender } from '../lib/size-charts';
 
 // Verdict v2: the Fitting Room's answer to "should I buy it, will I wear it,
 // does it flatter me". Pure functions over the candidate, the styleable
@@ -60,16 +62,21 @@ export interface Measurements {
   shoulder?: number | null;
   inseam?: number | null;
   preferredFit?: 'slim' | 'regular' | 'relaxed' | null;
+  /** What the fit references implied; stands in for any number left blank. */
+  inferred?: (Inferred & { preferredFit?: 'slim' | 'regular' | 'relaxed' | null }) | null;
+  references?: FitReference[] | null;
+  source?: 'manual' | 'brand-fit' | null;
+  confidence?: 'high' | 'medium' | 'low' | null;
 }
 
 /** The candidate: a pairing piece plus what the shop (or the member) said about it. */
 export type VerdictPiece = PairingPiece &
-  Partial<Pick<WardrobeItem, 'currency' | 'listPrice' | 'salePrice' | 'seenPrice' | 'price' | 'seenAt' | 'lastCheckedAt' | 'createdAt' | 'fit' | 'length' | 'details' | 'weight' | 'colourVividness'>>;
+  Partial<Pick<WardrobeItem, 'currency' | 'listPrice' | 'salePrice' | 'seenPrice' | 'price' | 'seenAt' | 'lastCheckedAt' | 'createdAt' | 'fit' | 'length' | 'details' | 'weight' | 'colourVividness' | 'brand' | 'retailer' | 'chosenSize'>>;
 
 /** An owned piece in the pool; wear counts ride along from `loadStyleableWardrobe`. */
 export type VerdictClosetPiece = PairingPiece & { wearCount?: number; createdAt?: Date | null };
 
-export type VerdictProfile = Partial<Pick<StyleProfile, 'bodyType' | 'heightCm' | 'skinTone' | 'avoidColors' | 'budgetBand' | 'currency' | 'city'>> & {
+export type VerdictProfile = Partial<Pick<StyleProfile, 'bodyType' | 'heightCm' | 'skinTone' | 'avoidColors' | 'budgetBand' | 'currency' | 'city' | 'styleFor'>> & {
   measurements?: Measurements | null;
 };
 
@@ -244,6 +251,36 @@ function detail(p: VerdictPiece, key: string): string {
   return typeof v === 'string' ? v.toLowerCase() : '';
 }
 
+const FIT_CATEGORY: Record<string, FitCategory> = { top: 'top', outerwear: 'top', bottom: 'bottom', footwear: 'shoes' };
+const CUT_GENDER: Record<string, Gender> = { womens: 'women', mens: 'men', unisex: 'unisex' };
+
+/**
+ * "In Zara you're usually an M; this one is cut slim, so try the L." — only
+ * when the candidate's brand or shop is in the chart table and the member's
+ * numbers (typed or inferred) say which size they take there. Suggestive.
+ */
+export function sizeLine(piece: VerdictPiece, profile: VerdictProfile | null): VerdictPlaqueLine | null {
+  const category = FIT_CATEGORY[piece.category];
+  if (!category || !profile) return null;
+  const brand = findBrand(piece.brand) ?? findBrand(piece.retailer);
+  if (!brand) return null;
+  const body = effectiveBody(profile.measurements);
+  if (!body) return null;
+  const gender = (piece.cutFor && CUT_GENDER[piece.cutFor]) || genderFor(profile.styleFor);
+  const match = sizeInBrand(body, brand.id, category, gender, regionFor(profile.currency));
+  if (!match) return null;
+  // Letters are said, not read: "an M", "an S", "an XL"; numbers are "a 32".
+  const usual = `${/^[AEFHILMNORSX]$|^X+[SL]$|^[AEIOU]/i.test(match.size) ? 'an' : 'a'} ${match.size}`;
+  const up = match.sizes[match.index + 1] ?? null;
+  const down = match.sizes[match.index - 1] ?? null;
+  const fit = piece.fit?.toLowerCase() ?? null;
+  const head = match.inside ? `In ${brand.name} you're usually ${usual}` : `In ${brand.name} you're between sizes, nearer ${usual}`;
+  if (category !== 'shoes' && fit === 'slim' && up) return { line: `${head}; this one is cut slim, so try the ${up}.`, tone: 'note' };
+  if (category !== 'shoes' && (fit === 'oversized' || fit === 'relaxed') && down) return { line: `${head}; this one is cut ${fit}, so the ${down} may sit closer.`, tone: 'note' };
+  if (piece.chosenSize && piece.chosenSize.trim().toUpperCase() !== match.size.toUpperCase()) return { line: `${head}; you've picked the ${piece.chosenSize.trim()}.`, tone: 'note' };
+  return { line: `${head}.`, tone: 'good' };
+}
+
 function buildPlaque(piece: VerdictPiece, profile: VerdictProfile | null): { lines: VerdictPlaqueLine[]; flags: string[] } | null {
   if (!profile) return null;
   const m = profile.measurements ?? null;
@@ -262,7 +299,10 @@ function buildPlaque(piece: VerdictPiece, profile: VerdictProfile | null): { lin
     lines.push({ line: `${cap(colour)} is a shade you've asked me to avoid.`, tone: 'flag' });
   }
 
-  const preferred = m?.preferredFit ?? null;
+  // The fit they asked for, else the one their references implied (an
+  // implied "regular" says nothing worth a line).
+  const implied = m?.inferred?.preferredFit ?? null;
+  const preferred = m?.preferredFit ?? (implied && implied !== 'regular' ? implied : null);
   if (preferred && fit && fit !== 'regular') {
     if (preferred === 'slim' && (fit === 'relaxed' || fit === 'oversized')) {
       flags.push('fit');
@@ -285,11 +325,14 @@ function buildPlaque(piece: VerdictPiece, profile: VerdictProfile | null): { lin
   else if (length === 'long' && height != null && height <= 160 && LOWER.has(piece.category)) lines.push({ line: 'Long; on your height it will want taking up.', tone: 'note' });
   else if (length === 'cropped' && height != null && height <= 160) lines.push({ line: 'Cropped; on a shorter frame it lengthens the leg.', tone: 'good' });
 
+  const size = sizeLine(piece, profile);
+  if (size) lines.push(size);
+
   const rise = detail(piece, 'rise');
   if (/low/.test(rise) && (body === 'curvy' || body === 'plus')) lines.push({ line: 'A low rise; a high or mid rise sits better on a curvier frame.', tone: 'note' });
-  if (m?.inseam != null && piece.category === 'bottom' && length === 'regular') {
-    const inseamCm = m.unit === 'in' ? m.inseam * 2.54 : m.inseam;
-    if (inseamCm >= 84) lines.push({ line: 'A long inseam; check the leg length, most regular cuts stop short.', tone: 'note' });
+  const numbers = effectiveBody(m);
+  if (numbers?.inseam != null && piece.category === 'bottom' && length === 'regular') {
+    if (numbers.inseam >= 84) lines.push({ line: 'A long inseam; check the leg length, most regular cuts stop short.', tone: 'note' });
   }
 
   const tone = profile.skinTone?.toLowerCase() ?? null;

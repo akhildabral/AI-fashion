@@ -15,9 +15,11 @@ import { useProfile } from "../context/useProfile";
 import { useAuth } from "../context/useAuth";
 import { Arch, ArchSkeleton, Badge, Chip, PageShell, RowLabel, SkeletonBlock, Toast, useFlash } from "../components/ui";
 import { FlatLay } from "../components/CircleCards";
+import { FitReferencesCard } from "../components/FitReferences";
 import { Spinner } from "../components/Spinner";
 import { resolveImageUrl } from "../lib/api";
 import { getQuiz, submitQuiz } from "@zauq/shared/quiz";
+import { referenceWords } from "@zauq/shared/profile";
 import { setHandle as claimHandle } from "@zauq/shared/social";
 import { uploadPhoto } from "@zauq/shared/tryon";
 import { addWardrobeItem, getWardrobe } from "@zauq/shared/wardrobe";
@@ -43,6 +45,7 @@ const STEPS = [
   "occasions",
   "dressing",
   "taste",
+  "fits",
   "fit",
   "sizes",
   "tone",
@@ -55,9 +58,11 @@ const STEPS = [
 ] as const;
 type Step = (typeof STEPS)[number];
 const LAST = STEPS.length - 1;
+/** Step index by name, so a jump reads as its destination. */
+const AT = Object.fromEntries(STEPS.map((s, i) => [s, i])) as Record<Step, number>;
 
 // Weighted by effort, not by count: the closet is the real last stretch.
-const PROGRESS = [12, 18, 24, 28, 46, 52, 58, 64, 68, 72, 76, 80, 92, 100];
+const PROGRESS = [12, 18, 24, 28, 46, 49, 52, 58, 64, 68, 72, 76, 80, 92, 100];
 // The thread speaks in the stylist's voice, never in minutes.
 const WORDS = [
   "A good start",
@@ -65,6 +70,7 @@ const WORDS = [
   "Good to know",
   "Good to know",
   "Getting to know you",
+  "Taking your measure",
   "Taking your measure",
   "Taking your measure",
   "A clear picture",
@@ -234,6 +240,7 @@ export function FittingPage() {
   const [ritualBusy, setRitualBusy] = useState(false);
   const [ritualSet, setRitualSet] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [fitNames, setFitNames] = useState<Record<string, string>>({});
   const hydrated = useRef(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -532,6 +539,9 @@ export function FittingPage() {
       );
     for (const t of tasteNotes) n.push(`Noted: ${t.toLowerCase()}`);
     if (build) n.push(`${build} build, ${height} cm`);
+    const refs = profile?.measurements?.references ?? [];
+    if (refs.length)
+      n.push(`takes ${refs.map((r) => referenceWords(r, fitNames)).join(", ")}`);
     const sz = [
       sizes.top && `top ${sizes.top}`,
       sizes.bottom && `bottom ${sizes.bottom}`,
@@ -560,6 +570,8 @@ export function FittingPage() {
     tasteNotes,
     build,
     height,
+    profile?.measurements?.references,
+    fitNames,
     sizes,
     tone,
     avoid,
@@ -638,7 +650,7 @@ export function FittingPage() {
               <Actions>
                 <button
                   type="button"
-                  onClick={() => void advance({}, 1)}
+                  onClick={() => void advance({}, AT.intent)}
                   className="btn-primary"
                 >
                   Begin the fitting
@@ -670,7 +682,7 @@ export function FittingPage() {
                     onClick={() => {
                       setIntent(k);
                       window.setTimeout(
-                        () => void advance({ intents: [k] }, 2),
+                        () => void advance({ intents: [k] }, AT.occasions),
                         220,
                       );
                     }}
@@ -685,7 +697,7 @@ export function FittingPage() {
               </div>
               <Actions>
                 {back}
-                <Later onClick={() => void advance({}, 2)}>Skip for now</Later>
+                <Later onClick={() => void advance({}, AT.occasions)}>Skip for now</Later>
               </Actions>
             </>
           )}
@@ -726,7 +738,7 @@ export function FittingPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void advance({ occasions: [...occasions] }, 3)}
+                  onClick={() => void advance({ occasions: [...occasions] }, AT.dressing)}
                   className="btn-primary"
                 >
                   {occasions.size ? "Next" : "Skip for now"}
@@ -769,7 +781,7 @@ export function FittingPage() {
                     onClick={() => {
                       setDressing(k);
                       window.setTimeout(
-                        () => void advance({ styleFor: k }, 4),
+                        () => void advance({ styleFor: k }, AT.taste),
                         220,
                       );
                     }}
@@ -799,7 +811,7 @@ export function FittingPage() {
               </div>
               <Actions>
                 {back}
-                <Later onClick={() => void advance({}, 4)} />
+                <Later onClick={() => void advance({}, AT.taste)} />
               </Actions>
             </>
           )}
@@ -828,7 +840,7 @@ export function FittingPage() {
                 <Actions>
                   <button
                     type="button"
-                    onClick={() => void advance({}, 5)}
+                    onClick={() => void advance({}, AT.fits)}
                     className="btn-primary"
                   >
                     Continue
@@ -898,7 +910,51 @@ export function FittingPage() {
             </>
           )}
 
-          {/* 5 fit */}
+          {/* 5 fits: a size in a brand they know, instead of a tape */}
+          {name === "fits" && (
+            <>
+              <Who>Your measure</Who>
+              <Ask>
+                What <em className="text-brass">fits you?</em>
+              </Ask>
+              <Lead>
+                A size you trust in a brand you know. I read your build off
+                their charts; no tape, and nothing here is shown to anyone.
+              </Lead>
+              <div className="mt-8 max-w-2xl">
+                <FitReferencesCard
+                  embedded
+                  current={profile?.measurements ?? null}
+                  gender={
+                    dressing === "female"
+                      ? "women"
+                      : dressing === "male"
+                        ? "men"
+                        : null
+                  }
+                  onSaved={setProfile}
+                  onNote={flash}
+                  onBrands={setFitNames}
+                />
+              </div>
+              <Actions>
+                {back}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void advance({}, AT.fit)}
+                  className="btn-primary"
+                >
+                  Next
+                </button>
+                <Later onClick={() => void advance({}, AT.fit)}>
+                  Skip for now
+                </Later>
+              </Actions>
+            </>
+          )}
+
+          {/* 6 fit */}
           {name === "fit" && (
             <>
               <Who>Your measure</Who>
@@ -953,19 +1009,19 @@ export function FittingPage() {
                       // Straight to the photo. Sizes, tone, budget, city and
                       // handle are refinements — offered after the first look,
                       // not before it, so the reveal comes fast.
-                      11,
+                      AT.mirror,
                     )
                   }
                   className="btn-primary"
                 >
                   Next
                 </button>
-                <Later onClick={() => void advance({}, 11)} />
+                <Later onClick={() => void advance({}, AT.mirror)} />
               </Actions>
             </>
           )}
 
-          {/* 6 sizes */}
+          {/* 7 sizes */}
           {name === "sizes" && (
             <>
               <Who>Sizes</Who>
@@ -1015,17 +1071,17 @@ export function FittingPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void advance({ sizes }, 7)}
+                  onClick={() => void advance({ sizes }, AT.tone)}
                   className="btn-primary"
                 >
                   Next
                 </button>
-                <Later onClick={() => void advance({}, 7)} />
+                <Later onClick={() => void advance({}, AT.tone)} />
               </Actions>
             </>
           )}
 
-          {/* 7 tone & colours */}
+          {/* 8 tone & colours */}
           {name === "tone" && (
             <>
               <Who>Colour</Who>
@@ -1091,19 +1147,19 @@ export function FittingPage() {
                   onClick={() =>
                     void advance(
                       { skinTone: tone ?? undefined, avoidColors: [...avoid] },
-                      8,
+                      AT.budget,
                     )
                   }
                   className="btn-primary"
                 >
                   Next
                 </button>
-                <Later onClick={() => void advance({}, 8)} />
+                <Later onClick={() => void advance({}, AT.budget)} />
               </Actions>
             </>
           )}
 
-          {/* 8 budget */}
+          {/* 9 budget */}
           {name === "budget" && (
             <>
               <Who>Budget</Who>
@@ -1123,7 +1179,7 @@ export function FittingPage() {
                     onClick={() => {
                       setBudget(k);
                       window.setTimeout(
-                        () => void advance({ budgetBand: k }, 9),
+                        () => void advance({ budgetBand: k }, AT.city),
                         220,
                       );
                     }}
@@ -1134,12 +1190,12 @@ export function FittingPage() {
               </div>
               <Actions>
                 {back}
-                <Later onClick={() => void advance({}, 9)} />
+                <Later onClick={() => void advance({}, AT.city)} />
               </Actions>
             </>
           )}
 
-          {/* 9 city */}
+          {/* 10 city */}
           {name === "city" && (
             <>
               <Who>Where</Who>
@@ -1195,17 +1251,17 @@ export function FittingPage() {
                 <button
                   type="button"
                   disabled={busy || !city.trim()}
-                  onClick={() => void advance({ city: city.trim() }, 10)}
+                  onClick={() => void advance({ city: city.trim() }, AT.handle)}
                   className="btn-primary disabled:opacity-50"
                 >
                   Next
                 </button>
-                <Later onClick={() => void advance({}, 10)}>Skip</Later>
+                <Later onClick={() => void advance({}, AT.handle)}>Skip</Later>
               </Actions>
             </>
           )}
 
-          {/* 10 handle */}
+          {/* 11 handle */}
           {name === "handle" && (
             <>
               <Who>Your name</Who>
@@ -1265,20 +1321,20 @@ export function FittingPage() {
                   type="button"
                   disabled={busy || (!claimed && !handleState.ok)}
                   onClick={() =>
-                    claimed ? void advance({}, 11) : void claim()
+                    claimed ? void advance({}, AT.mirror) : void claim()
                   }
                   className="btn-primary disabled:opacity-50"
                 >
                   {claimed ? "Next" : "Claim it"}
                 </button>
                 {!claimed && (
-                  <Later onClick={() => void advance({}, 11)}>Later</Later>
+                  <Later onClick={() => void advance({}, AT.mirror)}>Later</Later>
                 )}
               </Actions>
             </>
           )}
 
-          {/* 11 mirror */}
+          {/* 12 mirror */}
           {name === "mirror" && (
             <>
               <Who>The Mirror</Who>
@@ -1346,7 +1402,7 @@ export function FittingPage() {
                 {photoUrl ? (
                   <button
                     type="button"
-                    onClick={() => void advance({}, 12)}
+                    onClick={() => void advance({}, AT.closet)}
                     className="btn-primary"
                   >
                     Next
@@ -1369,14 +1425,14 @@ export function FittingPage() {
                     >
                       Choose from gallery
                     </button>
-                    <Later onClick={() => void advance({}, 12)}>Not now</Later>
+                    <Later onClick={() => void advance({}, AT.closet)}>Not now</Later>
                   </>
                 )}
               </Actions>
             </>
           )}
 
-          {/* 12 closet */}
+          {/* 13 closet */}
           {name === "closet" && (
             <>
               <Who>Last</Who>
@@ -1476,7 +1532,7 @@ export function FittingPage() {
             </>
           )}
 
-          {/* 13 reveal */}
+          {/* 14 reveal */}
           {name === "reveal" && (
             <>
               <Who>Composed</Who>
@@ -1554,7 +1610,7 @@ export function FittingPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => go(12)}
+                          onClick={() => go(AT.closet)}
                           className="btn-primary"
                         >
                           {pieces.length
