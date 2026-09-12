@@ -81,12 +81,18 @@ export async function cropToRegion(
   }
 }
 
+export interface CatalogOptions {
+  /** false skips the generative studio re-render (a retailer's product image is already one). */
+  studio?: boolean;
+}
+
 export async function catalogItem(
   itemId: string,
   image: Buffer,
   mime: string,
   target?: string,
   region?: { x: number; y: number; w: number; h: number },
+  opts: CatalogOptions = {},
 ): Promise<void> {
   // A piece out of a group photo: its region, with a margin, becomes its own
   // original from here on. The whole group photo stops mattering to it —
@@ -147,7 +153,9 @@ export async function catalogItem(
       tags = await catalogTags(imageForTagging, mimeForTagging);
       // 2. The studio re-render, now that the piece's kind is known (shoes and
       //    bags are shot from the side), checked against the photo's shape.
-      if (env.MATTING_ENABLED) {
+      //    A shop's own product shot is already studio-clean: the matte alone
+      //    is the display, and no generative pass gets to reinterpret it.
+      if (env.MATTING_ENABLED && opts.studio !== false) {
         const studio = await studioRender(image, mime, { target, category: tags.category, local });
         if (studio) display = studio;
       }
@@ -191,6 +199,8 @@ export async function catalogItem(
       ...deriveReasoningAttributes({ ...tags, colorPalette: update.colorPalette ?? undefined }),
       attrConfidence: conf,
       status: 'ready',
+      // A re-read changes the facts the store verdict was computed from.
+      verdictVersion: null,
     };
   } catch (err) {
     // Keep the item (and its cutout, if any); the user can tag it manually.
@@ -310,10 +320,17 @@ export async function addItem(req: Request, res: Response) {
     garments = [{ description: '', category: 'other', box: { x: 0, y: 0, w: 1, h: 1 } }];
   }
 
+  // In the store, a photo of a rail holds several pieces but the member means
+  // one: only the first is catalogued (from the whole photo, so the original
+  // survives), the rest are offered as a choice (choose-garment). No silent
+  // wishlist rows.
+  const detected = candidate && garments.length > 1 ? garments.map((g, index) => ({ index, description: g.description, category: g.category, box: g.box })) : null;
+  const toCreate = detected ? garments.slice(0, 1) : garments;
+
   // Each item keeps its own copy of the original photo so deletes stay
   // independent. Cataloging runs async; clients poll until status is ready.
   const items = await Promise.all(
-    garments.map(async (garment) => {
+    toCreate.map(async (garment) => {
       const stored = await saveImageBuffer(buffer, extForMime(mimetype));
       const item = await prisma.wardrobeItem.create({
         data: {
@@ -324,7 +341,8 @@ export async function addItem(req: Request, res: Response) {
           category: garment.category,
           ...(garment.description ? { description: garment.description } : {}),
           // In the store: a candidate piece, not owned yet.
-          ...(candidate ? { owned: false, seenAt: new Date(), store: candidateStore, seenPrice: candidatePrice } : {}),
+          ...(candidate ? { owned: false, seenAt: new Date(), store: candidateStore, seenPrice: candidatePrice, ingestSource: body.ingestSource === 'screenshot' || body.ingestSource === 'library' ? body.ingestSource : 'camera' } : {}),
+          ...(detected ? { extraction: { detected } as unknown as Prisma.InputJsonValue } : {}),
         },
       });
       // Only force generative extraction when a photo holds several garments.
@@ -332,7 +350,8 @@ export async function addItem(req: Request, res: Response) {
       // matte first (proportion-preserving, free) and only re-renders
       // generatively if that photo is too cluttered to matte confidently.
       const target = garments.length > 1 ? garment.description : undefined;
-      const region = garments.length > 1 ? garment.box : undefined;
+      // A candidate keeps the whole photo as its original until a piece is chosen.
+      const region = garments.length > 1 && !detected ? garment.box : undefined;
       enqueue(`catalog:${item.id}`, () =>
         catalogItem(item.id, buffer, mimetype, target || undefined, region),
       );
@@ -340,7 +359,52 @@ export async function addItem(req: Request, res: Response) {
     }),
   );
 
-  res.status(201).json({ items, item: items[0] });
+  res.status(201).json({ items, item: items[0], ...(detected ? { detected: detected.map(({ index, description, category }) => ({ index, description, category })) } : {}) });
+}
+
+const chooseGarmentSchema = z.object({ index: z.number().int().min(0).max(30) });
+
+// POST /wardrobe/:id/choose-garment — "that one": re-read a candidate from a
+// rail photo as the garment the member picked. The detector's boxes were
+// kept on the row (extraction.detected); the crop is cut from the original.
+export async function chooseGarment(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const { index } = chooseGarmentSchema.parse(req.body);
+  const item = await prisma.wardrobeItem.findFirst({
+    where: { id, userId: req.user.id },
+    select: { id: true, imageUrl: true, originalUrl: true, extraction: true, status: true, cropped: true },
+  });
+  if (!item) throw new HttpError(404, 'Item not found');
+  if (item.status === 'processing') throw new HttpError(409, 'Still reading that photo; a moment');
+  // Once chosen, the crop is the piece's own original; another choice needs the photo again.
+  if (item.cropped) throw new HttpError(400, 'That piece is already chosen; add the photo again to pick another');
+  const ex = item.extraction as { detected?: DetectedGarment[] } | null;
+  let detected = Array.isArray(ex?.detected) ? ex!.detected! : [];
+  let image: Buffer;
+  try {
+    image = await readStored(item.originalUrl ?? item.imageUrl);
+  } catch {
+    throw new HttpError(400, 'The photo could not be found');
+  }
+  // Boxes not kept (an older row): read the photo again.
+  if (detected.length === 0 && !item.cropped) {
+    try {
+      detected = await detectGarments(image, mimeForKey(keyFromStored(item.originalUrl ?? item.imageUrl)));
+    } catch {
+      detected = [];
+    }
+  }
+  const garment = detected[index];
+  if (!garment) throw new HttpError(400, 'No such piece in that photo');
+  await prisma.wardrobeItem.update({
+    where: { id },
+    data: { status: 'processing', category: garment.category, description: garment.description || null, verdict: Prisma.DbNull, verdictVersion: null, extraction: { detected } as unknown as Prisma.InputJsonValue },
+  });
+  const mime = mimeForKey(keyFromStored(item.originalUrl ?? item.imageUrl));
+  enqueue(`choose:${id}`, () => catalogItem(id, image, mime, garment.description || undefined, detected.length > 1 ? garment.box : undefined));
+  const updated = await prisma.wardrobeItem.findUnique({ where: { id } });
+  res.json({ item: updated, detected: detected.map((g, i) => ({ index: i, description: g.description, category: g.category })) });
 }
 
 // Re-run the cataloging pipeline (matting + tagging) on an existing item —
@@ -447,8 +511,44 @@ const updateSchema = z.object({
   owned: z.boolean().optional(),
   store: z.string().max(120).nullish(),
   seenPrice: z.number().int().min(0).max(10_000_000).nullish(),
+  // An explicit date, null to cancel, or the shorthand the wishlist offers.
   nudgeAt: z.coerce.date().nullish(),
+  nudgeIn: z.enum(['fortnight', 'month', 'never']).optional(),
+  // "Don't suggest this": keeps a wishlist piece out of the Closet's gaps rail.
+  gapOptOut: z.boolean().optional(),
 });
+
+export const NUDGE_IN_DAYS: Record<'fortnight' | 'month', number> = { fortnight: 14, month: 30 };
+
+/** The date a `nudgeIn` shorthand means, from now; null for never. */
+export function nudgeDate(nudgeIn: 'fortnight' | 'month' | 'never', now = new Date()): Date | null {
+  if (nudgeIn === 'never') return null;
+  return new Date(now.getTime() + NUDGE_IN_DAYS[nudgeIn] * 86_400_000);
+}
+
+/**
+ * What a PATCH writes. Keys the body omitted are never written (so re-keeping
+ * a piece never wipes its store or price); an explicit null clears. `nudgeIn`
+ * resolves to a date; buying a wishlist piece carries its shop price into the
+ * ledger, keeps its source, size and try-on, and clears the nudge.
+ */
+export function updateData(
+  data: z.infer<typeof updateSchema>,
+  existing: { owned: boolean; price: number | null; seenPrice: number | null; listPrice: number | null; salePrice: number | null },
+  now = new Date(),
+): Prisma.WardrobeItemUncheckedUpdateInput {
+  const { details, nudgeIn, ...plain } = data;
+  const out: Prisma.WardrobeItemUncheckedUpdateInput = {};
+  for (const [k, v] of Object.entries(plain)) if (v !== undefined) (out as Record<string, unknown>)[k] = v;
+  if (details !== undefined) out.details = (details ?? Prisma.JsonNull) as Prisma.InputJsonValue | typeof Prisma.JsonNull;
+  if (nudgeIn !== undefined) out.nudgeAt = nudgeDate(nudgeIn, now);
+  if (data.owned === true && !existing.owned) {
+    const paid = existing.salePrice ?? existing.listPrice ?? existing.seenPrice ?? null;
+    if (existing.price == null && paid != null && data.price === undefined) out.price = paid;
+    out.nudgeAt = null;
+  }
+  return out;
+}
 
 /** One piece, yours. */
 export async function getItem(req: Request, res: Response) {
@@ -465,13 +565,13 @@ export async function updateItem(req: Request, res: Response) {
 
   const existing = await prisma.wardrobeItem.findFirst({
     where: { id, userId: req.user.id },
-    select: { attrConfidence: true, category: true, subtype: true, material: true, formality: true, shoeType: true },
+    select: { attrConfidence: true, category: true, subtype: true, material: true, formality: true, shoeType: true, owned: true, price: true, seenPrice: true, listPrice: true, salePrice: true },
   });
   if (!existing) throw new HttpError(404, 'Item not found');
 
   // An explicit user edit is authoritative: record full confidence for the
   // edited fields so no later inference overrides them.
-  const editedFields = Object.keys(data);
+  const editedFields = Object.keys(data).filter((k) => k !== 'nudgeIn' && (data as Record<string, unknown>)[k] !== undefined);
   const attrConfidence = {
     ...((existing.attrConfidence as Record<string, number> | null) ?? {}),
     ...Object.fromEntries(editedFields.map((f) => [f, 1])),
@@ -498,29 +598,23 @@ export async function updateItem(req: Request, res: Response) {
     rederive.formalityScore = derived.formalityScore;
   }
 
-  // Back from the wash resets the count; buying a wishlist piece carries its
-  // seen price into the ledger.
+  // Back from the wash resets the count. Omitted keys are never written;
+  // buying a wishlist piece carries its shop price into the ledger and
+  // clears the nudge (updateData).
   const side: Prisma.WardrobeItemUncheckedUpdateInput = {};
   if (data.state === 'clean') Object.assign(side, { wearsSinceWash: 0, washedAt: new Date() });
-  if (data.owned === true) {
-    const w = await prisma.wardrobeItem.findUnique({ where: { id }, select: { owned: true, seenPrice: true, price: true } });
-    if (w && !w.owned && w.price == null && w.seenPrice != null) side.price = w.seenPrice;
-    side.nudgeAt = null;
-  }
 
-  const { details, ...plain } = data;
   await prisma.wardrobeItem.update({
     where: { id },
     data: {
-      ...plain,
-      ...(details !== undefined ? { details: (details ?? Prisma.JsonNull) as Prisma.InputJsonValue | typeof Prisma.JsonNull } : {}),
+      ...updateData(data, existing),
       ...rederive,
       ...side,
       attrConfidence,
     },
   });
 
-  if (data.owned === true) await flagTwin(id).catch(() => undefined);
+  if (data.owned === true && !existing.owned) await flagTwin(id).catch(() => undefined);
   const item = await prisma.wardrobeItem.findUnique({ where: { id } });
   res.json({ item });
 }

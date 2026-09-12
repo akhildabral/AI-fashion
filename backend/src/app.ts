@@ -24,6 +24,7 @@ import { briefRouter } from './routes/brief.routes';
 import { circleRouter } from './routes/circle.routes';
 import { pushRouter } from './routes/push.routes';
 import { shareRouter } from './routes/share.routes';
+import { linkRouter } from './routes/link.routes';
 import { bootstrap } from './controllers/bootstrap.controller';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -151,6 +152,7 @@ export function createApp() {
   app.use('/api', circleRouter);
   app.use('/api', pushRouter);
   app.use('/api', shareRouter);
+  app.use('/api', linkRouter);
   // The public share/vote HTML pages sit outside /api, so give them their own
   // ceiling — each does DB work and must not be a free DoS lever.
   const shareLimiter = rateLimit({

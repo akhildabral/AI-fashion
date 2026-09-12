@@ -17,6 +17,7 @@ export interface ProfileInput {
   fittingStep?: number;
   fittingDone?: boolean;
   currency?: string | null;
+  measurements?: { unit: 'cm' | 'in'; chest?: number | null; waist?: number | null; hips?: number | null; shoulder?: number | null; inseam?: number | null; preferredFit?: 'slim' | 'regular' | 'relaxed' | null } | null;
 }
 
 export function getProfile(userId: string) {
@@ -43,6 +44,7 @@ export function upsertProfile(userId: string, input: ProfileInput) {
     units?: string | null;
     fittingStep?: number;
     fittingCompletedAt?: Date | null;
+    measurements?: Prisma.InputJsonValue | typeof Prisma.DbNull;
   } = {};
   if (input.bodyType !== undefined) data.bodyType = input.bodyType;
   if (input.heightCm !== undefined) data.heightCm = input.heightCm;
@@ -57,6 +59,8 @@ export function upsertProfile(userId: string, input: ProfileInput) {
   if (input.intents !== undefined) data.intents = input.intents;
   if (input.occasions !== undefined) data.occasions = input.occasions;
   if (input.units !== undefined) data.units = input.units;
+  // Measurements: the whole object, or null to clear.
+  if (input.measurements !== undefined) data.measurements = input.measurements ? (input.measurements as Prisma.InputJsonValue) : Prisma.DbNull;
   // Progress only moves forward; a Back tap never loses ground.
   if (input.fittingStep !== undefined) data.fittingStep = input.fittingStep;
   if (input.fittingDone) data.fittingCompletedAt = new Date();

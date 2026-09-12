@@ -2,68 +2,122 @@ import { money } from '@zauq/shared/money'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
-import { deleteWardrobeItem, getWishlist, updateWardrobeItem } from '@zauq/shared/wardrobe'
+import { addCandidate, deleteWardrobeItem, getWishlist, recatalogWardrobeItem, updateWardrobeItem } from '@zauq/shared/wardrobe'
+import { outboundLink, rereadCandidate, setGapOptOut, setNudge, type NudgeIn, type OutboundLink } from '@zauq/shared/store'
+import { getClosetGaps } from '@zauq/shared/brief'
 import { ClosetRooms, RoomMantel } from '../components/ClosetRooms'
-import { PageShell, Toast, useFlash, SkeletonBlock, LoadError, UndoBar, Arch } from '../components/ui'
+import { PageShell, Toast, useFlash, LoadError, UndoBar, GarmentTile, MirrorFrame, Badge, Filter, MoreMenu, MenuItem, ArchSkeleton } from '../components/ui'
+import { PasteField, StoreDoors } from '../components/StoreDoors'
 import { resolveImageUrl } from '../lib/api'
-import type { WardrobeItem } from '@zauq/shared/types'
+import { asOf, availabilityLabel, candidateLabel, candidatePrice, needsAffiliateDisclosure, showsAffiliateBadge } from '../lib/fitting-room'
+import type { IngestSource, VerdictV2, WardrobeItem } from '@zauq/shared/types'
 
-// Wishlist: pieces you don't own yet, each carrying its verdict. Ranked by
-// what each one unlocks, not by when you added it.
+// The wishlist, as a place: kept pieces on arches, each carrying its link,
+// its price with the date, its verdict and its try-on. Ranked by what each
+// one unlocks. It helps the Closet spot gaps; it never enters the brief.
 
 interface Verdict {
   outfits: number
   pairs: number
   closetSize: number
   computedAt: string
+  v2?: VerdictV2 | null
 }
 
-function inr(n: number): string {
-  return money(n)
+type Kept = WardrobeItem & { v: Verdict | null; v2: VerdictV2 | null }
+
+function eventLabel(e: string): string {
+  switch (e) {
+    case 'work':
+      return 'Work'
+    case 'casual':
+      return 'Weekends'
+    case 'evening':
+      return 'Evenings'
+    case 'occasion':
+      return 'Occasions'
+    case 'athletic':
+      return 'Training'
+    default:
+      return e.charAt(0).toUpperCase() + e.slice(1)
+  }
 }
-function when(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000)
-  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d < 30 ? `${d} days ago` : new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+
+function withVerdict(i: WardrobeItem): Kept {
+  const raw = i as WardrobeItem & { verdict?: Verdict | null; v2?: VerdictV2 | null }
+  return { ...i, v: raw.verdict ?? null, v2: raw.v2 ?? raw.verdict?.v2 ?? null }
 }
 
 export function WishlistRoom() {
   usePageTitle('Wishlist')
   const navigate = useNavigate()
   const { toast, flash } = useFlash()
-  const [items, setItems] = useState<WardrobeItem[] | null>(null)
+  const [items, setItems] = useState<Kept[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  const [pending, setPending] = useState<{ item: WardrobeItem; timer: number } | null>(null)
+  const [pending, setPending] = useState<{ item: Kept; timer: number } | null>(null)
+  const [links, setLinks] = useState<Record<string, OutboundLink | null>>({})
+  const [gapIds, setGapIds] = useState<Set<string>>(new Set())
+  const [occasion, setOccasion] = useState<string | null>(null)
+  const [gapsOnly, setGapsOnly] = useState(false)
+  const [showRender, setShowRender] = useState<Set<string>>(new Set())
+  const [uploading, setUploading] = useState(false)
 
   const load = useCallback(async () => {
     try {
       const r = await getWishlist()
-      const withV = r.items.map((i) => ({ ...i, v: (i as WardrobeItem & { verdict?: Verdict | null }).verdict ?? null }))
-      withV.sort((a, b) => (b.v?.outfits ?? -1) - (a.v?.outfits ?? -1))
-      setItems(withV)
+      const list = r.items.map(withVerdict)
+      list.sort((a, b) => (b.v?.outfits ?? -1) - (a.v?.outfits ?? -1))
+      setItems(list)
       setFailed(false)
+      // The way back to each shop, and whether the link is wrapped: fetched
+      // once so the Affiliate label is on the card before anyone taps.
+      for (const it of list) {
+        if (!(it.sourceUrl || it.canonicalUrl) || it.id in links) continue
+        outboundLink(it.id)
+          .then((l) => setLinks((p) => ({ ...p, [it.id]: l })))
+          .catch(() => setLinks((p) => ({ ...p, [it.id]: null })))
+      }
     } catch {
       setFailed(true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
     void load()
+    getClosetGaps()
+      .then((g) => setGapIds(new Set(g.suggestions.map((s) => (s as { wishlistItemId?: string | null }).wishlistItemId).filter((x): x is string => !!x))))
+      .catch(() => undefined)
   }, [load])
 
-  async function bought(it: WardrobeItem) {
+  // Pieces still developing: read the list again until they settle.
+  const developing = items?.some((it) => it.status === 'processing') ?? false
+  useEffect(() => {
+    if (!developing) return
+    const t = window.setInterval(() => void load(), 3000)
+    return () => window.clearInterval(t)
+  }, [developing, load])
+
+  function patch(id: string, next: Partial<WardrobeItem>) {
+    setItems((p) => (p ?? []).map((x) => (x.id === id ? { ...x, ...next } : x)))
+  }
+
+  async function bought(it: Kept) {
     setBusy(it.id)
     try {
+      // Only the one fact changes; store, price, size and source stay as they are.
       await updateWardrobeItem(it.id, { owned: true })
       flash(`In the closet. The ${it.subtype ?? it.category} is a piece now.`)
       await load()
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not move it in.')
     } finally {
       setBusy(null)
     }
   }
   // Deferred delete: the piece leaves the list now, but the server call waits
   // ~5s so an Undo can pull it back.
-  function letGo(it: WardrobeItem) {
+  function letGo(it: Kept) {
     if (pending) {
       window.clearTimeout(pending.timer)
       void deleteWardrobeItem(pending.item.id).catch(() => undefined)
@@ -84,8 +138,85 @@ export function WishlistRoom() {
     setItems((p) => [pending.item, ...(p ?? [])])
     setPending(null)
   }
+  async function nudge(it: Kept, when: NudgeIn | null) {
+    setBusy(it.id)
+    try {
+      const { item } = await setNudge(it.id, when)
+      patch(it.id, item ?? { nudgeAt: when === null || when === 'never' ? null : it.nudgeAt })
+      flash(when === null || when === 'never' ? 'No nudge. It waits quietly.' : `I’ll nudge you in ${when === 'fortnight' ? 'a fortnight' : 'a month'}.`)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not change the nudge.')
+    } finally {
+      setBusy(null)
+    }
+  }
+  async function optOut(it: Kept) {
+    setBusy(it.id)
+    try {
+      await setGapOptOut(it.id, true)
+      patch(it.id, { gapOptOut: true })
+      setGapIds((p) => {
+        const n = new Set(p)
+        n.delete(it.id)
+        return n
+      })
+      flash('Off the gaps rail. I won’t suggest it for the closet.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not change that.')
+    } finally {
+      setBusy(null)
+    }
+  }
+  /** A failed read, read again for the same candidate. */
+  async function tryAgain(it: Kept) {
+    setBusy(it.id)
+    try {
+      const { item } = it.sourceUrl || it.canonicalUrl ? await rereadCandidate(it.id) : await recatalogWardrobeItem(it.id)
+      patch(it.id, item ?? { status: 'processing' })
+      flash('Reading it again.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not read it again.')
+    } finally {
+      setBusy(null)
+    }
+  }
+  async function openShop(it: Kept) {
+    const known = links[it.id]
+    const url = known?.url ?? it.canonicalUrl ?? it.sourceUrl
+    if (url) {
+      window.open(url, '_blank', 'noopener')
+      return
+    }
+    try {
+      const l = await outboundLink(it.id)
+      setLinks((p) => ({ ...p, [it.id]: l }))
+      window.open(l.url, '_blank', 'noopener')
+    } catch {
+      flash('The shop’s address isn’t on this piece.')
+    }
+  }
+  /** A photo picked here goes through the store page's reading. */
+  async function onFile(file: File, source: IngestSource) {
+    setUploading(true)
+    try {
+      const r = await addCandidate(file, { ingestSource: source })
+      navigate('/closet/store', { state: { upload: r } })
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not read that piece.')
+    } finally {
+      setUploading(false)
+    }
+  }
 
-  const total = (items ?? []).reduce((s, i) => s + (i.seenPrice ?? 0), 0)
+  const list = items ?? []
+  const occasions = [...new Set(list.flatMap((it) => it.v2?.eventTypes ?? []))]
+  const visible = list.filter((it) => {
+    if (occasion && !(it.v2?.eventTypes ?? []).includes(occasion)) return false
+    if (gapsOnly && !gapIds.has(it.id)) return false
+    return true
+  })
+  const total = list.reduce((s, i) => s + (candidatePrice(i)?.amount ?? 0), 0)
+  const affiliate = needsAffiliateDisclosure(Object.values(links))
 
   return (
     <PageShell wide>
@@ -93,94 +224,165 @@ export function WishlistRoom() {
       <RoomMantel
         eyebrow="The collection"
         title="Wishlist"
-        line={items ? `${items.length} piece${items.length === 1 ? '' : 's'} in mind${total > 0 ? ` · ${inr(total)} if you bought them all` : ''}` : undefined}
-        aside={
-          items && items.length > 0 ? (
-            <button type="button" onClick={() => navigate('/closet/store')} className="btn-ghost btn-sm">
-              Point at a piece
-            </button>
-          ) : undefined
-        }
+        line={items ? `${items.length} piece${items.length === 1 ? '' : 's'} in mind${total > 0 ? ` · ${money(total)} if you bought them all` : ''}` : undefined}
+        aside={<PasteField small className="w-full max-w-md sm:w-[26rem]" onUrl={(u) => navigate(`/closet/store?url=${encodeURIComponent(u)}`)} />}
       />
       <ClosetRooms current="wishlist" />
 
-      {failed && !items && <LoadError message="Couldn’t load your wishlist. Check your connection and try again." onRetry={() => { setFailed(false); void load() }} />}
-
-      {items === null && !failed && (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" aria-busy="true" aria-label="Loading">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card grid grid-cols-[96px_1fr] gap-4 p-4">
-              <SkeletonBlock className="aspect-[5/6]" />
-              <div className="flex flex-col gap-2">
-                <SkeletonBlock className="h-5 w-3/4" />
-                <SkeletonBlock className="h-4 w-1/2" />
-                <SkeletonBlock className="mt-auto h-9 w-24" />
-              </div>
-            </div>
-          ))}
-        </div>
+      {failed && !items && (
+        <LoadError
+          message="Couldn’t load your wishlist. Check your connection and try again."
+          onRetry={() => {
+            setFailed(false)
+            void load()
+          }}
+        />
       )}
 
+      {items === null && !failed && <ArchSkeleton count={6} className="mt-8 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6 lg:gap-6" />}
+
       {!failed && items && items.length === 0 && (
-        <div className="mt-10 max-w-lg animate-rise-1">
-          <p className="empty-line">Nothing in mind yet.</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/55">Next time you’re holding something in a shop, point the camera at it. The closet says how many outfits it makes before you pay for it, and “keep in mind” lands here.</p>
-          <div className="action-row mt-4">
-            <button type="button" onClick={() => navigate('/closet/store')} className="btn-primary">
-              Point at a piece
-            </button>
-          </div>
+        <div className="mt-10 max-w-xl animate-rise-1">
+          <p className="empty-line">Nothing in mind yet. A link, a photo or a screenshot, and the closet answers before you pay.</p>
+          <StoreDoors className="mt-6" disabled={uploading} onFile={(f, s) => void onFile(f, s)} onPasteDoor={() => navigate('/closet/store?door=paste')} />
         </div>
       )}
 
       {items && items.length > 0 && (
-        <div className="mt-8 grid animate-rise-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          {items.map((it) => {
-            const v = (it as WardrobeItem & { v?: Verdict | null }).v
-            const label = [it.primaryColor, it.subtype ?? it.category].filter(Boolean).join(' ')
-            return (
-              <article key={it.id} className="card grid grid-cols-[96px_1fr] gap-4 p-4">
-                <Link to={`/closet/store?item=${it.id}`} className="press block self-start">
-                  <Arch aspect="aspect-[5/6]">
-                    <img src={resolveImageUrl(it.imageUrl)} alt={label} className={`relative z-[1] h-full w-full object-contain p-[7%] ${it.status === 'processing' ? 'opacity-40 blur-[2px]' : ''}`} />
-                    {it.status === 'processing' && (
-                      <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-in-niche)]">
-                        developing
-                      </span>
-                    )}
-                  </Arch>
-                </Link>
-                <div className="min-w-0">
-                  <p className="font-display text-xl font-medium leading-tight text-ink">{label}</p>
-                  {v ? (
-                    <p className="mt-1 text-sm text-ink/70">
-                      <b className="text-brass-ink">{v.outfits} outfit{v.outfits === 1 ? '' : 's'}</b> · pairs with {v.pairs}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-sm text-ink/50">{it.status === 'processing' ? 'still developing' : 'verdict pending'}</p>
-                  )}
-                  <p className="mt-1 text-xs text-ink/50">
-                    {it.seenAt ? `Seen ${when(it.seenAt)}` : 'Seen'}
-                    {it.store ? ` at ${it.store}` : ''}
-                    {it.seenPrice != null ? ` · ${inr(it.seenPrice)}` : ''}
-                  </p>
-                  {it.nudgeAt && <p className="mt-1 text-xs text-ink/45">Nudge on {new Date(it.nudgeAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>}
-                  <div className="action-row mt-4">
-                    <button type="button" disabled={busy === it.id} onClick={() => void bought(it)} className="btn-primary btn-sm">
-                      Bought it
-                    </button>
-                    <Link to={`/closet/store?item=${it.id}`} className="btn-quiet btn-quiet-sm">
-                      The verdict
-                    </Link>
-                    <button type="button" disabled={busy === it.id} onClick={() => void letGo(it)} className="btn-quiet btn-quiet-sm">
-                      Let it go
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
+        <>
+          {(occasions.length > 0 || gapIds.size > 0) && (
+            <div className="mt-6 flex animate-rise-1 flex-wrap items-center gap-x-1 gap-y-1">
+              <Filter on={occasion === null && !gapsOnly} onClick={() => { setOccasion(null); setGapsOnly(false) }} count={list.length}>
+                All
+              </Filter>
+              {occasions.map((o) => (
+                <Filter key={o} on={occasion === o} onClick={() => setOccasion((p) => (p === o ? null : o))} count={list.filter((it) => (it.v2?.eventTypes ?? []).includes(o)).length}>
+                  {eventLabel(o)}
+                </Filter>
+              ))}
+              {gapIds.size > 0 && (
+                <Filter on={gapsOnly} onClick={() => setGapsOnly((p) => !p)} count={list.filter((it) => gapIds.has(it.id)).length}>
+                  Fills a gap
+                </Filter>
+              )}
+            </div>
+          )}
+
+          {visible.length === 0 ? (
+            <p className="empty-line py-12 text-center">Nothing in mind for that.</p>
+          ) : (
+            <div className="mt-8 grid animate-rise-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+              {visible.map((it) => {
+                const label = candidateLabel(it)
+                const price = candidatePrice(it)
+                const date = asOf(it.lastCheckedAt ?? it.seenAt)
+                const avail = availabilityLabel(it.availability)
+                const link = links[it.id]
+                const hasLink = Boolean(link?.url ?? it.canonicalUrl ?? it.sourceUrl)
+                const rendered = it.tryOnUrl && showRender.has(it.id)
+                const where = it.retailer ?? it.store
+                return (
+                  <article key={it.id} className="card grid grid-cols-[104px_1fr] gap-4 p-4">
+                    <div className="self-start">
+                      {rendered ? (
+                        <MirrorFrame>
+                          <img src={resolveImageUrl(it.tryOnUrl!)} alt={`You, in the ${label}`} className="aspect-[2/3] w-full object-cover" />
+                        </MirrorFrame>
+                      ) : (
+                        <GarmentTile imageUrl={it.imageUrl} label={undefined} processing={it.status === 'processing'} badge={gapIds.has(it.id) ? 'Fills a gap' : undefined} onClick={() => navigate(`/closet/store?item=${it.id}`)} />
+                      )}
+                      {it.tryOnUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowRender((p) => {
+                              const n = new Set(p)
+                              if (n.has(it.id)) n.delete(it.id)
+                              else n.add(it.id)
+                              return n
+                            })
+                          }
+                          className="press mt-2 block w-full text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-brass-ink"
+                        >
+                          {rendered ? 'The piece' : 'On you'}
+                        </button>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 font-display text-xl font-medium leading-tight text-ink">{label}</p>
+                        <MoreMenu align="right" label={`More for the ${label}`} className="-mr-1 -mt-1 shrink-0">
+                          <MenuItem onClick={() => void nudge(it, 'fortnight')}>Nudge me in a fortnight</MenuItem>
+                          <MenuItem onClick={() => void nudge(it, 'month')}>Nudge me in a month</MenuItem>
+                          {it.nudgeAt && <MenuItem onClick={() => void nudge(it, null)}>Cancel the nudge</MenuItem>}
+                          {it.status === 'failed' && <MenuItem onClick={() => void tryAgain(it)}>Try the read again</MenuItem>}
+                          {!it.gapOptOut && <MenuItem onClick={() => void optOut(it)}>Don’t suggest this for gaps</MenuItem>}
+                        </MoreMenu>
+                      </div>
+                      {it.v ? (
+                        <p className="mt-1 text-sm text-ink/70">
+                          <b className="text-brass-ink [font-variant-numeric:tabular-nums]">
+                            {it.v.outfits} outfit{it.v.outfits === 1 ? '' : 's'}
+                          </b>{' '}
+                          · pairs with {it.v.pairs}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-sm text-ink/50">{it.status === 'processing' ? 'still developing' : it.status === 'failed' ? 'that one didn’t read' : 'verdict pending'}</p>
+                      )}
+                      <p className="mt-1 text-xs text-ink/55 [font-variant-numeric:tabular-nums]">
+                        {price ? (
+                          <>
+                            <b className="text-ink">{money(price.amount, { currency: price.currency ?? undefined })}</b>
+                            {date ? ` ${date}` : ''}
+                          </>
+                        ) : (
+                          'No price yet'
+                        )}
+                        {where ? ` · ${where}` : ''}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {avail && <Badge tone="quiet">{avail}</Badge>}
+                        {it.nudgeAt && <Badge tone="quiet">Nudge {new Date(it.nudgeAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</Badge>}
+                        {it.status === 'failed' && (
+                          <button type="button" disabled={busy === it.id} onClick={() => void tryAgain(it)} className="btn-quiet btn-quiet-sm">
+                            Try again
+                          </button>
+                        )}
+                      </div>
+                      <div className="action-row mt-4">
+                        <button type="button" disabled={busy === it.id} onClick={() => void bought(it)} className="btn-primary btn-sm">
+                          Bought it
+                        </button>
+                        <Link to={`/closet/store?item=${it.id}`} className="btn-quiet btn-quiet-sm">
+                          The verdict
+                        </Link>
+                        {it.status === 'ready' && (
+                          <Link to={`/closet/store?item=${it.id}`} className="btn-quiet btn-quiet-sm">
+                            See it on you
+                          </Link>
+                        )}
+                        {hasLink && (
+                          <button type="button" onClick={() => void openShop(it)} className="btn-quiet btn-quiet-sm">
+                            Open at the shop
+                            {showsAffiliateBadge(link) && (
+                              <Badge tone="quiet" className="ml-1.5">
+                                Affiliate
+                              </Badge>
+                            )}
+                          </button>
+                        )}
+                        <button type="button" disabled={busy === it.id} onClick={() => letGo(it)} className="btn-quiet btn-quiet-sm">
+                          Let it go
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+          {affiliate && <p className="mt-8 text-xs text-ink/45">Links marked Affiliate may earn ZAUQ a small commission from the shop. The price you pay is the same, and the verdict never knows which links pay.</p>}
+        </>
       )}
       {pending && <UndoBar message={`${pending.item.subtype ?? pending.item.category} let go.`} onUndo={undoLetGo} />}
     </PageShell>

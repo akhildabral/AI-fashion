@@ -5,10 +5,13 @@ import { logger } from '../lib/logger';
 // A typed application error that controllers/services can throw.
 export class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Extra fields for the JSON body (a machine-readable `reason`, say). */
+  extra?: Record<string, unknown>;
+  constructor(status: number, message: string, extra?: Record<string, unknown>) {
     super(message);
     this.status = status;
     this.name = 'HttpError';
+    if (extra) this.extra = extra;
   }
 }
 
@@ -31,7 +34,7 @@ export function errorHandler(
   }
 
   if (err instanceof HttpError) {
-    return res.status(err.status).json({ error: err.message });
+    return res.status(err.status).json({ ...(err.extra ?? {}), error: err.message });
   }
 
   // body-parser / multer / express errors carry a 4xx status (malformed JSON,

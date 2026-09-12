@@ -5,8 +5,9 @@ import { useNavigate } from 'react-router-dom'
 import { getWardrobe } from '@zauq/shared/wardrobe'
 import { apiFetch } from '../lib/api'
 import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '@zauq/shared/brief'
+import { setGapOptOut } from '@zauq/shared/store'
 import type { WardrobeItem } from '@zauq/shared/types'
-import { GarmentTile, PageShell, Modal, Filter, LoadError, PageHead, Tabs, SectionHead, ArchSkeleton, Alert, Stat, Plaque } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Filter, LoadError, PageHead, Tabs, SectionHead, ArchSkeleton, Alert, Stat, Plaque, MoreMenu, MenuItem, Toast, useFlash } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { useJobs } from '../context/useJobs'
 import { LetGoModal } from '../components/LetGo'
@@ -23,6 +24,9 @@ interface InsightItem {
 
 type Collection = 'all' | 'most-worn' | 'never-worn' | 'orphans' | 'new' | 'twins'
 
+/** A gap the wishlist can fill carries the piece that fills it. */
+type Gap = GapSuggestion & { wishlistItemId?: string | null }
+
 const COLLECTIONS: { id: Collection; label: string }[] = [
   { id: 'all', label: 'Everything' },
   { id: 'most-worn', label: 'Most worn' },
@@ -38,10 +42,11 @@ export function ClosetPage() {
   usePageTitle('Closet')
   const navigate = useNavigate()
   const jobs = useJobs()
+  const { toast, flash } = useFlash()
   const [items, setItems] = useState<WardrobeItem[] | null>(null)
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
-  const [gaps, setGaps] = useState<GapSuggestion[]>([])
+  const [gaps, setGaps] = useState<Gap[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -134,6 +139,20 @@ export function ClosetPage() {
     void uploadFiles([...e.dataTransfer.files])
   }
 
+  /** "Don't suggest this": the wishlist piece leaves the gaps rail for good. */
+  async function dontSuggest(g: Gap) {
+    if (!g.wishlistItemId) return
+    const id = g.wishlistItemId
+    setGaps((p) => p.filter((x) => x.wishlistItemId !== id))
+    try {
+      await setGapOptOut(id, true)
+      flash('Off the rail. I won’t suggest that piece again.')
+    } catch (err) {
+      setGaps((p) => (p.some((x) => x.wishlistItemId === id) ? p : [...p, g]))
+      flash(err instanceof Error ? err.message : 'Could not change that.')
+    }
+  }
+
   function handleUpdated(updated: WardrobeItem) {
     setItems((prev) => (prev ? prev.map((it) => (it.id === updated.id ? updated : it)) : prev))
   }
@@ -198,6 +217,7 @@ export function ClosetPage() {
 
   return (
     <PageShell wide>
+      <Toast msg={toast} />
       <div
         onDragEnter={onDragEnter}
         onDragOver={(e) => e.preventDefault()}
@@ -408,16 +428,33 @@ export function ClosetPage() {
               <div className="mt-12 animate-rise">
                 <SectionHead title="What the closet is missing" />
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {gaps.map((g) => (
-                    <div key={g.category} className="card p-4">
-                      <p className="font-display text-xl font-medium text-ink">
-                        {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
-                      </p>
-                      <p className="mt-2 text-[13px] text-ink/55">
-                        Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
-                      </p>
-                    </div>
-                  ))}
+                  {gaps.map((g) =>
+                    g.wishlistItemId ? (
+                      <div key={`wish-${g.wishlistItemId}`} className="card flex items-start justify-between gap-3 p-4">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass-ink">In your wishlist</p>
+                          <p className="mt-1 font-display text-lg font-medium leading-snug text-ink">
+                            A piece in your wishlist would unlock {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'}: the {g.wanted}.
+                          </p>
+                          <button type="button" onClick={() => navigate(`/closet/store?item=${g.wishlistItemId}`)} className="btn-quiet btn-quiet-sm mt-2">
+                            Open
+                          </button>
+                        </div>
+                        <MoreMenu align="right" label={`More for the ${g.wanted}`} className="shrink-0">
+                          <MenuItem onClick={() => void dontSuggest(g)}>Don’t suggest this</MenuItem>
+                        </MoreMenu>
+                      </div>
+                    ) : (
+                      <div key={g.category} className="card p-4">
+                        <p className="font-display text-xl font-medium text-ink">
+                          {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
+                        </p>
+                        <p className="mt-2 text-[13px] text-ink/55">
+                          Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
+                        </p>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -448,6 +485,29 @@ export function ClosetPage() {
             >
               <span className="block text-sm font-semibold text-ink">Choose from gallery</span>
               <span className="mt-1 block text-xs text-ink/50">Flat-lays and hangers keep true proportions</span>
+            </button>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/45">Not yours yet</p>
+            <button
+              type="button"
+              onClick={() => {
+                setAddChooserOpen(false)
+                navigate('/closet/store')
+              }}
+              className="card card-hover press block w-full p-4 text-left"
+            >
+              <span className="block text-sm font-semibold text-ink">In the store</span>
+              <span className="mt-1 block text-xs text-ink/50">Point the camera at a piece; the closet says whether to buy it</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddChooserOpen(false)
+                navigate('/closet/store?door=paste')
+              }}
+              className="card card-hover press block w-full p-4 text-left"
+            >
+              <span className="block text-sm font-semibold text-ink">Paste a shop link</span>
+              <span className="mt-1 block text-xs text-ink/50">From any shop; the verdict before you pay</span>
             </button>
           </div>
         </Modal>

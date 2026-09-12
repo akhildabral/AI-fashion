@@ -84,6 +84,16 @@ function withItems<T extends { itemIds: string[] }>(row: T, byId: Map<string, { 
   return { ...row, items: row.itemIds.map((i) => byId.get(i)).filter(Boolean) };
 }
 
+/**
+ * A candidate's render is cached on the piece (WardrobeItem.tryOnUrl) so the
+ * wishlist card can show it; a render that includes one or more wishlist
+ * pieces remembers itself on each of them. Owned pieces never carry one.
+ */
+export async function rememberCandidateRender(userId: string, itemIds: string[], url: string): Promise<void> {
+  if (itemIds.length === 0 || !url) return;
+  await prisma.wardrobeItem.updateMany({ where: { id: { in: itemIds }, userId, owned: false }, data: { tryOnUrl: url } }).catch(() => undefined);
+}
+
 /** What the render is of, for a push: the look's name or its pieces. */
 function describeRender(lookTitle: string | null, items: { subtype: string | null; category: string }[]): string {
   if (lookTitle) return lookTitle;
@@ -126,6 +136,7 @@ async function runJob(tryOnId: string) {
         await prisma.userPhoto.update({ where: { id: photo.id }, data: { fullLength: r.photoFullLength } }).catch(() => undefined);
       }
       await prisma.tryOn.update({ where: { id: tryOnId }, data: { status: 'ready', imageUrl: r.url, prompt: r.prompt, error: null, fidelity: r.fidelity as object } });
+      await rememberCandidateRender(job.userId, job.itemIds, r.url);
     }
     // Tell them, if they left. Browsers get the legacy nudge; phones get the
     // event push, which they can switch off.
@@ -200,6 +211,7 @@ export async function createOutfitTryOn(req: Request, res: Response) {
     if (cached) {
       // Same pieces, same photo: no call, no charge.
       if (req.usageEventId) await prisma.usageEvent.deleteMany({ where: { id: req.usageEventId } }).catch(() => undefined);
+      await rememberCandidateRender(req.user.id, ids, cached.imageUrl);
       const byId = await hydrate(req.user.id, [cached]);
       res.json({ tryOn: withItems(cached, byId), cached: true });
       return;
@@ -213,6 +225,37 @@ export async function createOutfitTryOn(req: Request, res: Response) {
   scheduleRender(tryOn.id);
   const byId = await hydrate(req.user.id, [tryOn]);
   res.status(202).json({ tryOn: withItems(tryOn, byId), cached: false });
+}
+
+// POST /wardrobe/:id/tryon — "See it on you": the candidate alone on the
+// reflection. Counts on the render meter like any render; needs a
+// reflection first (400, reason no-reflection, so the page can lead to the
+// Mirror). `fresh: true` is "Try again".
+export async function createCandidateTryOn(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const id = String(req.params.id);
+  const [piece, user] = await Promise.all([
+    prisma.wardrobeItem.findFirst({ where: { id, userId: req.user.id }, select: { id: true, status: true } }),
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { photoPath: true } }),
+  ]);
+  const giveBack = async () => {
+    if (req.usageEventId) await prisma.usageEvent.deleteMany({ where: { id: req.usageEventId } }).catch(() => undefined);
+  };
+  if (!piece) {
+    await giveBack();
+    throw new HttpError(404, 'Piece not found');
+  }
+  if (!user?.photoPath) {
+    await giveBack();
+    throw new HttpError(400, 'Add your reflection first', { reason: 'no-reflection' });
+  }
+  if (piece.status !== 'ready') {
+    await giveBack();
+    throw new HttpError(409, 'Still reading that piece; a moment', { reason: 'not-ready' });
+  }
+  const fresh = req.body && typeof req.body === 'object' && (req.body as { fresh?: unknown }).fresh === true;
+  req.body = { itemIds: [id], fresh };
+  await createOutfitTryOn(req, res);
 }
 
 // GET /tryons/:id — the glass polls this.

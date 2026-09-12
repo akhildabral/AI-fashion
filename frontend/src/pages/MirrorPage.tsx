@@ -13,6 +13,7 @@ import type { Reflection, TryOn, WardrobeItem } from '@zauq/shared/types'
 import { MirrorFrame, Modal, Tabs, Toast, useFlash, MoreMenu, MenuItem, PageShell, Eyebrow, Filter, ArchSkeleton, Alert, EmptyState, Arch } from '../components/ui'
 import { useJobs } from '../context/useJobs'
 import { InspirationLens } from '../components/InspirationLens'
+import { fidelityLine } from '../lib/fidelity'
 
 // The Mirror, as a fitting room. The glass in the centre; under it the rail —
 // the pieces on you, each a switch — and the meter; after a render, the
@@ -24,26 +25,6 @@ const MAX_BYTES = 10 * 1024 * 1024
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
 
 type Piece = Pick<WardrobeItem, 'id' | 'imageUrl' | 'category' | 'subtype'>
-
-/**
- * The Mirror's second look, in a line: which pieces didn't take. Honest,
- * short, and silent when everything took or nothing was checked.
- */
-function fidelityLine(t: TryOn): string | null {
-  const f = t.fidelity
-  if (!f || !f.checked || !f.garments) return null
-  const missed = f.garments.filter((g) => {
-    if (g.present && g.matches.colour && g.matches.sleeveOrLength && g.matches.silhouette && g.matches.print) return false
-    return !(f.shoesOutOfFrame && g.slot === 'shoes')
-  })
-  if (missed.length === 0) return f.shoesOutOfFrame ? 'Your reflection stops above the feet, so the shoes are not in it.' : null
-  const names = missed.map((g) => {
-    const item = t.items?.find((i) => i.id === g.itemId)
-    return item ? label(item) : `the ${g.slot}`
-  })
-  const what = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-  return `${what.charAt(0).toUpperCase()}${what.slice(1)} did not quite take${f.attempts > 1 ? ', even on a second pass' : ''}. Try again, or flag it as not your clothes.`
-}
 
 function label(p: { category: string; subtype: string | null }) {
   return p.subtype ?? p.category

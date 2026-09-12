@@ -1,11 +1,12 @@
 import { CURRENCIES, guessCurrency } from '@zauq/shared/money'
 import { setHandle } from '@zauq/shared/social'
 import { checkHandle, deleteAccount, saveFitting, updateName, type FittingPatch } from '@zauq/shared/fitting'
+import { convertMeasurements, updateMeasurements } from '@zauq/shared/profile'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, getToken } from '../lib/api'
-import type { StyleProfile, User } from '@zauq/shared/types'
+import type { Measurements, StyleProfile, User } from '@zauq/shared/types'
 import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
 import { PhotoManager } from '../components/PhotoManager'
@@ -308,6 +309,19 @@ export function ProfilePage() {
                     ))}
                   </div>
                 </section>
+              )}
+              {section === 'fit' && (
+                <MeasurementsCard
+                  key={profile.measurements ? 'set' : 'unset'}
+                  current={profile.measurements ?? null}
+                  units={units}
+                  onSaved={(p) => {
+                    setProfile(p)
+                    setWhisper('Saved.')
+                    window.setTimeout(() => setWhisper(''), 1600)
+                  }}
+                  onNote={flash}
+                />
               )}
 
               {section === 'taste' && (
@@ -726,6 +740,129 @@ function AddressCard({ current, onChanged }: { current: string | null; onChanged
           </p>
         </form>
       )}
+    </section>
+  )
+}
+
+const MEASURES: [keyof Pick<Measurements, 'chest' | 'waist' | 'hips' | 'shoulder' | 'inseam'>, string][] = [
+  ['chest', 'Chest or bust'],
+  ['waist', 'Waist'],
+  ['hips', 'Hips'],
+  ['shoulder', 'Shoulder'],
+  ['inseam', 'Inseam'],
+]
+const FITS: [NonNullable<Measurements['preferredFit']>, string][] = [
+  ['slim', 'Slim'],
+  ['regular', 'Regular'],
+  ['relaxed', 'Relaxed'],
+]
+
+/**
+ * Optional measurements, for fit and nothing else. The unit follows the
+ * member's units setting until they pick the other one here; every number
+ * saves itself as it is left.
+ */
+function MeasurementsCard({
+  current,
+  units,
+  onSaved,
+  onNote,
+}: {
+  current: Measurements | null
+  units: string
+  onSaved: (p: StyleProfile) => void
+  onNote: (msg: string) => void
+}) {
+  const [unit, setUnit] = useState<'cm' | 'in'>(current?.unit ?? (units === 'imperial' ? 'in' : 'cm'))
+  const [draft, setDraft] = useState<Record<string, string>>(() => {
+    const m = current ? convertMeasurements(current, current.unit) : null
+    return Object.fromEntries(MEASURES.map(([k]) => [k, m?.[k] != null ? String(m[k]) : '']))
+  })
+  const [fit, setFit] = useState<Measurements['preferredFit']>(current?.preferredFit ?? null)
+  const [saving, setSaving] = useState(false)
+  const latest = useRef<Measurements | null>(current)
+
+  function compose(next: Partial<Record<string, string>> = draft, nextUnit = unit, nextFit = fit): Measurements | null {
+    const m: Measurements = { unit: nextUnit, preferredFit: nextFit ?? null }
+    let any = Boolean(nextFit)
+    for (const [k] of MEASURES) {
+      const raw = (next[k] ?? '').trim()
+      const n = raw ? Number(raw) : NaN
+      m[k] = Number.isFinite(n) && n > 0 ? n : null
+      if (m[k] != null) any = true
+    }
+    return any ? m : null
+  }
+  async function persist(m: Measurements | null) {
+    if (JSON.stringify(m) === JSON.stringify(latest.current)) return
+    latest.current = m
+    setSaving(true)
+    try {
+      const { profile } = await updateMeasurements(m)
+      onSaved(profile)
+    } catch (err) {
+      onNote(err instanceof Error ? err.message : 'Could not save your measurements.')
+    } finally {
+      setSaving(false)
+    }
+  }
+  function switchUnit(to: 'cm' | 'in') {
+    if (to === unit) return
+    const m = compose()
+    const conv = m ? convertMeasurements(m, to) : null
+    const next = Object.fromEntries(MEASURES.map(([k]) => [k, conv?.[k] != null ? String(conv[k]) : '']))
+    setUnit(to)
+    setDraft(next)
+    void persist(conv)
+  }
+  function pickFit(f: NonNullable<Measurements['preferredFit']>) {
+    const next = fit === f ? null : f
+    setFit(next)
+    void persist(compose(draft, unit, next))
+  }
+
+  return (
+    <section className="card mt-4 p-5">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div>
+          <RowLabel first>Measurements</RowLabel>
+          <p className="mt-1 text-sm text-ink/55">Optional. I use these for fit, never for anything else.</p>
+        </div>
+        <div className="flex gap-2" role="group" aria-label="Unit">
+          <Chip on={unit === 'cm'} onClick={() => switchUnit('cm')}>
+            cm
+          </Chip>
+          <Chip on={unit === 'in'} onClick={() => switchUnit('in')}>
+            in
+          </Chip>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 md:grid-cols-5">
+        {MEASURES.map(([k, l]) => (
+          <label key={k} className="block">
+            <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45">{l}</span>
+            <span className="relative block">
+              <input
+                value={draft[k] ?? ''}
+                inputMode="decimal"
+                onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value.replace(/[^\d.]/g, '') }))}
+                onBlur={() => void persist(compose())}
+                className="field field-sm pr-9 [font-variant-numeric:tabular-nums]"
+                aria-label={`${l} in ${unit === 'cm' ? 'centimetres' : 'inches'}`}
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-ink/40">{unit}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <RowLabel>Preferred fit</RowLabel>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {FITS.map(([k, l]) => (
+          <Chip key={k} on={fit === k} onClick={() => pickFit(k)} disabled={saving}>
+            {l}
+          </Chip>
+        ))}
+      </div>
     </section>
   )
 }

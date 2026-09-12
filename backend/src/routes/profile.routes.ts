@@ -7,6 +7,8 @@ export const profileRouter = Router();
 
 profileRouter.get('/', requireAuth, getMyProfile);
 profileRouter.put('/', requireAuth, updateMyProfile);
+// The same merge semantics under PATCH (measurements, the fitting's partial edits).
+profileRouter.patch('/', requireAuth, updateMyProfile);
 
 // The taste layer: what the record says about how they dress. Writes sit
 // under the /api write limiter like every other POST.

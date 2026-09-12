@@ -2,6 +2,8 @@ import { apiFetch, apiUpload } from './api'
 import type {
   EventType,
   FeedbackSignal,
+  IngestSource,
+  VerdictV2,
   PackingResponse,
   ResaleDraftResponse,
   TryOnResponse,
@@ -37,19 +39,27 @@ export interface VerdictResponse {
   status: 'ready' | 'processing' | 'failed'
   piece: WardrobeItem
   verdict: { outfits: number; pairs: number; closetSize: number; computedAt: string }
-  outfits: { items: WardrobeItem[]; score: number }[]
+  /** Each outfit may say which event type it was validated for (verdict v2). */
+  outfits: { items: WardrobeItem[]; score: number; eventType?: string | null }[]
   closest: { item: WardrobeItem; wears: number; likeness: number } | null
   unlockLine: string | null
+  /** The verdict that knows you; absent on older responses, which keep the old layout. */
+  v2?: VerdictV2 | null
 }
 
-/** POST /api/wardrobe with owned=false — a piece seen in a store, not owned yet. */
-export function addCandidate(file: File, meta: { store?: string; seenPrice?: number } = {}): Promise<WardrobeItemResponse> {
+/** POST /api/wardrobe with owned=false — a piece seen in a store, not owned yet.
+ *  Several garments in one photo come back as `items` (plus `detected`) for the member to choose from. */
+export function addCandidate(
+  file: File,
+  meta: { store?: string; seenPrice?: number; ingestSource?: IngestSource } = {},
+): Promise<WardrobeItemResponse & { detected?: { index: number; label?: string | null; category?: string | null; imageUrl?: string | null }[] }> {
   const form = new FormData()
   form.append('image', file)
   form.append('owned', 'false')
   if (meta.store) form.append('store', meta.store)
   if (meta.seenPrice != null) form.append('seenPrice', String(meta.seenPrice))
-  return apiUpload<WardrobeItemResponse>('/wardrobe', form)
+  if (meta.ingestSource) form.append('ingestSource', meta.ingestSource)
+  return apiUpload('/wardrobe', form)
 }
 
 /** GET /api/wardrobe/:id/verdict — how a piece fits the closet. */

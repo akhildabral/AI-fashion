@@ -476,6 +476,8 @@ export interface GapSuggestion {
   colour: string;
   formality: number;
   unlocks: number;
+  /** Set when a real wishlist piece fills the gap better than a plain ghost. */
+  wishlistItemId?: string;
 }
 
 const FORMALITY_WORD: Record<number, string> = { 1: 'athletic', 2: 'casual', 3: 'smart-casual', 4: 'business', 5: 'formal' };
@@ -493,10 +495,20 @@ const GAP_NOUN: Record<GhostSlot, (f: number) => string> = {
  * return the best three. Bounded work: black in every slot and band first,
  * then the other colours only for the slots and bands that showed promise.
  */
-export function closetGapsFor(
-  closet: Piece[],
-  opts: { maxEvaluations?: number; budgetMs?: number; outfitLimit?: number; cutFor?: string | null; formalities?: number[]; slots?: readonly GhostSlot[] } = {},
-): { suggestions: GapSuggestion[]; outfitsPossible: number } {
+export interface GapOptions {
+  maxEvaluations?: number;
+  budgetMs?: number;
+  outfitLimit?: number;
+  cutFor?: string | null;
+  formalities?: number[];
+  slots?: readonly GhostSlot[];
+  /** Real wishlist pieces (owned: false, catalogued, not opted out), tried as ghosts first. */
+  wishlist?: Piece[];
+}
+
+const GAP_CATEGORY = new Set(Object.values(GHOST_CATEGORY));
+
+export function closetGapsFor(closet: Piece[], opts: GapOptions = {}): { suggestions: GapSuggestion[]; outfitsPossible: number } {
   const started = Date.now();
   const maxEval = opts.maxEvaluations ?? 60;
   const budget = opts.budgetMs ?? 250;
@@ -514,6 +526,21 @@ export function closetGapsFor(
 
   let evaluations = 0;
   const results: GapSuggestion[] = [];
+
+  // The wishlist first: a piece the member has already found beats a plain
+  // ghost of the same kind when it unlocks as much (a tie goes to the real
+  // piece — the sort below is stable).
+  for (const w of (opts.wishlist ?? []).slice(0, 12)) {
+    if (w.owned !== false || (w.status != null && w.status !== 'ready') || w.suppressed || !GAP_CATEGORY.has(w.category)) continue;
+    if (evaluations >= maxEval || Date.now() - started > budget) break;
+    evaluations++;
+    const ghost: Piece = { ...w, state: 'clean', owned: true, status: 'ready', twinOfId: null };
+    const unlocks = outfitsAround(ghost, pool, { limit: outfitLimit }).length;
+    if (unlocks <= 0) continue;
+    const label = [w.primaryColor, w.subtype ?? w.category].filter(Boolean).join(' ');
+    results.push({ category: w.category, wanted: `the ${label} in your wishlist`, colour: w.primaryColor ?? '', formality: w.formalityScore ?? 3, unlocks, wishlistItemId: w.id });
+  }
+
   const evaluate = (s: GhostSlot, colour: string, formality: number) => {
     if (evaluations >= maxEval || Date.now() - started > budget) return null;
     evaluations++;

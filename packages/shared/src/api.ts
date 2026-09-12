@@ -88,11 +88,15 @@ function errorMessageFor(data: unknown, status: number): string {
 
 export class ApiError extends Error {
   readonly status: number
+  /** The parsed response body, for callers that read a structured refusal
+   *  (a 422 `LinkReadFailure`, a 400 `{ reason }`). Undefined when empty. */
+  readonly body?: unknown
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, body?: unknown) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.body = body
   }
 }
 
@@ -125,7 +129,7 @@ async function parseBody(res: Response): Promise<unknown> {
 function settle<T>(res: Response, data: unknown, authed: boolean): T {
   if (!res.ok) {
     if (res.status === 401 && authed) sessionExpired()
-    throw new ApiError(errorMessageFor(data, res.status), res.status)
+    throw new ApiError(errorMessageFor(data, res.status), res.status, data)
   }
   return data as T
 }

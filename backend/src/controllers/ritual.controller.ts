@@ -124,6 +124,13 @@ export async function closetGaps(req: Request, res: Response) {
       category: { not: 'other' },
     },
   });
-  const { suggestions, outfitsPossible } = closetGapsFor(closet);
+  // Wishlist pieces help the Closet spot gaps (never the brief): tried as
+  // ghosts first, unless the member said "don't suggest this".
+  const wishlist = await prisma.wardrobeItem.findMany({
+    where: { userId: req.user.id, owned: false, gapOptOut: false, status: 'ready', suppressed: false, category: { not: 'other' } },
+    orderBy: { createdAt: 'desc' },
+    take: 12,
+  });
+  const { suggestions, outfitsPossible } = closetGapsFor(closet, { wishlist });
   res.json({ suggestions, outfitsPossible });
 }
