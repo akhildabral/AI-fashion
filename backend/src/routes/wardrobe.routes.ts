@@ -19,7 +19,7 @@ import { createOutfitTryOn } from '../controllers/tryon.controller';
 import { requireAuth } from '../middleware/auth';
 import { basketClean, getBasket } from '../controllers/basket.controller';
 import { itemPairs, itemStory } from '../controllers/outfits.controller';
-import { itemVerdict } from '../controllers/store.controller';
+import { compareCandidates, itemVerdict } from '../controllers/store.controller';
 import { fromLink, rereadLink } from '../controllers/link.controller';
 import { quota } from '../middleware/quota';
 import { handleItemUpload } from '../middleware/upload';
@@ -33,6 +33,8 @@ export const wardrobeRouter = Router();
 wardrobeRouter.get('/', requireAuth, listItems);
 wardrobeRouter.get('/basket', requireAuth, getBasket);
 wardrobeRouter.post('/basket/clean', requireAuth, basketClean);
+// Compare two candidates; registered before '/:id' so "compare" is never an id.
+wardrobeRouter.get('/compare', requireAuth, compareCandidates);
 wardrobeRouter.post('/', requireAuth, handleItemUpload, quota('catalog'), addItem);
 // The Fitting Room's link door: imports are unmetered, so no quota() here.
 wardrobeRouter.post('/from-link', requireAuth, fromLink);

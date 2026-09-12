@@ -236,12 +236,46 @@ export function recreateFromCloset(itemIds: string[]) {
 
 export interface GapSuggestion {
   category: string
+  /** A noun ("a navy smart-casual trouser"), or, asked for an occasion, the whole sentence. */
   wanted: string
   unlocks: number
+  colour?: string
+  formality?: number
+  /** Set when a piece in the wishlist fills the gap. */
+  wishlistItemId?: string | null
 }
 
 export function getClosetGaps() {
   return apiFetch<{ suggestions: GapSuggestion[]; outfitsPossible: number }>('/stats/gaps')
+}
+
+export type GapEventType = 'work' | 'casual' | 'evening' | 'occasion' | 'athletic'
+
+/** The four quick fills for "What am I missing for…", in the order they sit. */
+export const GAP_OCCASIONS: { eventType: GapEventType; label: string }[] = [
+  { eventType: 'work', label: 'Work' },
+  { eventType: 'casual', label: 'Weekend' },
+  { eventType: 'evening', label: 'Evening' },
+  { eventType: 'occasion', label: 'Occasion' },
+]
+
+export interface OccasionGapsResponse {
+  /** The kind of day the occasion was read as; null when nothing in the phrase said. */
+  eventType: GapEventType | null
+  /** The occasion as it reads after "for": "the wedding reception". */
+  occasion: string
+  /** Validated outfits the closet already makes for that kind of day. */
+  canMake: number
+  suggestions: GapSuggestion[]
+  outfitsPossible: number
+}
+
+/** GET /api/stats/gaps?occasion=…&eventType=… — "What am I missing for the wedding?" */
+export function getOccasionGaps(occasion: string, eventType?: GapEventType | null) {
+  const q = new URLSearchParams()
+  if (occasion.trim()) q.set('occasion', occasion.trim())
+  if (eventType) q.set('eventType', eventType)
+  return apiFetch<OccasionGapsResponse>(`/stats/gaps?${q.toString()}`)
 }
 
 /** The plan as composed, stored with the trip. */

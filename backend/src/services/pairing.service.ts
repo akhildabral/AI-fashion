@@ -1,7 +1,7 @@
 import type { WardrobeItem } from '@prisma/client';
 import { deltaE, hueDelta, isWarm, type Lab, type PaletteEntry } from '../lib/color';
 import { colourOf, validateOutfit, type ItemColour, type ValidatorItem, type ValidatorWeather } from './validator.service';
-import { deriveLayerRole, isStyleable, shoeFormalityOf, warmthFor, type EventType, type Hemisphere, type Season } from '../lib/attributes';
+import { EVENT_FORMALITY, deriveLayerRole, isStyleable, shoeFormalityOf, warmthFor, type EventType, type Hemisphere, type Season } from '../lib/attributes';
 
 // Pairing: does this go with that? Complementary scoring (different role,
 // colours that sit together, formality and warmth within reach, not two
@@ -504,9 +504,53 @@ export interface GapOptions {
   slots?: readonly GhostSlot[];
   /** Real wishlist pieces (owned: false, catalogued, not opted out), tried as ghosts first. */
   wishlist?: Piece[];
+  /**
+   * Occasion-first: only the event's formality band is simulated and every
+   * outfit is validated for that kind of day, so "what am I missing for the
+   * wedding" never answers with a pair of jeans.
+   */
+  eventType?: EventType;
+  /** The occasion in the member's words ("the wedding reception"); phrases each suggestion. */
+  occasion?: string | null;
 }
 
 const GAP_CATEGORY = new Set(Object.values(GHOST_CATEGORY));
+
+/** The formality bands worth simulating for a kind of day: the event's target and its neighbours, within 1–5. */
+export function formalityBandFor(eventType: EventType): number[] {
+  const target = EVENT_FORMALITY[eventType];
+  return [target - 1, target, target + 1].filter((f) => f >= 1 && f <= 5);
+}
+
+/**
+ * "the wedding reception" from "a wedding reception": the occasion as it
+ * reads after "for". A bare event type reads as its kind of day.
+ */
+export function occasionPhrase(occasion: string | null | undefined, eventType?: EventType | null): string {
+  const text = (occasion ?? '').trim().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').toLowerCase();
+  if (text) {
+    if (/^(the|my|our|his|her|their|tonight|tomorrow|today|this|next)\b/.test(text)) return text;
+    if (/^(a|an)\s+/.test(text)) return text.replace(/^(a|an)\s+/, 'the ');
+    if (/^(work|training)$/.test(text)) return text;
+    return `the ${text}`;
+  }
+  switch (eventType) {
+    case 'work':
+      return 'work';
+    case 'casual':
+      return 'the weekend';
+    case 'evening':
+      return 'the evening';
+    case 'occasion':
+      return 'the occasion';
+    case 'athletic':
+      return 'training';
+    default:
+      return 'that';
+  }
+}
+
+const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 export function closetGapsFor(closet: Piece[], opts: GapOptions = {}): { suggestions: GapSuggestion[]; outfitsPossible: number } {
   const started = Date.now();
@@ -514,14 +558,18 @@ export function closetGapsFor(closet: Piece[], opts: GapOptions = {}): { suggest
   const budget = opts.budgetMs ?? 250;
   const outfitLimit = opts.outfitLimit ?? 40;
   const pool = closet.filter((c) => usable(c));
-  const formalities = opts.formalities ?? [2, 3, 4];
+  const eventType = opts.eventType;
+  const formalities = opts.formalities ?? (eventType ? formalityBandFor(eventType) : [2, 3, 4]);
   const slots = opts.slots ?? GHOST_SLOTS;
   const cutFor = opts.cutFor ?? majorityCutFor(pool);
+  // Occasion-first: every suggestion says what it gives you for the day.
+  const forWhat = eventType || opts.occasion ? ` for ${occasionPhrase(opts.occasion, eventType)}` : '';
+  const phrase = (what: string, unlocks: number) => (forWhat ? `${what} would give you ${plural(unlocks, 'outfit')}${forWhat}` : what);
 
   // What the closet makes today: outfits around each bottom and dress, deduped.
   const seen = new Set<string>();
   const seeds = pool.filter((c) => slot(c) === 'bottom' || slot(c) === 'dress').slice(0, 20);
-  for (const seed of seeds) for (const o of outfitsAround(seed, pool, { limit: 30 })) seen.add([...o.itemIds].sort().join(','));
+  for (const seed of seeds) for (const o of outfitsAround(seed, pool, { limit: 30, eventType })) seen.add([...o.itemIds].sort().join(','));
   const outfitsPossible = seen.size;
 
   let evaluations = 0;
@@ -535,18 +583,19 @@ export function closetGapsFor(closet: Piece[], opts: GapOptions = {}): { suggest
     if (evaluations >= maxEval || Date.now() - started > budget) break;
     evaluations++;
     const ghost: Piece = { ...w, state: 'clean', owned: true, status: 'ready', twinOfId: null };
-    const unlocks = outfitsAround(ghost, pool, { limit: outfitLimit }).length;
+    const unlocks = outfitsAround(ghost, pool, { limit: outfitLimit, eventType }).length;
     if (unlocks <= 0) continue;
     const label = [w.primaryColor, w.subtype ?? w.category].filter(Boolean).join(' ');
-    results.push({ category: w.category, wanted: `the ${label} in your wishlist`, colour: w.primaryColor ?? '', formality: w.formalityScore ?? 3, unlocks, wishlistItemId: w.id });
+    results.push({ category: w.category, wanted: phrase(`the ${label} in your wishlist`, unlocks), colour: w.primaryColor ?? '', formality: w.formalityScore ?? 3, unlocks, wishlistItemId: w.id });
   }
 
   const evaluate = (s: GhostSlot, colour: string, formality: number) => {
     if (evaluations >= maxEval || Date.now() - started > budget) return null;
     evaluations++;
     const ghost = ghostPiece({ slot: s, colour, formality, cutFor });
-    const unlocks = outfitsAround(ghost, pool, { limit: outfitLimit }).length;
-    const r: GapSuggestion = { category: GHOST_CATEGORY[s], wanted: `a ${colour} ${FORMALITY_WORD[formality] ?? ''} ${GAP_NOUN[s](formality)}`.replace(/\s+/g, ' '), colour, formality, unlocks };
+    const unlocks = outfitsAround(ghost, pool, { limit: outfitLimit, eventType }).length;
+    const what = `a ${colour} ${FORMALITY_WORD[formality] ?? ''} ${GAP_NOUN[s](formality)}`.replace(/\s+/g, ' ');
+    const r: GapSuggestion = { category: GHOST_CATEGORY[s], wanted: phrase(what, unlocks), colour, formality, unlocks };
     results.push(r);
     return r;
   };

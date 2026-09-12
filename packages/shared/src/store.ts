@@ -5,6 +5,7 @@ import type {
   LinkRead,
   LinkReadFailure,
   TryOn,
+  VerdictV2,
   WardrobeItem,
   WardrobeItemEdit,
   WardrobeItemResponse,
@@ -122,4 +123,41 @@ export function setNudge(id: string, nudgeIn: NudgeIn | null): Promise<WardrobeI
 /** "Don't suggest this": keep the piece out of the Closet's gaps rail. */
 export function setGapOptOut(id: string, gapOptOut = true): Promise<WardrobeItemResponse> {
   return updateCandidate(id, { gapOptOut })
+}
+
+// ---- Compare two --------------------------------------------------------------
+
+export type CompareLean = 'a' | 'b' | 'tie'
+
+/** Which side has the edge on each plaque, read deterministically off the two verdicts. */
+export interface CompareEdge {
+  outfits: CompareLean
+  duplicate: CompareLean
+  taste: CompareLean
+  budget: CompareLean
+  build: CompareLean
+  overall: CompareLean
+}
+
+export interface CompareSide {
+  item: WardrobeItem
+  v2: VerdictV2
+}
+
+export interface CompareResponse {
+  a: CompareSide
+  b: CompareSide
+  edge: CompareEdge
+  /** One line in the stylist's voice: who earns its place, and why the other would wait. */
+  line: string
+}
+
+/**
+ * GET /api/wardrobe/compare?a=&b= — two candidates side by side. Both
+ * verdicts come from the cache; a piece still developing answers 202 with
+ * `{ status: 'processing' }`, so the page polls until both settle.
+ */
+export function compareCandidates(a: string, b: string): Promise<CompareResponse | { status: 'processing' }> {
+  const q = new URLSearchParams({ a, b })
+  return apiFetch<CompareResponse | { status: 'processing' }>(`/wardrobe/compare?${q.toString()}`)
 }

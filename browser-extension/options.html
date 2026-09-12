@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZAUQ — where to send a piece</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="sheet">
+      <p class="eyebrow">Where to send a piece</p>
+      <h1 class="line">The closet lives at</h1>
+      <form id="form" novalidate>
+        <label class="label" for="origin">ZAUQ address</label>
+        <input id="origin" class="field" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://myzauq.com" />
+        <p id="hint" class="hint">Leave it as is unless you run ZAUQ yourself. A local build is fine: http://localhost:5173.</p>
+        <div class="actions">
+          <button type="submit" class="btn-primary">Save</button>
+          <button type="button" id="reset" class="btn-quiet">Back to myzauq.com</button>
+        </div>
+      </form>
+      <p class="note">The extension reads only the address of the tab you click it on, and only when you click. Nothing else leaves the browser.</p>
+    </main>
+    <script type="module" src="src/options.js"></script>
+  </body>
+</html>

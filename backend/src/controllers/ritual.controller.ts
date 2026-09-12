@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { HttpError } from '../middleware/error';
-import { closetGapsFor } from '../services/pairing.service';
+import { closetGapsFor, occasionPhrase } from '../services/pairing.service';
+import { EVENT_TYPES, type EventType } from '../lib/attributes';
+import { classifyOccasion, readOccasion } from '../lib/occasion';
 
 // The "earned, not gamified" numbers. Everything here derives from the wear
 // log and item prices — nothing is a point, everything is a fact.
@@ -111,8 +113,24 @@ export async function ritualStats(req: Request, res: Response) {
 // piece per slot × colour × formality band is dropped into the real closet
 // and the outfits it would join are enumerated and validated — so the answer
 // depends on what's actually hanging there, not on category counts.
+//
+// Occasion-first (?occasion=a wedding reception, or ?eventType=occasion):
+// the occasion is read into a kind of day, the simulation stays within that
+// day's formality band and validates for it, and the answer says what the
+// closet can already make for it.
+function queryText(v: unknown): string | null {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === 'string' && s.trim() ? s.trim().slice(0, 120) : null;
+}
+
 export async function closetGaps(req: Request, res: Response) {
   if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const query = (req.query ?? {}) as Record<string, unknown>;
+  const occasion = queryText(query.occasion);
+  const typed = queryText(query.eventType);
+  let eventType: EventType | null = typed && (EVENT_TYPES as readonly string[]).includes(typed) ? (typed as EventType) : null;
+  if (!eventType && occasion) eventType = classifyOccasion(occasion) ?? (await readOccasion(req.user.id, occasion))?.eventType ?? null;
+  const occasionFirst = Boolean(eventType || occasion);
   const closet = await prisma.wardrobeItem.findMany({
     where: {
       userId: req.user.id,
@@ -131,6 +149,11 @@ export async function closetGaps(req: Request, res: Response) {
     orderBy: { createdAt: 'desc' },
     take: 12,
   });
-  const { suggestions, outfitsPossible } = closetGapsFor(closet, { wishlist });
-  res.json({ suggestions, outfitsPossible });
+  if (!occasionFirst) {
+    const { suggestions, outfitsPossible } = closetGapsFor(closet, { wishlist });
+    res.json({ suggestions, outfitsPossible });
+    return;
+  }
+  const { suggestions, outfitsPossible } = closetGapsFor(closet, { wishlist, eventType: eventType ?? undefined, occasion });
+  res.json({ eventType, occasion: occasionPhrase(occasion, eventType), canMake: outfitsPossible, suggestions, outfitsPossible });
 }

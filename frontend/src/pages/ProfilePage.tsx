@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, getToken } from '../lib/api'
+import { bookmarkletHref } from '../lib/bookmarklet'
 import type { Measurements, StyleProfile, User } from '@zauq/shared/types'
 import { useProfile } from '../context/useProfile'
 import { useAuth } from '../context/useAuth'
@@ -461,6 +462,7 @@ export function ProfilePage() {
                   onDelete={() => setDeleting(true)}
                 />
               )}
+              {section === 'account' && <BrowserDoorCard onNote={flash} />}
             </div>
 
             <aside className="mt-10 flex flex-col gap-4 lg:mt-0 lg:self-start">
@@ -623,6 +625,51 @@ function AccountSection({
           Delete…
         </button>
       </Row>
+    </section>
+  )
+}
+
+/**
+ * Save from your browser: the bookmarklet (drag it to the bookmarks bar) and
+ * the extension. Both open the store page with the shop page's address and
+ * nothing else. The javascript: href is set on the node directly so React's
+ * dev warning about script URLs stays quiet; clicking it here does nothing.
+ */
+function BrowserDoorCard({ onNote }: { onNote: (msg: string) => void }) {
+  const linkRef = useRef<HTMLAnchorElement>(null)
+  useEffect(() => {
+    linkRef.current?.setAttribute('href', bookmarkletHref(window.location.origin))
+  }, [])
+  return (
+    <section className="card mt-4 px-5 py-5">
+      <p className="eyebrow">Save from your browser</p>
+      <h2 className="section-title mt-1.5">Ask the closet from the shop&rsquo;s own page.</h2>
+      <p className="mt-2 max-w-prose text-sm text-ink/60">On a product page, one click sends its address here. I read the piece and tell you whether it belongs with what you own.</p>
+
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <a
+          ref={linkRef}
+          draggable
+          className="btn-ghost btn-sm cursor-grab select-none active:cursor-grabbing"
+          title="Drag this to your bookmarks bar"
+          onClick={(e) => {
+            e.preventDefault()
+            onNote('Drag it to your bookmarks bar, then click it on a shop page.')
+          }}
+        >
+          Ask the closet
+        </a>
+        <span className="text-sm text-ink/55">Drag this to your bookmarks bar. On any product page, click it.</span>
+      </div>
+
+      <div className="mt-5 border-t border-ink/10 pt-4">
+        <p className="text-xs font-semibold uppercase tracking-label-lg text-ink/45">The extension</p>
+        <p className="mt-1.5 max-w-prose text-sm text-ink/60">
+          The same door as a toolbar button, for Chrome and Firefox. The listing is on its way; until then it loads unpacked from the{' '}
+          <code className="rounded-[3px] bg-ink/[0.06] px-1 py-0.5 text-[12px] text-ink/70">browser-extension</code> folder: open <span className="text-ink/75">chrome://extensions</span>, turn on Developer mode, choose Load unpacked, and pin the arch.
+        </p>
+        <p className="mt-1.5 text-xs text-ink/45">It reads only the address of the tab you click it on, and sends nothing else anywhere.</p>
+      </div>
     </section>
   )
 }

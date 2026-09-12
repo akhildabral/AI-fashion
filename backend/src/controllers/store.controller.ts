@@ -6,6 +6,7 @@ import { notify } from '../lib/notify';
 import type { Unlock } from '../services/pairing.service';
 import { stampFor, unlockWords, verdictFor, type VerdictV2 } from '../services/verdict.service';
 import { wrapOutbound } from '../services/affiliate.service';
+import { compareEdge, compareLine } from '../services/compare.service';
 
 // In the store: a candidate piece (owned: false) goes through the same
 // cataloguing as a real one, then the closet answers — how many outfits it
@@ -108,6 +109,31 @@ export async function itemVerdict(req: Request, res: Response) {
     closest: closest ? { item: closest, wears: v2.closet.closest?.wears ?? 0, likeness: verdict.closest?.likeness ?? 0 } : null,
     unlockLine: verdictLine(verdict),
   });
+}
+
+// GET /wardrobe/compare?a=&b= — two candidates side by side. Each verdict
+// comes from the cache (recomputed only when the closet moved); the edge on
+// every plaque and the one line are read off the two verdicts.
+export async function compareCandidates(req: Request, res: Response) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  const a = typeof req.query.a === 'string' ? req.query.a : '';
+  const b = typeof req.query.b === 'string' ? req.query.b : '';
+  if (!a || !b) throw new HttpError(400, 'Pick two pieces to compare');
+  if (a === b) throw new HttpError(400, 'Those are the same piece');
+  const found = await prisma.wardrobeItem.findMany({ where: { id: { in: [a, b] }, userId: req.user.id } });
+  const pa = found.find((p) => p.id === a);
+  const pb = found.find((p) => p.id === b);
+  if (!pa || !pb) throw new HttpError(404, 'Piece not found');
+  if (pa.status === 'processing' || pb.status === 'processing') {
+    res.status(202).json({ status: 'processing' });
+    return;
+  }
+  if (pa.status === 'failed' || pb.status === 'failed') throw new HttpError(409, 'One of those pieces did not read; try it again first', { reason: 'failed' });
+  const stamp = await stampFor(req.user.id);
+  const [ca, cb] = await Promise.all([pa, pb].map((p) => cachedOf(p, stamp) ?? computeAndCache(req.user!.id, p, stamp)));
+  const edge = compareEdge(ca.v2, cb.v2);
+  const line = compareLine({ piece: pa, v2: ca.v2 }, { piece: pb, v2: cb.v2 }, edge);
+  res.json({ a: { item: pa, v2: ca.v2 }, b: { item: pb, v2: cb.v2 }, edge, line });
 }
 
 /**

@@ -27,6 +27,7 @@ import { OutfitsRoom } from './pages/OutfitsRoom'
 import { ComposePage } from './pages/ComposePage'
 import { StorePage } from './pages/StorePage'
 import { WishlistRoom } from './pages/WishlistRoom'
+import { ComparePage } from './pages/ComparePage'
 import { MirrorPage } from './pages/MirrorPage'
 import { CirclePage } from './pages/CirclePage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -103,6 +104,7 @@ export default function App() {
                 <Route path="/closet/compose" element={guarded(<ComposePage />)} />
                 <Route path="/closet/store" element={guarded(<StorePage />)} />
                 <Route path="/closet/wishlist" element={guarded(<WishlistRoom />)} />
+                <Route path="/closet/compare" element={guarded(<ComparePage />)} />
                 <Route path="/mirror" element={guarded(<MirrorPage />)} />
                 <Route path="/circle" element={guarded(<CirclePage />)} />
                 {/* People is folded into Circle now — keep the URL working. */}

@@ -6,7 +6,7 @@ import { addCandidate, deleteWardrobeItem, getWishlist, recatalogWardrobeItem, u
 import { outboundLink, rereadCandidate, setGapOptOut, setNudge, type NudgeIn, type OutboundLink } from '@zauq/shared/store'
 import { getClosetGaps } from '@zauq/shared/brief'
 import { ClosetRooms, RoomMantel } from '../components/ClosetRooms'
-import { PageShell, Toast, useFlash, LoadError, UndoBar, GarmentTile, MirrorFrame, Badge, Filter, MoreMenu, MenuItem, ArchSkeleton } from '../components/ui'
+import { PageShell, Toast, useFlash, LoadError, UndoBar, GarmentTile, MirrorFrame, Badge, Filter, MoreMenu, MenuItem, ArchSkeleton, Chip } from '../components/ui'
 import { PasteField, StoreDoors } from '../components/StoreDoors'
 import { resolveImageUrl } from '../lib/api'
 import { asOf, availabilityLabel, candidateLabel, candidatePrice, needsAffiliateDisclosure, showsAffiliateBadge } from '../lib/fitting-room'
@@ -62,6 +62,9 @@ export function WishlistRoom() {
   const [gapsOnly, setGapsOnly] = useState(false)
   const [showRender, setShowRender] = useState<Set<string>>(new Set())
   const [uploading, setUploading] = useState(false)
+  // Compare mode: pick two cards, then put them side by side.
+  const [comparing, setComparing] = useState(false)
+  const [picked, setPicked] = useState<string[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -208,8 +211,17 @@ export function WishlistRoom() {
     }
   }
 
+  function togglePick(id: string) {
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 2 ? p : [...p, id]))
+  }
+  function stopComparing() {
+    setComparing(false)
+    setPicked([])
+  }
+
   const list = items ?? []
   const occasions = [...new Set(list.flatMap((it) => it.v2?.eventTypes ?? []))]
+  const readyCount = list.filter((it) => it.status === 'ready').length
   const visible = list.filter((it) => {
     if (occasion && !(it.v2?.eventTypes ?? []).includes(occasion)) return false
     if (gapsOnly && !gapIds.has(it.id)) return false
@@ -250,20 +262,43 @@ export function WishlistRoom() {
 
       {items && items.length > 0 && (
         <>
-          {(occasions.length > 0 || gapIds.size > 0) && (
-            <div className="mt-6 flex animate-rise-1 flex-wrap items-center gap-x-1 gap-y-1">
-              <Filter on={occasion === null && !gapsOnly} onClick={() => { setOccasion(null); setGapsOnly(false) }} count={list.length}>
-                All
-              </Filter>
-              {occasions.map((o) => (
-                <Filter key={o} on={occasion === o} onClick={() => setOccasion((p) => (p === o ? null : o))} count={list.filter((it) => (it.v2?.eventTypes ?? []).includes(o)).length}>
-                  {eventLabel(o)}
-                </Filter>
-              ))}
-              {gapIds.size > 0 && (
-                <Filter on={gapsOnly} onClick={() => setGapsOnly((p) => !p)} count={list.filter((it) => gapIds.has(it.id)).length}>
-                  Fills a gap
-                </Filter>
+          {(occasions.length > 0 || gapIds.size > 0 || readyCount >= 2) && (
+            <div className="mt-6 flex animate-rise-1 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+                {(occasions.length > 0 || gapIds.size > 0) && (
+                  <Filter on={occasion === null && !gapsOnly} onClick={() => { setOccasion(null); setGapsOnly(false) }} count={list.length}>
+                    All
+                  </Filter>
+                )}
+                {occasions.map((o) => (
+                  <Filter key={o} on={occasion === o} onClick={() => setOccasion((p) => (p === o ? null : o))} count={list.filter((it) => (it.v2?.eventTypes ?? []).includes(o)).length}>
+                    {eventLabel(o)}
+                  </Filter>
+                ))}
+                {gapIds.size > 0 && (
+                  <Filter on={gapsOnly} onClick={() => setGapsOnly((p) => !p)} count={list.filter((it) => gapIds.has(it.id)).length}>
+                    Fills a gap
+                  </Filter>
+                )}
+              </div>
+              {/* Compare two: a quiet toggle; once two are picked, the one primary. */}
+              {readyCount >= 2 && (
+                <div className="action-row shrink-0">
+                  {comparing && picked.length === 2 && (
+                    <Link to={`/closet/compare?a=${picked[0]}&b=${picked[1]}`} className="btn-primary btn-sm">
+                      Compare these two
+                    </Link>
+                  )}
+                  {comparing ? (
+                    <button type="button" onClick={stopComparing} className="btn-quiet btn-quiet-sm">
+                      {picked.length === 2 ? 'Done' : picked.length === 1 ? 'Pick one more' : 'Pick two to compare'}
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => setComparing(true)} className="btn-quiet btn-quiet-sm">
+                      Compare
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -311,6 +346,11 @@ export function WishlistRoom() {
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <p className="min-w-0 font-display text-xl font-medium leading-tight text-ink">{label}</p>
+                        {comparing && it.status === 'ready' && (
+                          <Chip on={picked.includes(it.id)} disabled={!picked.includes(it.id) && picked.length >= 2} onClick={() => togglePick(it.id)} className="-mt-1 shrink-0" title={picked.includes(it.id) ? `Drop the ${label} from the comparison` : `Pick the ${label} to compare`}>
+                            {picked.includes(it.id) ? 'Picked' : 'Pick'}
+                          </Chip>
+                        )}
                         <MoreMenu align="right" label={`More for the ${label}`} className="-mr-1 -mt-1 shrink-0">
                           <MenuItem onClick={() => void nudge(it, 'fortnight')}>Nudge me in a fortnight</MenuItem>
                           <MenuItem onClick={() => void nudge(it, 'month')}>Nudge me in a month</MenuItem>

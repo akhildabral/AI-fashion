@@ -7,11 +7,12 @@ import { candidateTryOn, chooseGarment, importFromLink, previewLink, rereadCandi
 import { getTryOn } from '@zauq/shared/tryon'
 import { PageShell, Toast, useFlash, Eyebrow, Arch, Plaque, Alert, Chip, MirrorFrame, SkeletonBlock, Tabs } from '../components/ui'
 import { LookBoard } from '../components/LookBoard'
+import { VerdictPlaques, eventLabel } from '../components/VerdictPlaques'
 import { PasteField, StoreDoors, type PasteFieldHandle } from '../components/StoreDoors'
 import { resolveImageUrl } from '../lib/api'
 import { fidelityLine } from '../lib/fidelity'
 import { asOf, candidateLabel, candidatePrice, extractShareUrl, headlineFor, readFailureLine, toneClass } from '../lib/fitting-room'
-import type { IngestSource, LinkRead, LinkReadFailure, TryOn, VerdictPlaqueLine, WardrobeItem } from '@zauq/shared/types'
+import type { IngestSource, LinkRead, LinkReadFailure, TryOn, WardrobeItem } from '@zauq/shared/types'
 
 // The Fitting Room's door: a piece from a link, a photo in the shop, or a
 // screenshot. The same reading that catalogues your closet reads it; the
@@ -41,38 +42,6 @@ function CountUp({ to }: { to: number }) {
     return () => cancelAnimationFrame(raf)
   }, [to])
   return <>{v}</>
-}
-
-/** One plaque's lines, each in its tone: a flag in the danger token, good in brass, a note quiet. */
-function Lines({ lines, className = '' }: { lines: VerdictPlaqueLine[] | undefined; className?: string }) {
-  const list = (lines ?? []).filter((l) => l && l.line)
-  if (list.length === 0) return null
-  return (
-    <ul className={`flex flex-col gap-1.5 ${className}`}>
-      {list.map((l, i) => (
-        <li key={i} className={`text-sm leading-relaxed ${toneClass(l.tone)}`}>
-          {l.line}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function eventLabel(e: string): string {
-  switch (e) {
-    case 'work':
-      return 'Work'
-    case 'casual':
-      return 'Weekends'
-    case 'evening':
-      return 'Evenings'
-    case 'occasion':
-      return 'Occasions'
-    case 'athletic':
-      return 'Training'
-    default:
-      return e.charAt(0).toUpperCase() + e.slice(1)
-  }
 }
 
 interface TryOnState {
@@ -245,7 +214,9 @@ export function StorePage() {
       setStage('reading')
       void read(item)
     } else if (shared) {
-      void startLink(shared, params.get('text') || params.get('title') ? 'share' : 'link')
+      // Which door the link came through, for the share-of-imports metric.
+      const via: IngestSource = door === 'extension' || door === 'bookmarklet' ? 'extension' : params.get('text') || params.get('title') ? 'share' : 'link'
+      void startLink(shared, via)
     } else if (upload) {
       setStage('reading')
       void handleUpload(upload).catch((err) => {
@@ -413,13 +384,6 @@ export function StorePage() {
   const priceLine = v2?.money.price != null ? money(v2.money.price, { currency: v2.money.currency ?? undefined }) : shownPrice ? money(shownPrice.amount, { currency: shownPrice.currency ?? undefined }) : null
   const priceDate = asOf(v2?.money.asOf ?? piece?.lastCheckedAt ?? piece?.seenAt)
   const eventTypes = v2?.eventTypes?.filter(Boolean) ?? []
-  // Which closet facts the stylist's own lines already state.
-  const closetText = (v2?.closet.lines ?? []).map((l) => l.line.toLowerCase()).join(' ')
-  const closetSaid = {
-    pairs: v2 ? closetText.includes(`pairs with ${v2.closet.pairs}`) || closetText.includes(`goes with ${v2.closet.pairs}`) : false,
-    closest: v2?.closet.closest ? closetText.includes(v2.closet.closest.label.toLowerCase()) || closetText.includes('closest') : false,
-    unlock: v2?.closet.unlock ? closetText.includes(v2.closet.unlock.slot.toLowerCase().replace(/s$/, '')) || closetText.includes('unlock') || closetText.includes('take it to') : false,
-  }
   const boards = (v?.outfits ?? []).filter((o) => eventTab === 'all' || !o.eventType || o.eventType === eventTab).slice(0, 3)
 
   return (
@@ -700,62 +664,7 @@ export function StorePage() {
           </div>
 
           {v2 ? (
-            <div className="mt-4 grid animate-rise-3 gap-4">
-              {/* Your closet: pairs, the closest thing you own, what it unlocks */}
-              <Plaque label="Your closet">
-                {/* The stylist's lines carry the facts; the composed sentences only
-                    stand in when a line is missing, so nothing is said twice. */}
-                {closetSaid.pairs ? null : (
-                  <p className="mt-1 text-sm text-ink">
-                    Pairs with <b>{v2.closet.pairs} of your {v2.closet.closetSize}</b> pieces.
-                  </p>
-                )}
-                {v2.closet.closest && !closetSaid.closest && (
-                  <p className="mt-1 text-sm text-ink">
-                    Closest thing you own: the {v2.closet.closest.label}
-                    {v2.closet.closest.wears > 0 ? `, worn ${v2.closet.closest.wears}×` : ', never worn'}.{' '}
-                    <span className={v2.closet.duplicate ? toneClass('flag') : 'text-ink/55'}>{v2.closet.duplicate ? 'Close to a duplicate.' : 'Not a duplicate.'}</span>
-                  </p>
-                )}
-                {v2.closet.unlock && !closetSaid.unlock && (
-                  <p className="mt-1 text-sm text-ink/60">
-                    A {[v2.closet.unlock.colour, v2.closet.unlock.formality, v2.closet.unlock.slot].filter(Boolean).join(' ')} alongside it would unlock {v2.closet.unlock.gain} more.
-                  </p>
-                )}
-                <Lines lines={v2.closet.lines} className="mt-1" />
-              </Plaque>
-
-              {/* The money */}
-              <Plaque label="The money" value={priceLine ?? undefined} note={priceLine ? priceDate ?? undefined : undefined}>
-                {!priceLine && <p className="mt-1 font-display text-lg italic text-ink/55">The shop didn’t say what it costs.</p>}
-                <p className="mt-2 text-sm text-ink/60">
-                  {v2.money.budget === 'within' ? 'Inside how you shop.' : v2.money.budget === 'above' ? 'A step above how you usually shop.' : v2.money.budget === 'far' ? 'Well above how you usually shop.' : ''}
-                  {v2.money.costPerWear != null && (
-                    <>
-                      {' '}
-                      About <b className="text-ink [font-variant-numeric:tabular-nums]">{money(v2.money.costPerWear, { currency: v2.money.currency ?? undefined, digits: v2.money.costPerWear < 10 ? 1 : 0 })} a wear</b>
-                      {v2.money.projectedWearsPerYear != null ? `, on ${v2.money.projectedWearsPerYear} wears a year.` : '.'}
-                    </>
-                  )}
-                </p>
-                <Lines lines={v2.money.lines} className="mt-2" />
-              </Plaque>
-
-              {/* Your build */}
-              {v2.build && (v2.build.lines?.length || v2.build.flags?.length) ? (
-                <Plaque label="Your build">
-                  <Lines lines={v2.build.lines} className="mt-1" />
-                  {v2.build.flags?.length ? <p className="mt-2 text-xs text-ink/45">{v2.build.flags.join(' · ')}</p> : null}
-                </Plaque>
-              ) : null}
-
-              {/* Your taste */}
-              {v2.taste && v2.taste.lines?.length ? (
-                <Plaque label="Your taste">
-                  <Lines lines={v2.taste.lines} className="mt-1" />
-                </Plaque>
-              ) : null}
-            </div>
+            <VerdictPlaques v2={v2} priceLine={priceLine} priceDate={priceDate} className="mt-4 animate-rise-3" />
           ) : (
             (v.closest || v.unlockLine) && (
               <Plaque className="mt-4 animate-rise-3" label="Your closet">

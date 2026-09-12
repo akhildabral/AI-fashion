@@ -44,7 +44,7 @@ import { closetGaps } from './ritual.controller';
 import { measurementsSchema, updateMyProfile } from './profile.controller';
 import { createCandidateTryOn } from './tryon.controller';
 import { HttpError } from '../middleware/error';
-import { closetGapsFor, type PairingPiece } from '../services/pairing.service';
+import { closetGapsFor, formalityBandFor, ghostPiece, occasionPhrase, type PairingPiece } from '../services/pairing.service';
 
 type Res = { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; body?: unknown; code?: number };
 function res(): Res {
@@ -168,6 +168,97 @@ describe('closetGapsFor with the wishlist', () => {
     const useless = piece({ id: 'x', category: 'top', subtype: 'blouse', primaryColor: 'red', owned: false, cutFor: 'womens' });
     const { suggestions } = closetGapsFor(closet, { wishlist: [owned, processing, suppressed, useless] });
     expect(suggestions.every((s) => !s.wishlistItemId)).toBe(true);
+  });
+});
+
+describe('occasion-first gaps', () => {
+  const tee = (extra: Partial<PairingPiece> = {}) => piece({ category: 'top', subtype: 't-shirt', warmthValue: 1, primaryColor: 'white', ...extra });
+  const shirt = (extra: Partial<PairingPiece> = {}) => piece({ category: 'top', subtype: 'shirt', formalityScore: 4, warmthValue: 1, primaryColor: 'white', ...extra });
+  // A casual closet with two dressy tops and dressy shoes but no dressy bottom.
+  const closet = [
+    tee(),
+    tee({ primaryColor: 'navy' }),
+    piece({ category: 'bottom', subtype: 'jeans', primaryColor: 'navy', warmthValue: 3 }),
+    piece({ category: 'footwear', subtype: 'sneakers', primaryColor: 'white' }),
+    shirt(),
+    shirt({ primaryColor: 'black' }),
+    piece({ category: 'footwear', subtype: 'oxford shoes', formalityScore: 4, primaryColor: 'black' }),
+  ];
+
+  it('the band follows the kind of day: an occasion simulates only the dressy bands', () => {
+    expect(formalityBandFor('occasion')).toEqual([4, 5]);
+    expect(formalityBandFor('work')).toEqual([3, 4, 5]);
+    expect(formalityBandFor('casual')).toEqual([1, 2, 3]);
+    expect(formalityBandFor('athletic')).toEqual([1, 2]);
+  });
+
+  it('restricts the simulation to the event type: validated for it, within its band, phrased for it', () => {
+    const plain = closetGapsFor(closet);
+    const forWork = closetGapsFor(closet, { eventType: 'work', occasion: 'a client meeting' });
+    expect(forWork.suggestions.length).toBeGreaterThan(0);
+    for (const s of forWork.suggestions) {
+      expect([3, 4, 5]).toContain(s.formality);
+      expect(s.unlocks).toBeGreaterThan(0);
+      expect(s.wanted).toMatch(/^a \w+ (smart-casual|business|formal) .+ would give you \d+ outfits? for the client meeting$/);
+    }
+    // The missing piece for work is a dressier bottom: the shirts and oxfords are waiting on it.
+    expect(forWork.suggestions[0].category).toBe('bottom');
+    // Without an occasion the answer is as before: the casual band is in play and the wanted is a noun, not a sentence.
+    expect(plain.suggestions[0].formality).toBe(2);
+    expect(plain.suggestions[0].wanted).toMatch(/^a \w+ /);
+    expect(plain.suggestions[0].wanted).not.toMatch(/would give you/);
+  });
+
+  it('a casual closet makes nothing for the occasion band and every suggestion sits in it', () => {
+    const casual = [tee(), tee({ primaryColor: 'navy' }), piece({ category: 'bottom', subtype: 'jeans', primaryColor: 'navy', warmthValue: 3 }), piece({ category: 'footwear', subtype: 'sneakers', primaryColor: 'white' })];
+    const r = closetGapsFor(casual, { eventType: 'occasion', occasion: 'a wedding reception' });
+    expect(r.outfitsPossible).toBe(0);
+    for (const s of r.suggestions) expect([4, 5]).toContain(s.formality);
+    for (const s of r.suggestions) expect(s.wanted).toMatch(/for the wedding reception$/);
+  });
+
+  it('the wishlist comes first: a real piece that unlocks as much as the plain ghost is the suggestion, ahead of it', () => {
+    // The same piece as the best plain ghost, but real and in the wishlist.
+    const wanted: PairingPiece = { ...ghostPiece({ slot: 'bottom', colour: 'black', formality: 3, cutFor: 'unisex' }), id: 'wish-chinos', owned: false, status: 'ready', suppressed: false };
+    const plain = closetGapsFor(closet, { eventType: 'work' });
+    const withWish = closetGapsFor(closet, { eventType: 'work', occasion: 'the office', wishlist: [wanted] });
+    const best = plain.suggestions[0];
+    expect(best).toMatchObject({ category: 'bottom', formality: 3 });
+    const hit = withWish.suggestions.find((s) => s.wishlistItemId === 'wish-chinos');
+    expect(hit).toBeDefined();
+    expect(hit!.unlocks).toBe(best.unlocks);
+    expect(withWish.suggestions[0].wishlistItemId).toBe('wish-chinos');
+    expect(hit!.wanted).toBe(`the black chinos in your wishlist would give you ${hit!.unlocks} outfits for the office`);
+    // One suggestion for that slot and band, and it is the real one, not the ghost.
+    expect(withWish.suggestions.filter((s) => s.category === 'bottom' && s.formality === 3)).toHaveLength(1);
+  });
+
+  it('phrases the occasion after "for"', () => {
+    expect(occasionPhrase('a wedding reception')).toBe('the wedding reception');
+    expect(occasionPhrase('An interview!')).toBe('the interview');
+    expect(occasionPhrase('my sister’s graduation')).toBe('my sister’s graduation');
+    expect(occasionPhrase('tonight')).toBe('tonight');
+    expect(occasionPhrase('', 'casual')).toBe('the weekend');
+    expect(occasionPhrase('Work', 'work')).toBe('work');
+    expect(occasionPhrase(null, 'occasion')).toBe('the occasion');
+  });
+
+  it('GET /stats/gaps?occasion= classifies the day and answers with the event, the phrase and what the closet can make', async () => {
+    mocks.prisma.wardrobeItem.findMany.mockReset();
+    mocks.prisma.wardrobeItem.findMany.mockResolvedValue([]);
+    const r = res();
+    await closetGaps({ user, query: { occasion: 'a wedding reception' } } as never, r as never);
+    expect(r.body).toMatchObject({ eventType: 'occasion', occasion: 'the wedding reception', canMake: 0 });
+    expect((r.body as { suggestions: { formality: number }[] }).suggestions.every((s) => s.formality >= 4)).toBe(true);
+    const typed = res();
+    await closetGaps({ user, query: { eventType: 'work', occasion: 'Work' } } as never, typed as never);
+    expect(typed.body).toMatchObject({ eventType: 'work', occasion: 'work', canMake: 0 });
+    // No occasion: the answer keeps its old shape.
+    const plain = res();
+    await closetGaps({ user, query: {} } as never, plain as never);
+    expect(plain.body).toMatchObject({ outfitsPossible: 0 });
+    expect(plain.body).not.toHaveProperty('eventType');
+    expect(plain.body).not.toHaveProperty('canMake');
   });
 });
 

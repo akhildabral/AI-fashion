@@ -1,13 +1,13 @@
 import { money } from '@zauq/shared/money'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type CSSProperties, type FormEvent } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useNavigate } from 'react-router-dom'
 import { getWardrobe } from '@zauq/shared/wardrobe'
 import { apiFetch } from '../lib/api'
-import { getClosetGaps, getRitualStats, type GapSuggestion, type RitualStats } from '@zauq/shared/brief'
+import { GAP_OCCASIONS, getClosetGaps, getOccasionGaps, getRitualStats, type GapEventType, type GapSuggestion, type OccasionGapsResponse, type RitualStats } from '@zauq/shared/brief'
 import { setGapOptOut } from '@zauq/shared/store'
 import type { WardrobeItem } from '@zauq/shared/types'
-import { GarmentTile, PageShell, Modal, Filter, LoadError, PageHead, Tabs, SectionHead, ArchSkeleton, Alert, Stat, Plaque, MoreMenu, MenuItem, Toast, useFlash } from '../components/ui'
+import { GarmentTile, PageShell, Modal, Filter, LoadError, PageHead, Tabs, SectionHead, ArchSkeleton, Alert, Stat, Plaque, MoreMenu, MenuItem, Toast, useFlash, Chip } from '../components/ui'
 import { ClosetRooms } from '../components/ClosetRooms'
 import { useJobs } from '../context/useJobs'
 import { LetGoModal } from '../components/LetGo'
@@ -47,6 +47,10 @@ export function ClosetPage() {
   const [insights, setInsights] = useState<Map<string, InsightItem>>(new Map())
   const [stats, setStats] = useState<RitualStats | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
+  // "What am I missing for…": the gaps asked for one occasion.
+  const [ask, setAsk] = useState('')
+  const [asking, setAsking] = useState(false)
+  const [occasionGaps, setOccasionGaps] = useState<OccasionGapsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -144,6 +148,7 @@ export function ClosetPage() {
     if (!g.wishlistItemId) return
     const id = g.wishlistItemId
     setGaps((p) => p.filter((x) => x.wishlistItemId !== id))
+    setOccasionGaps((p) => (p ? { ...p, suggestions: p.suggestions.filter((x) => x.wishlistItemId !== id) } : p))
     try {
       await setGapOptOut(id, true)
       flash('Off the rail. I won’t suggest that piece again.')
@@ -151,6 +156,33 @@ export function ClosetPage() {
       setGaps((p) => (p.some((x) => x.wishlistItemId === id) ? p : [...p, g]))
       flash(err instanceof Error ? err.message : 'Could not change that.')
     }
+  }
+
+  /** The gaps for one occasion: typed, or one of the four quick fills. */
+  async function askFor(text: string, eventType?: GapEventType) {
+    const phrase = text.trim()
+    if (!phrase && !eventType) return
+    setAsking(true)
+    try {
+      const r = await getOccasionGaps(phrase, eventType)
+      setOccasionGaps(r)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Couldn’t read that occasion.')
+    } finally {
+      setAsking(false)
+    }
+  }
+  function onAsk(e: FormEvent) {
+    e.preventDefault()
+    void askFor(ask)
+  }
+  function quickFill(o: { eventType: GapEventType; label: string }) {
+    setAsk(o.label)
+    void askFor(o.label, o.eventType)
+  }
+  function clearAsk() {
+    setAsk('')
+    setOccasionGaps(null)
   }
 
   function handleUpdated(updated: WardrobeItem) {
@@ -423,39 +455,84 @@ export function ClosetPage() {
               </>
             )}
 
-            {/* What the closet is missing — the gaps, as the reason to add. */}
-            {gaps.length > 0 && (
+            {/* What the closet is missing — the gaps, as the reason to add;
+                and "what am I missing for…", the same simulation for one occasion. */}
+            {(gaps.length > 0 || list.length > 0) && (
               <div className="mt-12 animate-rise">
                 <SectionHead title="What the closet is missing" />
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {gaps.map((g) =>
-                    g.wishlistItemId ? (
-                      <div key={`wish-${g.wishlistItemId}`} className="card flex items-start justify-between gap-3 p-4">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass-ink">In your wishlist</p>
-                          <p className="mt-1 font-display text-lg font-medium leading-snug text-ink">
-                            A piece in your wishlist would unlock {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'}: the {g.wanted}.
-                          </p>
-                          <button type="button" onClick={() => navigate(`/closet/store?item=${g.wishlistItemId}`)} className="btn-quiet btn-quiet-sm mt-2">
-                            Open
-                          </button>
-                        </div>
-                        <MoreMenu align="right" label={`More for the ${g.wanted}`} className="shrink-0">
-                          <MenuItem onClick={() => void dontSuggest(g)}>Don’t suggest this</MenuItem>
-                        </MoreMenu>
-                      </div>
-                    ) : (
-                      <div key={g.category} className="card p-4">
-                        <p className="font-display text-xl font-medium text-ink">
-                          {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
-                        </p>
-                        <p className="mt-2 text-[13px] text-ink/55">
-                          Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
-                        </p>
-                      </div>
-                    ),
-                  )}
+                <form onSubmit={onAsk} className="flex max-w-xl gap-2">
+                  <label className="min-w-0 flex-1">
+                    <span className="sr-only">What am I missing for</span>
+                    <input
+                      value={ask}
+                      onChange={(e) => setAsk(e.target.value)}
+                      disabled={asking}
+                      autoComplete="off"
+                      maxLength={120}
+                      placeholder="What am I missing for…"
+                      className="field"
+                    />
+                  </label>
+                  <button type="submit" disabled={asking || !ask.trim()} className="btn-quiet shrink-0">
+                    Ask
+                  </button>
+                </form>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {GAP_OCCASIONS.map((o) => (
+                    <Chip key={o.eventType} on={occasionGaps?.eventType === o.eventType && ask === o.label} disabled={asking} onClick={() => quickFill(o)}>
+                      {o.label}
+                    </Chip>
+                  ))}
                 </div>
+
+                {occasionGaps && (
+                  <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                    <p className="font-display text-lg italic leading-snug text-ink/70">
+                      You can already make <b className="not-italic text-brass-ink [font-variant-numeric:tabular-nums]">{occasionGaps.canMake}</b> {occasionGaps.canMake === 1 ? 'outfit' : 'outfits'} for that.
+                      {occasionGaps.suggestions.length === 0 && ' Nothing one piece would change much.'}
+                    </p>
+                    <button type="button" onClick={clearAsk} className="btn-quiet btn-quiet-sm">
+                      Clear
+                    </button>
+                  </div>
+                )}
+
+                {(occasionGaps ? occasionGaps.suggestions : gaps).length > 0 && (
+                  <div className={`${occasionGaps ? 'mt-4' : 'mt-6'} grid gap-4 sm:grid-cols-2 lg:grid-cols-3`}>
+                    {(occasionGaps ? (occasionGaps.suggestions as Gap[]) : gaps).map((g) =>
+                      g.wishlistItemId ? (
+                        <div key={`wish-${g.wishlistItemId}`} className="card flex items-start justify-between gap-3 p-4">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass-ink">In your wishlist</p>
+                            <p className="mt-1 font-display text-lg font-medium leading-snug text-ink">
+                              {occasionGaps
+                                ? `${g.wanted.charAt(0).toUpperCase()}${g.wanted.slice(1)}.`
+                                : `A piece in your wishlist would unlock ${g.unlocks} ${g.unlocks === 1 ? 'outfit' : 'outfits'}: the ${g.wanted}.`}
+                            </p>
+                            <button type="button" onClick={() => navigate(`/closet/store?item=${g.wishlistItemId}`)} className="btn-quiet btn-quiet-sm mt-2">
+                              Open
+                            </button>
+                          </div>
+                          <MoreMenu align="right" label={`More for the ${g.wanted}`} className="shrink-0">
+                            <MenuItem onClick={() => void dontSuggest(g)}>Don’t suggest this</MenuItem>
+                          </MoreMenu>
+                        </div>
+                      ) : (
+                        <div key={`${g.category}-${g.formality ?? ''}-${g.colour ?? ''}`} className="card p-4">
+                          <p className="font-display text-xl font-medium text-ink">
+                            {g.wanted.charAt(0).toUpperCase() + g.wanted.slice(1)}
+                            {occasionGaps ? '.' : ''}
+                          </p>
+                          {!occasionGaps && (
+                            <p className="mt-2 text-[13px] text-ink/55">
+                              Unlocks {g.unlocks} {g.unlocks === 1 ? 'outfit' : 'outfits'} you can’t build today.
+                            </p>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </>

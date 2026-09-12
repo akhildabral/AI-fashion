@@ -1,0 +1,15 @@
+{
+  "name": "@zauq/browser-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZAUQ — Ask the closet. A one-button browser extension that sends the current tab's address to the ZAUQ store page.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node -e \"JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')\"",
+    "icons": "cd ../backend && npx tsx ../browser-extension/scripts/icons.ts",
+    "pack": "zip -r -X ../zauq-ask-the-closet.zip manifest.json options.html options.css src icons -x '*.DS_Store'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
