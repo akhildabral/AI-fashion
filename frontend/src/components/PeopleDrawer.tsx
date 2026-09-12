@@ -5,20 +5,18 @@ import {
   followUser,
   getHidden,
   getNetwork,
-  getStyleTwins,
   searchUsers,
   unblockUser,
   unfollowUser,
   unmuteUser,
   type Hidden,
   type NetworkEntry,
-  type StyleTwin,
 } from '@zauq/shared/social'
 
 // The people in your circle — a searchable drawer with tabs, never a wall
 // of chips. Rows, not badges, so it scales to hundreds.
 
-export type PeopleTab = 'following' | 'followers' | 'find' | 'suggested' | 'hidden'
+export type PeopleTab = 'following' | 'followers' | 'find' | 'hidden'
 
 /** Two letters from a name ("Sam K." → SK), or from the handle when that's all there is. */
 export function initialsOf(name?: string | null, handle?: string | null): string {
@@ -102,7 +100,6 @@ export function PeopleDrawer({
 }) {
   const [tab, setTab] = useState<PeopleTab>(initialTab)
   const [network, setNetwork] = useState<{ following: NetworkEntry[]; followers: NetworkEntry[] } | null>(null)
-  const [twins, setTwins] = useState<StyleTwin[] | null>(null)
   const [hidden, setHidden] = useState<Hidden | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -116,7 +113,6 @@ export function PeopleDrawer({
   useEffect(() => {
     if (!open) return
     void getNetwork().then(setNetwork).catch(() => setNetwork({ following: [], followers: [] }))
-    void getStyleTwins().then(({ twins: t }) => setTwins(t ?? [])).catch(() => setTwins([]))
     void getHidden().then(setHidden).catch(() => setHidden({ blocked: [], muted: [] }))
   }, [open])
 
@@ -146,9 +142,8 @@ export function PeopleDrawer({
         setNetwork((n) => (n ? { ...n, following: n.following.filter((u) => u.handle !== handle) } : n))
       } else {
         const { isFriend } = await followUser(handle)
-        const known = network?.followers.find((u) => u.handle === handle) ?? twins?.find((t) => t.handle === handle) ?? results.find((r) => r.handle === handle)
+        const known = network?.followers.find((u) => u.handle === handle) ?? results.find((r) => r.handle === handle)
         setNetwork((n) => (n ? { ...n, following: [{ handle, name: known?.name ?? handle, isFriend }, ...n.following] } : n))
-        setTwins((t) => (t ? t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)) : t))
       }
       onChanged?.()
     } catch {
@@ -159,7 +154,6 @@ export function PeopleDrawer({
   const tabs: { key: PeopleTab; label: string; count?: number }[] = [
     { key: 'following', label: 'Following', count: network?.following.length },
     { key: 'followers', label: 'Followers', count: network?.followers.length },
-    { key: 'suggested', label: 'Kindred taste', count: twins?.length },
     { key: 'find', label: 'Find' },
     ...((hidden?.blocked.length ?? 0) + (hidden?.muted.length ?? 0) > 0 ? [{ key: 'hidden' as const, label: 'Hidden', count: hidden!.blocked.length + hidden!.muted.length }] : []),
   ]
@@ -268,24 +262,6 @@ export function PeopleDrawer({
         </div>
       )}
 
-      {tab === 'suggested' && (
-        <div className="mt-2">
-          <p className="pb-2 text-xs text-ink/50">Matched by wardrobe and taste, not follower counts.</p>
-          {twins === null && <RowSkeleton label="Loading people" />}
-          {twins && twins.length === 0 && <Nobody>No matches yet. Take the fitting and fill your closet.</Nobody>}
-          {twins?.map((t) => (
-            <PersonRow
-              key={t.handle}
-              handle={t.handle}
-              name={t.name}
-              sub={t.sharedTaste.length > 0 ? `You both: ${t.sharedTaste.join(' · ')}` : `${t.match}% match`}
-              following={t.isFollowing || followingSet.has(t.handle)}
-              onToggle={() => toggle(t.handle)}
-              onNavigate={onClose}
-            />
-          ))}
-        </div>
-      )}
     </Modal>
   )
 }

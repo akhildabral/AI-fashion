@@ -3,13 +3,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../lib/usePageTitle'
 import { apiFetch, resolveImageUrl } from '../lib/api'
 import { useAuth } from '../context/useAuth'
-import { Arch, Modal, PageShell, PageHead, Toast, useFlash, Tabs, MoreMenu, MenuItem, Filter, Stat, LoadError, SkeletonBlock } from '../components/ui'
-import { Initials, PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
+import { Arch, Modal, PageShell, PageHead, Toast, useFlash, Tabs, MoreMenu, MenuItem, Stat, LoadError, SkeletonBlock } from '../components/ui'
+import { PeopleDrawer, type PeopleTab } from '../components/PeopleDrawer'
 import { InviteSheet } from '../components/InviteSheet'
 import { ReportSheet } from '../components/ReportSheet'
 import { StyleFriendModal } from '../components/StyleFriendModal'
 import { thankPick, withdrawPick } from '@zauq/shared/social'
-import { setLookPhoto, type ExploreOccasion } from '@zauq/shared/circle'
+import { setLookPhoto } from '@zauq/shared/circle'
 import type { CardActions } from '../components/CircleCards'
 import { WeekCard } from '../components/CircleCards'
 import { deletePoll } from '@zauq/shared/polls'
@@ -17,9 +17,8 @@ import { muteUser, type ReportTarget } from '@zauq/shared/social'
 import { GarmentThumb, LookCard, PickCard, Plate, VerdictCard } from '../components/CircleCards'
 import { AskCircleModal, ShareLookModal } from '../components/ComposeModals'
 import { recreateFromCloset, type RecreateResponse } from '@zauq/shared/brief'
-import { followUser, getSocialMe, getStyleTwins, type SocialMe, type StyleTwin } from '@zauq/shared/social'
+import { getSocialMe, type SocialMe } from '@zauq/shared/social'
 import {
-  getCircleExplore,
   getCircleFeed,
   getCircleSaved,
   getCircleToday,
@@ -27,7 +26,6 @@ import {
   unsaveLook,
   voteOnVerdict,
   type CirclePost,
-  type Lens,
   type LookPost,
   type PostItem,
   type ReactionKind,
@@ -44,14 +42,14 @@ import {
 // a drawer and the things that happened to you behind the bell. Every post
 // asks something of you: recreate it, vote it, wear it, keep it.
 
-const LENSES: { key: Lens; label: string }[] = [
-  { key: 'foryou', label: 'For you' },
+// The circle is only the people you follow. Nobody is suggested and nothing
+// from outside it is threaded in; you find people by searching for them.
+type FeedLens = 'following' | 'saved'
+
+const LENSES: { key: FeedLens; label: string }[] = [
   { key: 'following', label: 'Following' },
-  { key: 'explore', label: 'Explore' },
   { key: 'saved', label: 'Saved' },
 ]
-
-const RAIL_DISMISS_KEY = 'circle-suggested-dismissed'
 
 export function CirclePage() {
   usePageTitle('Circle')
@@ -60,10 +58,9 @@ export function CirclePage() {
   const { toast, flash } = useFlash()
 
   const [me, setMe] = useState<SocialMe | null>(null)
-  const [twins, setTwins] = useState<StyleTwin[]>([])
   const [today, setToday] = useState<LookPost[] | null>(null)
 
-  const [lens, setLens] = useState<Lens>('foryou')
+  const [lens, setLens] = useState<FeedLens>('following')
   const [posts, setPosts] = useState<CirclePost[] | null>(null)
   const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [circleSize, setCircleSize] = useState<number | null>(null)
@@ -75,36 +72,27 @@ export function CirclePage() {
   const [asking, setAsking] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [styling, setStyling] = useState(false)
-  const [exploreOccasion, setExploreOccasion] = useState<ExploreOccasion | null>(null)
-  const [exploreKindred, setExploreKindred] = useState(false)
   const [reporting, setReporting] = useState<{ type: ReportTarget; id: string; label: string } | null>(null)
   const [focus, setFocus] = useState<{ type: PostTarget; id: string } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
-  const [railDismissed, setRailDismissed] = useState(() => {
-    try {
-      return localStorage.getItem(RAIL_DISMISS_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
   const [recreate, setRecreate] = useState<{ handle: string; result: RecreateResponse | null } | null>(null)
   const [saving, setSaving] = useState(false)
   const reqId = useRef(0)
 
-  const loadFeed = useCallback(async (which: Lens, offset = 0) => {
+  const loadFeed = useCallback(async (which: FeedLens, offset = 0) => {
     const id = ++reqId.current
     if (offset === 0) {
       setPosts(null)
       setError(null)
     } else setLoadingMore(true)
     try {
-      if (which === 'explore' || which === 'saved') {
-        const r = which === 'explore' ? await getCircleExplore({ occasion: exploreOccasion ?? undefined, kindred: exploreKindred }) : await getCircleSaved()
+      if (which === 'saved') {
+        const r = await getCircleSaved()
         if (id !== reqId.current) return
         setPosts(r.posts)
         setNextOffset(null)
       } else {
-        const r = await getCircleFeed(which, offset)
+        const r = await getCircleFeed('following', offset)
         if (id !== reqId.current) return
         setPosts((prev) => (offset === 0 || !prev ? r.posts : [...prev, ...r.posts]))
         setNextOffset(r.nextOffset)
@@ -117,11 +105,10 @@ export function CirclePage() {
     } finally {
       if (id === reqId.current) setLoadingMore(false)
     }
-  }, [exploreOccasion, exploreKindred])
+  }, [])
 
   const refreshSide = useCallback(() => {
     void getSocialMe().then(setMe).catch(() => setMe({ handle: null, name: 'you', followers: 0, following: 0, picks: 0 }))
-    void getStyleTwins().then(({ twins: t }) => setTwins(t ?? [])).catch(() => setTwins([]))
     void getCircleToday().then((r) => setToday(r.entries)).catch(() => setToday([]))
   }, [])
 
@@ -271,33 +258,10 @@ export function CirclePage() {
     }
   }
 
-  async function quickFollow(handle: string) {
-    try {
-      await followUser(handle)
-      setTwins((t) => t.map((x) => (x.handle === handle ? { ...x, isFollowing: true } : x)))
-      refreshSide()
-      void loadFeed(lens)
-      flash('Following.')
-    } catch {
-      flash('Could not follow.')
-    }
-  }
-
-  function dismissRail() {
-    setRailDismissed(true)
-    try {
-      localStorage.setItem(RAIL_DISMISS_KEY, '1')
-    } catch {
-      /* fine */
-    }
-  }
-
   const openPeople = (tab: PeopleTab) => setPeople({ open: true, tab })
   const feedEmpty = posts !== null && posts.length === 0 && !error
   const mineToday = today?.find((t) => t.isMine) ?? null
   const othersToday = (today ?? []).filter((t) => !t.isMine)
-  const suggested = twins.filter((t) => !t.isFollowing)
-  const showRail = !railDismissed && suggested.length > 0 && (posts?.length ?? 0) > 0
 
   const actions: CardActions = {
     react: handleReact,
@@ -417,30 +381,8 @@ export function CirclePage() {
             </MoreMenu>
           </div>
 
-          {/* ---- lens: tabs switch views of the same feed; filters narrow one of them ---- */}
+          {/* ---- lens: tabs switch views of the same feed ---- */}
           <Tabs className="mt-8 animate-rise-1" label="Feed" value={lens} onChange={(k) => setLens(k)} items={LENSES.map((l) => ({ key: l.key, label: l.label }))} />
-          {lens === 'explore' && (
-            <div className="mt-3 flex flex-wrap items-center gap-1">
-              {(
-                [
-                  [null, 'Everything'],
-                  ['work', 'Work'],
-                  ['casual', 'Weekend'],
-                  ['evening', 'Evening'],
-                  ['occasion', 'Occasion'],
-                ] as [ExploreOccasion | null, string][]
-              ).map(([k, l]) => (
-                <Filter key={l} on={exploreOccasion === k} onClick={() => setExploreOccasion(k)}>
-                  {l}
-                </Filter>
-              ))}
-              <span className="filter-sep" />
-              <Filter on={exploreKindred} onClick={() => setExploreKindred((v) => !v)}>
-                Kindred taste
-              </Filter>
-            </div>
-          )}
-
           {/* ---- feed: one ranked column, in a single measure ---- */}
           <div className="mt-4 flex flex-col gap-4">
             {posts === null && (
@@ -458,16 +400,7 @@ export function CirclePage() {
             {error && <LoadError className="!min-h-0 py-10" message={error} onRetry={() => void loadFeed(lens)} />}
             {feedEmpty && <EmptyFeed lens={lens} circleSize={circleSize} onFind={() => openPeople('find')} onShare={() => setSharing(true)} onInvite={() => setInviting(true)} />}
 
-            {posts?.slice(0, 2).map(renderPost)}
-            {showRail && (
-              <SuggestedRail
-                people={suggested.slice(0, 6)}
-                onFollow={quickFollow}
-                onDismiss={dismissRail}
-                onSeeAll={() => openPeople('suggested')}
-              />
-            )}
-            {posts?.slice(2).map(renderPost)}
+            {posts?.map(renderPost)}
 
             {nextOffset !== null && (
               <button type="button" disabled={loadingMore} onClick={() => void loadFeed(lens, nextOffset)} className="btn-ghost mx-auto mt-2">
@@ -511,35 +444,6 @@ export function CirclePage() {
             )}
           </div>
 
-          {twins.length > 0 && (
-            <div className="card hidden p-4 lg:block">
-              <p className="font-display text-2xl font-medium text-ink">Kindred taste</p>
-              <p className="mt-1 text-xs text-ink/50">Matched by wardrobe and taste, not follower counts.</p>
-              <div className="mt-2">
-                {twins.slice(0, 3).map((t) => (
-                  <div key={t.handle} className="flex items-center gap-3 border-t border-ink/10 py-3 first:border-t-0">
-                    <Link to={`/u/${t.handle}`} className="press flex min-w-0 flex-1 items-center gap-3">
-                      <Initials handle={t.handle} name={t.name} className="h-8 w-8" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-ink">{t.name}</span>
-                        <span className="block truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
-                      </span>
-                    </Link>
-                    {!t.isFollowing && (
-                      <button type="button" onClick={() => void quickFollow(t.handle)} className="btn-ghost btn-sm shrink-0">
-                        Follow
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {twins.length > 3 && (
-                <button type="button" onClick={() => openPeople('suggested')} className="btn-quiet btn-quiet-sm mt-1">
-                  See all {twins.length} →
-                </button>
-              )}
-            </div>
-          )}
         </aside>
       </div>
 
@@ -568,7 +472,7 @@ export function CirclePage() {
         onClose={() => setAsking(false)}
         onAsked={() => {
           flash('Asked. Your circle will weigh in.')
-          if (lens === 'foryou' || lens === 'following') void loadFeed(lens)
+          if (lens === 'following') void loadFeed(lens)
         }}
       />
 
@@ -641,25 +545,20 @@ function EmptyFeed({
   onShare,
   onInvite,
 }: {
-  lens: Lens
+  lens: FeedLens
   circleSize: number | null
   onFind: () => void
   onShare: () => void
   onInvite: () => void
 }) {
-  const copy: Record<Lens, { title: string; body: string }> = {
-    foryou: {
-      title: 'The salon is quiet',
+  const copy: Record<FeedLens, { title: string; body: string }> = {
+    following: {
+      title: circleSize === 0 ? 'The salon is quiet' : 'Nothing new from your people',
       body:
         circleSize === 0
           ? 'Bring in someone whose taste you trust. Their looks, verdicts and picks gather here.'
-          : 'Your circle’s gone quiet. Share yours and get it going.',
+          : 'When they share a look or ask a verdict, it lands here in order.',
     },
-    following: {
-      title: 'Nothing new from your people',
-      body: 'When they share a look or ask a verdict, it lands here in order.',
-    },
-    explore: { title: 'Nothing hung yet', body: 'When people post their outfit of the day, the best of it lands here.' },
     saved: { title: 'Your board is empty', body: 'Tap Save on any look you’d wear. It waits here for when you need the idea.' },
   }
   const c = copy[lens]
@@ -668,7 +567,7 @@ function EmptyFeed({
     <div className="px-6 py-12 text-center">
       <p className="font-display text-2xl font-medium italic text-ink">{c.title}</p>
       <p className="mx-auto mt-2 max-w-sm text-sm text-ink/55">{c.body}</p>
-      {lens !== 'explore' && lens !== 'saved' && circleSize === 0 && (
+      {lens !== 'saved' && circleSize === 0 && (
         <div className="action-row mt-5 justify-center">
           <button type="button" onClick={onInvite} className="btn-primary">
             Invite a friend
@@ -678,53 +577,12 @@ function EmptyFeed({
           </button>
         </div>
       )}
-      {lens !== 'explore' && lens !== 'saved' && circleSize !== 0 && (
+      {lens !== 'saved' && circleSize !== 0 && (
         <button type="button" onClick={onShare} className="btn-primary mt-5">
           Share a look
         </button>
       )}
     </div>
-  )
-}
-
-/** People to follow, threaded into the feed on small screens (the side rail carries it on desktop). */
-function SuggestedRail({
-  people,
-  onFollow,
-  onDismiss,
-  onSeeAll,
-}: {
-  people: StyleTwin[]
-  onFollow: (handle: string) => void
-  onDismiss: () => void
-  onSeeAll: () => void
-}) {
-  return (
-    <section aria-label="People with your taste" className="card p-4 lg:hidden">
-      <div className="flex items-baseline justify-between">
-        <p className="eyebrow">Kindred taste</p>
-        <button type="button" onClick={onDismiss} className="press text-xs text-ink/55 transition-colors hover:text-ink">
-          Hide
-        </button>
-      </div>
-      <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-        {people.map((t) => (
-          <div key={t.handle} className="w-36 shrink-0 rounded-[3px] border border-ink/10 bg-bone p-3 text-center">
-            <Link to={`/u/${t.handle}`} className="press inline-flex flex-col items-center">
-              <Initials handle={t.handle} name={t.name} className="h-8 w-8" />
-              <span className="mt-2 block max-w-full truncate text-sm font-semibold text-ink">{t.name}</span>
-              <span className="mt-0.5 block max-w-full truncate text-[11px] text-ink/50">{t.sharedTaste[0] ?? `${t.match}% match`}</span>
-            </Link>
-            <button type="button" onClick={() => onFollow(t.handle)} className="btn-ghost btn-sm mt-3 w-full">
-              Follow
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={onSeeAll} className="btn-quiet btn-quiet-sm shrink-0 self-center whitespace-nowrap">
-          See all →
-        </button>
-      </div>
-    </section>
   )
 }
 
