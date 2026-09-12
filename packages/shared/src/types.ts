@@ -50,6 +50,8 @@ export interface StyleProfile {
   skinTone: string
   styleVibe: string
   budgetBand: string
+  /** Optional measurements for fit guidance; never required. */
+  measurements?: Measurements | null
   avoidColors: string[]
   /** Taste-quiz output; null until the quiz has been taken. */
   styleSignals?: { signals: string[]; takenAt: string } | null
@@ -225,6 +227,24 @@ export interface WardrobeItem {
   seenPrice?: number | null
   store?: string | null
   nudgeAt?: string | null
+  /** The Fitting Room: where a candidate came from and what the shop said. */
+  sourceUrl?: string | null
+  canonicalUrl?: string | null
+  retailer?: string | null
+  productName?: string | null
+  currency?: string | null
+  listPrice?: number | null
+  salePrice?: number | null
+  chosenColour?: string | null
+  chosenSize?: string | null
+  sizeOptions?: string[]
+  availability?: 'in_stock' | 'out_of_stock' | 'preorder' | 'unknown' | string | null
+  sourceImages?: string[]
+  lastCheckedAt?: string | null
+  ingestSource?: IngestSource | null
+  verdictVersion?: number | null
+  gapOptOut?: boolean
+  tryOnUrl?: string | null
   brand?: string | null
   size?: string | null
   /** Tags, second edition. cutFor: womens | mens | unisex. */
@@ -503,4 +523,94 @@ export interface TasteResponse {
   /** Under five wears: the stylist goes by the fitting, and the quiz signals ride along. */
   coldStart: boolean
   signals: string[]
+}
+
+// ---- The Fitting Room -------------------------------------------------------
+
+export type IngestSource = 'camera' | 'library' | 'link' | 'share' | 'extension' | 'screenshot'
+
+/** Optional body measurements; unit applies to every number. */
+export interface Measurements {
+  unit: 'cm' | 'in'
+  chest?: number | null
+  waist?: number | null
+  hips?: number | null
+  shoulder?: number | null
+  inseam?: number | null
+  preferredFit?: 'slim' | 'regular' | 'relaxed' | null
+}
+
+/** What the reader extracted from a shop link. */
+export interface LinkRead {
+  ok: true
+  retailer: string
+  canonicalUrl: string
+  productName: string | null
+  brand: string | null
+  price: number | null
+  salePrice: number | null
+  currency: string | null
+  availability: WardrobeItem['availability']
+  images: string[]
+  chosenColour: string | null
+  chosenSize: string | null
+  sizeOptions: string[]
+  /** ISO time the page was read; prices are shown with it. */
+  asOf: string
+  /** Which rung of the reading ladder produced the facts. */
+  method: 'jsonld' | 'opengraph' | 'inline' | 'vendor'
+}
+
+export type LinkReadFailure = {
+  ok: false
+  /** blocked: the shop refused the fetch; not-product: not a product page; unsupported: no parser; disabled: retailer switched off */
+  reason: 'blocked' | 'not-product' | 'unsupported' | 'disabled' | 'timeout'
+  retailer: string | null
+  message: string
+}
+
+export interface FromLinkResponse {
+  item: WardrobeItem
+  read: LinkRead
+}
+
+/** Verdict v2 headline ladder: suggestive, never "don't buy". */
+export type VerdictHeadline = 'earns' | 'could' | 'wait'
+
+export interface VerdictPlaqueLine {
+  /** One sentence in the stylist's voice. */
+  line: string
+  /** 'good' lifts, 'note' is neutral, 'flag' is the reason a headline is not a clear yes. */
+  tone: 'good' | 'note' | 'flag'
+}
+
+export interface VerdictV2 {
+  headline: VerdictHeadline
+  /** The one line under the headline: the reason, in the stylist's voice. */
+  line: string
+  /** Event types the outfits were validated for. */
+  eventTypes: string[]
+  closet: {
+    outfits: number
+    pairs: number
+    closetSize: number
+    closest: { id: string; label: string; wears: number; likeness: number } | null
+    duplicate: boolean
+    unlock: { slot: string; colour: string | null; formality: string | null; gain: number } | null
+    lines: VerdictPlaqueLine[]
+  }
+  taste: { score: number; lines: VerdictPlaqueLine[] } | null
+  build: { lines: VerdictPlaqueLine[]; flags: string[] } | null
+  money: {
+    price: number | null
+    currency: string | null
+    asOf: string | null
+    budget: 'within' | 'above' | 'far' | 'unknown'
+    costPerWear: number | null
+    projectedWearsPerYear: number | null
+    lines: VerdictPlaqueLine[]
+  }
+  climate: { lines: VerdictPlaqueLine[] } | null
+  computedAt: string
+  version: number
 }

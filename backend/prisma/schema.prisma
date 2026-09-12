@@ -264,6 +264,30 @@ model WardrobeItem {
   brand          String?
   size           String?
   productId      String?
+  // The Fitting Room: where a candidate came from and what the shop said.
+  sourceUrl      String?
+  canonicalUrl   String?
+  retailer       String?
+  productName    String?
+  currency       String?
+  listPrice      Float?
+  salePrice      Float?
+  chosenColour   String?
+  chosenSize     String?
+  sizeOptions    String[]  @default([])
+  availability   String?
+  sourceImages   String[]  @default([])
+  lastCheckedAt  DateTime?
+  // camera | library | link | share | extension | screenshot
+  ingestSource   String?
+  // Raw extraction (JSON-LD / OG / inline state), kept for debugging and re-reads.
+  extraction     Json?
+  // Closet stamp the cached verdict was computed against.
+  verdictVersion Int?
+  // Member opted this wishlist piece out of the Closet's gap suggestions.
+  gapOptOut      Boolean   @default(false)
+  // Cached try-on render for a candidate.
+  tryOnUrl       String?
   // Tags, second edition. cutFor: womens | mens | unisex — the line the
   // stylist never crosses. The rest describe proportion and make.
   cutFor         String?
@@ -482,6 +506,8 @@ model StyleProfile {
   skinTone    String?
   styleVibe   String?
   budgetBand  String?
+  // Optional measurements for fit guidance: { chest, waist, hips, shoulder, inseam, unit: 'cm'|'in', preferredFit }.
+  measurements Json?
   avoidColors String[]
   // Taste-quiz output: { signals: string[], takenAt: ISO string }. Cold-start
   // personalization until the wear log takes over.
