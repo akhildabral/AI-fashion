@@ -68,3 +68,4 @@ frontend/public/_*.json
 # Python caches (skill scripts)
 __pycache__/
 deploy/backend.env.bak-*
+.env.prod.bak-*

@@ -1,43 +1,61 @@
 #!/usr/bin/env bash
-# Write deploy/backend.env from the APP_* variables in the environment. CI
-# passes them in from the GitHub production secrets and variables
-# (APP_JWT_SECRET becomes JWT_SECRET=...), so GitHub is the source of truth
-# and the file on the box is a rendered copy. Empty values are skipped.
+# Write the two env files on the box from the environment CI hands over, so
+# GitHub (production secrets and variables) is the source of truth and the
+# files here are rendered copies:
 #
-# With no APP_* variables (a deploy by hand) this does nothing and the file
-# on the box stays as it is. The previous file is kept beside the new one as
-# backend.env.bak-<timestamp> whenever it changes.
+#   APP_<KEY>   → deploy/backend.env   (the backend's settings and secrets)
+#   PROD_<KEY>  → .env.prod            (compose level: Postgres password,
+#                                       site address, public origin)
+#
+# Empty values are skipped. With none of a prefix in the environment (a
+# deploy by hand) that file is left as it is. The previous file is kept
+# beside the new one as <file>.bak-<timestamp> whenever it changes.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-new="$(mktemp)"
-trap 'rm -f "$new"' EXIT
-for name in $(compgen -e | grep '^APP_' | grep -v '^APP_ENV_KEYS$' | sort); do
-  value="${!name}"
-  [ -n "$value" ] && printf '%s=%s\n' "${name#APP_}" "$value" >> "$new"
-done
+# render <prefix> <target file> <required key>...
+render() {
+  local prefix="$1" target="$2"; shift 2
+  local new name value key
+  new="$(mktemp)"
+  for name in $(compgen -e | grep "^$prefix" | grep -v '^APP_ENV_KEYS$' | sort); do
+    value="${!name}"
+    [ -n "$value" ] && printf '%s=%s\n' "${name#"$prefix"}" "$value" >> "$new"
+  done
 
-if [ ! -s "$new" ]; then
-  echo "▸ no APP_* settings in the environment — keeping deploy/backend.env as it is"
-  exit 0
-fi
-
-# The backend refuses to boot without these; never swap in a file missing them.
-for key in JWT_SECRET AI_API_KEY CORS_ORIGINS PUBLIC_ORIGIN; do
-  if ! grep -q "^$key=." "$new"; then
-    echo "✗ no APP_$key from GitHub — keeping the existing deploy/backend.env"
-    exit 1
+  if [ ! -s "$new" ]; then
+    echo "▸ no ${prefix}* settings in the environment — keeping $target as it is"
+    rm -f "$new"; return 0
   fi
-done
-
-if [ -f deploy/backend.env ]; then
-  if cmp -s "$new" deploy/backend.env; then
-    echo "▸ deploy/backend.env unchanged"
-    exit 0
+  # Never swap in a file missing a key the stack cannot start without.
+  for key in "$@"; do
+    if ! grep -q "^$key=." "$new"; then
+      echo "✗ no $prefix$key from GitHub — keeping the existing $target"
+      rm -f "$new"; return 1
+    fi
+  done
+  # Postgres keeps the password its volume was created with; a different one
+  # here would only lock the backend out. Change it in Postgres (ALTER USER)
+  # and in this file by hand first, then in GitHub.
+  if [ "$target" = .env.prod ] && [ -f "$target" ] \
+    && [ "$(grep '^POSTGRES_PASSWORD=' "$target")" != "$(grep '^POSTGRES_PASSWORD=' "$new")" ]; then
+    echo "✗ PROD_POSTGRES_PASSWORD differs from the one the database uses — keeping the existing $target"
+    rm -f "$new"; return 1
   fi
-  cp -p deploy/backend.env "deploy/backend.env.bak-$(date +%Y%m%d%H%M%S)"
-  # Keep the five most recent backups.
-  ls -1t deploy/backend.env.bak-* 2>/dev/null | tail -n +6 | xargs -r rm -f
-fi
-install -m 600 "$new" deploy/backend.env
-echo "▸ deploy/backend.env written from GitHub ($(grep -c '=' deploy/backend.env) keys)"
+
+  if [ -f "$target" ]; then
+    if cmp -s "$new" "$target"; then
+      echo "▸ $target unchanged"
+      rm -f "$new"; return 0
+    fi
+    cp -p "$target" "$target.bak-$(date +%Y%m%d%H%M%S)"
+    # Keep the five most recent backups.
+    ls -1t "$target".bak-* 2>/dev/null | tail -n +6 | xargs -r rm -f
+  fi
+  install -m 600 "$new" "$target"
+  rm -f "$new"
+  echo "▸ $target written from GitHub ($(grep -c '=' "$target") keys)"
+}
+
+render APP_ deploy/backend.env JWT_SECRET AI_API_KEY CORS_ORIGINS PUBLIC_ORIGIN
+render PROD_ .env.prod POSTGRES_PASSWORD SITE_ADDRESS
