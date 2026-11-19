@@ -84,27 +84,49 @@ jobs:
       cancel-in-progress: false
     env:
       VPS_HOST: ${{ secrets.VPS_HOST }}
+      # The backend's env file lives in GitHub, not on the box: each APP_<KEY>
+      # below (production secrets, then variables) is handed to the SSH
+      # session and deploy/write-env.sh writes it as <KEY>=<value> into
+      # deploy/backend.env. To add a setting: create the secret or variable,
+      # add its line here and its name to APP_ENV_KEYS.
+      APP_ADMIN_EMAILS: ${{ secrets.APP_ADMIN_EMAILS }}
+      APP_AI_API_KEY: ${{ secrets.APP_AI_API_KEY }}
+      APP_GOOGLE_CLIENT_SECRET: ${{ secrets.APP_GOOGLE_CLIENT_SECRET }}
+      APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
+      APP_RAZORPAY_KEY_ID: ${{ secrets.APP_RAZORPAY_KEY_ID }}
+      APP_RAZORPAY_KEY_SECRET: ${{ secrets.APP_RAZORPAY_KEY_SECRET }}
+      APP_RAZORPAY_WEBHOOK_SECRET: ${{ secrets.APP_RAZORPAY_WEBHOOK_SECRET }}
+      APP_SMTP_PASS: ${{ secrets.APP_SMTP_PASS }}
+      APP_VAPID_PRIVATE_KEY: ${{ secrets.APP_VAPID_PRIVATE_KEY }}
+      APP_VAPID_SUBJECT: ${{ secrets.APP_VAPID_SUBJECT }}
+      APP_AI_PROVIDER: ${{ vars.APP_AI_PROVIDER }}
+      APP_CORS_ORIGINS: ${{ vars.APP_CORS_ORIGINS }}
+      APP_GOOGLE_CLIENT_ID: ${{ vars.APP_GOOGLE_CLIENT_ID }}
+      APP_IMAGE_MODEL: ${{ vars.APP_IMAGE_MODEL }}
+      APP_IMAGE_PROVIDER: ${{ vars.APP_IMAGE_PROVIDER }}
+      APP_IMAGE_QUALITY: ${{ vars.APP_IMAGE_QUALITY }}
+      APP_LINK_EXTRACTOR: ${{ vars.APP_LINK_EXTRACTOR }}
+      APP_MATTING_ENABLED: ${{ vars.APP_MATTING_ENABLED }}
+      APP_MATTING_MODEL: ${{ vars.APP_MATTING_MODEL }}
+      APP_MIN_SUPPORTED_CLIENT: ${{ vars.APP_MIN_SUPPORTED_CLIENT }}
+      APP_PUBLIC_ORIGIN: ${{ vars.APP_PUBLIC_ORIGIN }}
+      APP_RAZORPAY_PLAN_PLUS: ${{ vars.APP_RAZORPAY_PLAN_PLUS }}
+      APP_RAZORPAY_PLAN_PREMIUM: ${{ vars.APP_RAZORPAY_PLAN_PREMIUM }}
+      APP_RAZORPAY_PLAN_PRO: ${{ vars.APP_RAZORPAY_PLAN_PRO }}
+      APP_SMTP_FROM: ${{ vars.APP_SMTP_FROM }}
+      APP_SMTP_HOST: ${{ vars.APP_SMTP_HOST }}
+      APP_SMTP_PORT: ${{ vars.APP_SMTP_PORT }}
+      APP_SMTP_USER: ${{ vars.APP_SMTP_USER }}
+      APP_STORAGE_DRIVER: ${{ vars.APP_STORAGE_DRIVER }}
+      APP_TEXT_MODEL: ${{ vars.APP_TEXT_MODEL }}
+      APP_TRYON_MODE: ${{ vars.APP_TRYON_MODE }}
+      APP_TRYON_REFERENCES: ${{ vars.APP_TRYON_REFERENCES }}
+      APP_VAPID_PUBLIC_KEY: ${{ vars.APP_VAPID_PUBLIC_KEY }}
+      APP_ENV_KEYS: APP_ADMIN_EMAILS,APP_AI_API_KEY,APP_GOOGLE_CLIENT_SECRET,APP_JWT_SECRET,APP_RAZORPAY_KEY_ID,APP_RAZORPAY_KEY_SECRET,APP_RAZORPAY_WEBHOOK_SECRET,APP_SMTP_PASS,APP_VAPID_PRIVATE_KEY,APP_VAPID_SUBJECT,APP_AI_PROVIDER,APP_CORS_ORIGINS,APP_GOOGLE_CLIENT_ID,APP_IMAGE_MODEL,APP_IMAGE_PROVIDER,APP_IMAGE_QUALITY,APP_LINK_EXTRACTOR,APP_MATTING_ENABLED,APP_MATTING_MODEL,APP_MIN_SUPPORTED_CLIENT,APP_PUBLIC_ORIGIN,APP_RAZORPAY_PLAN_PLUS,APP_RAZORPAY_PLAN_PREMIUM,APP_RAZORPAY_PLAN_PRO,APP_SMTP_FROM,APP_SMTP_HOST,APP_SMTP_PORT,APP_SMTP_USER,APP_STORAGE_DRIVER,APP_TEXT_MODEL,APP_TRYON_MODE,APP_TRYON_REFERENCES,APP_VAPID_PUBLIC_KEY
     steps:
       - name: Skip when VPS secrets are not configured
         if: env.VPS_HOST == ''
         run: echo "VPS_HOST secret not set — skipping deploy."
-      # The backend's env file is rendered here from GitHub: every secret or
-      # variable named APP_<KEY> becomes <KEY>=<value> in deploy/backend.env on
-      # the box (deploy/write-env.sh). With no APP_ entries the result is
-      # empty and the file on the box is left alone.
-      - name: Render backend env from secrets and variables
-        if: env.VPS_HOST != ''
-        env:
-          SECRETS_JSON: ${{ toJSON(secrets) }}
-          VARS_JSON: ${{ toJSON(vars) }}
-        run: |
-          b64="$(jq -rn '(env.VARS_JSON | fromjson) + (env.SECRETS_JSON | fromjson)
-            | to_entries | map(select(.key | startswith("APP_"))) | sort_by(.key)
-            | .[] | "\(.key[4:])=\(.value)"' | base64 -w0)"
-          if [ -n "$b64" ]; then
-            echo "::add-mask::$b64"
-            echo "BACKEND_ENV_B64=$b64" >> "$GITHUB_ENV"
-          fi
       # The SSH handshake to the VPS drops now and then. A green build must
       # not fail on that, so the deploy gets three tries (after 60 s, then
       # 120 s); the script is idempotent (reset to origin/main, then
@@ -125,7 +147,7 @@ jobs:
           # during the SSH handshake and failing the whole deploy.
           timeout: 120s
           command_timeout: 30m
-          envs: BACKEND_ENV_B64
+          envs: ${{ env.APP_ENV_KEYS }}
           script: |
             set -e
             cd ~/ai-fashion
@@ -148,7 +170,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           timeout: 120s
           command_timeout: 30m
-          envs: BACKEND_ENV_B64
+          envs: ${{ env.APP_ENV_KEYS }}
           script: |
             set -e
             cd ~/ai-fashion
@@ -169,7 +191,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           timeout: 120s
           command_timeout: 30m
-          envs: BACKEND_ENV_B64
+          envs: ${{ env.APP_ENV_KEYS }}
           script: |
             set -e
             cd ~/ai-fashion

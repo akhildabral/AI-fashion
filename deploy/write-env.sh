@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
-# Write deploy/backend.env from $BACKEND_ENV_B64, which CI renders from the
-# GitHub secrets and variables whose names start with APP_ (APP_JWT_SECRET
-# becomes JWT_SECRET=...). GitHub is the source of truth; the file on the box
-# is a rendered copy.
+# Write deploy/backend.env from the APP_* variables in the environment. CI
+# passes them in from the GitHub production secrets and variables
+# (APP_JWT_SECRET becomes JWT_SECRET=...), so GitHub is the source of truth
+# and the file on the box is a rendered copy. Empty values are skipped.
 #
-# Without the variable (a deploy by hand, or no APP_ secrets yet) this does
-# nothing and the file on the box stays as it is. The previous file is kept
-# beside the new one as backend.env.bak-<timestamp> whenever it changes.
+# With no APP_* variables (a deploy by hand) this does nothing and the file
+# on the box stays as it is. The previous file is kept beside the new one as
+# backend.env.bak-<timestamp> whenever it changes.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ -z "${BACKEND_ENV_B64:-}" ]; then
-  echo "▸ no env from CI — keeping deploy/backend.env as it is"
-  exit 0
-fi
-
 new="$(mktemp)"
 trap 'rm -f "$new"' EXIT
-printf '%s' "$BACKEND_ENV_B64" | base64 -d > "$new"
+for name in $(compgen -e | grep '^APP_' | grep -v '^APP_ENV_KEYS$' | sort); do
+  value="${!name}"
+  [ -n "$value" ] && printf '%s=%s\n' "${name#APP_}" "$value" >> "$new"
+done
+
+if [ ! -s "$new" ]; then
+  echo "▸ no APP_* settings in the environment — keeping deploy/backend.env as it is"
+  exit 0
+fi
 
 # The backend refuses to boot without these; never swap in a file missing them.
 for key in JWT_SECRET AI_API_KEY CORS_ORIGINS PUBLIC_ORIGIN; do
   if ! grep -q "^$key=." "$new"; then
-    echo "✗ rendered env has no $key — keeping the existing deploy/backend.env"
+    echo "✗ no APP_$key from GitHub — keeping the existing deploy/backend.env"
     exit 1
   fi
 done
