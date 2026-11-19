@@ -88,6 +88,23 @@ jobs:
       - name: Skip when VPS secrets are not configured
         if: env.VPS_HOST == ''
         run: echo "VPS_HOST secret not set — skipping deploy."
+      # The backend's env file is rendered here from GitHub: every secret or
+      # variable named APP_<KEY> becomes <KEY>=<value> in deploy/backend.env on
+      # the box (deploy/write-env.sh). With no APP_ entries the result is
+      # empty and the file on the box is left alone.
+      - name: Render backend env from secrets and variables
+        if: env.VPS_HOST != ''
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          b64="$(jq -rn '(env.VARS_JSON | fromjson) + (env.SECRETS_JSON | fromjson)
+            | to_entries | map(select(.key | startswith("APP_"))) | sort_by(.key)
+            | .[] | "\(.key[4:])=\(.value)"' | base64 -w0)"
+          if [ -n "$b64" ]; then
+            echo "::add-mask::$b64"
+            echo "BACKEND_ENV_B64=$b64" >> "$GITHUB_ENV"
+          fi
       # The SSH handshake to the VPS drops now and then. A green build must
       # not fail on that, so the deploy gets three tries (after 60 s, then
       # 120 s); the script is idempotent (reset to origin/main, then
@@ -108,11 +125,13 @@ jobs:
           # during the SSH handshake and failing the whole deploy.
           timeout: 120s
           command_timeout: 30m
+          envs: BACKEND_ENV_B64
           script: |
             set -e
             cd ~/ai-fashion
             git fetch origin main
             git reset --hard origin/main
+            bash deploy/write-env.sh
             bash deploy/deploy.sh
       - name: Wait before the second try
         if: env.VPS_HOST != '' && steps.deploy.outcome == 'failure'
@@ -129,11 +148,13 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           timeout: 120s
           command_timeout: 30m
+          envs: BACKEND_ENV_B64
           script: |
             set -e
             cd ~/ai-fashion
             git fetch origin main
             git reset --hard origin/main
+            bash deploy/write-env.sh
             bash deploy/deploy.sh
       - name: Wait before the third try
         if: env.VPS_HOST != '' && steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
@@ -148,9 +169,11 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           timeout: 120s
           command_timeout: 30m
+          envs: BACKEND_ENV_B64
           script: |
             set -e
             cd ~/ai-fashion
             git fetch origin main
             git reset --hard origin/main
+            bash deploy/write-env.sh
             bash deploy/deploy.sh
