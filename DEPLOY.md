@@ -6,10 +6,10 @@ HTTPS and proxying `/api` + `/vote` to the backend.
 
 Requirements: Ubuntu 22.04/24.04 VPS with ≥4 GB RAM (8 GB recommended), a
 domain with an **A record pointing at the VPS IP** (or an `sslip.io` address
-like `https://187.77.129.31.sslip.io` while DNS is pending), and your AI
+like `https://189.72.158.143.sslip.io` while DNS is pending), and your AI
 provider key.
 
-The current production box: IP `187.77.129.31`, deploy user `deploy`, app at
+The current production box: IP `189.72.158.143`, deploy user `deploy`, app at
 `/home/deploy/ai-fashion`, reachable locally via the SSH alias
 `hostinger-vps` (see §7).
 
@@ -274,7 +274,7 @@ One-time wiring — three repository secrets at
 
 | Secret        | Value                                                    |
 |---------------|----------------------------------------------------------|
-| `VPS_HOST`    | `187.77.129.31`                                          |
+| `VPS_HOST`    | `189.72.158.143`                                          |
 | `VPS_USER`    | `deploy`                                                 |
 | `VPS_SSH_KEY` | full contents of the deploy private key, BEGIN/END lines included |
 | `VPS_PORT`    | optional, defaults to 22                                 |
@@ -323,7 +323,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d backend'
 ```
 
 `hostinger-vps` is an SSH alias in `~/.ssh/config` pointing at
-`deploy@187.77.129.31`. Mirror the same keys into local `backend/.env` for
+`deploy@189.72.158.143`. Mirror the same keys into local `backend/.env` for
 dev the same way.
 
 ## 8. Razorpay billing (currently test mode)
@@ -503,7 +503,7 @@ mistake never locks you out.
    `/root/.ssh/authorized_keys` and `/home/deploy/.ssh/authorized_keys`
    (mode `0600`, directory `0700`, owned by the user). CI's key is already
    in `deploy`'s file (§6). Test: `ssh -o PasswordAuthentication=no
-   deploy@187.77.129.31 true` and the same for `root` must both succeed.
+   deploy@189.72.158.143 true` and the same for `root` must both succeed.
 2. **Keys only, no root login.** Write a drop-in so `apt` upgrades never
    overwrite it:
 
